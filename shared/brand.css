@@ -1,0 +1,12 @@
+/* Shared storefront brand values. Preserve the customer palette exactly. */
+:root {
+  --plum:#5c3d6e;
+  --lavender:#c3b2d7;
+  --lilac:#e8dff5;
+  --cream:#fdf8f2;
+  --blush:#f5d9e8;
+  --gold:#c9a85c;
+  --dark:#1e1218;
+  --text:#3a2840;
+  --mid:#7a5d8a;
+}

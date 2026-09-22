@@ -1,0 +1,30 @@
+// Read-only boundary tests for operational counts; no Supabase writes.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+(async()=>{
+ const source=fs.readFileSync('admin/dashboard-model.js','utf8');
+ const {summarizeDashboard,dateKey}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+ const now=new Date('2026-09-18T04:00:00Z');
+ assert.equal(dateKey('2026-09-17T16:01:00Z'),'2026-09-18');
+ const order=(id,status,extra={})=>({id,order_number:id,status,slot_id:'open',receiving_start:'2026-09-18T13:00:00+08:00',receiving_end:'2026-09-18T14:00:00+08:00',created_at:now.toISOString(),delivery_fee_status:'not_applicable',...extra});
+ const input={orders:[order('1','confirmed'),order('2','preparing'),order('3','ready'),order('4','pending'),order('5','cancelled'),order('6','completed'),order('7','confirmed',{receiving_end:'2026-09-18T10:00:00+08:00'}),order('8','confirmed',{slot_id:'closed',delivery_fee_status:'unquoted'})],stock:[{id:'a',name:'Flour',stock:2,min_stock:3,unit:'kg'},{id:'b',stock:0,min_stock:3},{id:'c',stock:0,is_archived:true}],batches:[{id:'exp',item_id:'a',expires_on:'2026-09-18'},{id:'used',item_id:'a',expires_on:'2026-09-19'},{id:'old',item_id:'a',expires_on:'2026-09-17'},{id:'later',item_id:'a',expires_on:'2026-09-25'}],movements:[{batch_id:'exp',quantity_delta:2},{batch_id:'used',quantity_delta:2},{batch_id:'used',quantity_delta:-2},{batch_id:'old',quantity_delta:1},{batch_id:'later',quantity_delta:1}],slots:[{id:'open',starts_at:'2026-09-18T13:00:00+08:00',capacity:10,is_open:true},{id:'closed',starts_at:'2026-09-18T15:00:00+08:00',capacity:100,is_open:false}]};
+ const result=summarizeDashboard(input,now);
+ assert.equal(result.todayOrders.length,7);
+ assert.equal(result.pending.length,1);
+ assert.deepEqual(result.production.map(o=>o.id),['1','2']);
+ assert.deepEqual(result.handoffs.map(o=>o.id),['3']);
+ assert.equal(result.attention.length,3);
+ const queueIds=[...result.production,...result.handoffs,...result.attention].map(o=>o.id);
+ assert.equal(new Set(queueIds).size,queueIds.length,'Operational queues must not repeat orders');
+ assert.equal(result.low.length,1);assert.equal(result.out.length,1);
+ assert.deepEqual(result.expiring.map(b=>b.id),['exp']);
+ assert.deepEqual(result.expired.map(b=>b.id),['old']);
+ assert.equal(result.capacity[0].capacity,10);
+ assert.equal(result.capacity[0].booked,6);
+ assert.equal(result.capacity[0].closedBooked,1);
+ assert.equal(result.capacity[0].remaining,4);
+ assert.equal(result.capacity[1].capacity,0);
+ const blank=summarizeDashboard({orders:[],stock:[],batches:[],movements:[],slots:[]},now);
+ assert.equal(blank.activity.length,0);assert.equal(blank.capacity.length,7);
+ console.log('PASS Dashboard: Philippine dates, disjoint queues, cancelled/completed orders, stock thresholds, consumed/expired batches, closed-slot capacity, empty data');
+})().catch(error=>{console.error(error);process.exitCode=1;});

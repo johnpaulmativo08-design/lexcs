@@ -1,0 +1,28 @@
+.booking-availability-form{display:grid;gap:12px;min-width:min(420px,82vw)}
+.booking-availability-form h3{margin:0;font-size:14px;color:#33265e}
+.booking-availability-form label{display:grid;gap:6px;color:#554a75;font-size:12px;font-weight:800}
+.booking-availability-form label span{display:flex;align-items:center;gap:8px}
+.booking-availability-form input{padding:10px;border:1px solid #dcd2ec;border-radius:8px;background:#fff;color:#292149;font:inherit}
+.booking-availability-form hr{width:100%;border:0;border-top:1px solid #eee9f8;margin:2px 0}
+.availability-date{margin:0;padding:10px 12px;border-radius:9px;background:#f5f0ff;color:#5e36c5;font-size:13px;font-weight:800}
+.availability-note{margin:0;color:#746c8e;font-size:11px;line-height:1.45}
+.booking-availability-form [role=alert]{margin:0;color:#c3294b;font-size:12px}
+@media(max-width:540px){.booking-availability-form{min-width:0}.booking-availability-form label span{flex-wrap:wrap}}
+.booking-hour{display:block;width:100%;padding:0;border:0;background:transparent;cursor:crosshair;transition:background .15s ease}
+.booking-hour:hover{background:rgba(117,76,219,.08);box-shadow:inset 0 0 0 1px rgba(117,76,219,.2)}
+.booking-hour:focus-visible{outline:2px solid #7444e2;outline-offset:-2px}
+.booking-reference-layout{grid-template-columns:minmax(760px,1fr) 245px;align-items:start;gap:16px}
+.booking-calendar{border-radius:12px;box-shadow:0 7px 20px rgba(56,32,104,.09)}
+.booking-side{position:sticky;top:86px}
+.booking-mini,.booking-selected-card,.booking-today{border-color:#e8e1f2;box-shadow:0 5px 16px rgba(56,32,104,.07);border-radius:11px}
+.booking-day{min-height:106px;padding-top:14px}
+.booking-day.closed{background:linear-gradient(180deg,#d1d0d5,#bdbcc3);color:#373643}
+.booking-day.closed .capacity-progress{background:rgba(255,255,255,.38)}
+.booking-day.closed small{font-weight:800;color:#34333e}
+.booking-card{min-height:58px;padding:7px 8px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(49,32,86,.16)}
+.booking-card>span:not(.booking-status-dot):not(.booking-attention){display:none}
+.booking-card .fulfillment{margin-top:4px;padding:2px 5px}
+.booking-card b{font-size:10px}.booking-card small{font-size:9px}
+.booking-today>button{grid-template-columns:43px 1fr auto;padding:9px 0}
+.booking-heading{margin-bottom:2px}.booking-topbar{margin:8px 0 10px}.booking-filter-row{padding-top:7px}
+@media(max-width:1120px){.booking-reference-layout{grid-template-columns:1fr}.booking-side{position:static}}

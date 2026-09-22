@@ -1,0 +1,2 @@
+/* Stable calendar positioning: each booking is placed from its recorded start time. */
+.booking-time-grid .booking-column{position:relative;padding:0 5px;min-height:660px}.booking-time-grid .booking-card{position:absolute;left:5px;right:5px;width:calc(100% - 10px);margin:0;z-index:2}.booking-time-grid .booking-card:hover{z-index:4}.booking-time-grid .booking-hour{height:66px}

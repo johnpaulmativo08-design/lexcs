@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+exports/
+MARK-project/
+MARK-IDE-review-*/
+*.zip
+.DS_Store

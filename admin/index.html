@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-admin-protected>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ADMIN Preview — LexC's Snacktime</title>
+  <script src="../shared/vendor/supabase.js"></script>
+  <script src="../shared/supabase-config.js"></script>
+  <script src="../shared/supabase-client.js?v=3"></script>
+  <script src="auth.js"></script>
+  <script src="../shared/catalog.js"></script>
+  <link rel="stylesheet" href="admin.css?v=14">
+  <link rel="stylesheet" href="bookings.css?v=1">
+  <link rel="stylesheet" href="booking-reference.css?v=3">
+  <link rel="stylesheet" href="booking-availability.css?v=4">
+  <link rel="stylesheet" href="booking-alignment.css?v=1">
+  <script type="module" src="app.js?v=25"></script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <button class="scrim" aria-label="Close navigation" hidden></button>
+  <aside class="sidebar" id="sidebar" aria-label="Admin navigation">
+    <button class="menu-toggle" aria-label="Collapse navigation" aria-controls="sidebar" aria-expanded="true"><svg class="admin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+    <div class="identity"><img class="logo" src="assets/logo.png" alt="LexC's Snacktime"><div class="identity-name">LexC Administrator</div><div class="identity-role">Administrator</div></div>
+    <nav id="navigation"></nav>
+    <button class="logout" type="button"><svg class="admin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"></path><path d="M14 3h7v18h-7"></path></svg><span>Log out</span></button>
+  </aside>
+  <header class="header"><button class="mobile-menu" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">☰</button><h1 id="page-title">Dashboard</h1><div class="header-actions"><button id="notifications" aria-label="Notifications"><svg class="header-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg><span id="notification-count" class="notification-count" hidden></span></button><span class="header-divider"></span><a href="#profile" aria-label="Profile" class="header-initials">LA</a></div></header>
+  <main id="content" tabindex="-1"></main>
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>

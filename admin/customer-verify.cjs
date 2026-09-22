@@ -1,0 +1,43 @@
+const assert = require('node:assert/strict');
+const { chromium } = require(process.argv[2]);
+(async()=>{
+ const browser=await chromium.launch({channel:'msedge',headless:true});
+ try {
+  const page=await browser.newPage({viewport:{width:1440,height:1000}});
+  const errors=[]; page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('http://127.0.0.1:8000/',{waitUntil:'domcontentloaded'});
+  assert.equal(await page.locator('.page.active').getAttribute('id'),'page-home');
+  await page.evaluate(()=>navigate('shop'));
+  assert.equal(await page.locator('#productsGrid .product-card').count(),25);
+  await page.evaluate(()=>{document.querySelector('#size-2').value='1';addToCartById(2);changeQty(0,1);});
+  const before=await page.evaluate(()=>JSON.stringify(cart));
+  await page.evaluate(()=>goToCheckout());
+  assert.equal(await page.locator('.page.active').getAttribute('id'),'page-login');
+  await page.locator('#loginName').fill('missing@example.com');
+  await page.locator('#loginPassword').fill('wrong');
+  await page.evaluate(()=>handleLogin());
+  assert.equal(await page.locator('.page.active').getAttribute('id'),'page-login');
+  await page.evaluate(()=>navigate('register'));
+  await page.locator('#regEmail').fill('test@example.com');
+  await page.locator('#regName').fill('Test Baker');
+  await page.locator('#regPassword').fill('Customer123!');
+  await page.locator('#regConfirm').fill('Customer123!');
+  await page.locator('#regConfirm').press('Enter');
+  assert.equal(await page.locator('.page.active').getAttribute('id'),'page-checkout');
+  assert.equal(await page.evaluate(()=>JSON.stringify(cart)),before);
+  assert.match(await page.locator('#checkoutGrandTotal').innerText(),/1,240/);
+  await page.evaluate(()=>{handleLogout();goToCheckout();});
+  await page.locator('#loginName').fill('test@example.com');
+  await page.locator('#loginPassword').fill('Customer123!');
+  await page.locator('#loginPassword').press('Enter');
+  assert.equal(await page.locator('.page.active').getAttribute('id'),'page-checkout');
+  assert.equal(await page.evaluate(()=>JSON.stringify(cart)),before);
+  await page.evaluate(()=>goToCheckout());
+  assert.equal(await page.locator('.page.active').getAttribute('id'),'page-checkout');
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('admin_logged_in')),null);
+  await page.goto('http://127.0.0.1:8000/admin/');
+  await page.waitForURL('**/login.html');
+  assert.deepEqual(errors,[]);
+  console.log('PASS: public home/catalog/cart, checkout guard, wrong login, registration, email login, cart/quantity/price preservation, independent sessions, keyboard submit.');
+ } finally {await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

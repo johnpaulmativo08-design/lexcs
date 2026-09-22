@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Login — LexC's Snacktime</title>
+  <link rel="stylesheet" href="admin.css?v=13">
+  <script src="../shared/vendor/supabase.js"></script>
+  <script src="../shared/supabase-config.js"></script>
+  <script src="../shared/supabase-client.js?v=3"></script>
+  <script src="auth.js"></script>
+  <script src="login.js" defer></script>
+</head>
+<body class="login-page">
+  <section class="login-card">
+    <img class="login-logo" src="assets/logo.png" alt="LexC's Snacktime">
+    <p class="eyebrow">LEXC'S SNACKTIME · ADMINISTRATION</p>
+    <h1>Welcome back</h1>
+    <p class="login-subtitle">Sign in to your bakeshop workspace.</p>
+    <form id="admin-login">
+      <p id="login-error" class="form-error" role="alert" hidden></p>
+      <label class="form-field">Email<input name="email" type="email" autocomplete="username" required></label>
+      <label class="form-field">Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="button primary" type="submit">Log In</button>
+    </form>
+    <a class="customer-return" href="../">Back to Customer Website</a>
+  </section>
+</body>
+</html>

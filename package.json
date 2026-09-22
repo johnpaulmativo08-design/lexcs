@@ -1,0 +1,10 @@
+{
+  "name": "lexcs-snacktime",
+  "private": true,
+  "scripts": {
+    "configure": "node scripts/configure-supabase.cjs",
+    "check:backend": "node scripts/check-supabase.cjs",
+    "check:static": "node scripts/check-static.cjs"
+  },
+  "dependencies": { "@supabase/supabase-js": "2.116.0" }
+}

@@ -1,0 +1,260 @@
+body{
+font-family: Arial;
+margin:0;
+background:#eee;
+}
+
+/* NAVBAR */
+
+.navbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:15px 40px;
+background:white;
+}
+
+.navbar ul{
+display:flex;
+gap:25px;
+list-style:none;
+}
+
+/* HERO */
+
+.hero{
+background:url("cover1.png");
+background-repeat: no-repeat;
+background-size: cover;
+height:400px;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+
+.hero-box{
+background:#9b7bb7;
+padding:36px;
+margin-top:20%;
+color:white;
+text-align:center;
+
+}
+
+.hero button{
+padding:10px 20px;
+border:none;
+background:white;
+color:#7b5a9d;
+display: flex;
+justify-content: center;
+margin-left: 35%;
+flex-wrap: wrap;
+}
+
+.baked-section {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Purple background strip */
+.text-box {
+  background-color: #8e6bbf;
+  color: white;
+  padding: 140px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  display:flex;
+  margin-top: 0%;
+}
+
+/* Image overlay */
+.image-box1 {
+  right: 60px;
+  top: 40%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+   margin-top: 30%;
+
+}
+
+.image-box1 img {
+  height: 350px;
+  border-radius: 10px;
+  display: flex;
+}
+.h2 {
+     margin-top: 25%;
+}
+
+
+
+
+/* FAQ */
+
+.faq{
+padding:50px;
+background:#eee;
+}
+
+.faq-btn{
+width:100%;
+padding:12px;
+background:#9b7bb7;
+border:none;
+margin-top:10px;
+color:white;
+}
+
+.faq-content{
+display:none;
+padding:10px;
+background:white;
+}
+.footer{
+background:#8f76a8;
+padding:50px 80px;
+color:white;
+}
+
+.footer-container{
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+gap:50px;
+}
+
+.footer-logo img{
+width:120px;
+border-radius:50%;
+}
+
+.footer h4{
+margin-bottom:8px;
+font-weight:bold;
+}
+
+.footer p{
+margin:3px 0;
+font-size:14px;
+}
+
+.footer-sitemap p{
+cursor:pointer;
+}
+
+.footer-sitemap p:hover{
+text-decoration:underline;
+}
+
+.shop-btn{
+background:#8f76a8;
+color:white;
+padding:10px 25px;
+border:none;
+border-radius:20px;
+font-size:16px;
+cursor:pointer;
+transition:0.3s;
+text-decoration:none;
+display:inline-block;
+}
+
+/* HOVER EFFECT */
+
+.shop-btn:hover{
+background:#4e3d5f;
+color: #eee;
+transform:scale(1.05);
+}
+
+/* NAVBAR */
+
+.navbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:15px 60px;
+background:white;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
+position:sticky;
+top:0;
+z-index:100;
+}
+
+/* NAV LINKS */
+
+.nav-links{
+display:flex;
+gap:30px;
+list-style:none;
+}
+
+.nav-links a{
+text-decoration:none;
+color:#6c4c8a;
+font-weight:500;
+font-size:16px;
+transition:0.3s;
+}
+
+/* HOVER EFFECT */
+
+.nav-links a:hover{
+color:white;
+background:#8f76a8;
+padding:6px 14px;
+border-radius:6px;
+}
+
+/* LOGO */
+
+.logo{
+font-weight:bold;
+font-size:20px;
+color:#8f76a8;
+}
+
+/* Optimized Palette & Global Reset */
+:root {
+  --primary-purple: #8e6bbf;
+  --dark-purple: #3d2647; /* High contrast text color */
+  --light-lavender: #f4effa;
+  --accent-purple: #8f76a8;
+  --white: #ffffff;
+}
+
+/* Corrected Element Rules */
+body {
+  background-color: var(--light-lavender);
+  color: var(--dark-purple);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Standalone Bold Text Helper (Replaces Invalid Nested Syntax) */
+.text-bold {
+  font-weight: 700;
+}
+
+/* Improved Touch Targets for Buttons */
+.btn-primary {
+  background-color: var(--primary-purple);
+  color: var(--white);
+  padding: 0.75rem 1.5rem;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+  background-color: var(--dark-purple);
+}
