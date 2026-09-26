@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Order Payment · LexC's Snacktime</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/brand.css"><link rel="stylesheet" href="payment.css?v=2">
+  <script src="../shared/vendor/supabase.js"></script><script src="../shared/supabase-config.js"></script>
+  <script src="../shared/supabase-client.js?v=4"></script><script src="payment.js?v=3" defer></script>
+</head>
+<body>
+  <header><a href="../">LexC's Snacktime</a><span>QR payment · manually verified</span></header>
+  <main>
+    <nav aria-label="Breadcrumb"><a id="back-to-orders" href="../">← Back to My Orders</a> <span>›</span> Payment</nav>
+    <h1>Order payment</h1>
+    <p class="lead">Your order is saved. Pay by QR, then send your bank receipt for review.</p>
+    <div class="flow-steps" aria-label="Payment steps"><span data-step="1"><b>1</b> Choose QR</span><span data-step="2"><b>2</b> Send payment</span><span data-step="3"><b>3</b> Verify transfer</span></div>
+    <div id="feedback" role="status" hidden></div>
+    <div id="payment-content" aria-live="polite"><section class="card state-card"><h2>Loading your order…</h2><p>Checking your saved payment details.</p></section></div>
+  </main>
+</body>
+</html>

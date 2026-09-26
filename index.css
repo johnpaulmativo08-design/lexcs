@@ -258,3 +258,15 @@ body {
 .btn-primary:hover {
   background-color: var(--dark-purple);
 }
+/* Shared storefront product and manual-payment refinements. */
+.product-detail-link{display:block;border:0;background:transparent;padding:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.product-detail-link:hover,.product-detail-link:focus-visible{text-decoration:underline;text-underline-offset:3px}
+.product-detail-dialog{width:min(720px,calc(100vw - 32px));border:1px solid #d9c8e8;border-radius:20px;padding:24px;background:#fff;color:var(--plum);box-shadow:0 24px 70px #2b183844}
+.product-detail-dialog::backdrop{background:#25163799}
+.product-detail-dialog>div:not(.product-detail-image){display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.product-detail-dialog h2,.product-detail-dialog p{margin:0}
+.product-detail-image{width:100%;height:min(340px,45vh);margin-bottom:20px;border-radius:14px;overflow:hidden;background:#f5effa;display:grid;place-items:center}
+.product-detail-image img{width:100%;height:100%;object-fit:contain}
+.product-detail-emoji{font-size:5rem}
+.product-detail-close{float:right;border:0;background:#f1eaf8;border-radius:50%;width:34px;height:34px;font-size:1.5rem;cursor:pointer}
+.co-payment-hint{font-size:.8rem;line-height:1.45;color:var(--mid);margin:.7rem 0 0}

@@ -26,6 +26,7 @@
   }
   const mediaURL = value => {
     if (!value) return '';
+    if (value.startsWith('local:')) return new URL(value.slice(6), location.origin + '/').href;
     if (/^https:\/\//i.test(value)) return value;
     return client.storage.from('catalog-media').getPublicUrl(value).data.publicUrl;
   };
@@ -44,6 +45,13 @@
     async categories() { return unwrap(await client.from('categories').select('*').order('sort_order')); },
     async gallery() { return unwrap(await client.from('gallery_entries').select('*').order('sort_order')); },
     async orders() { return unwrap(await client.from('orders').select('*,order_items(*)').order('created_at', { ascending: false })); },
+    async customerCart(customerId) {
+      const row = unwrap(await client.from('customer_carts').select('items').eq('customer_id', customerId).maybeSingle());
+      return Array.isArray(row?.items) ? row.items : [];
+    },
+    async saveCustomerCart(customerId, items) {
+      unwrap(await client.from('customer_carts').upsert({ customer_id: customerId, items, updated_at: new Date().toISOString() }, { onConflict: 'customer_id' }));
+    },
     async rpc(name, payload) { return unwrap(await client.rpc(name, payload)); },
     async upload(bucket, folder, file) {
       if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5242880) throw new Error('Choose a JPEG, PNG or WebP image up to 5 MB.');

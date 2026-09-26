@@ -66,6 +66,12 @@ Open:
 - Customer site: `http://127.0.0.1:8000/`
 - ADMIN login: `http://127.0.0.1:8000/admin/login.html`
 - ADMIN dashboard after login: `http://127.0.0.1:8000/admin/`
+- Order payment (opened automatically after checkout): `http://127.0.0.1:8000/payment/index.html?order=<order-id>`
+
+Open these pages through the local server, not by double-clicking files or using
+`file://`. A `file://.../payment/` address can show a directory listing instead
+of the payment page, and file pages do not provide the normal browser origin
+needed by the Supabase-backed order flow.
 
 Use the existing Supabase ADMIN account credentials you created earlier. They are
 not included in this package.
@@ -100,6 +106,13 @@ checks using the publishable key. It requires internet access.
   computer.
 - Do not rerun the SQL files against the existing Supabase project unless you
   intentionally want to change the hosted database.
-- Payments and PayMongo QR generation are still not implemented in this package.
+- Manual MariBank/InstaPay QR payments are implemented. The order-linked payment
+  page accepts a bank reference and image proof, then an ADMIN must verify the
+  actual incoming transfer before the order is marked paid. There is no automatic
+  bank confirmation, PayMongo integration, or automatic refund.
+- The hosted Supabase project must retain the `upload-payment-proof` Edge Function,
+  private `payment-proofs` Storage bucket, and database migrations in `database/`.
+  The Edge Function uses Supabase's server-only service-role environment variable;
+  never copy that key into this project or a browser configuration file.
 - Email confirmation and password reset flows depend on the Supabase Auth URL
   configuration for the host/port you are using.

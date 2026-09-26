@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>₱1 QR Payment Test · LexC's Snacktime</title>
+  <link rel="stylesheet" href="../shared/brand.css">
+  <link rel="stylesheet" href="payment-test.css">
+  <script src="../shared/vendor/supabase.js"></script>
+  <script src="../shared/supabase-config.js"></script>
+  <script src="../shared/supabase-client.js?v=3"></script>
+  <script src="payment-test.js" defer></script>
+</head>
+<body>
+  <header class="test-header"><a href="../">LexC's Snacktime</a><span>₱1 QR payment test</span></header>
+  <main>
+    <div class="intro"><span class="eyebrow">REAL TRANSFER · MANUAL VERIFICATION</span><h1>Try a ₱1 payment</h1><p>This checks whether the MariBank QR receives a real transfer and whether Admin can verify it. It does not place a bakery order or reserve a booking date.</p></div>
+    <div id="notice" role="status" hidden></div>
+    <section class="test-card" id="login-panel" hidden>
+      <h2>Sign in to begin</h2><p>Use your LexC customer account. Your test and its result will be saved to that account.</p>
+      <form id="login-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form>
+      <p>Need an account? <a href="../#register">Register on the customer site</a>, then return here.</p>
+    </section>
+    <section class="test-card" id="test-panel" hidden>
+      <div class="identity"><span id="customer-name"></span><button type="button" id="sign-out">Sign out</button></div>
+      <div class="product"><img src="assets/product-a.png" alt="Product A test image"><div><span class="eyebrow">TEST ITEM ONLY</span><h2>Product A</h2><p>One-time test transfer. No product will be delivered.</p><strong>₱1.00 total · ₱1.00 to transfer</strong></div></div>
+      <button id="start-test" type="button">Start a new ₱1 test</button>
+      <div id="active-test" hidden>
+        <hr><h2>Your test <small id="test-id"></small></h2><p id="test-state"></p>
+        <div id="payment-instructions" hidden>
+          <ol><li>Scan this QR with a QR Ph compatible banking or wallet app, or save the image to use on the same phone.</li><li>Check the recipient displayed in your banking app: <strong>JOHN PAUL MATIVO · MariBank ending 8930</strong>.</li><li>Transfer exactly <strong>₱1.00</strong>. Your sending app may charge a fee.</li><li>Once your bank confirms the transfer, enter the transaction reference below.</li></ol>
+          <div class="qr-window"><img src="assets/maribank-qr.png" alt="MariBank InstaPay QR Ph receiving code for John Paul Mativo"></div>
+          <a class="qr-save" href="assets/maribank-qr.png" download="maribank-payment-test-qr.png">Save full QR image</a>
+          <form id="reference-form"><label>Bank transaction reference<input name="reference" minlength="6" maxlength="100" autocomplete="off" required placeholder="Reference shown in your banking app"></label><button type="submit">Submit for Admin verification</button></form>
+        </div>
+        <p class="verification-note">A submitted reference is not a confirmed payment. Admin must match the actual incoming ₱1 transfer in MariBank before approving it.</p>
+      </div>
+      <h2>My payment tests</h2><div id="test-history">Loading…</div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,6 +1,14 @@
 import { escapeHtml as e, icon, showDetails } from './components.js?v=3';
 export const db = window.LexcBackend;
 export const rows = async query => db.unwrap(await query);
+export async function allRows(query) {
+  const result=[];
+  for(let offset=0;;offset+=500){
+    const page=await rows(query().range(offset,offset+499));
+    result.push(...page);
+    if(page.length<500)return result;
+  }
+}
 export const button = (label, id) => '<button class="button" data-action="'+e(id)+'">'+e(label)+'</button>';
 export const field = (name,label,value='',type='text',extra='') => '<label class="form-field">'+e(label)+'<input name="'+e(name)+'" type="'+type+'" value="'+e(value)+'" '+extra+'></label>';
 export function grid(columns, body) {

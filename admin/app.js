@@ -1,20 +1,21 @@
-import { renderDashboard } from './pages/dashboard.js?v=6';
+import { renderDashboard } from './pages/dashboard.js?v=7';
 import { renderProducts } from './pages/products.js?v=3';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=14';
-import { renderReports } from './pages/reports.js?v=3';
-import { renderOrders } from './pages/orders.js?v=5';
+import { renderReports } from './pages/reports.js?v=4';
+import { renderOrders } from './pages/orders.js?v=7';
 import { renderBookings } from './pages/bookings.js?v=9';
 import { renderGallery } from './pages/gallery.js?v=2';
 import { renderProfile } from './pages/profile.js?v=2';
+import { mountChat } from '../shared/chat.js?v=5';
 import { icon } from './components.js?v=3';
 
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
-  ['Management', [['inventory', 'Inventory'], ['products', 'Products'], ['orders', 'Orders'], ['bookings', 'Bookings']]],
+  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['orders', 'Orders'], ['bookings', 'Bookings']]],
   ['Analytics', [['reports', 'Reports'], ['gallery', 'Gallery']]],
   ['Account', [['profile', 'Profile']]],
 ];
-const titles = { dashboard: 'Dashboard', inventory: 'Inventory', products: 'Products', orders: 'Orders', bookings: 'Booking Schedule', reports: 'Reports', gallery: 'Gallery', profile: 'Profile' };
+const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', orders: 'Orders', bookings: 'Booking Schedule', reports: 'Reports', gallery: 'Gallery', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label]) => `<a class="nav-item" href="#${key}" data-page="${key}">${icon(key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
@@ -88,6 +89,7 @@ async function renderRoute() {
   main.replaceChildren(content);
   const subpage = route.split('/')[1];
   if (current === 'dashboard') await renderDashboard(content);
+  else if (current === 'chat') { content.classList.add('chat-page'); await mountChat(content,{admin:true}); }
   else if (current === 'products') await renderProducts(content, subpage);
   else if (current === 'inventory') await renderInventory(content, subpage);
   else if (current === 'reports') await renderReports(content, subpage);

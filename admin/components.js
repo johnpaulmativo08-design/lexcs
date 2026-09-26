@@ -1,5 +1,5 @@
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-export const money = value => new Intl.NumberFormat('en-PH', {style:'currency', currency:'PHP', maximumFractionDigits:0}).format(value);
+export const money = value => new Intl.NumberFormat('en-PH', {style:'currency', currency:'PHP', minimumFractionDigits:2, maximumFractionDigits:2}).format(value);
 export const notice = message => `<p class="notice">${escapeHtml(message)}</p>`;
 export const empty = message => `<div class="empty">${escapeHtml(message)}</div>`;
 export function icon(name, className = '') {

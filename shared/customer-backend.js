@@ -11,10 +11,13 @@ document.getElementById('clearToppingsBtn').addEventListener('click',()=>{applie
 document.getElementById('removeSprinklesBtn').addEventListener('click',()=>{defaultSprinkles=false;});
 async function loadStorefront(){
  try{
-  const [catalog,categories,gallery]=await Promise.all([LexcBackend.catalog(),LexcBackend.categories(),LexcBackend.gallery()]);
+  const [catalog,categories,gallery,methods]=await Promise.all([LexcBackend.catalog(),LexcBackend.categories(),LexcBackend.gallery(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
   liveCatalog=catalog.filter(p=>p.status==='active');
+  const methodRoot=document.getElementById('checkoutPaymentMethods');
+  methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'"><span class="co-option-icon">▦</span><span>'+authEscape(m.display_name)+'</span></button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
+  methodRoot.querySelectorAll('[data-payment-code]').forEach(button=>button.onclick=()=>selectPayment(button,button.dataset.paymentCode));
   products.splice(0,products.length,...liveCatalog.filter(p=>p.kind==='standard').map((p,index)=>({
-   id:p.legacy_id||10000+index,product_id:p.id,name:p.name,desc:p.description,cat:p.categories?.slug||'',emoji:p.emoji||'🧁',badge:p.badge_label,stars:'',
+   id:p.legacy_id||10000+index,product_id:p.id,name:p.name,desc:p.description,cat:p.categories?.slug||'',emoji:p.emoji||'🧁',badge:p.badge_label,stars:'',isTest:p.is_test_product,
    sizes:p.product_variants.filter(v=>v.is_active).map(v=>({id:v.id,label:v.label,price:Number(v.price)}))
   })).filter(p=>p.sizes.length).map(p=>({...p,price:p.sizes[0].price})));
   for(const p of products){const db=liveCatalog.find(d=>d.id===p.product_id);if(db.image_path)PRODUCT_IMAGES[p.id]=LexcBackend.mediaURL(db.image_path);}
@@ -34,6 +37,7 @@ async function loadStorefront(){
  }catch(error){showToast('Catalog could not load: '+error.message);}
 }
 function addPackageToCart(name){
+ if(cartIsPaymentTest())return showToast('Payment Test Product must be checked out separately.');
  const p=liveCatalog.find(p=>p.kind==='package'&&p.name===name),v=p?.product_variants.find(v=>v.is_active);
  if(!v)return showToast('This package is unavailable.');
  const item=cart.find(i=>i.variant_id===v.id);
@@ -41,6 +45,7 @@ function addPackageToCart(name){
  renderCart();openCart();
 }
 function addCustomizedToCart(){
+ if(cartIsPaymentTest())return showToast('Payment Test Product must be checked out separately.');
  const p=liveCatalog.find(p=>p.kind==='customizable'),v=p?.product_variants.find(v=>v.code===customizerFrostingStyle&&v.is_active);
  if(!v)return showToast('This cupcake option is unavailable.');
  cart.push({id:'custom-'+crypto.randomUUID(),product_id:p.id,variant_id:v.id,name:p.name,emoji:'🧁',sizeLabel:v.label+' · '+customizerBaseFlavor+' · '+appliedTopping,price:Number(v.price),qty:1,customization:{base:customizerBaseFlavor,frosting:customizerFrostingStyle,color:document.getElementById('frostingColor').value,topping:appliedTopping,default_sprinkles:defaultSprinkles}});
@@ -77,12 +82,14 @@ async function submitCheckout(){
  if(!cart.length)return showToast('Your cart is empty.');
  const field=id=>document.getElementById(id).value.trim();
  if(!field('coDate')||!field('coTime'))return showToast('Choose a booking date and receiving time.');
- if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment preference. No payment is collected here.');
+ if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
+ if(cartIsPaymentTest()&&(cart.some(item=>!item.isTest)||selectedDelivery!=='Pick-up'))return showToast('Payment Test Product must be checked out separately for pickup.');
  if(cart.some(i=>!i.variant_id))return showToast('Your saved cart contains older items. Remove and re-add them from the updated catalog.');
  const fingerprint=JSON.stringify({cart,name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
  let request=readAuthStorage(localStorage,'lexc_checkout_request',null);
  if(!request||request.fingerprint!==fingerprint)request={fingerprint,id:crypto.randomUUID()};
  localStorage.setItem('lexc_checkout_request',JSON.stringify(request));checkoutSaving=true;
+ const submitButton=document.getElementById('placeOrderButton');submitButton.disabled=true;submitButton.textContent='Creating your order…';
  try{
   const latest = await LexcBackend.catalog();
   let priceChanged = false;
@@ -94,7 +101,7 @@ async function submitCheckout(){
   }
   if (priceChanged) {
     renderCart(); renderCheckout();
-    showToast('A product price has changed. Review the updated total and choose your receiving time again.');
+    showToast('A product price has changed. Review the updated total before placing your order.');
     return;
   }
   const selectedDate=field('coDate');
@@ -102,28 +109,65 @@ async function submitCheckout(){
   const selectedDay=freshAvailability[0];
   if(!selectedDay||selectedDay.is_closed||selectedDay.remaining_slots<=0||!selectedDay.has_receiving_slot)throw new Error('This booking date is no longer available. Please choose another date.');
   const order=await LexcBackend.rpc('create_order',{payload:{request_id:request.id,name:field('coName'),phone:field('coContact'),address:field('coAddress'),notes:field('coNotes'),slot_id:document.getElementById('coDate').dataset.slotId,fulfillment:selectedDelivery==='Lalamove'?'lalamove':'pickup',payment_method:selectedPayment,items:cart.map(i=>({variant_id:i.variant_id,qty:i.qty,customization:i.customization||null,reference_image_path:i.reference_image_path||null}))}});
-  savedInvoiceItems=order.items.map(i=>({name:i.name_snapshot,sizeLabel:i.variant_label_snapshot,price:Number(i.unit_price),qty:i.quantity}));
-  renderInvoice({name:order.customer_name,address:order.address,contact:order.contact_phone,dateVal:phDate(order.receiving_start),timeVal:slotLabel({starts_at:order.receiving_start,ends_at:order.receiving_end}),payment:order.requested_payment_method||'unpaid',delivery:order.fulfillment_method,items:savedInvoiceItems,subtotal:Number(order.items_subtotal)});
-  document.getElementById('invPayMethod').textContent=(order.requested_payment_method||'')+' · UNPAID · Order #'+order.order_number;
-  if(order.total_amount===null)for(const id of ['invGrandTotal','invDownpayment','invBalance'])document.getElementById(id).textContent='Pending delivery quote';
-  cart=[];renderCart();localStorage.removeItem('lexc_checkout_request');navigate('invoice');showToast('Order #'+order.order_number+' and its booking request were saved. No payment has been collected.');
- }catch(error){showToast(error.message);}finally{checkoutSaving=false;}
+  cart=[];renderCart();localStorage.removeItem('lexc_checkout_request');
+  try { await flushCustomerCart(); } catch (syncError) { console.warn('Order created, but cart sync needs retry:', syncError); }
+  location.replace('payment/index.html?order='+encodeURIComponent(order.id));
+ }catch(error){showToast(error.message);}finally{checkoutSaving=false;submitButton.disabled=false;submitButton.textContent='Place Order →';}
 }
-async function showMyOrders(){
- if(!currentUser)return navigate('login');
- const dialog=document.createElement('dialog');
- dialog.style.cssText='max-width:850px;width:90%;border:0;border-radius:18px;padding:24px;background:var(--cream);color:var(--plum)';
- dialog.innerHTML='<h2>My Orders</h2><div data-orders>Loading…</div><button class="btn-primary" data-close>Close</button>';
- document.body.append(dialog);dialog.showModal();dialog.querySelector('[data-close]').onclick=()=>{dialog.close();dialog.remove();};
+let customerShowCancelled=false;
+async function cancelMyOrder(orderId,orderNumber){
+ if(!confirm('Cancel order #'+orderNumber+'? This releases its booking date. The order stays in history for payment and seller records.'))return;
+ const button=[...document.querySelectorAll('[data-cancel-order]')].find(item=>item.dataset.cancelOrder===orderId);
+ if(button)button.disabled=true;
  try{
-  const [orders,bookings]=await Promise.all([LexcBackend.orders(),LexcBackend.rpc('get_my_bookings',{})]);
+  await LexcBackend.rpc('cancel_my_order',{order_id:orderId});
+  showToast('Order cancelled. Your booking slot is available again.');
+  await showMyOrders();
+ }catch(error){showToast(error.message);if(button)button.disabled=false;}
+}
+async function showMyOrders(focusOrderId){
+ if(!currentUser)return navigate('login');
+ navigate('orders');
+ const container=document.getElementById('customerOrdersList');
+ container.innerHTML='<div class="customer-orders-state">Loading your orders…</div>';
+ try{
+  const [orders,bookings,payments,methods]=await Promise.all([LexcBackend.orders(),LexcBackend.rpc('get_my_bookings',{}),LexcBackend.client.from('order_payment_attempts').select('*').order('created_at',{ascending:false}).then(LexcBackend.unwrap),LexcBackend.client.from('payment_methods').select('id,display_name').then(LexcBackend.unwrap)]);
+  if(currentPage!=='orders')return;
   const mine=orders.filter(order => order.customer_id === currentUser.id), bookingByOrder=new Map(bookings.map(booking=>[booking.order_id,booking]));
+  const cancelledCount=mine.filter(order=>order.status==='cancelled').length;
+  const toggle=document.getElementById('toggleCancelledOrders');
+  toggle.hidden=!cancelledCount;
+  toggle.textContent=customerShowCancelled?'Hide cancelled':'Show cancelled ('+cancelledCount+')';
+  const visibleOrders=mine.filter(order=>customerShowCancelled||order.status!=='cancelled'||order.id===focusOrderId);
+  const paymentByOrder=new Map();payments.forEach(payment=>{if(!paymentByOrder.has(payment.order_id))paymentByOrder.set(payment.order_id,payment);});
+  const methodById=new Map(methods.map(method=>[method.id,method.display_name]));
   const typeLabel=value=>value==='lalamove'?'Delivery':'Pickup';
-  const paymentLabel=value=>({unpaid:'Downpayment Pending',partially_paid:'Downpayment Paid',paid:'Fully Paid',failed:'Payment Failed',refunded:'Refunded'}[value]||String(value||'Unpaid').replaceAll('_',' '));
+  const paymentLabel=value=>({unpaid:'Awaiting Payment',verification_pending:'Verification Pending',rejected:'Rejected',partially_paid:'Downpayment Paid',paid:'Fully Paid',failed:'Payment Failed',refunded:'Refunded'}[value]||String(value||'Unpaid').replaceAll('_',' '));
   const moneyValue=value=>value===null||value===undefined?'Pending delivery quote':'₱'+Number(value).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
-  dialog.querySelector('[data-orders]').innerHTML=mine.length?mine.map(o=>{const b=bookingByOrder.get(o.id);return '<section><h3>Order #'+o.order_number+' · '+authEscape(b?.booking_status||o.status)+'</h3><p><strong>Booking:</strong> '+authEscape(b?.booking_date||phDate(o.receiving_start))+' · '+authEscape(typeLabel(b?.fulfillment_method||o.fulfillment_method))+(b?.scheduled_start?' · '+authEscape(String(b.scheduled_start).slice(0,5)):'')+'</p><p><strong>Payment:</strong> '+authEscape(paymentLabel(b?.payment_status||o.payment_status))+' · Required downpayment: '+moneyValue(b?.deposit_due??o.deposit_due)+' · Remaining: '+moneyValue(b?.remaining_balance??(o.total_amount===null?null:Number(o.total_amount)-Number(o.amount_paid||0)))+'</p><ul>'+o.order_items.map(i=>'<li>'+authEscape(i.name_snapshot)+' · '+authEscape(i.variant_label_snapshot)+' ×'+i.quantity+'</li>').join('')+'</ul>'+(o.status==='completed'?'<button class="btn-primary" data-review="'+o.id+'">Write or update review</button>':'')+'</section>';}).join(''):'No orders yet.';
-  dialog.querySelectorAll('[data-review]').forEach(button => button.onclick = () => showReviewForm(button.dataset.review));
- }catch(error){dialog.querySelector('[data-orders]').textContent=error.message;}
+  container.innerHTML=visibleOrders.length?visibleOrders.map(o=>{
+   const b=bookingByOrder.get(o.id),p=paymentByOrder.get(o.id);
+   const bookingStatus=String(b?.booking_status||o.status||'pending').toLowerCase();
+   const products=(o.order_items||[]).map(i=>i.name_snapshot).filter(Boolean);
+   const productSummary=products.length?authEscape(products[0])+(products.length>1?' +'+(products.length-1)+' more':''):'Order items';
+   const bookingDate=b?.booking_date||(o.receiving_start?phDate(o.receiving_start):null);
+   const schedule=[typeLabel(b?.fulfillment_method||o.fulfillment_method),bookingDate,b?.scheduled_start?String(b.scheduled_start).slice(0,5):null].filter(Boolean).join(' · ');
+   const method=p?methodById.get(p.payment_method_id)||'Manual QR':'No payment submitted';
+   const statusClass=['pending','cancelled','completed','ready'].includes(bookingStatus)?' is-'+bookingStatus:'';
+   const details='<div class="customer-order-details"><span>Total: '+moneyValue(o.total_amount)+'</span><span>Required now: '+moneyValue(o.deposit_due)+'</span><span>Verified paid: '+moneyValue(o.amount_paid)+'</span><span>Remaining: '+moneyValue(o.total_amount===null?null:Number(o.total_amount)-Number(o.amount_paid||0))+'</span><span>Method: '+authEscape(method)+'</span><span>Products: '+authEscape((o.order_items||[]).map(i=>i.name_snapshot+' ×'+i.quantity).join(', ')||'Not available')+'</span>'+(p?.status==='rejected'?'<span>Payment issue: '+authEscape(p.rejection_reason||'Please resubmit')+'</span>':'')+'</div>';
+   const canCancel=o.status==='pending'&&['unpaid','rejected'].includes(o.payment_status)&&Number(o.amount_paid||0)===0;
+   return '<article class="customer-order-card'+(o.id===focusOrderId?' is-focused':'')+'" data-order-id="'+authEscape(o.id)+'"><div class="customer-order-top"><div><span class="customer-order-number">Order #'+authEscape(o.order_number)+'</span><span class="customer-order-date">'+authEscape(bookingDate||'Booking date pending')+'</span></div><span class="customer-order-status'+statusClass+'">'+authEscape(bookingStatus.replaceAll('_',' '))+'</span></div><p class="customer-order-product">'+productSummary+'</p><p class="customer-order-schedule">'+authEscape(schedule||'Schedule pending')+'</p><div class="customer-order-bottom"><div class="customer-order-payment"><strong>'+authEscape(paymentLabel(o.payment_status))+'</strong><span>'+authEscape(method)+' · '+moneyValue(o.total_amount)+'</span></div><div class="customer-order-actions"><a class="btn-primary" href="payment/index.html?order='+encodeURIComponent(o.id)+'">'+(o.payment_status==='rejected'?'Resubmit payment':'View order & payment')+'</a><a class="btn-outline" href="chat/?order='+encodeURIComponent(o.id)+'">Message LexC</a>'+(canCancel?'<button class="customer-order-cancel" type="button" data-cancel-order="'+authEscape(o.id)+'" data-order-number="'+authEscape(o.order_number)+'">Cancel order</button>':'')+(o.status==='completed'?'<button class="btn-outline" data-review="'+authEscape(o.id)+'">Write a review</button>':'')+'</div></div><details class="customer-order-more"><summary>Order details</summary>'+details+'</details></article>';
+  }).join(''):'<div class="customer-orders-state"><h2>'+(!mine.length?'No orders yet':'No active orders')+'</h2><p>'+(!mine.length?'Your bookings and payments will appear here after checkout.':'Cancelled orders are hidden. Use “Show cancelled” to see them.')+'</p><a class="btn-primary" href="#" onclick="event.preventDefault();navigate(\'shop\')">Browse products</a></div>';
+  const focused=[...container.querySelectorAll('[data-order-id]')].find(item=>item.dataset.orderId===focusOrderId);
+  focused?.scrollIntoView({block:'center'});
+  container.querySelectorAll('[data-review]').forEach(button => button.onclick = () => showReviewForm(button.dataset.review));
+  container.querySelectorAll('[data-cancel-order]').forEach(button=>button.onclick=()=>cancelMyOrder(button.dataset.cancelOrder,button.dataset.orderNumber));
+ }catch(error){container.innerHTML='<div class="customer-orders-state"><h2>Orders could not load</h2><p>'+authEscape(error.message)+'</p><button class="btn-outline" type="button" onclick="showMyOrders()">Try again</button></div>';}
+}
+function openOrderFromReturnLink(){
+ const target=new URLSearchParams(location.search).get('order');
+ if(!currentUser||!target||!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(target))return;
+ const url=new URL(location.href);url.searchParams.delete('order');history.replaceState(null,'',url);
+ showMyOrders(target);
 }
 document.getElementById('coContact').insertAdjacentHTML('afterend','<label class="co-label" for="orderReference">Optional reference image (applied to customized cart items)</label><input id="orderReference" type="file" accept="image/jpeg,image/png,image/webp"><p id="referenceStatus" role="status"></p>');
 document.getElementById('orderReference').onchange=async event=>{

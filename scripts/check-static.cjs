@@ -12,13 +12,13 @@ function files(directory) {
   });
 }
 
-const sources = ['shared', 'admin', 'scripts'].flatMap(files);
+const sources = ['shared', 'admin', 'payment-test', 'payment', 'scripts'].flatMap(files);
 for (const source of sources) {
   const result = spawnSync(process.execPath, ['--check', source], { encoding: 'utf8' });
   if (result.status !== 0) throw new Error(source + '\n' + result.stderr);
 }
 let inlineCount = 0;
-for (const html of ['index.html', 'admin/index.html', 'admin/login.html']) {
+for (const html of ['index.html', 'admin/index.html', 'admin/login.html', 'payment-test/index.html', 'payment/index.html']) {
   const text = fs.readFileSync(html, 'utf8');
   for (const match of text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     if (/\bsrc\s*=|\btype\s*=\s*["'](?:importmap|application\/)/i.test(match[1]) || !match[2].trim()) continue;
