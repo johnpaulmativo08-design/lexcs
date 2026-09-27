@@ -9,13 +9,14 @@
   <script src="../shared/supabase-client.js?v=4"></script>
   <script src="auth.js"></script>
   <script src="../shared/catalog.js"></script>
-  <link rel="stylesheet" href="admin.css?v=15">
-  <link rel="stylesheet" href="../shared/chat.css?v=5">
+  <link rel="stylesheet" href="admin.css?v=19">
+  <link rel="stylesheet" href="../shared/chat.css?v=6">
+  <link rel="stylesheet" href="../shared/chat-widget.css?v=2">
   <link rel="stylesheet" href="bookings.css?v=1">
   <link rel="stylesheet" href="booking-reference.css?v=3">
   <link rel="stylesheet" href="booking-availability.css?v=4">
   <link rel="stylesheet" href="booking-alignment.css?v=1">
-  <script type="module" src="app.js?v=30"></script>
+  <script type="module" src="app.js?v=35"></script>
 </head>
 <body>
   <a class="skip-link" href="#content">Skip to content</a>
@@ -26,7 +27,7 @@
     <nav id="navigation"></nav>
     <button class="logout" type="button"><svg class="admin-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"></path><path d="M14 3h7v18h-7"></path></svg><span>Log out</span></button>
   </aside>
-  <header class="header"><button class="mobile-menu" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">☰</button><h1 id="page-title">Dashboard</h1><div class="header-actions"><button id="notifications" aria-label="Notifications"><svg class="header-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg><span id="notification-count" class="notification-count" hidden></span></button><span class="header-divider"></span><a href="#profile" aria-label="Profile" class="header-initials">LA</a></div></header>
+  <header class="header"><button class="mobile-menu" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><h1 id="page-title">Dashboard</h1><div class="header-actions"><button id="admin-chats-toggle" type="button" aria-expanded="false" aria-controls="admin-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chats <span data-chat-count hidden></span></button><button id="notifications" aria-label="Notifications"><svg class="header-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg><span id="notification-count" class="notification-count" hidden></span></button><span class="header-divider"></span><a href="#profile" aria-label="Profile" class="header-initials">LA</a></div></header>
   <main id="content" tabindex="-1"></main>
   <div id="toast" role="status" hidden></div>
 </body>

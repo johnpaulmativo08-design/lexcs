@@ -1,5 +1,11 @@
 // Database adapter for the existing storefront controls.
 let liveCatalog=[], liveSlots=[], selectedSlotId=null, checkoutSaving=false;
+function customerActionError(error,fallback){
+ const message=String(error?.message||'');
+ if(/no longer available|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp/i.test(message))return message;
+ console.warn('Customer action failed:',error);
+ return fallback;
+}
 let appliedTopping='none', defaultSprinkles=true, savedInvoiceItems=[];
 window.addEventListener('lexc-customizer-reset',()=>{appliedTopping='none';defaultSprinkles=true;});
 const phDate=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
@@ -14,7 +20,7 @@ async function loadStorefront(){
   const [catalog,categories,gallery,methods]=await Promise.all([LexcBackend.catalog(),LexcBackend.categories(),LexcBackend.gallery(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
   liveCatalog=catalog.filter(p=>p.status==='active');
   const methodRoot=document.getElementById('checkoutPaymentMethods');
-  methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'"><span class="co-option-icon">▦</span><span>'+authEscape(m.display_name)+'</span></button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
+  methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'" aria-pressed="false"><span class="co-option-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span><span>'+authEscape(m.display_name)+'</span></button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
   methodRoot.querySelectorAll('[data-payment-code]').forEach(button=>button.onclick=()=>selectPayment(button,button.dataset.paymentCode));
   products.splice(0,products.length,...liveCatalog.filter(p=>p.kind==='standard').map((p,index)=>({
    id:p.legacy_id||10000+index,product_id:p.id,name:p.name,desc:p.description,cat:p.categories?.slug||'',emoji:p.emoji||'🧁',badge:p.badge_label,stars:'',isTest:p.is_test_product,
@@ -34,21 +40,21 @@ async function loadStorefront(){
     packageContainer.querySelectorAll('[data-package]').forEach(button => button.onclick = () => addPackageToCart(liveCatalog.find(p => p.id === button.dataset.package).name));
   }
   renderShop();updateCategoryCounts();renderCart();if(currentPage==='gallery')renderGallery();
- }catch(error){showToast('Catalog could not load: '+error.message);}
+ }catch(error){showToast(customerActionError(error,'Products could not load. Please refresh and try again.'));}
 }
 function addPackageToCart(name){
- if(cartIsPaymentTest())return showToast('Payment Test Product must be checked out separately.');
+ if(cart.some(item=>item.isTest))return showToast('Payment Test Product must be checked out separately.');
  const p=liveCatalog.find(p=>p.kind==='package'&&p.name===name),v=p?.product_variants.find(v=>v.is_active);
  if(!v)return showToast('This package is unavailable.');
  const item=cart.find(i=>i.variant_id===v.id);
- if(item)item.qty++;else cart.push({id:'pkg-'+p.id,product_id:p.id,variant_id:v.id,name:'Package: '+p.name,emoji:'🎁',sizeLabel:v.label,price:Number(v.price),qty:1});
+ if(item){item.qty++;item.selected=true;}else cart.push({id:'pkg-'+p.id,product_id:p.id,variant_id:v.id,name:'Package: '+p.name,emoji:'🎁',sizeLabel:v.label,price:Number(v.price),qty:1,selected:true});
  renderCart();openCart();
 }
 function addCustomizedToCart(){
- if(cartIsPaymentTest())return showToast('Payment Test Product must be checked out separately.');
+ if(cart.some(item=>item.isTest))return showToast('Payment Test Product must be checked out separately.');
  const p=liveCatalog.find(p=>p.kind==='customizable'),v=p?.product_variants.find(v=>v.code===customizerFrostingStyle&&v.is_active);
  if(!v)return showToast('This cupcake option is unavailable.');
- cart.push({id:'custom-'+crypto.randomUUID(),product_id:p.id,variant_id:v.id,name:p.name,emoji:'🧁',sizeLabel:v.label+' · '+customizerBaseFlavor+' · '+appliedTopping,price:Number(v.price),qty:1,customization:{base:customizerBaseFlavor,frosting:customizerFrostingStyle,color:document.getElementById('frostingColor').value,topping:appliedTopping,default_sprinkles:defaultSprinkles}});
+ cart.push({id:'custom-'+crypto.randomUUID(),product_id:p.id,variant_id:v.id,name:p.name,emoji:'🧁',sizeLabel:v.label+' · '+customizerBaseFlavor+' · '+appliedTopping,price:Number(v.price),qty:1,selected:true,customization:{base:customizerBaseFlavor,frosting:customizerFrostingStyle,color:document.getElementById('frostingColor').value,topping:appliedTopping,default_sprinkles:defaultSprinkles}});
  renderCart();showToast('Custom cupcake added to cart.');
 }
 async function renderDtSlots(){
@@ -69,7 +75,7 @@ async function renderDtSlots(){
    list.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b===button));
    document.getElementById('dtConfirmBtn').disabled=false;
   });
- }catch(error){list.textContent=error.message;}
+ }catch(error){list.innerHTML='<div class="dt-slot-summary"><strong>Availability could not load</strong>Please close the calendar and try this date again.</div>';console.warn('Availability failed:',error);}
 }
 function confirmDateTime(){
  if(!selectedSlotId||!dtSelectedDate)return;
@@ -79,13 +85,14 @@ function confirmDateTime(){
 }
 async function submitCheckout(){
  if(checkoutSaving)return;if(!currentUser){navigate('checkout');return;}
- if(!cart.length)return showToast('Your cart is empty.');
+  const selectedItems=cartSelectedItems();
+  if(!selectedItems.length)return showToast('Select at least one cart item to place an order.');
  const field=id=>document.getElementById(id).value.trim();
  if(!field('coDate')||!field('coTime'))return showToast('Choose a booking date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
- if(cartIsPaymentTest()&&(cart.some(item=>!item.isTest)||selectedDelivery!=='Pick-up'))return showToast('Payment Test Product must be checked out separately for pickup.');
- if(cart.some(i=>!i.variant_id))return showToast('Your saved cart contains older items. Remove and re-add them from the updated catalog.');
- const fingerprint=JSON.stringify({cart,name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
+  if(cartIsPaymentTest()&&(selectedItems.some(item=>!item.isTest)||selectedDelivery!=='Pick-up'))return showToast('Payment Test Product must be checked out separately for pickup.');
+  if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
+  const fingerprint=JSON.stringify({cart:selectedItems,name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
  let request=readAuthStorage(localStorage,'lexc_checkout_request',null);
  if(!request||request.fingerprint!==fingerprint)request={fingerprint,id:crypto.randomUUID()};
  localStorage.setItem('lexc_checkout_request',JSON.stringify(request));checkoutSaving=true;
@@ -93,7 +100,7 @@ async function submitCheckout(){
  try{
   const latest = await LexcBackend.catalog();
   let priceChanged = false;
-  for (const item of cart) {
+   for (const item of selectedItems) {
     const product = latest.find(product => product.id === item.product_id);
     const variant = product?.product_variants.find(variant => variant.id === item.variant_id && variant.is_active);
     if (!product || product.status !== 'active' || !variant) throw new Error(item.name + ' is no longer available. Please update your cart.');
@@ -108,11 +115,12 @@ async function submitCheckout(){
   const freshAvailability=await LexcBackend.rpc('get_customer_booking_dates',{from_date:selectedDate,to_date:selectedDate});
   const selectedDay=freshAvailability[0];
   if(!selectedDay||selectedDay.is_closed||selectedDay.remaining_slots<=0||!selectedDay.has_receiving_slot)throw new Error('This booking date is no longer available. Please choose another date.');
-  const order=await LexcBackend.rpc('create_order',{payload:{request_id:request.id,name:field('coName'),phone:field('coContact'),address:field('coAddress'),notes:field('coNotes'),slot_id:document.getElementById('coDate').dataset.slotId,fulfillment:selectedDelivery==='Lalamove'?'lalamove':'pickup',payment_method:selectedPayment,items:cart.map(i=>({variant_id:i.variant_id,qty:i.qty,customization:i.customization||null,reference_image_path:i.reference_image_path||null}))}});
-  cart=[];renderCart();localStorage.removeItem('lexc_checkout_request');
+   const order=await LexcBackend.rpc('create_order',{payload:{request_id:request.id,name:field('coName'),phone:field('coContact'),address:field('coAddress'),notes:field('coNotes'),slot_id:document.getElementById('coDate').dataset.slotId,fulfillment:selectedDelivery==='Lalamove'?'lalamove':'pickup',payment_method:selectedPayment,items:selectedItems.map(i=>({variant_id:i.variant_id,qty:i.qty,customization:i.customization||null,reference_image_path:i.reference_image_path||null}))}});
+   const orderedItems=new Set(selectedItems);
+   cart=cart.filter(item=>!orderedItems.has(item));renderCart();localStorage.removeItem('lexc_checkout_request');
   try { await flushCustomerCart(); } catch (syncError) { console.warn('Order created, but cart sync needs retry:', syncError); }
   location.replace('payment/index.html?order='+encodeURIComponent(order.id));
- }catch(error){showToast(error.message);}finally{checkoutSaving=false;submitButton.disabled=false;submitButton.textContent='Place Order →';}
+ }catch(error){showToast(customerActionError(error,'We could not place your order. Please try again; your selected cart items are still saved.'));}finally{checkoutSaving=false;submitButton.disabled=false;submitButton.textContent='Place Order →';}
 }
 let customerShowCancelled=false;
 async function cancelMyOrder(orderId,orderNumber){
@@ -122,20 +130,20 @@ async function cancelMyOrder(orderId,orderNumber){
  try{
   await LexcBackend.rpc('cancel_my_order',{order_id:orderId});
   showToast('Order cancelled. Your booking slot is available again.');
-  await showMyOrders();
- }catch(error){showToast(error.message);if(button)button.disabled=false;}
+   await showMyOrders();
+ }catch(error){showToast(customerActionError(error,'Order cancellation could not be completed. Please try again.'));if(button)button.disabled=false;}
 }
-async function showMyOrders(focusOrderId){
- if(!currentUser)return navigate('login');
- navigate('orders');
- const container=document.getElementById('customerOrdersList');
- container.innerHTML='<div class="customer-orders-state">Loading your orders…</div>';
+ async function showMyOrders(focusOrderId){
+  if(!currentUser){openCart();return;}
+  if(!document.getElementById('cartDrawer').classList.contains('open')){openCart(focusOrderId);return;}
+  const container=document.getElementById('shoppingOrdersList');
+ container.innerHTML='<div class="customer-orders-skeleton" role="status" aria-label="Loading your orders"><div></div><div></div></div>';
  try{
   const [orders,bookings,payments,methods]=await Promise.all([LexcBackend.orders(),LexcBackend.rpc('get_my_bookings',{}),LexcBackend.client.from('order_payment_attempts').select('*').order('created_at',{ascending:false}).then(LexcBackend.unwrap),LexcBackend.client.from('payment_methods').select('id,display_name').then(LexcBackend.unwrap)]);
-  if(currentPage!=='orders')return;
+   if(!document.getElementById('cartDrawer').classList.contains('open'))return;
   const mine=orders.filter(order => order.customer_id === currentUser.id), bookingByOrder=new Map(bookings.map(booking=>[booking.order_id,booking]));
   const cancelledCount=mine.filter(order=>order.status==='cancelled').length;
-  const toggle=document.getElementById('toggleCancelledOrders');
+   const toggle=document.getElementById('drawerToggleCancelledOrders');
   toggle.hidden=!cancelledCount;
   toggle.textContent=customerShowCancelled?'Hide cancelled':'Show cancelled ('+cancelledCount+')';
   const visibleOrders=mine.filter(order=>customerShowCancelled||order.status!=='cancelled'||order.id===focusOrderId);
@@ -155,13 +163,13 @@ async function showMyOrders(focusOrderId){
    const statusClass=['pending','cancelled','completed','ready'].includes(bookingStatus)?' is-'+bookingStatus:'';
    const details='<div class="customer-order-details"><span>Total: '+moneyValue(o.total_amount)+'</span><span>Required now: '+moneyValue(o.deposit_due)+'</span><span>Verified paid: '+moneyValue(o.amount_paid)+'</span><span>Remaining: '+moneyValue(o.total_amount===null?null:Number(o.total_amount)-Number(o.amount_paid||0))+'</span><span>Method: '+authEscape(method)+'</span><span>Products: '+authEscape((o.order_items||[]).map(i=>i.name_snapshot+' ×'+i.quantity).join(', ')||'Not available')+'</span>'+(p?.status==='rejected'?'<span>Payment issue: '+authEscape(p.rejection_reason||'Please resubmit')+'</span>':'')+'</div>';
    const canCancel=o.status==='pending'&&['unpaid','rejected'].includes(o.payment_status)&&Number(o.amount_paid||0)===0;
-   return '<article class="customer-order-card'+(o.id===focusOrderId?' is-focused':'')+'" data-order-id="'+authEscape(o.id)+'"><div class="customer-order-top"><div><span class="customer-order-number">Order #'+authEscape(o.order_number)+'</span><span class="customer-order-date">'+authEscape(bookingDate||'Booking date pending')+'</span></div><span class="customer-order-status'+statusClass+'">'+authEscape(bookingStatus.replaceAll('_',' '))+'</span></div><p class="customer-order-product">'+productSummary+'</p><p class="customer-order-schedule">'+authEscape(schedule||'Schedule pending')+'</p><div class="customer-order-bottom"><div class="customer-order-payment"><strong>'+authEscape(paymentLabel(o.payment_status))+'</strong><span>'+authEscape(method)+' · '+moneyValue(o.total_amount)+'</span></div><div class="customer-order-actions"><a class="btn-primary" href="payment/index.html?order='+encodeURIComponent(o.id)+'">'+(o.payment_status==='rejected'?'Resubmit payment':'View order & payment')+'</a><a class="btn-outline" href="chat/?order='+encodeURIComponent(o.id)+'">Message LexC</a>'+(canCancel?'<button class="customer-order-cancel" type="button" data-cancel-order="'+authEscape(o.id)+'" data-order-number="'+authEscape(o.order_number)+'">Cancel order</button>':'')+(o.status==='completed'?'<button class="btn-outline" data-review="'+authEscape(o.id)+'">Write a review</button>':'')+'</div></div><details class="customer-order-more"><summary>Order details</summary>'+details+'</details></article>';
+   return '<article class="customer-order-card'+(o.id===focusOrderId?' is-focused':'')+'" data-order-id="'+authEscape(o.id)+'"><div class="customer-order-top"><div><span class="customer-order-number">Order #'+authEscape(o.order_number)+'</span><span class="customer-order-date">'+authEscape(bookingDate||'Booking date pending')+'</span></div><span class="customer-order-status'+statusClass+'">'+authEscape(bookingStatus.replaceAll('_',' '))+'</span></div><p class="customer-order-product">'+productSummary+'</p><p class="customer-order-schedule">'+authEscape(schedule||'Schedule pending')+'</p><div class="customer-order-bottom"><div class="customer-order-payment"><strong>'+authEscape(paymentLabel(o.payment_status))+'</strong><span>'+authEscape(method)+' · '+moneyValue(o.total_amount)+'</span></div><div class="customer-order-actions"><a class="btn-primary" href="payment/index.html?order='+encodeURIComponent(o.id)+'">'+(o.payment_status==='rejected'?'Resubmit payment':'View order & payment')+'</a><a class="btn-outline" href="chat/?order='+encodeURIComponent(o.id)+'">Message LexC</a>'+(canCancel?'<button class="customer-order-cancel" type="button" data-cancel-order="'+authEscape(o.id)+'" data-order-number="'+authEscape(o.order_number)+'">Cancel order</button>':'')+(o.status==='completed'?'<button class="btn-outline customer-review-cta" data-review="'+authEscape(o.id)+'">Rate your treats</button>':'')+'</div></div><details class="customer-order-more"><summary>Order details</summary>'+details+'</details></article>';
   }).join(''):'<div class="customer-orders-state"><h2>'+(!mine.length?'No orders yet':'No active orders')+'</h2><p>'+(!mine.length?'Your bookings and payments will appear here after checkout.':'Cancelled orders are hidden. Use “Show cancelled” to see them.')+'</p><a class="btn-primary" href="#" onclick="event.preventDefault();navigate(\'shop\')">Browse products</a></div>';
   const focused=[...container.querySelectorAll('[data-order-id]')].find(item=>item.dataset.orderId===focusOrderId);
   focused?.scrollIntoView({block:'center'});
   container.querySelectorAll('[data-review]').forEach(button => button.onclick = () => showReviewForm(button.dataset.review));
   container.querySelectorAll('[data-cancel-order]').forEach(button=>button.onclick=()=>cancelMyOrder(button.dataset.cancelOrder,button.dataset.orderNumber));
- }catch(error){container.innerHTML='<div class="customer-orders-state"><h2>Orders could not load</h2><p>'+authEscape(error.message)+'</p><button class="btn-outline" type="button" onclick="showMyOrders()">Try again</button></div>';}
+  }catch(error){console.warn('Orders failed:',error);container.innerHTML='<div class="customer-orders-state"><h2>Orders could not load</h2><p>Your saved orders are still available. Check your connection and try again.</p><button class="btn-outline" type="button" onclick="showMyOrders()">Try again</button></div>';}
 }
 function openOrderFromReturnLink(){
  const target=new URLSearchParams(location.search).get('order');

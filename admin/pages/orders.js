@@ -1,5 +1,5 @@
 import {escapeHtml as e,icon,money,notice,statusIndicator,toolbar,showDetails} from '../components.js?v=3';
-import {db,grid,fail} from '../backend-ui.js';
+import {db,grid,fail,loadingTable} from '../backend-ui.js?v=2';
 import {renderOrderPayments} from './payments.js';
 
 async function renderPaymentTests(content){
@@ -25,16 +25,17 @@ async function renderPaymentTests(content){
  }catch(error){if(panel.isConnected)panel.textContent='QR payment tests unavailable: '+error.message;}
 }
 export async function renderOrders(content){
- content.innerHTML=notice('Loading saved orders…');
+ content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders and payments.</p></div></header>'+loadingTable(7);
  try{
   const orders=await db.orders();let history=false;
   content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders, payments, and fulfillment progress.</p></div></header>'+notice('Manual QR payments are counted only after Admin verifies the actual bank credit.')+toolbar('<select id="status"><option value="">All statuses</option>'+['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>'<option>'+s+'</option>').join('')+'</select>')+'<div class="report-links"><button class="button primary" data-view="current">'+icon('orders')+' Current Orders</button><button class="button" data-view="history">'+icon('clock')+' Order History</button></div><div id="orders-table"></div><section id="order-payments" class="panel payment-tests-panel">Loading order payments…</section><section id="payment-tests" class="panel payment-tests-panel">Loading isolated QR tests…</section>';
   const orderTone=status=>status==='completed'?'success':status==='cancelled'?'neutral':status==='pending'?'warning':status==='ready'?'info':'success';
    const payTone=status=>status==='paid'||status==='partially_paid'?'success':status==='refunded'?'neutral':status==='failed'||status==='rejected'?'danger':'warning';
+  const readableStatus=status=>String(status||'Unknown').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
   const draw=()=>{
    const search=content.querySelector('.search').value.toLowerCase(),status=content.querySelector('#status').value;
    const filtered=orders.filter(o=>(['completed','cancelled'].includes(o.status)===history)&&(!status||o.status===status)&&JSON.stringify([o.order_number,o.customer_name]).toLowerCase().includes(search));
-   content.querySelector('#orders-table').innerHTML=grid(['Order ID','Customer','Items','Amount','Payment','Fulfillment','Status','Date','Action'],filtered.map(o=>'<tr><td>#'+o.order_number+'</td><td>'+e(o.customer_name)+'</td><td>'+o.order_items.reduce((n,i)=>n+i.quantity,0)+'</td><td>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</td><td>'+statusIndicator(o.payment_status,payTone(o.payment_status),o.requested_payment_method||'')+'</td><td>'+statusIndicator(o.fulfillment_method==='lalamove'?'Delivery':'Pickup','info')+'</td><td>'+statusIndicator(o.status,orderTone(o.status))+'</td><td>'+new Date(o.receiving_start).toLocaleString('en-PH',{timeZone:'Asia/Manila'})+'</td><td><button class="button" data-order="'+o.id+'">'+icon('eye')+' View</button></td></tr>').join('')||'<tr><td colspan="9">No matching orders.</td></tr>');
+   content.querySelector('#orders-table').innerHTML=grid(['Order','Customer','Total','Payment','Status','Due date','Action'],filtered.map(o=>'<tr><td>#'+e(o.order_number)+'</td><td>'+e(o.customer_name)+'</td><td>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</td><td>'+statusIndicator(readableStatus(o.payment_status),payTone(o.payment_status))+'</td><td>'+statusIndicator(readableStatus(o.status),orderTone(o.status))+'</td><td>'+new Date(o.receiving_start).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium'})+'</td><td><button class="button" data-order="'+e(o.id)+'">'+icon('eye')+' View</button></td></tr>').join('')||'<tr><td colspan="7" class="empty">No matching orders. Try a different search or status.</td></tr>');
   };
   content.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{history=b.dataset.view==='history';draw();});
   content.querySelector('.search').oninput=draw;content.querySelector('#status').onchange=draw;

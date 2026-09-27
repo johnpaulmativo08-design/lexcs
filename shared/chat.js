@@ -4,8 +4,40 @@ const money=value=>'₱'+Number(value||0).toLocaleString('en-PH',{minimumFractio
 const stamp=value=>new Date(value).toLocaleString('en-PH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Manila'});
 const short=value=>String(value||'').slice(0,8);
 
+// Shared operations for the full chat page and its compact Messenger presentation.
+// Both surfaces read and write the same Supabase conversations and messages.
+export async function readChatThread(conversationId){
+  const recent=await db.client.from('chat_messages').select('*').eq('conversation_id',conversationId).order('created_at',{ascending:false}).limit(200).then(db.unwrap);
+  return recent.reverse();
+}
+export async function markChatRead(rows,{admin}){
+  const ids=rows.filter(m=>!m.read_at&&(admin?m.sender_type==='customer':m.sender_type!=='customer')).map(m=>m.id);
+  if(!ids.length)return;
+  const {error}=await db.client.from('chat_messages').update({read_at:new Date().toISOString()}).in('id',ids);
+  if(error)throw error;
+}
+export async function sendChatMessage({conversationId,userId,admin,body}){
+  return db.client.from('chat_messages').insert({conversation_id:conversationId,sender_id:userId,sender_type:admin?'admin':'customer',body:body.trim()}).then(db.unwrap);
+}
+export async function ensureCustomerChat({userId,orderId=null}){
+  const query=()=>orderId?db.client.from('chat_conversations').select('*').eq('customer_id',userId).eq('order_id',orderId).maybeSingle():db.client.from('chat_conversations').select('*').eq('customer_id',userId).is('order_id',null).maybeSingle();
+  const existing=await query().then(db.unwrap);
+  if(existing)return existing;
+  const result=await db.client.from('chat_conversations').insert({customer_id:userId,...(orderId?{order_id:orderId}:{})}).select().single();
+  if(!result.error)return result.data;
+  if(result.error.code==='23505')return query().then(db.unwrap);
+  throw result.error;
+}
+export function subscribeChatChanges(onChange,onStatus=()=>{}){
+  const channel=db.client.channel('lexc-chat-'+crypto.randomUUID())
+    .on('postgres_changes',{event:'*',schema:'public',table:'chat_conversations'},onChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'chat_messages'},onChange)
+    .subscribe(onStatus);
+  return ()=>db.client.removeChannel(channel);
+}
+
 export async function mountChat(root,{admin=false,orderId=null}={}){
-  let user,conversations=[],selected=null,messages=[],orders=[],orderItems=[],products=[],payments=[],profiles=[],inboxMessages=[],search='',filter='all',timer,mobileListOpen=false;
+  let user,conversations=[],selected=null,messages=[],orders=[],orderItems=[],products=[],payments=[],profiles=[],inboxMessages=[],search='',filter='all',fallbackTimer,mobileListOpen=false;
   root.innerHTML='<div class="chat-loading" role="status">Loading conversations…</div>';
   try{user=await db.identity();if(!user)throw new Error('Sign in to use LexC chat.');if(admin&&user.role!=='admin')throw new Error('Admin access required.');}
   catch(error){root.innerHTML='<div class="chat-empty" role="alert">'+escapeHtml(error.message)+' <a href="'+(admin?'login.html':'../?return=chat')+'">Sign in</a></div>';return;}
@@ -26,19 +58,8 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
       if(target)orders.unshift(target);
     }
     const startGeneral=!admin&&new URLSearchParams(location.search).has('new');
-    if(startGeneral&&!conversations.some(c=>!c.order_id)){
-      const result=await db.client.from('chat_conversations').insert({customer_id:user.id}).select().single();
-      if(result.error?.code!=='23505'&&result.error)throw result.error;
-      conversations=await db.client.from('chat_conversations').select('*').order('updated_at',{ascending:false}).limit(150).then(db.unwrap);
-    }
     if(startGeneral){history.replaceState(null,'',location.pathname);}
-    if(orderId&&!conversations.some(c=>c.order_id===orderId)&&!admin){
-      const own=orders.find(o=>o.id===orderId&&o.customer_id===user.id);
-      if(own){const result=await db.client.from('chat_conversations').insert({customer_id:user.id,order_id:orderId}).select().single();
-        if(result.error?.code!=='23505'&&result.error)throw result.error;
-        conversations=await db.client.from('chat_conversations').select('*').order('updated_at',{ascending:false}).limit(150).then(db.unwrap);}
-    }
-    if(!preserve||!selected||!conversations.some(c=>c.id===selected.id))selected=(startGeneral?conversations.find(c=>!c.order_id):null)||conversations.find(c=>c.order_id===orderId)||conversations[0]||null;
+    if(!preserve||!selected||!conversations.some(c=>c.id===selected.id))selected=orderId?(conversations.find(c=>c.order_id===orderId)||null):startGeneral?(conversations.find(c=>!c.order_id)||null):(conversations.find(c=>!c.order_id)||conversations[0]||null);
     if(selected?.order_id&&!orderItems.some(item=>item.order_id===selected.order_id)){
       const selectedItems=await db.client.from('order_items').select('order_id,line_number,product_id,name_snapshot,variant_label_snapshot,quantity,line_total').eq('order_id',selected.order_id).order('line_number',{ascending:true}).then(db.unwrap);
       orderItems.push(...selectedItems);
@@ -48,9 +69,8 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const input=root.querySelector('#chat-text');if(input)input.value=draft;
   };
   async function loadMessages(){
-    messages=await db.client.from('chat_messages').select('*').eq('conversation_id',selected.id).order('created_at',{ascending:true}).limit(200).then(db.unwrap);
-    const unread=messages.filter(m=>!m.read_at&&(admin?m.sender_type==='customer':m.sender_type!=='customer')).map(m=>m.id);
-    if(unread.length){const {error}=await db.client.from('chat_messages').update({read_at:new Date().toISOString()}).in('id',unread);if(error)console.warn('Chat read state could not update:',error.message);}
+    messages=await readChatThread(selected.id);
+    try{await markChatRead(messages,{admin});}catch(error){console.warn('Chat read state could not update:',error.message);}
   }
   function title(c){const o=orders.find(row=>row.id===c.order_id);return o?`Order #${o.order_number}`:admin?profiles.find(p=>p.id===c.customer_id)?.full_name||'General inquiry':'LexC Assistant';}
   function context(){
@@ -88,7 +108,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
   function draw(){
     const visible=conversations.filter(c=>{const o=orders.find(x=>x.id===c.order_id);const term=(title(c)+' '+(o?.customer_name||'')).toLowerCase();return term.includes(search)&&(filter==='all'||(filter==='orders'&&c.order_id)||(filter==='attention'&&c.state==='needs_admin'));});
     const unread=new Map();for(const m of inboxMessages){if(!m.read_at&&(admin?m.sender_type==='customer':m.sender_type!=='customer'))unread.set(m.conversation_id,(unread.get(m.conversation_id)||0)+1);}
-    root.innerHTML='<div class="chat-workspace '+(selected&&!mobileListOpen?'has-thread':'')+'"><aside class="chat-inbox"><header><div><h1>'+(admin?'Customer conversations':'Messages')+'</h1><p>'+(admin?'Customer support and order conversations':'Chat with LexC’s Snacktime')+'</p></div>'+(admin?'':'<a class="chat-new-link" href="?new=1">New chat</a>')+'</header><label class="chat-search">Search conversations<input id="chat-search" type="search" value="'+escapeHtml(search)+'" placeholder="Order or customer"></label><div class="chat-filters"><button type="button" data-filter="all" '+(filter==='all'?'aria-pressed="true"':'')+'>All</button><button type="button" data-filter="orders" '+(filter==='orders'?'aria-pressed="true"':'')+'>Orders</button><button type="button" data-filter="attention" '+(filter==='attention'?'aria-pressed="true"':'')+'>Needs attention</button></div><div class="chat-rows">'+(visible.length?visible.map(c=>{const latest=inboxMessages.find(m=>m.conversation_id===c.id);return '<button type="button" class="chat-row '+(selected?.id===c.id?'selected':'')+'" data-thread="'+escapeHtml(c.id)+'"><strong>'+escapeHtml(title(c))+(unread.get(c.id)?'<b class="chat-unread">'+unread.get(c.id)+'</b>':'')+'</strong><span>'+escapeHtml(orders.find(o=>o.id===c.order_id)?.customer_name||(admin?'Customer':'General conversation'))+'</span><small>'+escapeHtml(latest?.body?.slice(0,65)||c.state.replaceAll('_',' '))+'</small></button>';}).join(''):'<p class="chat-empty">No conversations yet.</p>')+'</div></aside><section class="chat-thread">'+(selected?'<header><button type="button" id="chat-back" aria-label="Back to conversations">←</button><div><h2>'+escapeHtml(title(selected))+'</h2><span>'+escapeHtml(selected.state==='needs_admin'?'A LexC team member will reply':selected.state)+'</span></div><button type="button" id="chat-details">Details</button></header><div class="chat-stream">'+(messages.length?messages.map(messageCard).join(''):'<div class="chat-empty">Send a message to start this conversation.</div>')+'</div><form id="chat-compose"><label class="visually-hidden" for="chat-text">Message</label><textarea id="chat-text" name="body" maxlength="3000" rows="2" placeholder="Write a message…" required></textarea><button type="submit">Send</button></form>':'<div class="chat-empty">Select a conversation, or start a new chat.</div>')+'</section><aside class="chat-context">'+(selected?context():'<h2>Order context</h2><p>Select a conversation to see its linked order.</p>')+'</aside></div><p class="chat-error" role="alert" hidden></p>';
+    root.innerHTML='<div class="chat-workspace '+(selected&&!mobileListOpen?'has-thread':'')+'"><aside class="chat-inbox"><header><div><h1>'+(admin?'Customer conversations':'Messages')+'</h1><p>'+(admin?'Customer support and order conversations':'Chat with LexC’s Snacktime')+'</p></div>'+(admin?'':'<a class="chat-new-link" href="?new=1">New chat</a>')+'</header><label class="chat-search">Search conversations<input id="chat-search" type="search" value="'+escapeHtml(search)+'" placeholder="Order or customer"></label><div class="chat-filters"><button type="button" data-filter="all" '+(filter==='all'?'aria-pressed="true"':'')+'>All</button><button type="button" data-filter="orders" '+(filter==='orders'?'aria-pressed="true"':'')+'>Orders</button><button type="button" data-filter="attention" '+(filter==='attention'?'aria-pressed="true"':'')+'>Needs attention</button></div><div class="chat-rows">'+(visible.length?visible.map(c=>{const latest=inboxMessages.find(m=>m.conversation_id===c.id);return '<button type="button" class="chat-row '+(selected?.id===c.id?'selected':'')+'" data-thread="'+escapeHtml(c.id)+'"><strong>'+escapeHtml(title(c))+(unread.get(c.id)?'<b class="chat-unread">'+unread.get(c.id)+'</b>':'')+'</strong><span>'+escapeHtml(orders.find(o=>o.id===c.order_id)?.customer_name||(admin?'Customer':'General conversation'))+'</span><small>'+escapeHtml(latest?.body?.slice(0,65)||c.state.replaceAll('_',' '))+'</small></button>';}).join(''):'<p class="chat-empty">No conversations yet.</p>')+'</div></aside><section class="chat-thread">'+(selected?'<header><button type="button" id="chat-back" aria-label="Back to conversations">←</button><div><h2>'+escapeHtml(title(selected))+'</h2><span>'+escapeHtml(selected.state==='needs_admin'?'A LexC team member will reply':selected.state)+'</span></div><button type="button" id="chat-details">Details</button></header><div class="chat-stream">'+(messages.length?messages.map(messageCard).join(''):'<div class="chat-empty">Send a message to start this conversation.</div>')+'</div><form id="chat-compose"><label class="visually-hidden" for="chat-text">Message</label><textarea id="chat-text" name="body" maxlength="3000" rows="2" placeholder="Write a message…" required></textarea><button type="submit">Send</button></form>':admin?'<div class="chat-empty">Select a conversation.</div>':'<div class="chat-empty">No messages yet.<br><button type="button" id="chat-start">Start chatting with LexC’s Admin</button></div>')+'</section><aside class="chat-context">'+(selected?context():'<h2>Order context</h2><p>Select a conversation to see its linked order.</p>')+'</aside></div><p class="chat-error" role="alert" hidden></p>';
     const stream=root.querySelector('.chat-stream');
     if(stream&&!admin){
       if(selected?.order_id)stream.insertAdjacentHTML('afterbegin',customerOrderCard());
@@ -109,14 +129,22 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     root.querySelectorAll('[data-thread]').forEach(button=>button.onclick=async()=>{selected=conversations.find(c=>c.id===button.dataset.thread);mobileListOpen=false;await loadMessages();draw();root.querySelector('.chat-stream')?.scrollTo(0,999999);});
     root.querySelector('#chat-back')?.addEventListener('click',()=>{mobileListOpen=true;root.querySelector('.chat-workspace').classList.remove('has-thread');});
     root.querySelector('#chat-details')?.addEventListener('click',()=>root.querySelector('.chat-workspace').classList.toggle('show-context'));
+    root.querySelector('#chat-start')?.addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;try{if(orderId&&!orders.some(o=>o.id===orderId&&o.customer_id===user.id))throw new Error('This order is not available to your account.');selected=await ensureCustomerChat({userId:user.id,orderId});await refresh(false);}catch(error){showError(error.message);button.disabled=false;}});
     root.querySelectorAll('[data-quick-message]').forEach(button=>button.onclick=()=>{const input=root.querySelector('#chat-text');if(input){input.value=button.dataset.quickMessage;input.focus();}});
     root.querySelector('#chat-search')?.addEventListener('input',e=>{search=e.target.value;draw();root.querySelector('#chat-search').focus();});
     root.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.filter;draw();});
-    root.querySelector('#chat-compose')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button'),body=form.elements.body.value.trim();if(!body)return;button.disabled=true;try{await db.client.from('chat_messages').insert({conversation_id:selected.id,sender_id:user.id,sender_type:admin?'admin':'customer',body}).then(db.unwrap);form.reset();await refresh();root.querySelector('.chat-stream')?.scrollTo(0,999999);}catch(error){showError(error.message);button.disabled=false;}});
+    root.querySelector('#chat-compose')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button'),body=form.elements.body.value.trim();if(!body||button.disabled)return;button.disabled=true;try{await sendChatMessage({conversationId:selected.id,userId:user.id,admin,body});form.reset();await refresh();root.querySelector('.chat-stream')?.scrollTo(0,999999);}catch(error){showError(error.message);button.disabled=false;}});
+    root.querySelector('#chat-text')?.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();event.currentTarget.form?.requestSubmit();}});
     root.querySelectorAll('[data-proof]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{const p=payments.find(x=>x.id===button.dataset.proof);const url=await db.privateImage('payment-proofs',p.proof_storage_path);window.open(url,'_blank','noopener');}catch(error){showError(error.message);}finally{button.disabled=false;}});
     root.querySelector('#chat-payment-review')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button'),p=payments.find(x=>x.order_id===selected.order_id&&x.status==='verification_pending');button.disabled=true;try{await db.rpc('review_order_payment',{target_payment:p.id,decision:form.elements.decision.value,review_reason:form.elements.reason.value.trim()});await refresh();}catch(error){form.querySelector('[role=alert]').textContent=error.message;button.disabled=false;}});
   }
   function showError(message){const target=root.querySelector('.chat-error');if(target){target.textContent=message;target.hidden=false;}}
   try{await refresh(false);}catch(error){root.innerHTML='<div class="chat-empty" role="alert">Chat could not load: '+escapeHtml(error.message)+' <button type="button" id="chat-retry">Try again</button></div>';root.querySelector('#chat-retry').onclick=()=>mountChat(root,{admin,orderId});return;}
-  timer=setInterval(()=>{if(!root.isConnected){clearInterval(timer);return;}if(!document.hidden)refresh().catch(error=>showError(error.message));},10000);
+  let refreshSoon;
+  const stop=subscribeChatChanges(()=>{clearTimeout(refreshSoon);refreshSoon=setTimeout(()=>{if(root.isConnected)refresh().catch(error=>showError(error.message));},180);},status=>{
+    if(status==='SUBSCRIBED'){clearInterval(fallbackTimer);fallbackTimer=null;}
+    else if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)&&!fallbackTimer){fallbackTimer=setInterval(()=>{if(root.isConnected&&!document.hidden)refresh().catch(error=>showError(error.message));},30000);}
+  });
+  const observer=new MutationObserver(()=>{if(!root.isConnected){clearTimeout(refreshSoon);clearInterval(fallbackTimer);stop();observer.disconnect();}});
+  if(root.parentNode)observer.observe(root.parentNode,{childList:true});
 }

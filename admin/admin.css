@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap');
-@import url('../shared/brand.css');
+@import url('../shared/brand.css?v=2');
 
 :root{--sidebar-width:232px;--page:var(--cream);--sidebar:var(--plum);--accent:var(--plum);--active:var(--plum);--ink:var(--text);--muted:#705c7c;--line:rgba(195,178,215,.35);--shadow:0 4px 24px rgba(92,61,110,.07)}
 *{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5}button,input,select,textarea{font:inherit}button,a{touch-action:manipulation}button{cursor:pointer}button:disabled,input:disabled,select:disabled{cursor:not-allowed;opacity:.6}a{color:var(--plum)}img{max-width:100%}[hidden]{display:none!important}:focus-visible{outline:3px solid var(--plum);outline-offset:3px}button{color:inherit}.skip-link{position:fixed;left:250px;top:-80px;background:white;padding:12px;z-index:40}.skip-link:focus{top:10px}
@@ -35,6 +35,38 @@ body.collapsed{--sidebar-width:76px}body.collapsed .identity,body.collapsed .nav
 @media(max-width:700px){.inventory-head{align-items:stretch;flex-direction:column}.inventory-head .button{width:100%}.inventory-tabs{overflow:auto}.inventory-tabs a{white-space:nowrap}.inventory-filters{grid-template-columns:1fr 1fr}.inventory-search{grid-column:1/-1}.inventory-priority{align-items:flex-start}.inventory-priority>span{flex-basis:100%}.inventory-table-footer,.panel__head{align-items:flex-start;flex-direction:column}.inventory-pagination{width:100%;flex-wrap:wrap}.inventory-details__summary{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.inventory-notification{flex-direction:column}.inventory-notification__actions{justify-content:flex-start}.dialog-actions .button{flex:1}.inventory-activity{margin-top:16px}.stock-date-filter[open]>div{position:fixed;inset:auto 16px 24px;width:auto}}
 @media(max-width:440px){.inventory-filters{grid-template-columns:1fr}.inventory-search{grid-column:auto}}
 @media print{.sidebar,.header,.toolbar,#toast{display:none}main{margin:0;padding:0}.panel{break-inside:avoid;box-shadow:none}.table-scroll{overflow:visible}.data-table{min-width:0;font-size:12px}body{background:white}}
+
+/* Quiet operational hierarchy: dense records, clear status, and restrained elevation. */
+.admin-loading-table .ui-skeleton{display:block;width:75%;height:14px;font-size:0}
+.admin-loading-table td:nth-child(even) .ui-skeleton{width:58%}
+.admin-error-state{max-width:560px;padding:28px}
+.admin-error-state h2{margin:0 0 8px;font:700 20px 'DM Sans',sans-serif;color:var(--plum)}
+.admin-error-state p{margin:0 0 20px;color:var(--muted);line-height:1.55}
+#orders-table .data-table{min-width:650px}
+#orders-table .data-table td:nth-child(3){font-weight:700;font-variant-numeric:tabular-nums}
+#orders-table .data-table th,#orders-table .data-table td{padding-block:13px}
+#orders-table .data-table th,#orders-table .data-table td{padding-inline:10px}
+.data-table tbody tr{transition:background-color var(--ui-motion)}
+.data-table tbody tr:focus-within{background:#f8f4fc}
+.button:disabled{box-shadow:none}
+@media(max-width:700px){.admin-error-state{margin:0 4px;padding:20px}}
+@media(max-width:700px){
+  #orders-table .table-scroll{overflow:visible;background:transparent;border:0;box-shadow:none}
+  #orders-table .data-table{min-width:0;background:transparent}
+  #orders-table .data-table thead{display:none}
+  #orders-table .data-table tbody{display:grid;gap:12px}
+  #orders-table .data-table tbody tr{display:grid;grid-template-columns:1fr auto;gap:8px 12px;border:1px solid var(--ui-border);border-radius:var(--ui-radius-md);padding:15px;background:#fff}
+  #orders-table .data-table tbody td{display:block;padding:0;border:0;min-width:0}
+  #orders-table .data-table tbody td:first-child{font-weight:700;color:var(--plum)}
+  #orders-table .data-table tbody td:nth-child(2){grid-column:1/-1;grid-row:2;color:var(--ui-muted)}
+  #orders-table .data-table tbody td:nth-child(3){grid-column:2;grid-row:1;text-align:right}
+  #orders-table .data-table tbody td:nth-child(4),#orders-table .data-table tbody td:nth-child(5){grid-column:1/-1}
+  #orders-table .data-table tbody td:nth-child(4)::before{content:'Payment · ';font-size:12px;color:var(--ui-muted)}
+  #orders-table .data-table tbody td:nth-child(5)::before{content:'Order · ';font-size:12px;color:var(--ui-muted)}
+  #orders-table .data-table tbody td:nth-child(6){grid-column:1;align-self:center;color:var(--ui-muted);font-size:12px}
+  #orders-table .data-table tbody td:nth-child(7){grid-column:2;text-align:right}
+  #orders-table .data-table tbody td[colspan]{grid-column:1/-1;text-align:center}
+}
 
 /* Inventory reference treatment: crisp white surfaces with vivid lavender accents. */
 .inventory-icon{width:19px;height:19px;display:inline-block;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
@@ -271,3 +303,9 @@ dialog[open]::backdrop{animation:backdrop-in .2s ease both}
 
 /* Detail dialogs keep the same compact operational language as the Inventory table. */
 .inventory-details__facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 18px}.inventory-details__facts>div{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}.inventory-details__facts dt{color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.inventory-details__facts dd{margin:4px 0 0;color:var(--plum);font-size:13px;font-weight:700}.batch-history__entry--success .batch-history__dot{background:#2e7d32}.batch-history__entry--danger .batch-history__dot{background:#c0392b}.batch-history__entry--warning .batch-history__dot{background:#c88613}.batch-history__entry--info .batch-history__dot{background:#2367a3}@media(max-width:700px){.inventory-details__facts{grid-template-columns:1fr}}
+
+/* Compact controls remain reliable touch targets in the Admin workspace. */
+@media(max-width:800px){
+  .mobile-menu,.header-actions button,.header-actions a,.menu-toggle,.icon-button,.inventory-pagination .button{min-width:44px;min-height:44px;display:inline-grid;place-items:center}
+  .button--small,.text-button,.inventory-action-menu button,.stock-date-filter summary{min-height:44px}
+}

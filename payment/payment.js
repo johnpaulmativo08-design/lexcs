@@ -9,6 +9,13 @@ const money=value=>'₱'+Number(value??0).toLocaleString('en-PH',{minimumFractio
 const when=value=>new Date(value).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'});
 const statusName={unpaid:'Awaiting Payment',awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',partially_paid:'Downpayment Paid',paid:'Paid',rejected:'Rejected',refunded:'Refunded'};
 let user,order,methods=[],attempts=[];
+function paymentError(error,fallback){
+ const message=String(error?.message||'');
+ if(/does not belong to your account/i.test(message))return message;
+ if(/valid bank transaction reference|only jpg|only png|only webp|selected file is not a valid/i.test(message))return message;
+ console.warn('Payment action failed:',error);
+ return fallback;
+}
 
 function say(text,error=false){feedback.textContent=text;feedback.hidden=!text;feedback.classList.toggle('error',error);}
 function methodFor(attempt){return methods.find(method=>method.id===attempt.payment_method_id);}
@@ -27,12 +34,13 @@ function renderLogin(){
   root.querySelector('form').onsubmit=async event=>{
     event.preventDefault();const form=event.currentTarget,button=form.querySelector('button');button.disabled=true;
     try{user=await backend.signIn(form.elements.email.value,form.elements.password.value);await load();}
-    catch(error){say(error.message,true);}finally{button.disabled=false;}
+    catch(error){say(paymentError(error,'Sign-in failed. Check your email and password, then try again.'),true);}finally{button.disabled=false;}
   };
 }
 async function load(){
-  if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(orderId||'')){root.innerHTML='<section class="card state-card"><h2>No order selected</h2><p>Open payment from My Orders to continue with your saved order.</p><a class="button" href="../">Go to My Orders</a></section>';return;}
-  user=await backend.identity();if(!user){renderLogin();return;}
+  root.setAttribute('aria-busy','true');
+  if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(orderId||'')){root.innerHTML='<section class="card state-card"><h2>No order selected</h2><p>Open payment from My Orders to continue with your saved order.</p><a class="button" href="../">Go to My Orders</a></section>';root.setAttribute('aria-busy','false');return;}
+  user=await backend.identity();if(!user){renderLogin();root.setAttribute('aria-busy','false');return;}
   try{
     const [savedOrder,savedMethods,savedAttempts]=await Promise.all([
       backend.client.from('orders').select('*,order_items(*)').eq('id',orderId).single().then(backend.unwrap),
@@ -41,7 +49,8 @@ async function load(){
     ]);
     if(savedOrder.customer_id!==user.id)throw new Error('This order does not belong to your account.');
     order=savedOrder;methods=savedMethods;attempts=savedAttempts;render();
-  }catch(error){root.innerHTML='<section class="card state-card"><h2>We could not load this order</h2><p class="error">'+e(error.message)+'</p><div class="state-actions"><button type="button" id="retry-payment">Try again</button><a class="button secondary" href="'+e(ordersURL)+'">My Orders</a></div></section>';root.querySelector('#retry-payment').onclick=load;}
+  }catch(error){root.innerHTML='<section class="card state-card"><h2>We could not load this order</h2><p class="error">'+e(paymentError(error,'Your order is still saved. Check your connection and try again.'))+'</p><div class="state-actions"><button type="button" id="retry-payment">Try again</button><a class="button secondary" href="'+e(ordersURL)+'">My Orders</a></div></section>';root.querySelector('#retry-payment').onclick=load;}
+  finally{root.setAttribute('aria-busy','false');}
 }
 function render(){
   const active=attempts.find(attempt=>['awaiting_payment','verification_pending'].includes(attempt.status));
@@ -82,6 +91,11 @@ function render(){
   root.querySelector('#state-refresh')?.addEventListener('click',()=>load());
   root.querySelector('#start-payment')?.addEventListener('click',startPayment);
   root.querySelector('#proof-form')?.addEventListener('submit',submitPayment);
+  const proofForm=root.querySelector('#proof-form');
+  if(proofForm){
+    const update=()=>{proofForm.querySelector('button[type=submit]').disabled=!/^[A-Za-z0-9 _./-]{6,100}$/.test(proofForm.elements.reference.value.trim())||!proofForm.elements.proof.files.length;};
+    proofForm.addEventListener('input',update);proofForm.addEventListener('change',update);update();
+  }
   root.querySelector('#copy-amount')?.addEventListener('click',async()=>{
     try{await navigator.clipboard.writeText(Number(active.amount).toFixed(2));say('Amount copied: '+money(active.amount)+'. Check it in your banking app before sending.');}
     catch{say('Could not copy automatically. Enter '+money(active.amount)+' in your banking app.',true);}
@@ -93,7 +107,7 @@ function render(){
   root.querySelectorAll('[data-proof]').forEach(button=>button.onclick=async()=>{
     button.disabled=true;
     try{const url=await backend.privateImage('payment-proofs',button.dataset.proof);window.open(url,'_blank','noopener');}
-    catch(error){say('Unable to open private proof: '+error.message,true);}finally{button.disabled=false;}
+    catch(error){say(paymentError(error,'The receipt could not be opened right now. Please try again.'),true);}finally{button.disabled=false;}
   });
 }
 function methodChoice(last){
@@ -120,7 +134,7 @@ async function startPayment(event){
   if(!method)return say('Choose a payment method.',true);
   button.disabled=true;button.textContent='Preparing payment…';
   try{await backend.rpc('start_order_payment',{target_order:order.id,method_code:method});say('Payment prepared. Check the recipient before transferring.');await load();}
-  catch(error){say(error.message,true);button.disabled=false;button.textContent='Show payment QR →';}
+  catch(error){say(paymentError(error,'The QR could not be prepared. Your order is saved; please try again.'),true);button.disabled=false;button.textContent='Show payment QR →';}
 }
 async function submitPayment(event){
   event.preventDefault();const form=event.currentTarget,button=form.querySelector('button');
@@ -136,6 +150,6 @@ async function submitPayment(event){
     const path=uploaded.path;
     await backend.rpc('submit_order_payment',{target_payment:attempt.id,reference_number:reference,proof_path:path});
     say('Payment details submitted. Waiting for seller verification.');await load();
-  }catch(error){say(error.message,true);button.disabled=false;button.textContent='Send proof for verification';}
+  }catch(error){say(paymentError(error,'Your proof could not be submitted. Check your connection and try again.'),true);button.disabled=false;button.textContent='Send proof for verification';}
 }
-load().catch(error=>{root.innerHTML='<section class="card state-card"><h2>Payment could not load</h2><p class="error">'+e(error.message)+'</p><a class="button" href="'+e(ordersURL)+'">Back to My Orders</a></section>';});
+load().catch(error=>{root.setAttribute('aria-busy','false');root.innerHTML='<section class="card state-card"><h2>Payment could not load</h2><p class="error">'+e(paymentError(error,'Check your connection and try again. Your order remains saved.'))+'</p><button class="button" type="button" id="retry-payment">Try again</button><a class="button secondary" href="'+e(ordersURL)+'">My Orders</a></section>';root.querySelector('#retry-payment').onclick=load;});

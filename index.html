@@ -6,7 +6,7 @@
 <script src="shared/supabase-client.js?v=4"></script>
 <script src="shared/catalog.js"></script>
 <script src="shared/fuzzy-search.js"></script>
-<link rel="stylesheet" href="shared/brand.css">
+<link rel="stylesheet" href="shared/brand.css?v=2">
 <meta charset="UTF-8">
 <!-- Firebase SDK Modular Import -->
 <script type="module">
@@ -848,7 +848,8 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'DM Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=4">
+<link rel="stylesheet" href="shared/customer-flow.css?v=5">
+<link rel="stylesheet" href="shared/chat-widget.css?v=2">
 </head>
 <body>
 
@@ -864,18 +865,16 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
     <li><a onclick="navigate('gallery')" data-page="gallery">Gallery</a></li>
     <li><a onclick="navigate('home','about')" data-page="about">About</a></li>
   </ul>
-  <button id="navOrdersButton" class="nav-orders-btn" type="button" onclick="showMyOrders()" hidden>Orders</button>
-  <button class="nav-cart" onclick="openCart()">🛒<div class="cart-badge" id="cartBadge" style="display:none;">0</div></button>
+  <button id="navShoppingButton" class="nav-orders-btn nav-shopping-btn" type="button" onclick="openCart()" aria-label="Open cart"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span>Cart</span><span class="cart-badge" id="cartBadge" hidden>0</span></button>
   <div id="navAuthArea">
     <button class="nav-auth-btn" onclick="navigate('login')">Log In</button>
   </div>
 </nav>
 <div class="customer-mobile-nav" aria-label="Customer navigation">
-  <button type="button" data-mobile-destination="home" onclick="navigate('home')"><span aria-hidden="true">⌂</span>Home</button>
-  <button type="button" data-mobile-destination="shop" onclick="navigate('shop')"><span aria-hidden="true">⌕</span>Shop</button>
-  <button type="button" data-mobile-destination="cart" onclick="openCart()"><span aria-hidden="true">🛒<i id="mobileCartCount" hidden></i></span>Cart</button>
-  <button type="button" data-mobile-destination="orders" onclick="currentUser?showMyOrders():navigate('login')"><span aria-hidden="true">▤</span>Orders</button>
-  <button type="button" id="customerMoreButton" aria-controls="customerMoreMenu" aria-expanded="false" onclick="toggleCustomerMoreMenu()"><span aria-hidden="true">☰</span>More</button>
+  <button type="button" data-mobile-destination="home" onclick="navigate('home')"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span>Home</button>
+  <button type="button" data-mobile-destination="shop" onclick="navigate('shop')"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg></span>Shop</button>
+  <button type="button" data-mobile-destination="shopping" onclick="openCart()"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><i id="mobileCartCount" hidden></i></span>Cart</button>
+  <button type="button" id="customerMoreButton" aria-controls="customerMoreMenu" aria-expanded="false" onclick="toggleCustomerMoreMenu()"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span>More</button>
 </div>
 <div class="customer-more-backdrop" id="customerMoreBackdrop" onclick="closeCustomerMoreMenu()" hidden></div>
 <nav class="customer-more-menu" id="customerMoreMenu" aria-label="More customer pages" hidden>
@@ -1146,7 +1145,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
     <div>
       <div class="shop-search-wrap">
         <label for="shopSearch">Search pastries</label>
-        <div class="shop-search-line"><span aria-hidden="true">⌕</span><input id="shopSearch" type="search" placeholder="Search cakes, cookies, flavors…" autocomplete="off"><button type="button" id="clearShopSearch" aria-label="Clear search">×</button></div>
+        <div class="shop-search-line"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg></span><input id="shopSearch" type="search" aria-label="Search pastries" placeholder="Search cakes, cookies, flavors…" autocomplete="off"><button type="button" id="clearShopSearch" aria-label="Clear search">×</button></div>
         <div id="shopSearchRecent" class="shop-search-recent" hidden></div>
         <p id="shopSearchHint" class="shop-search-hint" role="status"></p>
       </div>
@@ -1252,11 +1251,21 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <div class="cart-drawer" id="cartDrawer">
   <div class="cart-drawer-header">
     <button class="cart-back-btn" type="button" onclick="closeCart()" aria-label="Back to shopping">←</button>
-    <h2 class="cart-drawer-title">Your Cart</h2>
+    <h2 class="cart-drawer-title">My Cart</h2>
     <span class="cart-header-count" id="cartHeaderCount">0 items</span>
     <button class="cart-close-btn" onclick="closeCart()" aria-label="Close cart">✕</button>
   </div>
-  <div class="cart-items-list" id="cartItemsList"></div>
+  <div class="shopping-scroll">
+    <section class="shopping-cart-panel" aria-labelledby="cartSectionTitle">
+      <h3 id="cartSectionTitle" class="shopping-section-title">Ready to order</h3>
+      <label id="cartSelectAllRow" class="cart-select-all"><input id="cartSelectAll" type="checkbox" onchange="toggleAllCartItems(this.checked)"> Select all <span id="cartSelectionCount"></span></label>
+      <div class="cart-items-list" id="cartItemsList"></div>
+    </section>
+    <section class="shopping-orders-panel" aria-labelledby="ordersSectionTitle">
+      <div class="shopping-orders-heading"><div><h3 id="ordersSectionTitle" class="shopping-section-title">Placed orders</h3><p>Orders you've checked out appear here.</p></div><button id="drawerToggleCancelledOrders" class="customer-orders-toggle" type="button" onclick="customerShowCancelled=!customerShowCancelled;showMyOrders()" hidden>Show cancelled</button></div>
+      <div id="shoppingOrdersList" class="customer-orders-list" aria-live="polite"></div>
+    </section>
+  </div>
   <div class="cart-drawer-footer" id="cartFooter" style="display:none;">
     <div class="cart-subtotal">
       <span>Subtotal</span>
@@ -1337,18 +1346,9 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
   <div class="footer-mini"><div class="footer-bottom"><span>© 2025 LexC's Snacktime. All rights reserved.</span><span>Baked with 💜 from scratch</span></div></div>
 </div>
 
-<div id="page-orders" class="page">
-  <main class="customer-orders-wrap">
-    <div class="customer-orders-heading">
-      <div><h1>My Orders</h1><p>Check your bookings and continue any pending payment.</p></div>
-      <div class="customer-orders-tools"><button id="toggleCancelledOrders" class="customer-orders-toggle" type="button" onclick="customerShowCancelled=!customerShowCancelled;showMyOrders()" hidden>Show cancelled</button><a class="customer-orders-shop" href="#" onclick="event.preventDefault();navigate('shop')">Shop more →</a></div>
-    </div>
-    <div id="customerOrdersList" class="customer-orders-list" aria-live="polite"></div>
-  </main>
-</div>
-
 <div id="page-checkout" class="page">
   <div class="checkout-wrap">
+    <button class="checkout-back-link" type="button" onclick="navigate('shop');openCart()" aria-label="Back to cart">← Back to Cart</button>
     <div class="breadcrumb"><a onclick="navigate('shop')">Shop</a> › <a onclick="navigate('shop');openCart()">Cart</a> › Checkout</div>
     <h1 class="checkout-title">Checkout</h1>
     <p class="checkout-intro">Review your items, choose pickup or delivery, then place your order. You'll pay by QR on the next page.</p>
@@ -1385,12 +1385,12 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
         <div class="co-field-group">
           <label class="co-label">Pickup or delivery</label>
           <div class="co-option-grid">
-            <div class="co-option" onclick="selectDelivery(this,'Lalamove')" data-val="Lalamove">
+            <button type="button" class="co-option" onclick="selectDelivery(this,'Lalamove')" data-val="Lalamove" aria-pressed="false">
               <span class="co-option-icon">🛵</span><span>Lalamove</span>
-            </div>
-            <div class="co-option" onclick="selectDelivery(this,'Pick-up')" data-val="Pick-up">
+            </button>
+            <button type="button" class="co-option" onclick="selectDelivery(this,'Pick-up')" data-val="Pick-up" aria-pressed="false">
               <span class="co-option-icon">🏠</span><span>Store Pick-up</span>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -1421,7 +1421,6 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
         </div>
 
         <div class="checkout-actions"><div class="checkout-pay-now"><small>Amount due now</small><strong id="checkoutStickyDue">₱0.00</strong></div><button class="btn-primary co-submit-btn" id="placeOrderButton" onclick="submitCheckout()">Place Order →</button></div>
-        <button class="btn-outline co-back-btn" onclick="openCart();navigate('shop')">← Back to Cart</button>
       </div>
     </div>
   </div>
@@ -2034,6 +2033,7 @@ window.__initThree = function(frostingStyle, baseFlavor, baseColorHex) {
 </script>
 
 <script>
+var currentUser = null;
 
 let currentPage = 'home';
 function authEscape(value) {
@@ -2047,25 +2047,28 @@ let customizerBaseColor = '#d4a373';
 let selectedPayment = '';
 let selectedDelivery = '';
 const checkoutMoney = value => '₱' + (Math.round(Number(value || 0) * 100) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const cartIsPaymentTest = () => cart.some(item => item.isTest);
+const cartIsPaymentTest = () => cartSelectedItems().some(item => item.isTest);
 
 function goToCheckout() {
   if (cart.length === 0) { showToast('Your cart is empty!'); return; }
+  if (cartSelectedItems().length === 0) { showToast('Select at least one item to check out.'); return; }
   closeCart();
   navigate('checkout');
 }
 
 function renderCheckout() {
   const list = document.getElementById('checkoutOrderList');
-  const subtotalCentavos = cart.reduce((s, c) => s + Math.round(Number(c.price) * 100) * c.qty, 0);
+  const selectedItems = cartSelectedItems();
+  const subtotalCentavos = selectedItems.reduce((s, c) => s + Math.round(Number(c.price) * 100) * c.qty, 0);
   if (!list) return;
-  list.innerHTML = cart.map(c => `
+  document.getElementById('placeOrderButton').disabled = selectedItems.length === 0 || checkoutSaving;
+  list.innerHTML = selectedItems.length ? selectedItems.map(c => `
     <div class="checkout-order-item">
       <span class="checkout-order-image">${PRODUCT_IMAGES[c.id] ? `<img src="${authEscape(PRODUCT_IMAGES[c.id])}" alt="">` : authEscape(c.emoji)}</span>
       <span class="checkout-order-item-name"><strong>${authEscape(c.name)}</strong><small>${authEscape(c.sizeLabel)}<br>Qty: ${c.qty}</small></span>
       <span class="checkout-order-item-price">${checkoutMoney(c.price * c.qty)}</span>
     </div>
-  `).join('');
+  `).join('') : '<p class="checkout-empty-selection">No items selected. Return to your cart and choose what to buy.</p>';
   document.getElementById('checkoutSubtotal').textContent = checkoutMoney(subtotalCentavos / 100);
   document.getElementById('checkoutGrandTotal').textContent = checkoutMoney(subtotalCentavos / 100);
   const requiredCentavos = cartIsPaymentTest() ? subtotalCentavos : Math.round(subtotalCentavos * 0.6);
@@ -2078,19 +2081,17 @@ function renderCheckout() {
 }
 
 function selectPayment(el, val) {
-  document.querySelectorAll('.co-option-grid').forEach((g, i) => {
-    if (i === 0) g.querySelectorAll('.co-option').forEach(o => o.classList.remove('selected'));
-  });
-  
-  el.closest('.co-option-grid').querySelectorAll('.co-option').forEach(o => o.classList.remove('selected'));
+  el.closest('.co-option-grid').querySelectorAll('.co-option').forEach(o => { o.classList.remove('selected'); o.setAttribute('aria-pressed','false'); });
   el.classList.add('selected');
+  el.setAttribute('aria-pressed','true');
   selectedPayment = val;
   updateCheckoutDelivery();
 }
 
 function selectDelivery(el, val) {
-  el.closest('.co-option-grid').querySelectorAll('.co-option').forEach(o => o.classList.remove('selected'));
+  el.closest('.co-option-grid').querySelectorAll('.co-option').forEach(o => { o.classList.remove('selected'); o.setAttribute('aria-pressed','false'); });
   el.classList.add('selected');
+  el.setAttribute('aria-pressed','true');
   selectedDelivery = val;
   document.getElementById('coAddressGroup').hidden = val !== 'Lalamove';
   updateCheckoutDelivery();
@@ -2100,7 +2101,7 @@ function updateCheckoutDelivery() {
   const deliveryRow = document.getElementById('checkoutDeliveryRow');
   const deliveryFeeEl = document.getElementById('checkoutDeliveryFee');
   const grandEl = document.getElementById('checkoutGrandTotal');
-  const subtotal = cart.reduce((s, c) => s + Math.round(Number(c.price) * 100) * c.qty, 0) / 100;
+  const subtotal = cartSelectedItems().reduce((s, c) => s + Math.round(Number(c.price) * 100) * c.qty, 0) / 100;
   let deliveryFee = 0;
   if (selectedDelivery === 'Lalamove') { deliveryFee = 0; deliveryRow.style.display = 'flex'; deliveryFeeEl.textContent = 'Varies (by distance)'; }
   else { deliveryRow.style.display = 'none'; }
@@ -2169,7 +2170,7 @@ function closeCustomerMoreMenu() {
 }
 function updateCustomerMobileNavigation() {
   const cartOpen = document.getElementById('cartDrawer').classList.contains('open');
-  const active = cartOpen ? 'cart' : currentPage;
+  const active = cartOpen ? 'shopping' : currentPage;
   document.querySelectorAll('[data-mobile-destination]').forEach(button => {
     if (button.dataset.mobileDestination === active) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
@@ -2235,8 +2236,6 @@ function navigate(page, anchor) {
 
   currentPage = page;
   updateCustomerMobileNavigation();
-  const ordersButton = document.getElementById('navOrdersButton');
-  if (ordersButton) { if (page === 'orders') ordersButton.setAttribute('aria-current', 'page'); else ordersButton.removeAttribute('aria-current'); }
   window.scrollTo(0, 0);
 
   
@@ -2344,6 +2343,7 @@ let shopInited = false;
 let cart = [];
 try { cart = JSON.parse(localStorage.getItem('lexc_cart_v1') || '[]'); } catch {}
 if (!Array.isArray(cart)) cart = [];
+const cartSelectedItems = () => cart.filter(item => item.selected !== false);
 let cartOwnerId = null;
 let cartHydration = null;
 let cartWrites = Promise.resolve();
@@ -2498,14 +2498,24 @@ function openProductDetails(id) {
   const dialog = document.createElement('dialog');
   dialog.className = 'product-detail-dialog';
   const image = PRODUCT_IMAGES[p.id] ? `<img src="${authEscape(PRODUCT_IMAGES[p.id])}" alt="${authEscape(p.name)}">` : `<span class="product-detail-emoji">${authEscape(p.emoji)}</span>`;
-  dialog.innerHTML = `<header class="product-detail-header"><button type="button" class="product-detail-close" aria-label="Back to products">←</button><span>Product details</span><button type="button" class="product-detail-cart" aria-label="Open cart">🛒</button></header><div class="product-detail-image">${image}</div><div class="product-detail-body"><div class="product-detail-heading"><h2>${authEscape(p.name)}</h2><strong data-price>${checkoutMoney(p.price)}</strong></div><p>${authEscape(p.desc)}</p>${p.isTest ? '<p>Real ₱1 payment test. No bakery item will be delivered. Checkout separately.</p>' : ''}<label for="detail-size-${p.id}">Choose size or flavor</label><select id="detail-size-${p.id}" class="product-detail-select" data-variant>${p.sizes.map((size, index) => `<option value="${index}">${authEscape(size.label)} — ${checkoutMoney(size.price)}</option>`).join('')}</select><div class="product-detail-quantity"><span>Quantity</span><div class="cart-qty-ctrl"><button type="button" class="qty-btn" data-less aria-label="Decrease quantity">−</button><span class="qty-num" data-quantity>1</span><button type="button" class="qty-btn" data-more aria-label="Increase quantity">+</button></div></div><p class="product-detail-description">Freshly made for your selected pickup or delivery date. Add to cart now and complete your order at checkout.</p></div><footer class="product-detail-footer"><button type="button" class="btn-primary" data-add>Add to Cart</button><button type="button" class="btn-outline" data-buy>Buy Now</button></footer>`;
+  dialog.innerHTML = `<header class="product-detail-header"><button type="button" class="product-detail-close" aria-label="Back to products">←</button><span>Product details</span><button type="button" class="product-detail-cart" aria-label="Open cart"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></button></header><div class="product-detail-image">${image}</div><div class="product-detail-body"><div class="product-detail-heading"><h2>${authEscape(p.name)}</h2><strong data-price>${checkoutMoney(p.price)}</strong></div><p>${authEscape(p.desc)}</p>${p.isTest ? '<p>Real ₱1 payment test. No bakery item will be delivered. Checkout separately.</p>' : ''}<label for="detail-size-${p.id}">Choose size or flavor</label><select id="detail-size-${p.id}" class="product-detail-select" data-variant>${p.sizes.map((size, index) => `<option value="${index}">${authEscape(size.label)} — ${checkoutMoney(size.price)}</option>`).join('')}</select><div class="product-detail-quantity"><span>Quantity</span><div class="cart-qty-ctrl"><button type="button" class="qty-btn" data-less aria-label="Decrease quantity">−</button><span class="qty-num" data-quantity>1</span><button type="button" class="qty-btn" data-more aria-label="Increase quantity">+</button></div></div><p class="product-detail-description">Freshly made for your selected pickup or delivery date. Add to cart now and complete your order at checkout.</p></div><footer class="product-detail-footer"><button type="button" class="btn-primary" data-add>Add to Cart</button><button type="button" class="btn-outline" data-buy>Buy Now</button></footer>`;
   document.body.append(dialog); dialog.showModal();
   dialog.querySelector('.product-detail-close').onclick = () => { dialog.close(); dialog.remove(); };
   dialog.querySelector('.product-detail-cart').onclick = () => { dialog.close(); dialog.remove(); openCart(); };
   dialog.querySelector('[data-variant]').onchange = event => { dialog.querySelector('[data-price]').textContent = checkoutMoney(p.sizes[Number(event.target.value)].price); };
   dialog.querySelector('[data-less]').onclick = () => { const value = dialog.querySelector('[data-quantity]'); value.textContent = Math.max(1, Number(value.textContent) - 1); };
   dialog.querySelector('[data-more]').onclick = () => { const value = dialog.querySelector('[data-quantity]'); value.textContent = Math.min(99, Number(value.textContent) + 1); };
-  const commit = buyNow => { addToCartById(id, Number(dialog.querySelector('[data-variant]').value), Number(dialog.querySelector('[data-quantity]').textContent)); dialog.close(); dialog.remove(); if (buyNow) goToCheckout(); };
+  const commit = buyNow => {
+    const variantIndex = Number(dialog.querySelector('[data-variant]').value);
+    if (!addToCartById(id, variantIndex, Number(dialog.querySelector('[data-quantity]').textContent))) return;
+    if (buyNow) {
+      const chosenVariant = p.sizes[variantIndex]?.id;
+      cart.forEach(item => { item.selected = item.variant_id === chosenVariant; });
+      renderCart();
+    }
+    dialog.close(); dialog.remove();
+    if (buyNow) goToCheckout();
+  };
   dialog.querySelector('[data-add]').onclick = () => commit(false);
   dialog.querySelector('[data-buy]').onclick = () => commit(true);
   dialog.addEventListener('close', () => dialog.remove(), { once: true });
@@ -2513,24 +2523,26 @@ function openProductDetails(id) {
 
 function addToCartById(id, selectedIndex, quantity = 1) {
   const p = products.find(x => x.id === id);
-  if (!p) return;
+  if (!p) return false;
   if (cart.length && cart.some(item => Boolean(item.isTest) !== Boolean(p.isTest))) {
-    showToast('Payment Test Product must be checked out separately.'); return;
+    showToast('Payment Test Product must be checked out separately.'); return false;
   }
   const sel = document.getElementById('size-' + id);
   const idx = Number.isInteger(selectedIndex) ? selectedIndex : (sel ? +sel.value : 0);
   const size = p.sizes[idx];
-  if (!size) return;
+  if (!size) return false;
   quantity = Math.min(99, Math.max(1, Number(quantity) || 1));
   
   const existing = cart.find(c => c.id === id && c.sizeLabel === size.label);
   if (existing) {
     existing.qty += quantity;
+    existing.selected = true;
   } else {
-    cart.push({ id, product_id: p.product_id, variant_id: size.id, name: p.name, emoji: p.emoji, sizeLabel: size.label, price: size.price, qty: quantity, isTest: Boolean(p.isTest) });
+    cart.push({ id, product_id: p.product_id, variant_id: size.id, name: p.name, emoji: p.emoji, sizeLabel: size.label, price: size.price, qty: quantity, isTest: Boolean(p.isTest), selected: true });
   }
   renderCart();
   showToast(`✓ ${authEscape(p.name)} added!`);
+  return true;
 }
 
 function addToCart(name) {
@@ -2540,10 +2552,12 @@ function addToCart(name) {
   showToast(`✓ ${name} added!`);
 }
 
-function openCart() {
+function openCart(focusOrderId) {
   document.getElementById('cartDrawer').classList.add('open');
   document.getElementById('cartOverlay').classList.add('open');
   updateCustomerMobileNavigation();
+  if (currentUser) showMyOrders(focusOrderId);
+  else document.getElementById('shoppingOrdersList').innerHTML = '<div class="customer-orders-state"><h2>Sign in to see orders</h2><p>Your cart can be saved now. Placed orders are linked to your account.</p><button class="btn-primary" type="button" onclick="closeCart();navigate(\'login\')">Log in</button></div>';
 }
 
 function closeCart() {
@@ -2554,13 +2568,20 @@ function closeCart() {
 
 function renderCart() {
   persistCart();
-  const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
+  const selectedItems = cartSelectedItems();
+  const total = selectedItems.reduce((s, c) => s + c.price * c.qty, 0);
   const count = cart.reduce((s, c) => s + c.qty, 0);
+  const selectAll = document.getElementById('cartSelectAll');
+  document.getElementById('cartSelectAllRow').hidden = cart.length === 0;
+  selectAll.checked = cart.length > 0 && selectedItems.length === cart.length;
+  selectAll.indeterminate = selectedItems.length > 0 && selectedItems.length < cart.length;
+  selectAll.disabled = cart.length === 0;
+  document.getElementById('cartSelectionCount').textContent = `${selectedItems.length} of ${cart.length} selected`;
   document.getElementById('cartHeaderCount').textContent = `${count} item${count === 1 ? '' : 's'}`;
   
   const badge = document.getElementById('cartBadge');
   badge.textContent = count;
-  badge.style.display = count > 0 ? 'flex' : 'none';
+  badge.hidden = count === 0;
   const mobileCount = document.getElementById('mobileCartCount');
   mobileCount.textContent = count > 99 ? '99+' : String(count);
   mobileCount.hidden = count === 0;
@@ -2570,12 +2591,14 @@ function renderCart() {
   if (cart.length === 0) {
     list.innerHTML = `<div class="cart-empty"><span class="cart-empty-icon">🛒</span><p>Your cart is empty.<br>Browse our pastries and add your favourites!</p></div>`;
     footer.style.display = 'none';
+    if (currentPage === 'checkout') renderCheckout();
     return;
   }
   footer.style.display = 'block';
   document.getElementById('cartSubtotal').textContent = checkoutMoney(total);
   list.innerHTML = cart.map((c, i) => `
     <div class="cart-item">
+      <label class="cart-item-select" aria-label="Select ${authEscape(c.name)} for checkout"><input type="checkbox" ${c.selected !== false ? 'checked' : ''} onchange="toggleCartItem(${i},this.checked)"></label>
       <div class="cart-item-emoji">${PRODUCT_IMAGES[c.id] ? `<img src="${authEscape(PRODUCT_IMAGES[c.id])}" alt="">` : authEscape(c.emoji)}</div>
       <div class="cart-item-info">
         <div class="cart-item-name">${authEscape(c.name)}</div>
@@ -2592,6 +2615,18 @@ function renderCart() {
       </div>
     </div>
   `).join('');
+  footer.querySelector('.btn-primary').disabled = selectedItems.length === 0;
+  if (currentPage === 'checkout') renderCheckout();
+}
+
+function toggleCartItem(index, selected) {
+  if (!cart[index]) return;
+  cart[index].selected = selected;
+  renderCart();
+}
+function toggleAllCartItems(selected) {
+  cart.forEach(item => { item.selected = selected; });
+  renderCart();
 }
 
 function changeQty(i, delta) {
@@ -2776,22 +2811,23 @@ navigate('home');
 </script>
 
 <div class="dt-modal-overlay" id="dtModalOverlay" style="display:none;" onclick="closeDateTimeModal(event)">
-  <div class="dt-modal" onclick="event.stopPropagation()">
-    <div class="dt-modal-title">Choose Your Booking Date &amp; Time</div>
+  <div class="dt-modal" role="dialog" aria-modal="true" aria-labelledby="dtModalTitle" onclick="event.stopPropagation()">
+    <div class="dt-modal-heading"><button type="button" class="dt-modal-back" aria-label="Back to checkout" onclick="closeDateTimeModal()">←</button><div class="dt-modal-title" id="dtModalTitle">Choose Your Booking Date &amp; Time</div></div>
     <p class="dt-modal-intro">Dates update from our live baking schedule. Fully booked and Admin-closed dates cannot be selected.</p>
     <div class="dt-modal-body">
       
       <div>
         <div class="dt-cal-header">
-          <button class="dt-cal-nav" id="dtPrevBtn" onclick="dtChangeMonth(-1)">&#8249;</button>
+          <button class="dt-cal-nav" id="dtPrevBtn" aria-label="Previous month" onclick="dtChangeMonth(-1)">&#8249;</button>
           <div class="dt-cal-month" id="dtMonthLabel"></div>
-          <button class="dt-cal-nav" id="dtNextBtn" onclick="dtChangeMonth(1)">&#8250;</button>
+          <button class="dt-cal-nav" id="dtNextBtn" aria-label="Next month" onclick="dtChangeMonth(1)">&#8250;</button>
         </div>
         <div class="dt-cal-grid" id="dtCalGrid"></div>
         <div class="dt-cal-legend">
           <span><span class="dt-legend-dot dt-legend-avail"></span>Available</span>
           <span><span class="dt-legend-dot" style="background:#f0a425"></span>Almost full</span>
-          <span><span class="dt-legend-dot dt-legend-full"></span>Full / Closed</span>
+          <span><span class="dt-legend-dot dt-legend-full"></span>Fully booked</span>
+          <span><span class="dt-legend-dot dt-legend-closed"></span>Admin closed</span>
         </div>
       </div>
       
@@ -2812,8 +2848,10 @@ navigate('home');
 <script>
 
 let dtYear, dtMonth, dtSelectedDate = null, dtSelectedSlot = null, dtAvailability = new Map();
+let dtModalReturnFocus = null;
 
 async function openDateTimeModal() {
+  dtModalReturnFocus = document.activeElement;
   const now = new Date();
   dtYear = now.getFullYear();
   dtMonth = now.getMonth();
@@ -2824,6 +2862,7 @@ async function openDateTimeModal() {
   overlay.style.display = '';
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+  overlay.querySelector('.dt-modal-back').focus();
   await renderDtCalendar();
   const firstOpenDay = [...dtAvailability.values()].find(day => !day.is_closed && Number(day.remaining_slots) > 0 && day.has_receiving_slot);
   if (firstOpenDay) {
@@ -2837,7 +2876,13 @@ function closeDateTimeModal(e) {
   if (e && e.target !== document.getElementById('dtModalOverlay')) return;
   document.getElementById('dtModalOverlay').classList.remove('open');
   document.body.style.overflow = '';
+  dtModalReturnFocus?.focus();
+  dtModalReturnFocus = null;
 }
+
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&document.getElementById('dtModalOverlay').classList.contains('open'))closeDateTimeModal();
+});
 
 async function renderDtCalendar() {
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -2914,12 +2959,9 @@ function readAuthStorage(storage, key, fallback) {
   try { return JSON.parse(storage.getItem(key)) ?? fallback; } catch { return fallback; }
 }
 var checkoutAuthPending = sessionStorage.getItem('lexc_checkout_pending') === 'true';
-var currentUser = null;
 var authBusy = false;
 function updateNavAuth() {
   const area = document.getElementById('navAuthArea');
-  const ordersButton = document.getElementById('navOrdersButton');
-  if (ordersButton) ordersButton.hidden = !currentUser;
   updateCustomerMobileNavigation();
   if (!area) return;
   if (!currentUser) { area.innerHTML = '<button class="nav-auth-btn" onclick="navigate(\'login\')">Log In</button>'; return; }
@@ -2936,7 +2978,7 @@ async function completeCustomerLogin(user) {
   const checkout = checkoutAuthPending || sessionStorage.getItem('lexc_checkout_pending') === 'true';
   checkoutAuthPending = false;
   sessionStorage.removeItem('lexc_checkout_pending');
-  if (checkout && cart.length) navigate('checkout');
+  if (checkout && cartSelectedItems().length) navigate('checkout');
   else if (user.role === 'admin') location.href = 'admin/';
   else { navigate('home'); openOrderFromReturnLink(); }
 }
@@ -3038,7 +3080,8 @@ document.getElementById('loginName').value = localStorage.getItem('lexc_login_hi
 document.getElementById('loginRemember').checked = Boolean(localStorage.getItem('lexc_login_hint'));
 </script>
 
-<script src="shared/customer-backend.js?v=7"></script>
-<a class="customer-chat-shortcut" href="chat/" aria-label="Chat with LexC's Snacktime">Chat with us</a>
+<script src="shared/customer-backend.js?v=10"></script>
+<button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=5';mountChatWidget();</script>
 </body>
 </html>

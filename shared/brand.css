@@ -9,4 +9,36 @@
   --dark:#1e1218;
   --text:#3a2840;
   --mid:#7a5d8a;
+  --ui-primary:#5c3d6e;
+  --ui-primary-hover:#493059;
+  --ui-surface:#fff;
+  --ui-border:#e5ddec;
+  --ui-muted:#705c7c;
+  --ui-success:#216b4b;
+  --ui-warning:#875b16;
+  --ui-danger:#a73345;
+  --ui-radius-sm:8px;
+  --ui-radius-md:12px;
+  --ui-radius-lg:16px;
+  --ui-space-1:4px;
+  --ui-space-2:8px;
+  --ui-space-3:12px;
+  --ui-space-4:16px;
+  --ui-space-6:24px;
+  --ui-space-8:32px;
+  --ui-shadow-panel:0 12px 32px rgba(45,28,58,.12);
+  --ui-motion:180ms ease;
 }
+
+/* Shared interaction foundations; page styles retain their existing layouts. */
+button,a,input,select,textarea{touch-action:manipulation}
+button:not(:disabled),a{transition:background-color var(--ui-motion),border-color var(--ui-motion),color var(--ui-motion),transform var(--ui-motion)}
+button:not(:disabled):active{transform:scale(.98)}
+:focus-visible{outline:3px solid #9a76bc;outline-offset:3px}
+.ui-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:middle}
+.ui-icon--small{width:18px;height:18px}
+.ui-icon--large{width:24px;height:24px}
+.ui-skeleton{position:relative;overflow:hidden;background:#eee8f2;border-radius:var(--ui-radius-sm);color:transparent!important}
+.ui-skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#ffffff88,transparent);animation:ui-shimmer 1.25s ease-in-out infinite}
+@keyframes ui-shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

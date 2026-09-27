@@ -51,7 +51,7 @@ header{background:linear-gradient(105deg,#4d307f,#7355b5)}
 .proof-disclosure summary{display:flex;justify-content:space-between;gap:10px;padding:15px 17px;color:#503286;font-weight:700;cursor:pointer;list-style:none}
 .proof-disclosure summary::-webkit-details-marker{display:none}
 .proof-disclosure[open] summary{border-bottom:1px solid #e4d9f2}
-.proof-disclosure[open] summary span{transform:rotate(180deg)}
+.proof-disclosure[open] summary>span:last-child{transform:rotate(180deg)}
 .proof-disclosure form,.proof-disclosure .fine-print{margin:0;padding:15px 17px}
 .proof-disclosure form{border:0}
 .proof-disclosure .field:first-child{margin-top:0}
@@ -247,4 +247,29 @@ main>h1{margin-bottom:4px}
   .compact-payment-core .qr-image{max-height:300px}
   .payment-card .same-phone{font-size:.78rem}
   .payment-strip{position:relative}
+}
+
+/* Payment navigation and transfer actions stay easy to reach on a phone. */
+.payment-skeleton{display:grid;gap:18px;margin-top:18px}
+.payment-skeleton-strip,.payment-skeleton-grid>div{position:relative;overflow:hidden;background:#eee9f2;border-radius:12px}
+.payment-skeleton-strip{height:78px}
+.payment-skeleton-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+.payment-skeleton-grid>div{height:340px}
+.payment-skeleton-strip::after,.payment-skeleton-grid>div::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#fff9,transparent);animation:ui-shimmer 1.25s ease-in-out infinite}
+button:disabled{cursor:not-allowed}
+.card{box-shadow:none;border-radius:var(--ui-radius-lg)}
+.payment-card .compact-payment-heading h2{font-family:'DM Sans',sans-serif;font-weight:700}
+.payment-card .compact-payment-core{background:#fdfcff}
+.payment-card .pay-amount strong{font-variant-numeric:tabular-nums}
+.method-choice:hover{border-color:#967ab5}
+.method-choice:has(input:focus-visible){outline:3px solid #9a76bc;outline-offset:2px}
+@media(max-width:760px){.payment-skeleton-grid{grid-template-columns:1fr}.payment-skeleton-grid>div{height:245px}.payment-skeleton-grid>div+div{display:none}}
+nav[aria-label="Breadcrumb"] a{display:inline-flex;align-items:center;min-height:44px;padding:4px 8px 4px 0;font-weight:700;text-decoration:none}
+nav[aria-label="Breadcrumb"] a:hover{text-decoration:underline;text-underline-offset:3px}
+.method-choice{min-height:56px;align-items:center}
+.qr-actions .button,.pay-amount button,#start-payment,#show-proof,.proof-disclosure button{min-height:44px}
+@media(max-width:760px){
+  .payment-strip .strip-amount{grid-row:1}
+  .payment-strip>a:nth-of-type(2){grid-column:2;grid-row:2;justify-self:end;text-align:right}
+  .payment-strip>a{min-height:44px;display:inline-flex;align-items:center}
 }

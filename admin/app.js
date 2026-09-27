@@ -2,11 +2,12 @@ import { renderDashboard } from './pages/dashboard.js?v=7';
 import { renderProducts } from './pages/products.js?v=3';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=14';
 import { renderReports } from './pages/reports.js?v=4';
-import { renderOrders } from './pages/orders.js?v=7';
+import { renderOrders } from './pages/orders.js?v=10';
 import { renderBookings } from './pages/bookings.js?v=9';
 import { renderGallery } from './pages/gallery.js?v=2';
 import { renderProfile } from './pages/profile.js?v=2';
-import { mountChat } from '../shared/chat.js?v=5';
+import { mountChat } from '../shared/chat.js?v=7';
+import { mountChatWidget } from '../shared/chat-widget.js?v=4';
 import { icon } from './components.js?v=3';
 
 const groups = [
@@ -70,6 +71,7 @@ notificationsButton.addEventListener('click', revealNotifications);
 
 async function renderRoute() {
   if (!await window.LexcAdminAuth.guard()) return;
+  mountChatWidget({admin:true});
   document.querySelector('#admin-dialog')?.close();
   const route = location.hash.slice(1) || 'dashboard';
   const page = route.split('/')[0];
