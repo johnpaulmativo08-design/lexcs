@@ -17,15 +17,22 @@ function renderTest(test){
   if(test.status==='rejected')message(test.review_note||'Admin could not match the transfer. Check your details and resubmit the correct reference.',true);
 }
 async function loadHistory(){
+  const root=document.getElementById('test-history');
+  root.setAttribute('aria-busy','true');
+  root.innerHTML='<div role="status" aria-label="Loading payment test history">'+Array.from({length:4},()=>'<div class="history-row skel-stack" aria-hidden="true"><span class="skel skel-title"></span><span class="skel skel-line skel-line--short"></span></div>').join('')+'</div>';
+  try{
   const rows=backend.unwrap(await backend.client.from('payment_tests').select('*').order('created_at',{ascending:false}));
-  document.getElementById('test-history').innerHTML=rows.length?rows.map(row=>
+  root.innerHTML=rows.length?rows.map(row=>
     '<div class="history-row"><strong>₱1.00 MariBank QR test <span class="status '+escapeHtml(row.status)+'">'+escapeHtml(statusLabel[row.status]||row.status)+'</span></strong><span>'+escapeHtml(new Date(row.created_at).toLocaleString('en-PH'))+'</span>'+(row.payment_reference?'<br>Reference: '+escapeHtml(row.payment_reference):'')+(row.review_note?'<br>Admin note: '+escapeHtml(row.review_note):'')+'</div>'
   ).join(''):'No tests yet. Start one above.';
   if(!currentTest&&rows[0]&&rows[0].status!=='verified')renderTest(rows[0]);
   else if(currentTest){const fresh=rows.find(row=>row.id===currentTest.id);if(fresh)renderTest(fresh);}
+  }catch(error){console.warn('Payment test history could not load:',error);root.innerHTML='<div role="alert"><p>Payment tests could not load. Please try again.</p><button type="button" id="retry-test-history">Try again</button></div>';root.querySelector('#retry-test-history').onclick=loadHistory;}
+  finally{root.setAttribute('aria-busy','false');}
 }
 async function refresh(){
   try{currentUser=await backend.identity();}catch(error){message(error.message,true);}
+  document.getElementById('test-identity-skeleton').hidden=true;
   loginPanel.hidden=!!currentUser;testPanel.hidden=!currentUser;
   if(currentUser){document.getElementById('customer-name').textContent='Signed in as '+(currentUser.name||currentUser.email);await loadHistory();}
 }

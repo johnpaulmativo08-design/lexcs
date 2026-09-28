@@ -9,6 +9,7 @@ const money=value=>'₱'+Number(value??0).toLocaleString('en-PH',{minimumFractio
 const when=value=>new Date(value).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'});
 const statusName={unpaid:'Awaiting Payment',awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',partially_paid:'Downpayment Paid',paid:'Paid',rejected:'Rejected',refunded:'Refunded'};
 let user,order,methods=[],attempts=[];
+function paymentSkeleton(){return '<section class="payment-skeleton" role="status" aria-label="Loading your saved order"><div class="payment-skeleton-strip skel-panel" aria-hidden="true"><span class="skel skel-line skel-line--short"></span><span class="skel skel-value"></span><span class="skel skel-badge"></span></div><div class="payment-skeleton-grid"><div class="skel-panel" aria-hidden="true"><span class="skel skel-title"></span><div class="payment-skeleton-main"><span class="skel skel-image skel-image--square"></span><span class="skel-stack"><span class="skel skel-line"></span><span class="skel skel-value"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-button"></span></span></div></div><div class="skel-panel skel-stack" aria-hidden="true"><span class="skel skel-title"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span><span class="skel skel-line skel-line--long"></span></div></div></section>';}
 function paymentError(error,fallback){
  const message=String(error?.message||'');
  if(/does not belong to your account/i.test(message))return message;
@@ -39,9 +40,10 @@ function renderLogin(){
 }
 async function load(){
   root.setAttribute('aria-busy','true');
+  root.innerHTML=paymentSkeleton();
   if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(orderId||'')){root.innerHTML='<section class="card state-card"><h2>No order selected</h2><p>Open payment from My Orders to continue with your saved order.</p><a class="button" href="../">Go to My Orders</a></section>';root.setAttribute('aria-busy','false');return;}
-  user=await backend.identity();if(!user){renderLogin();root.setAttribute('aria-busy','false');return;}
   try{
+    user=await backend.identity();if(!user){renderLogin();return;}
     const [savedOrder,savedMethods,savedAttempts]=await Promise.all([
       backend.client.from('orders').select('*,order_items(*)').eq('id',orderId).single().then(backend.unwrap),
       backend.client.from('payment_methods').select('*').eq('active',true).then(backend.unwrap),
@@ -78,6 +80,13 @@ function render(){
   else if(remaining===0)paymentArea='<section class="card state-card"><span class="state-icon paid-icon" aria-hidden="true">✓</span><span class="eyebrow">PAYMENT COMPLETE</span><h2>Payment verified</h2><span class="status paid">Paid</span><p>LexC’s verified '+money(order.amount_paid)+' received for this order.</p><a class="button" href="'+e(ordersURL)+'">View My Orders</a></section>';
   else paymentArea=methodChoice(last);
   root.innerHTML=orderStrip+'<div class="layout"><div class="payment-main">'+paymentArea+history()+'</div>'+orderSummary+'</div>';
+  const qrImage=root.querySelector('.qr-image');
+  if(qrImage){
+    const settle=()=>{qrImage.classList.add('is-loaded');root.querySelector('.qr-image-skeleton')?.remove();};
+    const failImage=()=>{root.querySelector('.qr-image-skeleton')?.remove();qrImage.replaceWith(Object.assign(document.createElement('p'),{className:'error',textContent:'QR image could not load. Please choose another method or try again.'}));};
+    if(qrImage.complete){if(qrImage.naturalWidth)settle();else failImage();}
+    else{qrImage.addEventListener('load',settle,{once:true});qrImage.addEventListener('error',failImage,{once:true});}
+  }
   const step=order.status==='cancelled'||order.total_amount===null?0:active?.status==='verification_pending'?3:active?.status==='awaiting_payment'?2:remaining===0?3:1;
   root.dataset.stage=String(step);
   document.querySelectorAll('[data-step]').forEach(item=>{
@@ -121,8 +130,8 @@ function paymentForm(attempt){
   const isOnePesoExample=Number(attempt.amount)===1&&Number(order.deposit_rate)===1&&order.order_items.some(item=>item.name_snapshot?.startsWith('Product A'));
   return '<section class="card payment-card"><span class="eyebrow">SEND THE TRANSFER</span><div class="compact-payment-heading"><h2>'+e(method?.display_name||'Manual payment')+' QR</h2><span>Send '+money(attempt.amount)+'</span></div>'+
     (isOnePesoExample?'<p class="test-note">This is a real ₱1 payment test. No physical Product A will be delivered.</p>':'')+
-    '<div class="compact-payment-core"><div class="qr-panel"><img class="qr-image" src="../'+e(qr)+'" alt="'+e(method?.display_name||'Manual payment')+' receiving QR"><div class="qr-actions"><a class="button secondary" href="../'+e(qr)+'" download="lexc-'+e(method?.code||'payment')+'-qr.'+(qr.toLowerCase().endsWith('.png')?'png':'jpg')+'">Save QR</a><a class="button secondary" href="../'+e(qr)+'" target="_blank" rel="noopener">View larger</a></div></div><div class="compact-payment-info"><div class="pay-amount"><span>Send exactly</span><strong>'+money(attempt.amount)+'</strong><button class="button secondary" id="copy-amount" type="button">Copy amount</button></div><div class="recipient"><span>RECIPIENT</span><strong>'+e(method?.account_name)+'</strong><small>'+e(method?.masked_account)+'</small></div><p class="compact-qr-note">Check the recipient and enter the amount in your banking app. A fixed QR may not include it; transfer fees are separate.</p></div></div>'+ 
-    '<p class="same-phone"><strong>Using one phone?</strong> Save the QR, then import it in your bank or wallet app if supported. Otherwise scan from another screen.</p>'+ 
+    '<div class="compact-payment-core"><div class="qr-panel"><div class="qr-image-wrap"><span class="skel qr-image-skeleton" aria-hidden="true"></span><img class="qr-image" src="../'+e(qr)+'" alt="'+e(method?.display_name||'Manual payment')+' receiving QR"></div><div class="qr-actions"><a class="button secondary" href="../'+e(qr)+'" download="lexc-'+e(method?.code||'payment')+'-qr.'+(qr.toLowerCase().endsWith('.png')?'png':'jpg')+'">Save QR</a><a class="button secondary" href="../'+e(qr)+'" target="_blank" rel="noopener">View larger</a></div></div><div class="compact-payment-info"><div class="pay-amount"><span>Send exactly</span><strong>'+money(attempt.amount)+'</strong><button class="button secondary" id="copy-amount" type="button">Copy amount</button></div><div class="recipient"><span>RECIPIENT</span><strong>'+e(method?.account_name)+'</strong><small>'+e(method?.masked_account)+'</small></div><p class="compact-qr-note">Check the recipient and enter the amount in your banking app. A fixed QR may not include it; transfer fees are separate.</p></div></div>'+
+    '<p class="same-phone"><strong>Using one phone?</strong> Save the QR, then import it in your bank or wallet app if supported. Otherwise scan from another screen.</p>'+
     '<details class="proof-disclosure" id="proof-disclosure"><summary><span>Already paid? Upload receipt <small>Only after your bank confirms the transfer</small></span><span aria-hidden="true">⌄</span></summary><div class="proof-intro">Use the transaction reference from your banking app—not your LexC order number.</div><form id="proof-form"><label class="field">Bank transaction reference<input type="text" name="reference" minlength="6" maxlength="100" pattern="[A-Za-z0-9 _./-]{6,100}" required autocomplete="off" placeholder="Shown on your successful transfer"></label><label class="field">Transfer receipt <small>JPG, PNG, or WEBP · up to 5 MB</small><input type="file" name="proof" accept="image/jpeg,image/png,image/webp" required><span id="selected-proof" class="selected-proof">No receipt selected</span></label><button type="submit">Send proof for verification</button></form><p class="fine-print">Proof submission does not mark the order paid. Admin verifies the incoming transfer. Do not send another transfer while verification is pending.</p></details></section>';
 }
 function history(){

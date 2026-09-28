@@ -39,6 +39,21 @@ body.collapsed{--sidebar-width:76px}body.collapsed .identity,body.collapsed .nav
 /* Quiet operational hierarchy: dense records, clear status, and restrained elevation. */
 .admin-loading-table .ui-skeleton{display:block;width:75%;height:14px;font-size:0}
 .admin-loading-table td:nth-child(even) .ui-skeleton{width:58%}
+.admin-loading-table .skel{height:13px;max-width:100%}.admin-loading-table .skel-badge{height:22px}.admin-loading-table td{height:52px}
+.operations-dashboard .skel-panel,.report-grid .skel-panel{box-shadow:none}
+.ops-metrics .skel-stat{min-height:145px}.ops-main .skel-panel,.ops-secondary .skel-panel{min-height:220px}
+/* Loading cards use the same column changes as the final dashboard KPIs. */
+.operations-dashboard .skel-stat-grid{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:24px}
+@media(max-width:1200px){.operations-dashboard .skel-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:960px){.operations-dashboard .skel-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.operations-dashboard .skel-stat-grid{gap:10px}}
+@media(max-width:390px){.skel-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.payment-proof-viewer{display:grid;gap:12px;margin:16px 0;max-width:100%}.payment-proof-viewer>.skel-image,.payment-proof-viewer img{display:block;width:100%;max-height:420px;aspect-ratio:3/4;object-fit:contain;background:#eee8f2;border:1px solid var(--line);border-radius:10px}.payment-proof-viewer .button{justify-self:start}
+@media(max-width:520px){.ops-metric>strong{font-size:clamp(20px,6vw,32px);overflow-wrap:anywhere}}
+.inventory-notification-popover .skel-list{padding:12px 16px;min-width:min(320px,calc(100vw - 32px))}
+.booking-skeleton-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,310px);gap:18px}.booking-skeleton-calendar{min-height:520px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:start;gap:10px}.booking-skeleton-calendar .skel{height:80px;width:100%}
+@media(max-width:900px){.booking-skeleton-grid{grid-template-columns:1fr}.booking-skeleton-calendar{min-height:340px}}
+@media(max-width:600px){.admin-loading-table .data-table{min-width:0}.admin-loading-table tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px}.admin-loading-table tbody td{height:auto;padding:4px!important;min-width:0}.admin-loading-table tbody td::before{display:none!important}.booking-skeleton-calendar{gap:5px}.booking-skeleton-calendar .skel{height:55px}}
 .admin-error-state{max-width:560px;padding:28px}
 .admin-error-state h2{margin:0 0 8px;font:700 20px 'DM Sans',sans-serif;color:var(--plum)}
 .admin-error-state p{margin:0 0 20px;color:var(--muted);line-height:1.55}

@@ -16,6 +16,10 @@ document.getElementById('addToppingBtn').addEventListener('click',()=>{appliedTo
 document.getElementById('clearToppingsBtn').addEventListener('click',()=>{appliedTopping='none';});
 document.getElementById('removeSprinklesBtn').addEventListener('click',()=>{defaultSprinkles=false;});
 async function loadStorefront(){
+ window.lexcCatalogState='loading';
+ renderShop();renderGallery();
+ const packageContainer=document.querySelector('#page-packages .pkg-grid');
+ if(packageContainer)packageContainer.innerHTML=Array.from({length:3},()=>'<div class="pkg-card pkg-card-skeleton" aria-hidden="true"><span class="skel skel-title"></span><span class="skel skel-line skel-line--short"></span><span class="skel skel-value"></span><span class="skel skel-button"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-line"></span></div>').join('');
  try{
   const [catalog,categories,gallery,methods]=await Promise.all([LexcBackend.catalog(),LexcBackend.categories(),LexcBackend.gallery(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
   liveCatalog=catalog.filter(p=>p.status==='active');
@@ -30,17 +34,16 @@ async function loadStorefront(){
   galleryItems.splice(0,galleryItems.length,...gallery.filter(g=>g.visibility==='visible').map(g=>({img:LexcBackend.mediaURL(g.image_path),label:g.label,desc:g.description,cat:g.category,size:g.display_size==='tall'?'tall':''})));
   const filters=document.getElementById('catFilters'),all=filters.querySelector('[data-cat=all]')?.outerHTML||'';
   filters.innerHTML=all+categories.filter(c=>c.is_active).map(c=>'<button class="filter-item" data-cat="'+authEscape(c.slug)+'">'+authEscape(c.name)+' <span>'+products.filter(p=>p.cat===c.slug).length+'</span></button>').join('');
-  const packageCards = document.querySelectorAll('#page-packages .pkg-card');
-  const packageContainer = packageCards[0]?.parentElement;
   if (packageContainer) {
     packageContainer.innerHTML = liveCatalog.filter(p => p.kind === 'package').map((p,index) => {
       const price = p.product_variants.find(v => v.is_active)?.price;
       return '<div class="pkg-card '+['pkg-mini','pkg-sweet','pkg-golden'][index%3]+'"><div class="pkg-badge">'+authEscape(p.name)+'</div><div class="pkg-price-tag">Starts at</div><div class="pkg-price">₱ '+Number(price||0).toLocaleString()+'</div><button class="pkg-order-btn pkg-btn-plum" data-package="'+p.id+'" '+(price===undefined?'disabled':'')+'>ORDER NOW</button><ul class="pkg-items">'+(p.package_contents||[]).map(item=>'<li>'+authEscape(item)+'</li>').join('')+'</ul></div>';
-    }).join('');
+    }).join('')||'<div class="shop-no-results"><strong>No packages available right now.</strong><p>Browse individual pastries while we prepare more packages.</p><button class="btn-primary" type="button" onclick="navigate(\'shop\')">Browse pastries</button></div>';
     packageContainer.querySelectorAll('[data-package]').forEach(button => button.onclick = () => addPackageToCart(liveCatalog.find(p => p.id === button.dataset.package).name));
   }
-  renderShop();updateCategoryCounts();renderCart();if(currentPage==='gallery')renderGallery();
- }catch(error){showToast(customerActionError(error,'Products could not load. Please refresh and try again.'));}
+  window.lexcCatalogState='ready';
+  renderShop();updateCategoryCounts();renderCart();renderGallery();
+ }catch(error){console.warn('Storefront could not load:',error);window.lexcCatalogState='error';renderShop();renderGallery();if(packageContainer)packageContainer.innerHTML='<div class="shop-no-results" role="alert"><strong>Packages could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>';document.getElementById('checkoutPaymentMethods').innerHTML='<p role="alert">Payment methods could not load. <button type="button" class="btn-outline" onclick="loadStorefront()">Try again</button></p>';}
 }
 function addPackageToCart(name){
  if(cart.some(item=>item.isTest))return showToast('Payment Test Product must be checked out separately.');
@@ -60,22 +63,24 @@ function addCustomizedToCart(){
 async function renderDtSlots(){
  const list=document.getElementById('dtSlotsList'),date=dtSelectedDate;
  selectedSlotId=null;
- if(!date){list.textContent='Please select a date first.';return;}
+ if(!date){list.setAttribute('aria-busy','false');list.textContent='Please select a date first.';return;}
  const bookingDay=dtAvailability?.get(date);
- if(!bookingDay||bookingDay.is_closed||bookingDay.remaining_slots<=0||!bookingDay.has_receiving_slot){list.innerHTML='<div class="dt-slot-summary"><strong>This date is unavailable</strong>Please choose an available date in the calendar.</div>';return;}
- list.textContent='Checking availability…';
+ if(!bookingDay||bookingDay.is_closed||bookingDay.remaining_slots<=0||!bookingDay.has_receiving_slot){list.setAttribute('aria-busy','false');list.innerHTML='<div class="dt-slot-summary"><strong>This date is unavailable</strong>Please choose an available date in the calendar.</div>';return;}
+ list.setAttribute('aria-busy','true');
+ list.innerHTML='<div class="dt-slot-skeleton" role="status" aria-label="Loading receiving times">'+Array.from({length:3},()=>'<span class="skel" aria-hidden="true"></span>').join('')+'</div>';
  try{
   const from=new Date(date+'T00:00:00+08:00'),to=new Date(from.getTime()+86400000);
   const slots=await LexcBackend.rpc('get_availability',{from_date:from.toISOString(),to_date:to.toISOString()});
   if(dtSelectedDate!==date)return;liveSlots=slots;
   const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>'+bookingDay.remaining_slots+' of '+bookingDay.capacity+' booking slots remaining · Choose a receiving window.</div>';
   list.innerHTML=slots.length?summary+slots.map(s=>'<button type="button" class="dt-slot'+(s.remaining<=0?' full':'')+'" data-slot="'+s.id+'" '+(s.remaining<=0?'disabled':'')+'><span class="dt-slot-time">'+slotLabel(s)+'</span><span class="dt-slot-status '+(s.remaining>0?'avail':'full')+'">'+(s.remaining>0?'Available':'Fully booked')+'</span></button>').join(''):summary+'<div class="dt-slot-summary">No receiving window is available for this date. Please choose another available date.</div>';
+  list.setAttribute('aria-busy','false');
   list.querySelectorAll('[data-slot]').forEach(button=>button.onclick=()=>{
    selectedSlotId=button.dataset.slot;dtSelectedSlot=slotLabel(liveSlots.find(s=>s.id===selectedSlotId));
    list.querySelectorAll('button').forEach(b=>b.classList.toggle('selected',b===button));
    document.getElementById('dtConfirmBtn').disabled=false;
   });
- }catch(error){list.innerHTML='<div class="dt-slot-summary"><strong>Availability could not load</strong>Please close the calendar and try this date again.</div>';console.warn('Availability failed:',error);}
+ }catch(error){list.setAttribute('aria-busy','false');list.innerHTML='<div class="dt-slot-summary" role="alert"><strong>Availability could not load</strong><p>Please try this date again.</p><button type="button" class="btn-outline" onclick="renderDtSlots()">Try again</button></div>';console.warn('Availability failed:',error);}
 }
 function confirmDateTime(){
  if(!selectedSlotId||!dtSelectedDate)return;
@@ -137,7 +142,7 @@ async function cancelMyOrder(orderId,orderNumber){
   if(!currentUser){openCart();return;}
   if(!document.getElementById('cartDrawer').classList.contains('open')){openCart(focusOrderId);return;}
   const container=document.getElementById('shoppingOrdersList');
- container.innerHTML='<div class="customer-orders-skeleton" role="status" aria-label="Loading your orders"><div></div><div></div></div>';
+ container.innerHTML='<div class="customer-orders-skeleton" role="status" aria-label="Loading your orders" aria-busy="true">'+Array.from({length:3},()=>'<article class="customer-order-card" aria-hidden="true"><span class="skel skel-line skel-line--short"></span><span class="skel skel-badge"></span><span class="skel skel-title"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-button"></span></article>').join('')+'</div>';
  try{
   const [orders,bookings,payments,methods]=await Promise.all([LexcBackend.orders(),LexcBackend.rpc('get_my_bookings',{}),LexcBackend.client.from('order_payment_attempts').select('*').order('created_at',{ascending:false}).then(LexcBackend.unwrap),LexcBackend.client.from('payment_methods').select('id,display_name').then(LexcBackend.unwrap)]);
    if(!document.getElementById('cartDrawer').classList.contains('open'))return;
@@ -204,6 +209,8 @@ function showReviewForm(orderId) {
 }
 async function loadPublicReviews() {
   const container = document.getElementById('publicReviews');
+  container.innerHTML=Array.from({length:3},()=>'<article class="t-card t-card-skeleton" aria-hidden="true"><span class="skel skel-line skel-line--long"></span><span class="skel skel-line"></span><div class="skel-list-row"><span class="skel skel-circle"></span><span class="skel skel-stack"><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span></span></div></article>').join('');
+  container.setAttribute('aria-busy','true');
   try {
     const reviews = await LexcBackend.rpc('get_public_reviews', {});
     container.innerHTML = reviews.length ? reviews.map(review =>
@@ -212,9 +219,8 @@ async function loadPublicReviews() {
       authEscape(review.public_display_name) + '</div><div class="t-role">' +
       review.rating + '/5 · Verified order</div></div></div></article>'
     ).join('') : '<p>No published reviews yet. Customers can review completed orders from My Orders.</p>';
-  } catch (error) {
-    container.textContent = 'Customer reviews are temporarily unavailable.';
-  }
+  } catch (error) {console.warn('Customer reviews could not load:',error);container.innerHTML='<div class="shop-no-results" role="alert"><strong>Reviews could not load.</strong><p>Check your connection and try again.</p><button type="button" class="btn-outline" onclick="loadPublicReviews()">Try again</button></div>';}
+  finally{container.setAttribute('aria-busy','false');}
 }
 loadStorefront();
 loadPublicReviews();

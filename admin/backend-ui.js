@@ -14,7 +14,16 @@ export const field = (name,label,value='',type='text',extra='') => '<label class
 export function grid(columns, body) {
   return '<div class="panel table-scroll"><table class="data-table"><thead><tr>'+columns.map(c=>'<th scope="col">'+e(c)+'</th>').join('')+'</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
-export function loadingTable(columns=6,rows=5){return '<div class="panel table-scroll admin-loading-table" role="status" aria-label="Loading records"><table class="data-table"><thead><tr>'+Array.from({length:columns},()=>'<th><span class="ui-skeleton">Loading heading</span></th>').join('')+'</tr></thead><tbody>'+Array.from({length:rows},()=>'<tr>'+Array.from({length:columns},()=>'<td><span class="ui-skeleton">Loading record</span></td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
+export const skel = (kind='line',extra='') => '<span class="skel skel-'+kind+(extra?' '+extra:'')+'" aria-hidden="true"></span>';
+export function loadingTable(columns=6,rows=6){
+  const labels=Array.isArray(columns)?columns:Array.from({length:columns},()=>null);
+  return '<div class="panel table-scroll admin-loading-table" role="status" aria-label="Loading records" aria-busy="true"><table class="data-table"><thead><tr>'+labels.map(label=>'<th scope="col">'+(label?e(label):skel('line','skel-line--short'))+'</th>').join('')+'</tr></thead><tbody aria-hidden="true">'+Array.from({length:rows},()=>'<tr>'+labels.map((_,index)=>'<td>'+skel(index===labels.length-2?'badge':'line',index%3===0?'skel-line--short':'')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+}
+export function loadingCards(count=6){return '<div class="skel-card-grid" role="status" aria-label="Loading cards" aria-busy="true">'+Array.from({length:count},()=>'<article class="skel-panel skel-product" aria-hidden="true">'+skel('image')+'<div class="skel-stack">'+skel('title')+skel('line','skel-line--long')+skel('line','skel-line--short')+skel('button')+'</div></article>').join('')+'</div>';}
+export function loadingMetrics(count=4){return '<div class="skel-stat-grid" role="status" aria-label="Loading summary" aria-busy="true">'+Array.from({length:count},()=>'<div class="skel-panel skel-stat" aria-hidden="true">'+skel('line','skel-line--short')+skel('value')+skel('line')+'</div>').join('')+'</div>';}
+export function loadingList(count=5){return '<div class="skel-list" role="status" aria-label="Loading list" aria-busy="true">'+Array.from({length:count},()=>'<div class="skel-list-row" aria-hidden="true">'+skel('circle')+'<span class="skel-stack">'+skel('line','skel-line--long')+skel('line','skel-line--short')+'</span>'+skel('badge')+'</div>').join('')+'</div>';}
+export function loadingChart(){return '<div class="skel-chart" role="status" aria-label="Loading chart" aria-busy="true">'+[35,60,44,72,50,84,68,93].map(height=>'<span class="skel" aria-hidden="true" style="--skel-height:'+height+'%"></span>').join('')+'</div>';}
+export function loadingForm(count=3){return '<div class="skel-form" role="status" aria-label="Loading form" aria-busy="true">'+Array.from({length:count},()=>'<div class="skel-form-field" aria-hidden="true">'+skel('line','skel-line--short')+skel('line')+'</div>').join('')+skel('button')+'</div>';}
 export function form(title, fields, save, opener) {
   const dialog=showDetails(title,'<form>'+fields+'<p role="alert" class="form-error" hidden></p><button class="button primary" type="submit">'+icon('save')+' Save</button></form>',opener);
   dialog.querySelector('form').onsubmit=async event=>{
@@ -26,4 +35,4 @@ export function form(title, fields, save, opener) {
   };
   return dialog;
 }
-export function fail(content,error){console.warn('Admin page failed:',error);content.innerHTML='<section class="panel admin-error-state" role="alert"><h2>We could not load this page</h2><p>Check your connection, then try again. Your saved records have not been changed.</p><button class="button primary" type="button" onclick="location.reload()">Try again</button></section>';}
+export function fail(content,error){console.warn('Admin page failed:',error);const header=content.querySelector('header.module-heading,header.booking-heading,.ops-heading,.inventory-head')?.outerHTML||'';content.innerHTML=header+'<section class="panel admin-error-state" role="alert"><h2>We could not load this page</h2><p>Check your connection, then try again. Your saved records have not been changed.</p><button class="button primary" type="button" onclick="location.reload()">Try again</button></section>';}

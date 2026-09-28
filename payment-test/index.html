@@ -4,18 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>₱1 QR Payment Test · LexC's Snacktime</title>
-  <link rel="stylesheet" href="../shared/brand.css">
-  <link rel="stylesheet" href="payment-test.css">
+  <link rel="stylesheet" href="../shared/brand.css?v=3">
+  <link rel="stylesheet" href="payment-test.css?v=2">
   <script src="../shared/vendor/supabase.js"></script>
   <script src="../shared/supabase-config.js"></script>
   <script src="../shared/supabase-client.js?v=3"></script>
-  <script src="payment-test.js" defer></script>
+  <script src="payment-test.js?v=2" defer></script>
 </head>
 <body>
   <header class="test-header"><a href="../">LexC's Snacktime</a><span>₱1 QR payment test</span></header>
   <main>
     <div class="intro"><span class="eyebrow">REAL TRANSFER · MANUAL VERIFICATION</span><h1>Try a ₱1 payment</h1><p>This checks whether the MariBank QR receives a real transfer and whether Admin can verify it. It does not place a bakery order or reserve a booking date.</p></div>
     <div id="notice" role="status" hidden></div>
+    <section class="test-card skel-stack" id="test-identity-skeleton" role="status" aria-label="Checking your account"><span class="skel skel-title" aria-hidden="true"></span><span class="skel skel-line skel-line--long" aria-hidden="true"></span><span class="skel skel-button" aria-hidden="true"></span></section>
     <section class="test-card" id="login-panel" hidden>
       <h2>Sign in to begin</h2><p>Use your LexC customer account. Your test and its result will be saved to that account.</p>
       <form id="login-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">Sign in</button></form>
@@ -35,7 +36,7 @@
         </div>
         <p class="verification-note">A submitted reference is not a confirmed payment. Admin must match the actual incoming ₱1 transfer in MariBank before approving it.</p>
       </div>
-      <h2>My payment tests</h2><div id="test-history">Loading…</div>
+      <h2>My payment tests</h2><div id="test-history"></div>
     </section>
   </main>
 </body>

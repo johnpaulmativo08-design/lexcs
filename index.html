@@ -6,7 +6,7 @@
 <script src="shared/supabase-client.js?v=4"></script>
 <script src="shared/catalog.js"></script>
 <script src="shared/fuzzy-search.js"></script>
-<link rel="stylesheet" href="shared/brand.css?v=2">
+<link rel="stylesheet" href="shared/brand.css?v=3">
 <meta charset="UTF-8">
 <!-- Firebase SDK Modular Import -->
 <script type="module">
@@ -848,8 +848,8 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'DM Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=5">
-<link rel="stylesheet" href="shared/chat-widget.css?v=2">
+<link rel="stylesheet" href="shared/customer-flow.css?v=6">
+<link rel="stylesheet" href="shared/chat-widget.css?v=3">
 </head>
 <body>
 
@@ -970,7 +970,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
     <div class="section-label fade-up">Happy Customers</div>
     <h2 class="section-title fade-up">What They're Saying</h2>
     <div class="t-grid fade-up" id="publicReviews" aria-live="polite">
-      <p>Loading customer reviews…</p>
+      <article class="t-card t-card-skeleton" role="status" aria-label="Loading customer reviews"><span class="skel skel-line skel-line--long" aria-hidden="true"></span><span class="skel skel-line" aria-hidden="true"></span><div class="skel-list-row" aria-hidden="true"><span class="skel skel-circle"></span><span class="skel skel-stack"><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span></span></div></article>
     </div>
   </section>
 
@@ -1416,7 +1416,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 
         <div class="co-field-group">
           <label class="co-label">Pay with QR</label>
-          <div class="co-option-grid" id="checkoutPaymentMethods" role="group" aria-label="Payment method">Loading available methods…</div>
+          <div class="co-option-grid" id="checkoutPaymentMethods" role="group" aria-label="Payment method"><div class="checkout-method-skeleton" role="status" aria-label="Loading payment methods"><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span></div></div>
           <p class="co-payment-hint">The next page shows the selected QR and exact amount. Your payment is confirmed only after the seller verifies your proof.</p>
         </div>
 
@@ -2058,9 +2058,17 @@ function goToCheckout() {
 
 function renderCheckout() {
   const list = document.getElementById('checkoutOrderList');
+  if (cartHydration) {
+    list.setAttribute('aria-busy','true');
+    list.innerHTML=Array.from({length:2},()=>'<div class="checkout-order-item" aria-hidden="true"><span class="checkout-order-image skel skel-image"></span><span class="skel-stack"><span class="skel skel-title"></span><span class="skel skel-line"></span></span><span class="skel skel-line skel-line--short"></span></div>').join('');
+    for (const id of ['checkoutSubtotal','checkoutGrandTotal','checkoutRequired','checkoutBalance','checkoutStickyDue']) document.getElementById(id).innerHTML='<span class="skel skel-line skel-line--short" aria-hidden="true"></span>';
+    document.getElementById('placeOrderButton').disabled=true;
+    return;
+  }
   const selectedItems = cartSelectedItems();
   const subtotalCentavos = selectedItems.reduce((s, c) => s + Math.round(Number(c.price) * 100) * c.qty, 0);
   if (!list) return;
+  list.setAttribute('aria-busy','false');
   document.getElementById('placeOrderButton').disabled = selectedItems.length === 0 || checkoutSaving;
   list.innerHTML = selectedItems.length ? selectedItems.map(c => `
     <div class="checkout-order-item">
@@ -2362,6 +2370,7 @@ async function hydrateCustomerCart(user) {
   if (!user?.id || cartOwnerId === user.id) return;
   if (cartHydration) await cartHydration;
   if (cartOwnerId === user.id) return;
+  if (document.getElementById('cartDrawer').classList.contains('open')) showCartLoading();
   cartHydration = (async () => {
     const saved = await LexcBackend.customerCart(user.id);
     let guest = [];
@@ -2373,7 +2382,24 @@ async function hydrateCustomerCart(user) {
     renderCart();
     await flushCustomerCart();
   })();
-  try { await cartHydration; } finally { cartHydration = null; }
+  let hydrationError = null;
+  try { await cartHydration; }
+  catch (error) {
+    hydrationError = error;
+    const list = document.getElementById('cartItemsList');
+    if (document.getElementById('cartDrawer').classList.contains('open')) {
+      list.setAttribute('aria-busy','false');
+      list.innerHTML = '<div class="shop-no-results" role="alert"><strong>Saved cart could not load.</strong><p>Check your connection and try again. No items were removed.</p><button type="button" class="btn-outline" id="retry-saved-cart">Try again</button></div>';
+      list.querySelector('#retry-saved-cart').onclick = () => hydrateCustomerCart(user).catch(() => {});
+    }
+    throw error;
+  } finally { cartHydration = null; if (!hydrationError && cartOwnerId !== user.id) renderCart(); }
+}
+function showCartLoading() {
+  const list=document.getElementById('cartItemsList');
+  list.setAttribute('aria-busy','true');
+  list.innerHTML='<div role="status" aria-label="Loading saved cart">'+Array.from({length:3},()=>'<div class="cart-skeleton-row" aria-hidden="true"><span class="skel skel-image"></span><span class="skel-stack"><span class="skel skel-title"></span><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span></span></div>').join('')+'</div>';
+  document.getElementById('cartFooter').style.display='none';
 }
 function persistCart() {
   if (!currentUser?.id) { localStorage.setItem('lexc_cart_v1', JSON.stringify(cart)); return; }
@@ -2449,7 +2475,21 @@ function updateCategoryCounts() {
   });
 }
 
+window.lexcCatalogState = window.lexcCatalogState || 'loading';
+function shopSkeletonMarkup() {
+  return Array.from({length:6},() => '<div class="product-card product-card-skeleton" aria-hidden="true"><div class="product-img"><span class="skel skel-image"></span></div><div class="product-info"><span class="skel skel-title"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span><span class="skel skel-button"></span></div></div>').join('');
+}
 function renderShop() {
+  if (window.lexcCatalogState === 'loading') {
+    document.getElementById('resultsCount').textContent = 'Browse pastries';
+    document.getElementById('productsGrid').innerHTML = '<div class="shop-catalog-skeleton" role="status" aria-label="Loading pastries" style="display:contents">'+shopSkeletonMarkup()+'</div>';
+    return;
+  }
+  if (window.lexcCatalogState === 'error') {
+    document.getElementById('resultsCount').textContent = 'Catalog unavailable';
+    document.getElementById('productsGrid').innerHTML = '<div class="shop-no-results" role="alert"><strong>Pastries could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>';
+    return;
+  }
   let filtered = products.filter(p => (shopCat === 'all' || p.cat === shopCat) && p.price <= shopMaxPrice);
   const query = document.getElementById('shopSearch').value.trim();
   let approximate = false;
@@ -2497,9 +2537,11 @@ function openProductDetails(id) {
   if (!p) return;
   const dialog = document.createElement('dialog');
   dialog.className = 'product-detail-dialog';
-  const image = PRODUCT_IMAGES[p.id] ? `<img src="${authEscape(PRODUCT_IMAGES[p.id])}" alt="${authEscape(p.name)}">` : `<span class="product-detail-emoji">${authEscape(p.emoji)}</span>`;
+  const image = PRODUCT_IMAGES[p.id] ? `<img src="${authEscape(PRODUCT_IMAGES[p.id])}" alt="${authEscape(p.name)}"><span class="skel product-detail-image-skeleton" aria-hidden="true"></span>` : `<span class="product-detail-emoji">${authEscape(p.emoji)}</span>`;
   dialog.innerHTML = `<header class="product-detail-header"><button type="button" class="product-detail-close" aria-label="Back to products">←</button><span>Product details</span><button type="button" class="product-detail-cart" aria-label="Open cart"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></button></header><div class="product-detail-image">${image}</div><div class="product-detail-body"><div class="product-detail-heading"><h2>${authEscape(p.name)}</h2><strong data-price>${checkoutMoney(p.price)}</strong></div><p>${authEscape(p.desc)}</p>${p.isTest ? '<p>Real ₱1 payment test. No bakery item will be delivered. Checkout separately.</p>' : ''}<label for="detail-size-${p.id}">Choose size or flavor</label><select id="detail-size-${p.id}" class="product-detail-select" data-variant>${p.sizes.map((size, index) => `<option value="${index}">${authEscape(size.label)} — ${checkoutMoney(size.price)}</option>`).join('')}</select><div class="product-detail-quantity"><span>Quantity</span><div class="cart-qty-ctrl"><button type="button" class="qty-btn" data-less aria-label="Decrease quantity">−</button><span class="qty-num" data-quantity>1</span><button type="button" class="qty-btn" data-more aria-label="Increase quantity">+</button></div></div><p class="product-detail-description">Freshly made for your selected pickup or delivery date. Add to cart now and complete your order at checkout.</p></div><footer class="product-detail-footer"><button type="button" class="btn-primary" data-add>Add to Cart</button><button type="button" class="btn-outline" data-buy>Buy Now</button></footer>`;
   document.body.append(dialog); dialog.showModal();
+  const detailImage=dialog.querySelector('.product-detail-image img');
+  if(detailImage){const settle=()=>{detailImage.classList.add('is-loaded');dialog.querySelector('.product-detail-image-skeleton')?.remove();};const failed=()=>{detailImage.replaceWith(Object.assign(document.createElement('span'),{className:'product-detail-emoji',textContent:p.emoji||'Pastry'}));dialog.querySelector('.product-detail-image-skeleton')?.remove();};if(detailImage.complete){if(detailImage.naturalWidth)settle();else failed();}else{detailImage.addEventListener('load',settle,{once:true});detailImage.addEventListener('error',failed,{once:true});}}
   dialog.querySelector('.product-detail-close').onclick = () => { dialog.close(); dialog.remove(); };
   dialog.querySelector('.product-detail-cart').onclick = () => { dialog.close(); dialog.remove(); openCart(); };
   dialog.querySelector('[data-variant]').onchange = event => { dialog.querySelector('[data-price]').textContent = checkoutMoney(p.sizes[Number(event.target.value)].price); };
@@ -2556,6 +2598,7 @@ function openCart(focusOrderId) {
   document.getElementById('cartDrawer').classList.add('open');
   document.getElementById('cartOverlay').classList.add('open');
   updateCustomerMobileNavigation();
+  if (cartHydration) showCartLoading();
   if (currentUser) showMyOrders(focusOrderId);
   else document.getElementById('shoppingOrdersList').innerHTML = '<div class="customer-orders-state"><h2>Sign in to see orders</h2><p>Your cart can be saved now. Placed orders are linked to your account.</p><button class="btn-primary" type="button" onclick="closeCart();navigate(\'login\')">Log in</button></div>';
 }
@@ -2567,6 +2610,7 @@ function closeCart() {
 }
 
 function renderCart() {
+  document.getElementById('cartItemsList').setAttribute('aria-busy','false');
   persistCart();
   const selectedItems = cartSelectedItems();
   const total = selectedItems.reduce((s, c) => s + c.price * c.qty, 0);
@@ -2714,6 +2758,8 @@ function initGallery() {
 }
 
 function renderGallery() {
+  if (window.lexcCatalogState === 'loading') { document.getElementById('galleryGrid').innerHTML = Array.from({length:6},() => '<div class="gallery-item gallery-item-skeleton" aria-hidden="true"><span class="skel skel-image"></span></div>').join(''); return; }
+  if (window.lexcCatalogState === 'error') { document.getElementById('galleryGrid').innerHTML = '<div class="shop-no-results" role="alert"><strong>Gallery could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>'; return; }
   const items = galleryFilter === 'all' ? galleryItems : galleryItems.filter(i => i.cat === galleryFilter);
   document.getElementById('galleryGrid').innerHTML = items.map((item) => `
     <div class="gallery-item ${item.size}" onclick="openLightbox(${galleryItems.indexOf(item)})">
@@ -2721,7 +2767,7 @@ function renderGallery() {
       <div class="gallery-overlay"><span class="gallery-overlay-icon" style="filter:none;font-size:1.5rem;color:white;">🔍</span></div>
       <div class="gallery-label">${authEscape(item.label)}</div>
     </div>
-  `).join('');
+  `).join('') || '<p class="shop-no-results">No gallery photos match this view.</p>';
 }
 
 function openLightbox(idx) {
@@ -2896,12 +2942,14 @@ async function renderDtCalendar() {
   const rangeStart = `${dtYear}-${String(dtMonth+1).padStart(2,'0')}-01`;
   const rangeEnd = `${dtYear}-${String(dtMonth+1).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
   const grid = document.getElementById('dtCalGrid');
-  grid.innerHTML = '<div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--mid);font-size:.8rem">Checking booking availability…</div>';
+  grid.setAttribute('aria-busy','true');
+  grid.innerHTML = '<div class="dt-cal-skeleton" role="status" aria-label="Loading booking dates" style="grid-column:1/-1">'+Array.from({length:35},()=>'<span class="skel" aria-hidden="true"></span>').join('')+'</div>';
   try {
     const availability = await LexcBackend.rpc('get_customer_booking_dates',{from_date:rangeStart,to_date:rangeEnd});
     dtAvailability = new Map(availability.map(row => [row.booking_date,row]));
   } catch (error) {
-    grid.innerHTML = '<div style="grid-column:1/-1;padding:18px;text-align:center;color:#b42318;font-size:.8rem">Booking availability could not load. Please try again.</div>';
+    grid.setAttribute('aria-busy','false');
+    grid.innerHTML = '<div class="dt-slot-summary" role="alert" style="grid-column:1/-1"><strong>Booking dates could not load</strong><p>Check your connection and try again.</p><button type="button" class="btn-outline" onclick="renderDtCalendar()">Try again</button></div>';
     return;
   }
   let html = DAYS.map(d => `<div class="dt-cal-day-name">${d}</div>`).join('');
@@ -2932,6 +2980,7 @@ async function renderDtCalendar() {
     html += `<button class="${cls}" ${onclick} title="${reason}" ${isPast||unavailable?'disabled':''}><span>${d}</span><small class="dt-day-state">${stateText}</small></button>`;
   }
   grid.innerHTML = html;
+  grid.setAttribute('aria-busy','false');
 
   
   const nowDate = new Date();
@@ -3080,8 +3129,8 @@ document.getElementById('loginName').value = localStorage.getItem('lexc_login_hi
 document.getElementById('loginRemember').checked = Boolean(localStorage.getItem('lexc_login_hint'));
 </script>
 
-<script src="shared/customer-backend.js?v=10"></script>
+<script src="shared/customer-backend.js?v=11"></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=5';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=6';mountChatWidget();</script>
 </body>
 </html>

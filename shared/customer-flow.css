@@ -282,3 +282,15 @@
   .shopping-orders-panel .customer-order-actions a,.shopping-orders-panel .customer-order-actions button{min-height:44px}
   .customer-more-menu .customer-more-heading button{min-width:44px;min-height:44px}
 }
+/* Storefront skeletons use the same responsive containers as the real content. */
+#productsGrid .product-card-skeleton{pointer-events:none}#productsGrid .product-card-skeleton .product-img{padding:0!important;aspect-ratio:4/3;height:auto;background:#eee8f2}#productsGrid .product-card-skeleton .product-info{display:grid;gap:11px}#productsGrid .product-card-skeleton .skel-button{justify-self:end}
+.pkg-card-skeleton{min-height:290px;display:grid;align-content:start;gap:16px;pointer-events:none}.pkg-card-skeleton .skel-value{width:55%}.pkg-card-skeleton .skel-button{width:100%}
+.gallery-item-skeleton{min-height:235px;pointer-events:none}.gallery-item-skeleton .skel-image{height:100%;min-height:235px;aspect-ratio:auto;border-radius:inherit}
+.customer-orders-skeleton{display:grid;gap:12px}.customer-orders-skeleton .customer-order-card{display:grid;gap:12px;min-height:178px;pointer-events:none}.customer-orders-skeleton .skel-badge{justify-self:end}.customer-orders-skeleton .skel-button{width:150px}
+.cart-skeleton-row{display:flex;align-items:center;gap:12px;min-height:96px;padding:12px;border:1px solid var(--ui-border);border-radius:10px}.cart-skeleton-row .skel-image{width:72px;height:72px;aspect-ratio:1;flex:none}.cart-skeleton-row .skel-stack{flex:1}
+.checkout-method-skeleton{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.checkout-method-skeleton .skel-panel{height:56px;padding:12px}
+.dt-cal-skeleton{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.dt-cal-skeleton .skel{height:40px;width:100%}.dt-slot-skeleton{display:grid;gap:8px}.dt-slot-skeleton .skel{height:50px;width:100%}
+.t-card-skeleton{display:grid;gap:16px;min-height:160px;pointer-events:none}.t-card-skeleton .skel-list-row{margin-top:auto}
+.product-img img,.product-detail-image img,.cart-item-emoji img,.gallery-item img,.admin-product img{background:#eee8f2;object-fit:cover}.product-detail-image{background:#eee8f2}
+.product-detail-image{position:relative;overflow:hidden}.product-detail-image img{opacity:0;transition:opacity .2s ease}.product-detail-image img.is-loaded{opacity:1}.product-detail-image-skeleton{position:absolute;inset:0;border-radius:0}
+@media(max-width:600px){.checkout-method-skeleton{grid-template-columns:1fr}.pkg-card-skeleton{min-height:250px}.gallery-item-skeleton{min-height:190px}.gallery-item-skeleton .skel-image{min-height:190px}}

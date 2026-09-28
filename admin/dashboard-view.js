@@ -1,6 +1,6 @@
 import {escapeHtml as e, icon, notice, panel, empty, statusIndicator, showDetails} from './components.js?v=3';
-import {db, allRows} from './backend-ui.js';
-import {connectSchedule} from './dashboard-data.js?v=5';
+import {db, allRows, loadingMetrics, loadingList, loadingChart} from './backend-ui.js?v=3';
+import {connectSchedule} from './dashboard-data.js?v=6';
 import {summarizeDashboard, dateKey, dayOffset} from './dashboard-model.js';
 
 const time = value => new Date(value).toLocaleString('en-PH', {timeZone:'Asia/Manila', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
@@ -10,11 +10,13 @@ const tone = status => status === 'ready' ? 'info' : status === 'pending' ? 'war
 
 export async function renderOperations(content) {
   content.className = 'operations-dashboard';
-  content.innerHTML = notice('Loading today’s operations…');
+  const skeleton=()=>`<div class="ops-heading"><div><h1>Dashboard</h1><h2>Your bakery at a glance</h2><p>Philippine time</p></div><div class="ops-actions"><button class="button" data-refresh-dashboard disabled>Refresh</button></div></div>${loadingMetrics(7)}<div class="ops-main">${panel('Orders requiring attention',loadingList(5))}${panel('Today’s production',loadingList(5))}</div><div class="ops-secondary">${panel('Upcoming pickups & deliveries',loadingList(4))}${panel('Inventory warnings',loadingList(4))}</div><div class="ops-secondary">${panel('Receiving capacity',loadingChart())}${panel('Recent activity',loadingList(4))}</div>`;
+  content.innerHTML = skeleton();
   const refresh = async () => {
     const button = content.querySelector('[data-refresh-dashboard]');
     const restoreFocus = button === document.activeElement;
     if (button) button.disabled = true;
+    content.innerHTML=skeleton();
     try {
       const today = dateKey(new Date()), end = dayOffset(today, 7);
       const [orders, stock, batches, movements, slots, paymentAttempts] = await Promise.all([
@@ -30,10 +32,9 @@ export async function renderOperations(content) {
       if(restoreFocus)content.querySelector('[data-refresh-dashboard]').focus();
     } catch (error) {
       if (!content.isConnected) return;
-      let alert = content.querySelector('[data-dashboard-error]');
-      if (!alert) { alert = document.createElement('div'); alert.dataset.dashboardError = ''; content.prepend(alert); }
-      alert.innerHTML = `<p class="notice" role="alert">Could not refresh operations: ${e(error.message)}. Previously displayed figures have not been updated.</p><button class="button">Try again</button>`;
-      alert.querySelector('button').onclick = refresh;
+      console.warn('Dashboard could not load:',error);
+      content.innerHTML='<div class="ops-heading"><div><h1>Dashboard</h1><p>Your bakery at a glance</p></div></div><section class="panel admin-error-state" role="alert"><h2>Dashboard could not load</h2><p>Check your connection and try again. No records were changed.</p><button class="button primary" type="button" data-retry-dashboard>Try again</button></section>';
+      content.querySelector('[data-retry-dashboard]').onclick=refresh;
     } finally { if (button) button.disabled = false; }
   };
   await refresh();

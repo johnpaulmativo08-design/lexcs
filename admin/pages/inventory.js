@@ -1,5 +1,5 @@
 import { escapeHtml, empty, showDetails } from '../components.js?v=3';
-import { db } from '../backend-ui.js';
+import { db, loadingTable, loadingList } from '../backend-ui.js?v=3';
 
 const priority = { 'Out of Stock': 0, 'Low Stock': 1, 'Expiring Soon': 2, 'In Stock': 3, Expired: 4 };
 const activeStatuses = ['Out of Stock', 'Low Stock', 'Expiring Soon', 'In Stock'];
@@ -140,15 +140,18 @@ export async function refreshInventoryNotificationBadge() {
 export async function openInventoryNotifications(opener) {
   const existing = document.querySelector('#inventory-notification-popover');
   if (existing) { existing.remove(); return; }
-  let snapshot;
-  try { snapshot = await getInventorySnapshot(); }
-  catch (error) { notify(error.message || 'Could not load notifications.'); return; }
-  const notifications = snapshot.notifications || [];
-  const visibleNotifications = notifications.slice(0, 4);
   const popover = document.createElement('aside');
   popover.id = 'inventory-notification-popover';
   popover.className = 'inventory-notification-popover';
   popover.setAttribute('aria-label', 'Inventory notifications');
+  popover.innerHTML='<section class="inventory-notifications"><div class="inventory-notifications__head"><strong>Notifications</strong></div>'+loadingList(4)+'</section>';
+  document.body.append(popover);
+  let snapshot;
+  try { snapshot = await getInventorySnapshot(); }
+  catch (error) { console.warn('Notifications could not load:',error);popover.innerHTML='<section class="inventory-notifications" role="alert"><div class="inventory-notifications__head"><strong>Notifications</strong></div><p>Notifications could not load.</p><button class="button" type="button" data-retry>Try again</button></section>';popover.querySelector('[data-retry]').onclick=()=>{popover.remove();openInventoryNotifications(opener)};return; }
+  if(!popover.isConnected)return;
+  const notifications = snapshot.notifications || [];
+  const visibleNotifications = notifications.slice(0, 4);
   popover.innerHTML = `<section class="inventory-notifications">
       <div class="inventory-notifications__head"><strong>Notifications</strong><button class="text-button" data-mark-all ${notifications.some((item) => !item.is_read) ? '' : 'disabled'}>Mark all as read</button></div>
       ${visibleNotifications.length ? visibleNotifications.map((item) => `
@@ -162,7 +165,6 @@ export async function openInventoryNotifications(opener) {
         </article>`).join('') : empty('No inventory notifications', 'Stock, expiry, and batch alerts will appear here.')}
       <a class="inventory-notifications__all" href="#inventory/history">View all notifications →</a>
     </section>`;
-  document.body.append(popover);
   popover.addEventListener('click', async (event) => {
     const read = event.target.closest('[data-mark-read]');
     const all = event.target.closest('[data-mark-all]');
@@ -290,7 +292,11 @@ export async function renderInventory(content, subpage = '') {
     page: 1, pageSize: 50, archive: subpage === 'history', snapshot: null
   };
   let searchTimer;
-  const load = async () => { state.snapshot = await getInventorySnapshot(); await refreshInventoryNotificationBadge(); render(); };
+  const load = async () => {
+    content.innerHTML='<section class="inventory-page"><header class="inventory-head"><div><h1>Inventory</h1><p>Manage ingredients and packaging supplies with traceable batch history.</p></div></header><nav class="inventory-tabs" aria-label="Inventory sections"><a href="#inventory">Ingredients</a><a href="#inventory/packaging">Packaging</a><a href="#inventory/history">Archive &amp; history</a></nav>'+loadingTable(['Batch ID','Item Name','Category','In-stock','Unit','Expiry Date','Stock-in Date','Status','Action'],6)+'<section class="panel inventory-activity"><h2>Recent Stock Activity</h2>'+loadingList(4)+'</section></section>';
+    state.snapshot = await getInventorySnapshot(); render();
+    refreshInventoryNotificationBadge().catch(error=>console.warn('Inventory badge:',error));
+  };
   const records = () => (state.snapshot?.batches || []).filter((batch) => {
     const matchingType = state.archive ? Boolean(batch.archived_at) : !batch.archived_at && batch.inventory_type === state.type;
     const searchable = `${batch.item_name} ${batch.batch_code} ${batch.category || ''}`.toLowerCase().includes(state.search.toLowerCase());
@@ -376,7 +382,7 @@ export async function renderInventory(content, subpage = '') {
     return [...deduplicated.values()].sort((a, b) => a.name.localeCompare(b.name));
   };
   try { await load(); }
-  catch (error) { content.innerHTML = `<section class="page"><h1>Inventory</h1>${empty('Inventory could not load', escapeHtml(error.message || 'Please refresh and try again.'))}</section>`; }
+  catch (error) { console.warn('Inventory could not load:',error);content.innerHTML = '<section class="inventory-page"><header class="inventory-head"><div><h1>Inventory</h1></div></header><section class="panel admin-error-state" role="alert"><h2>Inventory could not load</h2><p>Check your connection and try again.</p><button class="button primary" type="button" data-inventory-retry>Try again</button></section></section>';content.querySelector('[data-inventory-retry]').onclick=()=>renderInventory(content,subpage); }
 }
 
 function renderActivity(movements) {

@@ -1,7 +1,8 @@
 import {escapeHtml as e,icon,money,notice,statusIndicator,toolbar} from '../components.js?v=3';
-import {db,rows,field,form,fail} from '../backend-ui.js';
+import {db,rows,field,form,fail,loadingCards} from '../backend-ui.js?v=3';
 import {storefrontData} from '../data.js';
 export async function renderProducts(content,subpage=''){
+ content.innerHTML='<header class="module-heading"><div><h1>Products</h1><p>Manage pastries, packages, pricing, photos, and availability.</p></div></header>'+loadingCards(6);
  try{
   const [products,categories,legacy]=await Promise.all([db.catalog(),db.categories(),storefrontData()]);
   const packages=subpage==='packages';
@@ -13,7 +14,7 @@ export async function renderProducts(content,subpage=''){
    content.querySelector('#catalog-grid').innerHTML=filtered.map(p=>{
     const image=p.image_path?db.mediaURL(p.image_path):legacy.images[p.legacy_id];
     return '<article class="admin-product '+(p.status==='archived'?'is-archived':'')+'">'+(image?'<img class="product-photo" src="'+e(image)+'" alt="'+e(p.name)+'">':'<div class="product-photo missing-photo">'+icon('gallery')+'<span>No photo</span></div>')+'<div class="product-card-head"><h2>'+e(p.name)+'</h2>'+statusIndicator(p.status,p.status==='archived'?'neutral':'success')+'</div><p class="product-category">'+e(p.categories?.name||p.kind)+'</p><p>'+e(p.description)+'</p><ul class="variants">'+p.product_variants.filter(v=>v.is_active).map(v=>'<li>'+e(v.label)+' | '+money(v.price)+'</li>').join('')+'</ul><div class="card-actions"><button class="edit" data-edit="'+p.id+'">'+icon('edit')+' Edit</button><button class="archive" data-archive="'+p.id+'">'+icon('archive')+' '+(p.status==='archived'?'Restore':'Archive')+'</button></div></article>';
-   }).join('');
+   }).join('')||'<div class="admin-empty-state"><h2>No matching products</h2><p>Try a different search, category, or status.</p></div>';
   };
   const edit=p=>{
    const variants=p?.product_variants||[{code:'option-1',label:'Standard',price:0,is_active:true}];

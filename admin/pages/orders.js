@@ -1,9 +1,11 @@
 import {escapeHtml as e,icon,money,notice,statusIndicator,toolbar,showDetails} from '../components.js?v=3';
-import {db,grid,fail,loadingTable} from '../backend-ui.js?v=2';
-import {renderOrderPayments} from './payments.js';
+import {db,grid,fail,loadingTable} from '../backend-ui.js?v=3';
+import {renderOrderPayments} from './payments.js?v=3';
 
 async function renderPaymentTests(content){
  const panel=content.querySelector('#payment-tests');
+ if(!panel)return;
+ panel.innerHTML='<div class="payment-test-heading"><div><h2>QR payment tests</h2><p>Real ₱1 MariBank transfers · Verify against the bank account before approval.</p></div></div>'+loadingTable(['Customer','Created','Amount','Reference','Status','Action'],5);
  try{
   const tests=db.unwrap(await db.client.from('payment_tests').select('*').order('created_at',{ascending:false}).limit(50));
   if(!panel.isConnected)return;
@@ -22,13 +24,13 @@ async function renderPaymentTests(content){
     catch(error){dialog.querySelector('[role=alert]').textContent=error.message;submit.disabled=false;}
    };
   });
- }catch(error){if(panel.isConnected)panel.textContent='QR payment tests unavailable: '+error.message;}
+ }catch(error){if(panel.isConnected){console.warn('QR payment tests could not load:',error);panel.innerHTML='<div class="payment-test-heading"><div><h2>QR payment tests</h2></div></div><p role="alert">QR payment tests could not load.</p><button class="button" type="button" data-test-retry>Try again</button>';panel.querySelector('[data-test-retry]').onclick=()=>renderPaymentTests(content);}}
 }
 export async function renderOrders(content){
- content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders and payments.</p></div></header>'+loadingTable(7);
+ content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders and payments.</p></div></header>'+loadingTable(['Order','Customer','Total','Payment','Status','Due date','Action']);
  try{
   const orders=await db.orders();let history=false;
-  content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders, payments, and fulfillment progress.</p></div></header>'+notice('Manual QR payments are counted only after Admin verifies the actual bank credit.')+toolbar('<select id="status"><option value="">All statuses</option>'+['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>'<option>'+s+'</option>').join('')+'</select>')+'<div class="report-links"><button class="button primary" data-view="current">'+icon('orders')+' Current Orders</button><button class="button" data-view="history">'+icon('clock')+' Order History</button></div><div id="orders-table"></div><section id="order-payments" class="panel payment-tests-panel">Loading order payments…</section><section id="payment-tests" class="panel payment-tests-panel">Loading isolated QR tests…</section>';
+  content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders, payments, and fulfillment progress.</p></div></header>'+notice('Manual QR payments are counted only after Admin verifies the actual bank credit.')+toolbar('<select id="status"><option value="">All statuses</option>'+['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>'<option>'+s+'</option>').join('')+'</select>')+'<div class="report-links"><button class="button primary" data-view="current">'+icon('orders')+' Current Orders</button><button class="button" data-view="history">'+icon('clock')+' Order History</button></div><div id="orders-table"></div><section id="order-payments" class="panel payment-tests-panel"><div class="payment-test-heading"><h2>Order payments</h2></div>'+loadingTable(['Order','Customer','Submitted','Required amount','Method','Reference','Status','Action'])+'</section><section id="payment-tests" class="panel payment-tests-panel"><div class="payment-test-heading"><h2>QR payment tests</h2></div>'+loadingTable(['Customer','Created','Amount','Reference','Status','Action'])+'</section>';
   const orderTone=status=>status==='completed'?'success':status==='cancelled'?'neutral':status==='pending'?'warning':status==='ready'?'info':'success';
    const payTone=status=>status==='paid'||status==='partially_paid'?'success':status==='refunded'?'neutral':status==='failed'||status==='rejected'?'danger':'warning';
   const readableStatus=status=>String(status||'Unknown').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
@@ -60,8 +62,7 @@ export async function renderOrders(content){
   const target=orders.find(o=>o.id===detailId);
   if(target){history=['completed','cancelled'].includes(target.status);content.querySelector('.search').value=String(target.order_number);}
   draw();
-  await renderOrderPayments(content,orders,()=>renderOrders(content));
-  await renderPaymentTests(content);
+  await Promise.all([renderOrderPayments(content,orders,()=>renderOrders(content)),renderPaymentTests(content)]);
   if(target)content.querySelector('[data-order="'+target.id+'"]').click();
  }catch(error){fail(content,error);}
 }

@@ -1,5 +1,5 @@
 import {escapeHtml as e,icon,statusIndicator,showDetails} from './components.js?v=3';
-import {db,rows} from './backend-ui.js';
+import {db,rows,loadingMetrics,loadingCards} from './backend-ui.js?v=3';
 export function connectSchedule(content,onClose){
   const button=content.querySelector('[data-manage-slots]');if(!button)return;
   button.onclick=async()=>{
@@ -9,7 +9,7 @@ export function connectSchedule(content,onClose){
     const root=dialog.querySelector('.slot-manager');
     let state={slots:[],orders:[],filter:'all',range:'week'};
     const load=async()=>{
-      root.innerHTML='<div class="slot-loading">Loading receiving slots...</div>';
+      root.innerHTML='<p class="slot-help">Times use Philippine time. Manage receiving capacity for your bakery.</p>'+loadingMetrics(4)+'<div class="slot-toolbar"><strong>Receiving slots</strong></div>'+loadingCards(4);
       try{
         const [slots,orders]=await Promise.all([
           rows(db.client.from('availability_slots').select('*').order('starts_at')),
@@ -18,7 +18,9 @@ export function connectSchedule(content,onClose){
         state={...state,slots,orders:orders.filter(order=>order.status!=='cancelled')};
         renderSlotManager(root,state,load);
       }catch(error){
-        root.innerHTML='<div class="slot-empty" role="alert">Could not load receiving slots: '+e(error.message)+'</div>';
+        console.warn('Receiving slots could not load:',error);
+        root.innerHTML='<div class="slot-empty" role="alert"><div><strong>Receiving slots could not load</strong><p>Check your connection and try again.</p><button class="button" type="button" data-slot-retry>Try again</button></div></div>';
+        root.querySelector('[data-slot-retry]').onclick=load;
       }
     };
     await load();

@@ -1,5 +1,5 @@
 import {escapeHtml as e,money,showDetails,statusIndicator} from '../components.js?v=3';
-import {db,grid} from '../backend-ui.js';
+import {db,grid,loadingTable} from '../backend-ui.js?v=3';
 
 const label={awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',paid:'Paid',rejected:'Rejected'};
 const tone={awaiting_payment:'neutral',verification_pending:'warning',paid:'success',rejected:'danger'};
@@ -8,6 +8,7 @@ const phTime=value=>value?new Date(value).toLocaleString('en-PH',{timeZone:'Asia
 export async function renderOrderPayments(content,orders,refreshOrders){
   const panel=content.querySelector('#order-payments');
   if(!panel)return;
+  panel.innerHTML='<div class="payment-test-heading"><div><h2>Order payments</h2><p>Manual QR transfers · Only verified bank credits count as received.</p></div></div>'+loadingTable(['Order','Customer','Submitted','Required amount','Method','Reference','Status','Action']);
   try{
     const [payments,methods]=await Promise.all([
       db.client.from('order_payment_attempts').select('*').order('created_at',{ascending:false}).limit(100).then(db.unwrap),
@@ -32,11 +33,17 @@ export async function renderOrderPayments(content,orders,refreshOrders){
         (payment.proof_storage_path?'<button type="button" class="button" id="open-proof">View private proof</button>':'')+
         (review?'<form id="review-order-payment"><p class="notice">Check the actual incoming credit in MariBank before confirming. A reference or screenshot alone is not proof that LexC received money.</p><label class="form-field">Decision<select name="decision"><option value="paid">Confirm bank credit</option><option value="rejected">Reject proof</option></select></label><label class="form-field">Bank confirmation details or rejection reason<input name="reason" maxlength="1000" required placeholder="Actual bank transaction time / rejection reason"></label><p role="alert"></p><button class="button primary" type="submit">Save review</button></form>':''),button);
       dialog.querySelector('#open-proof')?.addEventListener('click',async event=>{
-        const proofButton=event.currentTarget;proofButton.disabled=true;
-        const preview=window.open('about:blank','_blank');
-        try{const url=await db.privateImage('payment-proofs',payment.proof_storage_path);if(preview)preview.location=url;else location.href=url;}
-        catch(error){if(preview)preview.close();dialog.querySelector('[role=alert]')?.replaceChildren(document.createTextNode(error.message));}
-        finally{proofButton.disabled=false;}
+        const proofButton=event.currentTarget;proofButton.disabled=true;proofButton.textContent='Opening proof…';
+        const viewer=document.createElement('div');viewer.className='payment-proof-viewer';viewer.setAttribute('aria-busy','true');viewer.innerHTML='<span class="skel skel-image" aria-hidden="true"></span>';
+        proofButton.insertAdjacentElement('afterend',viewer);
+        try{
+          const url=await db.privateImage('payment-proofs',payment.proof_storage_path);
+          const image=document.createElement('img');image.alt='Submitted payment proof';
+          image.onload=()=>{viewer.replaceChildren(image);viewer.insertAdjacentHTML('beforeend','<a class="button" target="_blank" rel="noopener" href="'+e(url)+'">Open full image</a>');viewer.setAttribute('aria-busy','false');};
+          image.onerror=()=>{viewer.innerHTML='<p role="alert">The receipt image could not load. Try again.</p>';viewer.setAttribute('aria-busy','false');proofButton.disabled=false;};
+          image.src=url;
+        }catch(error){viewer.innerHTML='<p role="alert">Proof could not load. Check your connection and try again.</p>';viewer.setAttribute('aria-busy','false');proofButton.disabled=false;console.warn('Payment proof could not load:',error);}
+        finally{proofButton.textContent='View private proof';}
       });
       const form=dialog.querySelector('#review-order-payment');
       if(form)form.onsubmit=async event=>{
@@ -47,5 +54,5 @@ export async function renderOrderPayments(content,orders,refreshOrders){
         }catch(error){form.querySelector('[role=alert]').textContent=error.message;submit.disabled=false;}
       };
     });
-  }catch(error){if(panel.isConnected)panel.innerHTML='<p role="alert">Unable to load order payments: '+e(error.message)+'</p>';}
+  }catch(error){if(panel.isConnected){console.warn('Order payments could not load:',error);panel.innerHTML='<div class="payment-test-heading"><h2>Order payments</h2></div><p role="alert">Order payments could not load. Check your connection and try again.</p><button class="button" type="button" data-payment-retry>Try again</button>';panel.querySelector('[data-payment-retry]').onclick=()=>renderOrderPayments(content,orders,refreshOrders);}}
 }

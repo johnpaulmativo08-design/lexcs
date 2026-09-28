@@ -1,5 +1,5 @@
 import {escapeHtml as e,icon,money,toolbar,panel} from '../components.js?v=3';
-import {db,allRows,grid,fail} from '../backend-ui.js';
+import {db,allRows,grid,fail,loadingMetrics,loadingTable,loadingList} from '../backend-ui.js?v=3';
 
 const phDate=value=>new Date(value).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'short',day:'numeric'});
 const dateKey=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
@@ -7,7 +7,7 @@ const total=values=>values.reduce((sum,value)=>sum+Math.round(Number(value||0)*1
 const labels={awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',paid:'Paid',rejected:'Rejected'};
 
 export async function renderReports(content,subpage){
- content.innerHTML='<p class="notice">Loading saved orders and verified payments…</p>';
+ content.innerHTML='<header class="module-heading"><div><h1>Reports</h1><p>Gross orders and verified money received are separate figures.</p></div></header>'+loadingMetrics(3)+(subpage?loadingTable(subpage==='revenue'?['Month','Verified Payments Received']:['Date','Order','Customer','Amount','Status'],6):'<div class="report-grid">'+panel('Payment overview',loadingList(3))+panel('Top completed products',loadingList(5))+'</div>');
  try{
   const [orders,payments,methods,profiles]=await Promise.all([
    allRows(()=>db.client.from('orders').select('*,order_items(*)').order('created_at',{ascending:false})),
