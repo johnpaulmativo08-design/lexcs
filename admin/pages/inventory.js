@@ -1,5 +1,9 @@
 import { escapeHtml, empty, showDetails } from '../components.js?v=3';
 import { db, loadingTable, loadingList } from '../backend-ui.js?v=3';
+import { sectionTabs } from '../inventory-ui.js?v=1';
+import { renderMaterials } from './inventory-materials.js?v=1';
+import { renderHistory } from './inventory-history.js?v=1';
+import { renderRecipes } from './recipes.js?v=1';
 
 const priority = { 'Out of Stock': 0, 'Low Stock': 1, 'Expiring Soon': 2, 'In Stock': 3, Expired: 4 };
 const activeStatuses = ['Out of Stock', 'Low Stock', 'Expiring Soon', 'In Stock'];
@@ -163,7 +167,7 @@ export async function openInventoryNotifications(opener) {
             ${!item.is_read ? `<button class="text-button" data-mark-read="${item.id}">Mark read</button>` : ''}
           </div>
         </article>`).join('') : empty('No inventory notifications', 'Stock, expiry, and batch alerts will appear here.')}
-      <a class="inventory-notifications__all" href="#inventory/history">View all notifications →</a>
+      <a class="inventory-notifications__all" href="#inventory/history">View archive &amp; expired batches →</a>
     </section>`;
   popover.addEventListener('click', async (event) => {
     const read = event.target.closest('[data-mark-read]');
@@ -174,7 +178,7 @@ export async function openInventoryNotifications(opener) {
         await db.rpc('read_inventory_notifications', { notification_id: read?.dataset.markRead || null, mark_all: Boolean(all) });
         popover.remove(); await refreshInventoryNotificationBadge(); await openInventoryNotifications(opener);
       }
-      if (view) { popover.remove(); window.location.hash = '#inventory'; sessionStorage.setItem('lexc-inventory-focus-batch', view.dataset.viewBatch); }
+      if (view) { popover.remove(); window.location.hash = '#inventory/batches'; sessionStorage.setItem('lexc-inventory-focus-batch', view.dataset.viewBatch); }
     } catch (error) { notify(error.message || 'Could not update notifications.'); }
   });
   const closeLater = () => setTimeout(() => { if (!popover.matches(':hover') && !opener.matches(':hover,:focus')) popover.remove(); }, 180);
@@ -184,9 +188,9 @@ export async function openInventoryNotifications(opener) {
   setTimeout(() => document.addEventListener('pointerdown', outside), 0);
 }
 
-function renderStockForm({ batch, items, onSuccess }) {
+export function renderStockForm({ batch, items, onSuccess, preset = '' }) {
   const creating = !batch;
-  const currentItem = batch?.item_id || '';
+  const currentItem = batch?.item_id || preset || '';
   const options = items.map((item) => `<option value="${item.id}" ${item.id === currentItem ? 'selected' : ''}>${escapeHtml(item.name)} (${escapeHtml(item.unit)})</option>`).join('');
   const dialog = showDetails(creating ? 'Add Stock' : `Add Stock — ${batch.item_name}`, `
     <form class="inventory-form" data-stock-form>
@@ -284,7 +288,15 @@ function renderBatchHistory(batch, movements) {
     </section>`);
 }
 
+// Inventory sections: item-level materials (default), movement history, recipes, and the batch ledger.
 export async function renderInventory(content, subpage = '') {
+  if (!subpage || ['low', 'out', 'expiring'].includes(subpage)) return renderMaterials(content, subpage);
+  if (subpage === 'movements') return renderHistory(content);
+  if (subpage === 'recipes') return renderRecipes(content);
+  return renderBatches(content, subpage === 'batches' ? '' : subpage);
+}
+
+async function renderBatches(content, subpage = '') {
   const initialFilters = { low: 'Low Stock', out: 'Out of Stock', expiring: 'Expiring Soon' };
   const state = {
     type: subpage === 'packaging' ? 'packaging' : 'ingredient', status: initialFilters[subpage] || '',
@@ -293,7 +305,7 @@ export async function renderInventory(content, subpage = '') {
   };
   let searchTimer;
   const load = async () => {
-    content.innerHTML='<section class="inventory-page"><header class="inventory-head"><div><h1>Inventory</h1><p>Manage ingredients and packaging supplies with traceable batch history.</p></div></header><nav class="inventory-tabs" aria-label="Inventory sections"><a href="#inventory">Ingredients</a><a href="#inventory/packaging">Packaging</a><a href="#inventory/history">Archive &amp; history</a></nav>'+loadingTable(['Batch ID','Item Name','Category','In-stock','Unit','Expiry Date','Stock-in Date','Status','Action'],6)+'<section class="panel inventory-activity"><h2>Recent Stock Activity</h2>'+loadingList(4)+'</section></section>';
+    content.innerHTML='<section class="inventory-page"><header class="inventory-head"><div><h1>Inventory</h1><p>Batches by stock-in date and expiry. Order deductions use the earliest-expiring batch first.</p></div></header>'+sectionTabs('batches')+batchTabs(state)+''+loadingTable(['Batch ID','Item Name','Category','In-stock','Unit','Expiry Date','Stock-in Date','Status','Action'],6)+'<section class="panel inventory-activity"><h2>Recent Stock Activity</h2>'+loadingList(4)+'</section></section>';
     state.snapshot = await getInventorySnapshot(); render();
     refreshInventoryNotificationBadge().catch(error=>console.warn('Inventory badge:',error));
   };
@@ -323,8 +335,8 @@ export async function renderInventory(content, subpage = '') {
     const rangeLabel = state.dateFrom || state.dateTo ? `${state.dateFrom ? formatDate(state.dateFrom) : 'Any'} – ${state.dateTo ? formatDate(state.dateTo) : 'Any'}` : 'All stock-in dates';
     content.innerHTML = `
       <section class="inventory-page">
-        <header class="inventory-head"><div><h1>Inventory</h1><p>Manage ingredients and packaging supplies with traceable batch history.</p></div><button class="button button--primary" data-add-stock>＋ Add New Item / Stock</button></header>
-        <nav class="inventory-tabs" aria-label="Inventory sections"><a href="#inventory" class="${!state.archive && state.type === 'ingredient' ? 'is-active' : ''}">Ingredients</a><a href="#inventory/packaging" class="${!state.archive && state.type === 'packaging' ? 'is-active' : ''}">Packaging</a><a href="#inventory/history" class="${state.archive ? 'is-active' : ''}">Archive & history</a></nav>
+        <header class="inventory-head"><div><h1>Inventory</h1><p>Batches by stock-in date and expiry. Order deductions use the earliest-expiring batch first.</p></div><button class="button button--primary" data-add-stock>＋ Add New Item / Stock</button></header>
+        ${sectionTabs('batches')}${batchTabs(state)}
         <div class="inventory-filters">
           <label class="inventory-search">${icon('search')}<span class="sr-only">Search inventory</span><input class="search" type="search" value="${escapeAttr(state.search)}" placeholder="Search batch ID, item name, or category…" aria-label="Search inventory"></label>
           <details class="inventory-sort-menu">
@@ -387,5 +399,10 @@ export async function renderInventory(content, subpage = '') {
 
 function renderActivity(movements) {
   const recent = [...movements].slice(0, 8);
-  return `<section class="panel inventory-activity"><header class="panel__head"><div><h2>Recent Stock Activity</h2><p>Every quantity change is kept in a traceable movement ledger.</p></div><a class="text-button inventory-activity__link" href="#inventory/history">View All Activity →</a></header><div class="table-wrap"><table class="data-table"><thead><tr><th>Date &amp; Time</th><th>Batch ID</th><th>Item Name</th><th>Type</th><th>Quantity</th><th>Notes</th><th>By</th></tr></thead><tbody>${recent.length ? recent.map((movement) => `<tr><td>${formatTimestamp(movement.created_at)}</td><td><code>${escapeHtml(movement.batch_code || '—')}</code></td><td>${escapeHtml(movement.item_name || 'Inventory batch')}</td><td><span class="activity-type activity-type--${activityTone(movement)}">${escapeHtml(activityLabel(movement))}</span></td><td>${signedQuantity(movement)}</td><td>${escapeHtml(movement.reference || movement.note || movement.reason || '—')}</td><td>${escapeHtml(movement.actor_name || 'System')}</td></tr>`).join('') : `<tr><td colspan="7">No stock activity has been recorded yet.</td></tr>`}</tbody></table></div></section>`;
+  return `<section class="panel inventory-activity"><header class="panel__head"><div><h2>Recent Stock Activity</h2><p>Every quantity change is kept in a traceable movement ledger.</p></div><a class="text-button inventory-activity__link" href="#inventory/movements">View All Activity →</a></header><div class="table-wrap"><table class="data-table"><thead><tr><th>Date &amp; Time</th><th>Batch ID</th><th>Item Name</th><th>Type</th><th>Quantity</th><th>Notes</th><th>By</th></tr></thead><tbody>${recent.length ? recent.map((movement) => `<tr><td>${formatTimestamp(movement.created_at)}</td><td><code>${escapeHtml(movement.batch_code || '—')}</code></td><td>${escapeHtml(movement.item_name || 'Inventory batch')}</td><td><span class="activity-type activity-type--${activityTone(movement)}">${escapeHtml(activityLabel(movement))}</span></td><td>${signedQuantity(movement)}</td><td>${escapeHtml(movement.reference || movement.note || movement.reason || '—')}</td><td>${escapeHtml(movement.actor_name || 'System')}</td></tr>`).join('') : `<tr><td colspan="7">No stock activity has been recorded yet.</td></tr>`}</tbody></table></div></section>`;
+}
+
+function batchTabs(state) {
+  const tab = (href, label, active) => `<a href="${href}" class="${active ? 'is-active' : ''}">${label}</a>`;
+  return `<nav class="stock-subtabs" aria-label="Batch views">${tab('#inventory/batches', 'Ingredients', !state.archive && state.type === 'ingredient')}${tab('#inventory/packaging', 'Packaging', !state.archive && state.type === 'packaging')}${tab('#inventory/history', 'Archive &amp; expired', state.archive)}</nav>`;
 }
