@@ -101,7 +101,7 @@ create table if not exists public.recipe_lines (
   recipe_id uuid not null references public.product_recipes(id) on delete cascade,
   item_id uuid not null references public.inventory_items(id),
   line_group text not null default 'ingredient' check (line_group in ('ingredient','flavor','topping','packaging')),
-  quantity numeric(14,4) not null check (quantity > 0),
+  quantity numeric(18,6) not null check (quantity > 0),
   unit text not null references public.measurement_units(code),
   -- per_batch: scales with ordered pieces / batch yield; per_unit: × ordered pieces;
   -- per_package: × ordered quantity of the variant (boxes, stickers, ribbons).
@@ -115,6 +115,8 @@ create table if not exists public.recipe_lines (
   source_text text not null default '',
   sort_order integer not null default 0
 );
+-- Per-piece amounts (e.g. 0.000021 kg salt per donut) need 6 decimals.
+alter table public.recipe_lines alter column quantity type numeric(18,6);
 create index if not exists recipe_lines_recipe_idx on public.recipe_lines(recipe_id, sort_order);
 create index if not exists recipe_lines_item_idx on public.recipe_lines(item_id);
 
@@ -624,7 +626,7 @@ begin
   select * into o from public.orders where id = (payload->>'order_id')::uuid for update;
   if o.id is null then raise exception 'Order not found.'; end if;
   select * into a from public.order_inventory_allocations where order_id = o.id for update;
-  if a.id is null or a.status not in ('deducted','no_recipe') or not private.order_inventory_eligible(o) then
+  if a.id is null or a.status not in ('deducted','no_recipe','not_required') or not private.order_inventory_eligible(o) then
     raise exception 'Extra materials can be recorded only for a confirmed, paid order whose materials are allocated.';
   end if;
   select * into item from public.inventory_items where id = (payload->>'item_id')::uuid and not is_archived for update;

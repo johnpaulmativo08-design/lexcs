@@ -1,7 +1,7 @@
 import {escapeHtml as e,icon,money,notice,statusIndicator,toolbar,showDetails} from '../components.js?v=3';
 import {db,grid,fail,loadingTable} from '../backend-ui.js?v=3';
 import {renderOrderPayments} from './payments.js?v=3';
-import {orderInventorySection,mountOrderInventory,showShortageFromError} from './order-inventory.js?v=1';
+import {orderInventorySection,mountOrderInventory,showShortageFromError} from './order-inventory.js?v=2';
 
 async function renderPaymentTests(content){
  const panel=content.querySelector('#payment-tests');

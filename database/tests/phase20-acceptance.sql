@@ -148,7 +148,7 @@ do $$ declare o uuid := (select order_id from public.order_inventory_allocations
   perform pg_temp.check((public.inventory_history('{"kind":"wastage"}')->>'total')::int>=1 and (public.inventory_history('{"kind":"reversals"}')->>'total')::int>=1, 'History filters by movement kind');
   perform pg_temp.check(jsonb_array_length(public.inventory_overview()->'items')>50, 'Inventory overview returns items');
   perform pg_temp.check(public.inventory_item_detail(pg_temp.item('Egg'))->'item'->>'name'='Egg', 'Item detail loads');
-  perform pg_temp.check(jsonb_array_length(public.recipe_catalog()->'recipes')=15, 'Recipe catalog lists 14 imports + 1 new version');
+  perform pg_temp.check((select count(*) from jsonb_array_elements(public.recipe_catalog()->'recipes') r where r->>'source'<>'Previous live recipe tables')=15, 'Recipe catalog lists 14 imports + 1 new version');
   perform pg_temp.check(jsonb_array_length(public.preview_recipe((select id from public.product_recipes where name='Caramel Bar' and status='active'),12))=12, 'Recipe preview returns every line');
 end $$;
 

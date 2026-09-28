@@ -7,7 +7,7 @@ const STATE_LABEL = {
   deducted: ['Deducted', 'success', 'Materials were deducted automatically.'],
   shortage: ['Insufficient materials', 'danger', 'Payment is verified but stock was short. Nothing was deducted.'],
   no_recipe: ['Manual review', 'warning', 'No active recipe covers this order, so nothing was deducted automatically.'],
-  not_required: ['Not required', 'neutral', 'Test orders never use inventory.'],
+  not_required: ['Not tracked', 'neutral', 'This order is not deducted automatically.'],
   reversed: ['Reversed', 'info', 'Deducted materials were returned to stock.'],
   consumed: ['Consumed', 'warning', 'Order cancelled after production started — materials are treated as used.'],
   void: ['Cancelled', 'neutral', 'Order cancelled before materials were allocated.']
@@ -43,11 +43,11 @@ export async function mountOrderInventory(dialog, order, { onChanged } = {}) {
     const byLine = new Map();
     (detail.lines || []).forEach((l) => { const key = l.kind === 'extra' ? 'extra' : l.order_item_id; if (!byLine.has(key)) byLine.set(key, []); byLine.get(key).push(l); });
     const recipeVersions = [...new Set((detail.lines || []).filter((l) => l.recipe_name).map((l) => `${l.recipe_name} v${l.recipe_version}`))];
-    const canExtra = detail.eligible && a && ['deducted', 'no_recipe'].includes(a.status);
+    const canExtra = detail.eligible && a && ['deducted', 'no_recipe', 'not_required'].includes(a.status);
 
     section.innerHTML = `
       <header class="stock-order__head"><h3>${icon('box')} Inventory consumption</h3><span class="status-chip status-chip--${tone}">${e(label)}</span></header>
-      <p class="stock-quiet">${e(explain)}</p>
+      <p class="stock-quiet">${e(a?.status === 'not_required' && a.trigger_event ? a.trigger_event : explain)}</p>
       ${a && ['deducted', 'reversed', 'consumed'].includes(a.status) ? `<dl class="stock-order__facts">
         <div><dt>Deduction date</dt><dd>${dateTime(a.deducted_at)}</dd></div>
         <div><dt>Movement reference</dt><dd><code>ALC-${e(String(a.id).slice(0, 8).toUpperCase())}</code></dd></div>
