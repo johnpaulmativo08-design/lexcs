@@ -7,6 +7,8 @@
     auth: { storageKey: 'lexc_supabase_auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
   const unwrap = ({ data, error }) => { if (error) throw error; return data; };
+  // This file lives in <site>/shared/, so its parent folder is the site root.
+  const siteRoot = new URL('../', document.currentScript?.src || location.href).href;
   async function identity() {
     const { data, error } = await client.auth.getUser();
     if (error) {
@@ -26,7 +28,8 @@
   }
   const mediaURL = value => {
     if (!value) return '';
-    if (value.startsWith('local:')) return new URL(value.slice(6), location.origin + '/').href;
+    // Site-relative asset: resolve from the site folder (works at "/" locally and "/lexcs/" on GitHub Pages).
+    if (value.startsWith('local:')) return new URL(value.slice(6), siteRoot).href;
     if (/^https:\/\//i.test(value)) return value;
     return client.storage.from('catalog-media').getPublicUrl(value).data.publicUrl;
   };

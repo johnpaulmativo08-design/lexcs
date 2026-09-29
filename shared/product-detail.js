@@ -57,6 +57,15 @@
   };
 
   const imageOf = (p) => PRODUCT_IMAGES[p.id] || '';
+  // Main photo first, then the product's extra gallery photos (products.gallery_image_paths).
+  const imagesOf = (p) => {
+    const list = imageOf(p) ? [imageOf(p)] : [];
+    for (const path of catalogRow(p)?.gallery_image_paths || []) {
+      const url = LexcBackend.mediaURL(path);
+      if (url && !list.includes(url)) list.push(url);
+    }
+    return list;
+  };
   const catalogRow = (p) => (typeof liveCatalog !== 'undefined' ? liveCatalog.find((d) => d.id === p.product_id) : null);
   const priceLabel = (p) => `${p.sizes.length > 1 ? '<small>from</small>' : ''}<strong>${money(Math.min(...p.sizes.map((s) => s.price)))}</strong>`;
   const shoppable = (p) => !p.isTest;
@@ -222,7 +231,7 @@
   }
 
   function detailMarkup(p) {
-    const images = imageOf(p) ? [imageOf(p)] : [];
+    const images = imagesOf(p);
     const row = catalogRow(p);
     const category = row?.categories?.name || '';
     const size = p.sizes[0];
@@ -319,7 +328,7 @@
 
   function current() { return products.find((x) => x.id === state.id); }
   function showImage(index) {
-    const p = current(); const images = imageOf(p) ? [imageOf(p)] : [];
+    const p = current(); const images = imagesOf(p);
     if (images.length < 2) return;
     state.img = (index + images.length) % images.length;
     const img = dialog.querySelector('[data-hero-img]');
