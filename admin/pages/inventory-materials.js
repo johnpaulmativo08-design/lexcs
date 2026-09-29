@@ -5,8 +5,11 @@ import {
   attr, icon, qty, dateTime, dateOnly, stockStatus, movementBadge, delta, sectionTabs, pageHead,
   skeletonSummary, skeletonRows, skeletonPanel, errorState, emptyState, openDrawer, toast, requestId
 } from '../inventory-ui.js?v=1';
-import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=16';
+import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=18';
 
+// Show conversions the natural way round: "1 pcs = 225 g" instead of "1 g = 0.004444 pcs".
+const perStockUnit = (factor) => Number((1 / Number(factor)).toPrecision(5));
+const conversionText = (c, stockUnit) => `1 ${stockUnit} = ${perStockUnit(c.factor).toLocaleString('en-PH', { maximumFractionDigits: 4 })} ${c.unit}`;
 const STATUS_ORDER = { 'Out of Stock': 0, 'Low Stock': 1, 'Expiring Soon': 2, 'In Stock': 3 };
 const UNIT_GROUPS = { mass: ['g', 'kg', 'mg'], volume: ['mL', 'L'], count: ['pcs', 'dozen'], length: ['cm', 'm', 'inch', 'yard'] };
 const compatibleUnits = (unit) => Object.values(UNIT_GROUPS).find((group) => group.includes(unit)) || [unit];
@@ -147,7 +150,7 @@ export async function openItemDrawer(itemId, { onChange } = {}) {
           <h3 class="stock-subhead">Recent activity</h3>${activityList(detail.movements.slice(0, 5))}
           <h3 class="stock-subhead">Used in recipes</h3>
           ${detail.recipes.length ? `<ul class="stock-chips">${detail.recipes.map((r) => `<li><a href="#inventory/recipes" data-recipe-link="${attr(r.id)}">${e(r.name)} · v${r.version}</a> <small>${e(r.status)}</small></li>`).join('')}</ul>` : '<p class="stock-quiet">Not used in any recipe yet.</p>'}
-          ${detail.conversions.length ? `<h3 class="stock-subhead">Unit conversions</h3><ul class="stock-batches">${detail.conversions.map((c) => `<li><span>1 ${e(c.unit)} = ${Number(c.factor).toLocaleString('en-PH', { maximumFractionDigits: 6 })} ${e(item.unit)}<small>${e(c.note || '')}</small></span>${c.is_verified ? '<span class="status-chip status-chip--success">Verified</span>' : '<span class="status-chip status-chip--warning">Needs verification</span>'}</li>`).join('')}</ul>` : ''}`;
+          ${detail.conversions.length ? `<h3 class="stock-subhead">Unit conversions</h3><ul class="stock-batches">${detail.conversions.map((c) => `<li><span>${e(conversionText(c, item.unit))}<small>${e(c.note || '')}</small></span>${c.is_verified ? '<span class="status-chip status-chip--success">Verified</span>' : '<span class="status-chip status-chip--warning">Needs verification</span>'}</li>`).join('')}</ul>` : ''}`;
       } else {
         target.innerHTML = activityList(moves) + `<a class="button stock-full-history" href="#inventory/movements" data-full-history>${icon('history')} View full history</a>`;
       }

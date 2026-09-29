@@ -1,6 +1,6 @@
 import { renderDashboard } from './pages/dashboard.js?v=8';
 import { renderProducts } from './pages/products.js?v=4';
-import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=16';
+import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=18';
 import { renderReports } from './pages/reports.js?v=5';
 import { renderOrders } from './pages/orders.js?v=13';
 import { renderBookings } from './pages/bookings.js?v=10';

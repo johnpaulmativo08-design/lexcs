@@ -8,6 +8,9 @@ const FACTORS = { mg: ['mass', 0.001], g: ['mass', 1], kg: ['mass', 1000], mL: [
 const GROUPS = [['ingredient', 'Ingredient'], ['flavor', 'Flavor'], ['topping', 'Topping'], ['packaging', 'Packaging']];
 const BASES = [['per_batch', 'Per batch (scales with pieces ÷ yield)'], ['per_unit', 'Per piece'], ['per_package', 'Per ordered box/option']];
 const STATUS = { active: ['Active', 'success'], draft: ['Draft', 'warning'], archived: ['Archived', 'neutral'] };
+// Show conversions the natural way round: "1 pcs = 225 g" instead of "1 g = 0.004444 pcs".
+const perStockUnit = (factor) => Number((1 / Number(factor)).toPrecision(5));
+const conversionText = (c, stockUnit) => `1 ${stockUnit} = ${perStockUnit(c.factor).toLocaleString('en-PH', { maximumFractionDigits: 4 })} ${c.unit}`;
 const chip = (status) => `<span class="status-chip status-chip--${STATUS[status]?.[1] || 'neutral'}">${e(STATUS[status]?.[0] || status)}</span>`;
 
 export async function renderRecipes(content) {
@@ -66,7 +69,7 @@ export async function renderRecipes(content) {
       <section class="panel stock-conversions">
         <header class="panel__head"><div><h2>Unit conversions</h2><p>Needed when a recipe measures in a different unit type than the stock (e.g. grams of butter vs. 225 g blocks). Unverified conversions block activation.</p></div><button class="button" type="button" data-add-conversion>${icon('plus')} Add conversion</button></header>
         ${state.catalog.conversions.length ? `<div class="table-scroll"><table class="data-table stock-table"><thead><tr><th scope="col">Material</th><th scope="col">Conversion</th><th scope="col">Source / note</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>${state.catalog.conversions.map((c) => `<tr>
-          <td><strong>${e(c.item_name)}</strong></td><td>1 ${e(c.unit)} = ${Number(c.factor).toLocaleString('en-PH', { maximumFractionDigits: 6 })} ${e(c.item_unit)}</td><td class="stock-quiet">${e(c.note || '—')}</td>
+          <td><strong>${e(c.item_name)}</strong></td><td>${e(conversionText(c, c.item_unit))}</td><td class="stock-quiet">${e(c.note || '—')}</td>
           <td>${c.is_verified ? '<span class="status-chip status-chip--success">Verified</span>' : '<span class="status-chip status-chip--warning">Needs verification</span>'}</td>
           <td class="stock-row-actions">${c.is_verified ? '' : `<button class="button button--small" type="button" data-verify="${attr(c.item_id)}|${attr(c.unit)}">Verify</button>`}<button class="button button--small button--quiet" type="button" data-edit-conversion="${attr(c.item_id)}|${attr(c.unit)}">Edit</button></td></tr>`).join('')}</tbody></table></div>` : emptyState('No conversions yet')}
         ${unverified.length ? `<p class="stock-conversions__note">${icon('alert')} ${unverified.length} conversion${unverified.length === 1 ? '' : 's'} came from the costing sheets and must be confirmed against your actual packaging.</p>` : ''}
@@ -89,7 +92,8 @@ export async function renderRecipes(content) {
     const dialog = showDetails(existing.item_id ? `Conversion — ${existing.item_name}` : 'Add unit conversion', `
       <form class="inventory-form stock-form" data-conversion>
         <label class="form-field"><span>Material</span><select name="item_id" required ${existing.item_id ? 'disabled' : ''}><option value="">Choose a material</option>${items.map((i) => `<option value="${attr(i.id)}" data-unit="${attr(i.unit)}" ${i.id === existing.item_id ? 'selected' : ''}>${e(i.name)} (stocked in ${e(i.unit)})</option>`).join('')}</select></label>
-        <div class="stock-conversion-row"><span>1</span><select name="unit" aria-label="Recipe unit">${Object.keys(FACTORS).filter((u) => !['ml', 'l'].includes(u)).map((u) => `<option ${u === (existing.unit || 'g') ? 'selected' : ''}>${u}</option>`).join('')}</select><span>=</span><input name="factor" type="number" min="0" step="any" required aria-label="Amount in stock unit" value="${attr(existing.factor ?? '')}"><span data-stock-unit>${e(existing.item_unit || '')}</span></div>
+        <div class="stock-conversion-row"><span>1</span><span data-stock-unit>${e(existing.item_unit || '')}</span><span>=</span><input name="amount" type="number" min="0" step="any" required aria-label="Amount in recipe unit" placeholder="e.g. 225" value="${attr(existing.factor ? perStockUnit(existing.factor) : '')}"><select name="unit" aria-label="Recipe unit">${Object.keys(FACTORS).filter((u) => !['ml', 'l'].includes(u)).map((u) => `<option ${u === (existing.unit || 'g') ? 'selected' : ''}>${u}</option>`).join('')}</select></div>
+        <p class="stock-quiet">Example: butter stocked in pieces → 1 pcs = 225 g.</p>
         <label class="form-field"><span>Source / note</span><input name="note" maxlength="500" value="${attr(existing.note || '')}" placeholder="e.g. Our butter blocks weigh 225 g"></label>
         <label class="stock-check"><input type="checkbox" name="verified" ${existing.is_verified ? 'checked' : ''}> I have checked this against the real product</label>
         <p class="form-error" role="alert" hidden></p>
@@ -102,7 +106,7 @@ export async function renderRecipes(content) {
       event.preventDefault();
       const box = form.querySelector('[role=alert]'); const submit = form.querySelector('[type=submit]'); submit.disabled = true; box.hidden = true;
       try {
-        await db.rpc('save_unit_conversion', { payload: { item_id: existing.item_id || form.elements.item_id.value, unit: form.elements.unit.value, factor: form.elements.factor.value, note: form.elements.note.value, verified: form.elements.verified.checked } });
+        await db.rpc('save_unit_conversion', { payload: { item_id: existing.item_id || form.elements.item_id.value, unit: form.elements.unit.value, factor: Number(form.elements.amount.value) > 0 ? 1 / Number(form.elements.amount.value) : '', note: form.elements.note.value, verified: form.elements.verified.checked } });
         dialog.close(); toast('Conversion saved.'); await onSaved();
       } catch (error) { box.textContent = error.message; box.hidden = false; submit.disabled = false; }
     };
