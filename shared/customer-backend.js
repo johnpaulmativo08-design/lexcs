@@ -2,7 +2,7 @@
 let liveCatalog=[], liveSlots=[], selectedSlotId=null, checkoutSaving=false;
 function customerActionError(error,fallback){
  const message=String(error?.message||'');
- if(/no longer available|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp/i.test(message))return message;
+ if(/no longer available|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp|choose (an available|a ribbon|a lettering|gold or silver)|keep the message|number topper|too many or repeated/i.test(message))return message;
  console.warn('Customer action failed:',error);
  return fallback;
 }
@@ -98,7 +98,12 @@ async function submitCheckout(){
     const product = latest.find(product => product.id === item.product_id);
     const variant = product?.product_variants.find(variant => variant.id === item.variant_id && variant.is_active);
     if (!product || product.status !== 'active' || !variant) throw new Error(item.name + ' is no longer available. Please update your cart.');
-    if (Number(item.price) !== Number(variant.price)) { item.price = Number(variant.price); priceChanged = true; }
+    let expected = Number(variant.price);
+    if (item.customization?.designer === 'bento') {
+      const quote = await LexcBackend.rpc('quote_bento_design', { p_product_id: item.product_id, p_design: item.customization });
+      expected += Number(quote.extra); item.base_price = Number(variant.price); item.extras = Number(quote.extra);
+    }
+    if (Number(item.price) !== expected) { item.price = expected; priceChanged = true; }
   }
   if (priceChanged) {
     renderCart(); renderCheckout();
