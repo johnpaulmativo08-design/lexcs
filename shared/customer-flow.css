@@ -21,7 +21,7 @@
   #navShoppingButton{display:none}
   body[data-customer-page="checkout"] #navShoppingButton{display:inline-flex}
   .customer-mobile-nav{position:fixed;bottom:0;left:0;right:0;z-index:210;display:flex;justify-content:space-around;background:#fff;border-top:1px solid #e9e2ee;padding:7px 4px max(7px,env(safe-area-inset-bottom))}
-  body[data-customer-page="checkout"] .customer-mobile-nav,body[data-customer-page="invoice"] .customer-mobile-nav,body[data-customer-page="customizer"] .customer-mobile-nav{display:none}
+  body[data-customer-page="checkout"] .customer-mobile-nav,body[data-customer-page="invoice"] .customer-mobile-nav{display:none}
   .customer-mobile-nav button{border:0;background:transparent;color:#6d5d79;font:600 .66rem 'DM Sans',sans-serif;min-width:50px;display:grid;justify-items:center;gap:2px;padding:3px}
   .customer-mobile-nav button span{font-size:1.3rem;line-height:1.1}
   .customer-mobile-nav button[aria-current="page"]{color:#4e307c;font-weight:700}
@@ -35,7 +35,7 @@
   .customer-more-menu .customer-more-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin:0 0 4px;color:#28163c}
   .customer-more-menu button{min-height:44px;text-align:left;border:1px solid #e9e2ee;border-radius:9px;background:#faf8fc;color:#402459;padding:10px 13px;font:600 .87rem 'DM Sans',sans-serif}
   .customer-more-menu .customer-more-heading button{min-height:32px;border:0;background:transparent;font-size:1.4rem;padding:0 8px}
-  body[data-customer-page="packages"],body[data-customer-page="product-type"],body[data-customer-page="gallery"],body[data-customer-page="customize"]{padding-bottom:70px}
+  body[data-customer-page="packages"],body[data-customer-page="gallery"]{padding-bottom:70px}
 }
 .product-card{border:1px solid #e9e2ee;border-radius:14px;box-shadow:none;transition:border-color .18s ease,transform .18s ease}
 .product-card:hover{transform:translateY(-2px);box-shadow:none;border-color:#bca5d5}

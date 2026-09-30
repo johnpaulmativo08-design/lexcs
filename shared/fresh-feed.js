@@ -310,7 +310,6 @@
     closeViewer({ keepHistory: true });
     whenCatalogReady(() => {
       if (prod.kind === 'package') { navigate('packages'); return; }
-      if (prod.kind === 'customizable') { navigate('product-type'); return; }
       const local = products.find((p) => p.product_id === prod.id);
       if (!local) { showToast('This treat is not available to order right now.'); return; }
       openProductDetails(local.id);

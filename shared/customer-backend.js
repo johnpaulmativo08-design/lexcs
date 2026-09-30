@@ -6,15 +6,11 @@ function customerActionError(error,fallback){
  console.warn('Customer action failed:',error);
  return fallback;
 }
-let appliedTopping='none', defaultSprinkles=true, savedInvoiceItems=[];
-window.addEventListener('lexc-customizer-reset',()=>{appliedTopping='none';defaultSprinkles=true;});
+let savedInvoiceItems=[];
 const phDate=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
 const phTime=value=>new Date(value).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hour12:false});
 const slotLabel=s=>phTime(s.starts_at)+'–'+phTime(s.ends_at);
 const bookingDateLabel=value=>new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric'}).format(new Date(value+'T12:00:00+08:00'));
-document.getElementById('addToppingBtn').addEventListener('click',()=>{appliedTopping=document.getElementById('toppingType').value;});
-document.getElementById('clearToppingsBtn').addEventListener('click',()=>{appliedTopping='none';});
-document.getElementById('removeSprinklesBtn').addEventListener('click',()=>{defaultSprinkles=false;});
 async function loadStorefront(){
  window.lexcCatalogState='loading';
  renderShop();renderGallery();
@@ -52,13 +48,6 @@ function addPackageToCart(name){
  const item=cart.find(i=>i.variant_id===v.id);
  if(item){item.qty++;item.selected=true;}else cart.push({id:'pkg-'+p.id,product_id:p.id,variant_id:v.id,name:'Package: '+p.name,emoji:'🎁',sizeLabel:v.label,price:Number(v.price),qty:1,selected:true});
  renderCart();openCart();
-}
-function addCustomizedToCart(){
- if(cart.some(item=>item.isTest))return showToast('Payment Test Product must be checked out separately.');
- const p=liveCatalog.find(p=>p.kind==='customizable'),v=p?.product_variants.find(v=>v.code===customizerFrostingStyle&&v.is_active);
- if(!v)return showToast('This cupcake option is unavailable.');
- cart.push({id:'custom-'+crypto.randomUUID(),product_id:p.id,variant_id:v.id,name:p.name,emoji:'🧁',sizeLabel:v.label+' · '+customizerBaseFlavor+' · '+appliedTopping,price:Number(v.price),qty:1,selected:true,customization:{base:customizerBaseFlavor,frosting:customizerFrostingStyle,color:document.getElementById('frostingColor').value,topping:appliedTopping,default_sprinkles:defaultSprinkles}});
- renderCart();showToast('Custom cupcake added to cart.');
 }
 async function renderDtSlots(){
  const list=document.getElementById('dtSlotsList'),date=dtSelectedDate;
@@ -182,12 +171,6 @@ function openOrderFromReturnLink(){
  const url=new URL(location.href);url.searchParams.delete('order');history.replaceState(null,'',url);
  showMyOrders(target);
 }
-document.getElementById('coContact').insertAdjacentHTML('afterend','<label class="co-label" for="orderReference">Optional reference image (applied to customized cart items)</label><input id="orderReference" type="file" accept="image/jpeg,image/png,image/webp"><p id="referenceStatus" role="status"></p>');
-document.getElementById('orderReference').onchange=async event=>{
- const status=document.getElementById('referenceStatus'),file=event.target.files[0];if(!file)return;
- if(!currentUser||!cart.some(i=>i.customization)){status.textContent='Sign in and add a customized cupcake first.';return;}
- try{status.textContent='Uploading privately…';const path=await LexcBackend.upload('customer-references',currentUser.id+'/draft',file);cart.filter(i=>i.customization).forEach(i=>i.reference_image_path=path);renderCart();status.textContent='Private reference saved with your customized items.';}catch(error){status.textContent=error.message;}
-};
 function showReviewForm(orderId) {
   const dialog = document.createElement('dialog');
   dialog.style.cssText = 'max-width:520px;width:90%;padding:24px;border:0;border-radius:18px;background:var(--cream)';
