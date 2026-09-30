@@ -129,7 +129,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=1');
+        const mod = await import('./bento-scene.js?v=2');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion });
       } catch (error) {
