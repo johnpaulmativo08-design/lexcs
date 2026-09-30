@@ -12,12 +12,13 @@
 do $$
 declare c text; b text;
 begin
-  select md5(prosrc) into c from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = 'checkout';
-  select md5(prosrc) into b from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = 'sync_booking_for_order';
-  if c not in ('aca148a567c69bcb787786cc7dd5e23c') and position('bento_design' in (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = 'checkout')) = 0 then
+  -- Fingerprints ignore whitespace (the Supabase SQL editor can change spacing when pasting).
+  select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into c from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = 'checkout';
+  select md5(btrim(regexp_replace(prosrc, '\s+', ' ', 'g'))) into b from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = 'sync_booking_for_order';
+  if c not in ('d51ada0c6a136bddd2fce71f91f773cd') and position('bento_design' in (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = 'checkout')) = 0 then
     raise exception 'private.checkout differs from the expected version (%). Review before applying phase 32.', c;
   end if;
-  if b not in ('45c132bf2efad4ee14bc446d6253341c') and position('customization->>''summary''' in (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = 'sync_booking_for_order')) = 0 then
+  if b not in ('c7dcbd16f97dcea8b8ef6986ca5d9692') and position('customization->>''summary''' in (select prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = 'sync_booking_for_order')) = 0 then
     raise exception 'private.sync_booking_for_order differs from the expected version (%). Review before applying phase 32.', b;
   end if;
 end $$;

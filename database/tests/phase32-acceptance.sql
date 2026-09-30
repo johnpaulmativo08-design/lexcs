@@ -16,8 +16,8 @@ insert into t values
   ('choco', (select v.id::text from public.product_variants v join public.products p on p.id = v.product_id where p.slug = 'product-8' and v.label = 'Chocolate')),
   ('other', (select v.id::text from public.product_variants v join public.products p on p.id = v.product_id where p.slug = 'product-6' limit 1));
 insert into public.availability_slots (starts_at, ends_at, capacity, is_open)
-  values (now() + interval '3 days', now() + interval '3 days 2 hours', 20, true);
-insert into t values ('slot', (select id::text from public.availability_slots where starts_at > now() + interval '2 days' order by starts_at desc limit 1));
+  values (date_trunc('day', now()) + interval '400 days 3 hours 17 minutes', date_trunc('day', now()) + interval '400 days 4 hours 17 minutes', 20, true);
+insert into t values ('slot', (select id::text from public.availability_slots where starts_at = date_trunc('day', now()) + interval '400 days 3 hours 17 minutes'));
 
 create temp table designs(k text primary key, d jsonb); grant all on designs to anon, authenticated;
 insert into designs values
