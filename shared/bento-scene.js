@@ -19,6 +19,79 @@ function ginghamTexture() {
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
+// ---- Surface detail -------------------------------------------------------------------------------
+// The Blender model has no UV coordinates, so detail is generated in the shader from the world position:
+// procedural noise perturbs the normal (bump) and roughness. No texture files, nothing extra to download.
+const NOISE_GLSL = `
+float sdHash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float sdNoise(vec3 x){ vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(sdHash(i), sdHash(i + vec3(1,0,0)), f.x), mix(sdHash(i + vec3(0,1,0)), sdHash(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(sdHash(i + vec3(0,0,1)), sdHash(i + vec3(1,0,1)), f.x), mix(sdHash(i + vec3(0,1,1)), sdHash(i + vec3(1,1,1)), f.x), f.y), f.z); }
+float sdFbm(vec3 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * sdNoise(p); p *= 2.03; a *= 0.5; } return v; }`;
+const SURF = {
+  buttercream: { scale: [1.6, 7, 1.6], fine: 5, strength: 0.016, rough: 0.1 },  // soft spatula streaks on the sides, gentle bumps on top
+  piped: { scale: [12, 12, 12], fine: 24, strength: 0.014, rough: 0.08 },        // piping-bag ridges
+  glaze: { scale: [4, 4, 4], fine: 10, strength: 0.008, rough: 0.03 },           // glossy drip
+  weave: { scale: [40, 40, 40], fine: 80, strength: 0.004, rough: 0.05 },        // satin ribbon / paper fibres
+  crinkle: { scale: [18, 18, 18], fine: 40, strength: 0.12, rough: 0.18 },       // gold leaf
+  pulp: { scale: [9, 9, 9], fine: 45, strength: 0.012, rough: 0.04 }             // moulded pulp box
+};
+function withSurface(material, cfg) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uSdScale = { value: new THREE.Vector3(...cfg.scale) };
+    shader.uniforms.uSdFine = { value: cfg.fine };
+    shader.uniforms.uSdStrength = { value: cfg.strength };
+    shader.uniforms.uSdRough = { value: cfg.rough };
+    shader.vertexShader = shader.vertexShader
+      .replace('void main() {', 'varying vec3 vSdPos;\nvoid main() {')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vSdPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('void main() {', `varying vec3 vSdPos;\nuniform vec3 uSdScale;\nuniform float uSdFine, uSdStrength, uSdRough;\n${NOISE_GLSL}\nvoid main() {`)
+      .replace('#include <roughnessmap_fragment>', `float sdH = sdFbm(vSdPos * uSdScale) * 0.8 + sdNoise(vSdPos * uSdFine) * 0.2;
+#include <roughnessmap_fragment>
+  roughnessFactor = clamp(roughnessFactor + (sdH - 0.5) * uSdRough, 0.04, 1.0);`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+  {
+    vec3 sdSurf = -vViewPosition; vec2 sdD = vec2(dFdx(sdH), dFdy(sdH)) * uSdStrength;
+    vec3 sdSx = dFdx(sdSurf), sdSy = dFdy(sdSurf); vec3 sdR1 = cross(sdSy, normal), sdR2 = cross(normal, sdSx);
+    float sdDet = dot(sdSx, sdR1) * (gl_FrontFacing ? 1.0 : -1.0);
+    normal = normalize(abs(sdDet) * normal - sign(sdDet) * (sdD.x * sdR1 + sdD.y * sdR2));
+  }`);
+  };
+  material.customProgramCacheKey = () => 'lexc-surface-' + cfg.scale.join('-') + '-' + cfg.fine;
+  return material;
+}
+// Material library: physically based, tuned for bakery surfaces. Colour accuracy matters (customers pick
+// frosting colours), so no tone mapping is used and environment light on frosting is kept gentle.
+const M = {
+  frosting: (color) => withSurface(new THREE.MeshPhysicalMaterial({ color, roughness: 0.6, sheen: 0.3, sheenRoughness: 0.8, sheenColor: 0x3a3a3a, envMapIntensity: 0.25 }), SURF.buttercream),
+  piped: (color) => withSurface(new THREE.MeshPhysicalMaterial({ color, roughness: 0.55, sheen: 0.3, sheenRoughness: 0.75, sheenColor: 0x3a3a3a, envMapIntensity: 0.28 }), SURF.piped),
+  glaze: (color) => withSurface(new THREE.MeshPhysicalMaterial({ color, roughness: 0.2, clearcoat: 0.8, clearcoatRoughness: 0.12, envMapIntensity: 0.75 }), SURF.glaze),
+  satin: (color) => withSurface(new THREE.MeshPhysicalMaterial({ color, roughness: 0.32, sheen: 0.8, sheenRoughness: 0.3, sheenColor: shade(color, 0.18), envMapIntensity: 0.6 }), SURF.weave),
+  // Metals mirror their surroundings; a soft glow in their own colour keeps silver silver and gold gold
+  // even when the reflection behind them is dark (e.g. viewed from above).
+  metal: (color, roughness = 0.2) => new THREE.MeshPhysicalMaterial({ color, metalness: 0.92, roughness, clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 1.45,
+    emissive: shade(color, -0.18), emissiveIntensity: 0.55 }),
+  goldLeaf: () => withSurface(new THREE.MeshPhysicalMaterial({ color: '#f0c65a', metalness: 0.9, roughness: 0.34, emissive: '#6b4a0c', emissiveIntensity: 0.55, envMapIntensity: 1.6, side: THREE.DoubleSide }), SURF.crinkle),
+  sugar: (color) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.3, clearcoat: 0.85, clearcoatRoughness: 0.2, envMapIntensity: 0.55 }),
+  pulp: (color) => withSurface(new THREE.MeshPhysicalMaterial({ color, roughness: 0.95, envMapIntensity: 0.18 }), SURF.pulp),
+  cloth: (color, map = null) => withSurface(new THREE.MeshPhysicalMaterial({ color, map, roughness: 0.85, sheen: 0.35, sheenRoughness: 0.6, sheenColor: 0x444444, envMapIntensity: 0.2, side: THREE.DoubleSide }), SURF.weave)
+};
+
+// Height map (white = raised) -> tangent-space normal map, so piping and pearls catch the light.
+function heightToNormal(height, strength) {
+  const w = height.width, h = height.height, src = height.getContext('2d').getImageData(0, 0, w, h).data;
+  const out = document.createElement('canvas'); out.width = w; out.height = h; const g = out.getContext('2d'); const img = g.createImageData(w, h); const d = img.data;
+  const at = (x, y) => src[((Math.min(h - 1, Math.max(0, y)) * w) + Math.min(w - 1, Math.max(0, x))) * 4] / 255;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const dx = (at(x + 1, y) - at(x - 1, y)) * strength, dy = (at(x, y + 1) - at(x, y - 1)) * strength;
+    const len = Math.hypot(dx, dy, 1), i = (y * w + x) * 4;
+    d[i] = (-dx / len * 0.5 + 0.5) * 255; d[i + 1] = (dy / len * 0.5 + 0.5) * 255; d[i + 2] = (1 / len * 0.5 + 0.5) * 255; d[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return out;
+}
+
 // Splits the message into at most 3 lines (keeps the customer's own line breaks, wraps long lines by words).
 function layoutLines(ctx, text, maxWidth) {
   const out = [];
@@ -29,41 +102,47 @@ function layoutLines(ctx, text, maxWidth) {
   }
   return out.filter((l, i, a) => l || a.length === 1);
 }
-function messageTexture(message, colorHex, style) {
-  const size = 1024, c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
+// Returns { map, normalMap } for the message: piped letters get a raised, rounded bead of icing;
+// pearl letters are built from individual pearls following the letter shapes.
+function messageTextures(message, colorHex, style) {
   const text = message.trim(); if (!text) return null;
-  const family = "'Nunito','DM Sans',sans-serif";
+  const size = 1024, family = "'Nunito','DM Sans',sans-serif";
+  const color = document.createElement('canvas'), height = document.createElement('canvas');
+  color.width = color.height = height.width = height.height = size;
+  const g = color.getContext('2d'), hg = height.getContext('2d');
+  hg.fillStyle = '#000'; hg.fillRect(0, 0, size, size);
   let fontSize = 150, lines;
+  const body = style === 'pearl_letters' ? text.toUpperCase() : text;
   for (; fontSize > 40; fontSize -= 6) {
     g.font = `800 ${fontSize}px ${family}`;
-    lines = layoutLines(g, style === 'pearl_letters' ? text.toUpperCase() : text, size * 0.84);
-    const blockH = lines.length * fontSize * 1.08;
-    const widest = Math.max(...lines.map((l) => g.measureText(l).width));
-    // every line must sit inside the circle: check the corners of the text block against the radius
-    const half = Math.hypot(widest / 2, blockH / 2);
-    if (lines.length <= 4 && half < size * 0.485) break;
+    lines = layoutLines(g, body, size * 0.84);
+    const blockH = lines.length * fontSize * 1.08, widest = Math.max(...lines.map((l) => g.measureText(l).width));
+    if (lines.length <= 4 && Math.hypot(widest / 2, blockH / 2) < size * 0.485) break;
   }
-  g.textAlign = 'center'; g.textBaseline = 'middle';
   const lh = fontSize * 1.08, top = size / 2 - (lines.length - 1) * lh / 2;
-  const col = new THREE.Color(colorHex); const dark = shade(colorHex, -0.22).getStyle(); const light = shade(colorHex, 0.28).getStyle();
-  lines.forEach((l, i) => {
-    const y = top + i * lh;
-    if (style === 'pearl_letters') {
-      g.lineJoin = 'round'; g.lineWidth = fontSize * 0.1;
-      g.fillStyle = 'rgba(40,20,50,.28)'; g.fillText(l, size / 2 + 6, y + 8);
-      g.strokeStyle = dark; g.strokeText(l, size / 2, y);
-      const grad = g.createLinearGradient(0, y - fontSize / 2, 0, y + fontSize / 2); grad.addColorStop(0, light); grad.addColorStop(0.55, col.getStyle()); grad.addColorStop(1, dark);
-      g.fillStyle = grad; g.fillText(l, size / 2, y);
-      g.fillStyle = 'rgba(255,255,255,.55)'; g.font = `800 ${fontSize}px ${family}`; g.save(); g.globalCompositeOperation = 'source-atop'; g.fillText(l, size / 2 - 5, y - 6); g.restore();
-    } else {
-      g.lineJoin = 'round'; g.lineCap = 'round';
-      g.lineWidth = fontSize * 0.2; g.strokeStyle = dark; g.strokeText(l, size / 2, y + 3);
-      g.lineWidth = fontSize * 0.14; g.strokeStyle = col.getStyle(); g.strokeText(l, size / 2, y);
-      g.fillStyle = col.getStyle(); g.fillText(l, size / 2, y);
-      g.lineWidth = fontSize * 0.035; g.strokeStyle = light; g.strokeText(l, size / 2 - 3, y - 4);
-    }
-  });
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+  const base = new THREE.Color(colorHex), dark = shade(colorHex, -0.25).getStyle(), light = shade(colorHex, 0.3).getStyle();
+  const drawText = (ctx, fill, stroke = 0) => {
+    ctx.font = `800 ${fontSize}px ${family}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    lines.forEach((l, i) => { const y = top + i * lh; if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = fill; ctx.strokeText(l, size / 2, y); } ctx.fillStyle = fill; ctx.fillText(l, size / 2, y); });
+  };
+  if (style === 'pearl_letters') {
+    // Smooth, rounded candy letters with a soft pearly highlight (the shimmer itself comes from the material).
+    g.save(); g.filter = `blur(${Math.round(fontSize * 0.025)}px)`; g.globalAlpha = 0.3; g.translate(5, 8); drawText(g, 'rgba(40,20,50,1)', fontSize * 0.2); g.restore();
+    drawText(g, dark, fontSize * 0.2);
+    drawText(g, base.getStyle(), fontSize * 0.15);
+    g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.7; g.translate(-fontSize * 0.03, -fontSize * 0.045); drawText(g, '#ffffff', fontSize * 0.02); g.restore();
+    hg.save(); hg.filter = `blur(${Math.round(fontSize * 0.075)}px)`; drawText(hg, '#fff', fontSize * 0.2); hg.restore();
+  } else {
+    // Piped icing: a thick rounded line with a darker rim and a soft highlight, plus a blurred height map.
+    g.save(); g.filter = `blur(${Math.round(fontSize * 0.02)}px)`; g.globalAlpha = 0.35; g.translate(4, 6); drawText(g, 'rgba(40,20,50,1)', fontSize * 0.16); g.restore();
+    drawText(g, dark, fontSize * 0.17);
+    drawText(g, base.getStyle(), fontSize * 0.12);
+    g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.45; g.translate(-fontSize * 0.02, -fontSize * 0.03); drawText(g, light, fontSize * 0.03); g.restore();
+    hg.save(); hg.filter = `blur(${Math.round(fontSize * 0.05)}px)`; drawText(hg, '#fff', fontSize * 0.15); hg.restore();
+  }
+  const map = new THREE.CanvasTexture(color); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
+  const normalMap = new THREE.CanvasTexture(heightToNormal(height, style === 'pearl_letters' ? 4.5 : 3.5));
+  return { map, normalMap };
 }
 function topperTexture(label) {
   const c = document.createElement('canvas'); c.width = 1024; c.height = 512; const g = c.getContext('2d');
@@ -90,11 +169,20 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xe8dcef, 1.25));
-  const key = new THREE.DirectionalLight(0xfff4e6, 2.1); key.position.set(3.2, 6, 3.5); key.castShadow = true;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xe8dcef, 0.95));
+  const key = new THREE.DirectionalLight(0xfff4e6, 1.9); key.position.set(3.2, 6, 3.5); key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024); key.shadow.camera.left = key.shadow.camera.bottom = -3; key.shadow.camera.right = key.shadow.camera.top = 3; key.shadow.bias = -0.0008;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xe9e0ff, 0.6); fill.position.set(-4, 3, -2); scene.add(fill);
+  const fill = new THREE.DirectionalLight(0xe9e0ff, 0.45); fill.position.set(-4, 3, -2); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.55); rim.position.set(-1.5, 2.5, -4.5); scene.add(rim);
+  // Soft studio reflections (pearls, gold leaf, toppers and satin need something to reflect).
+  let envTexture = null;
+  import('three/addons/environments/RoomEnvironment.js').then(({ RoomEnvironment }) => {
+    if (!alive) return;
+    const pmrem = new THREE.PMREMGenerator(renderer); const room = new RoomEnvironment();
+    envTexture = pmrem.fromScene(room, 0.035).texture; scene.environment = envTexture;
+    room.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); pmrem.dispose(); request();
+  }).catch((error) => console.info('Studio reflections unavailable:', error?.message || error));
 
   const disposables = new Set();
   const track = (o) => { disposables.add(o); return o; };
@@ -103,7 +191,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
 
   // --- fixed parts: box, gingham paper, cake body -------------------------------------------------
   const fixed = new THREE.Group(); world.add(fixed);
-  const kraft = mat(0xeee4cf, 0.9);
+  const kraft = track(M.pulp(0xeee4cf));
   const tray = new THREE.Mesh(track(new THREE.BoxGeometry(3.3, 0.06, 3.3)), kraft); tray.position.y = -0.03; tray.receiveShadow = true; fixed.add(tray);
   for (const [x, z, w, d] of [[0, -1.62, 3.3, 0.06], [0, 1.62, 3.3, 0.06], [-1.62, 0, 0.06, 3.3], [1.62, 0, 0.06, 3.3]]) {
     const wall = new THREE.Mesh(track(new THREE.BoxGeometry(w, 0.55, d)), kraft); wall.position.set(x, 0.27, z); wall.receiveShadow = true; fixed.add(wall);
@@ -111,13 +199,13 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   const lid = new THREE.Mesh(track(new THREE.BoxGeometry(3.3, 0.05, 3.3)), kraft);
   const hinge = new THREE.Group(); hinge.position.set(0, 0.55, -1.65); hinge.rotation.x = -1.95; lid.position.set(0, 0, 1.65); hinge.add(lid); fixed.add(hinge);
   const gingham = ginghamTexture(); track(gingham);
-  const paper = new THREE.Mesh(track(new THREE.PlaneGeometry(3.0, 3.0, 8, 8)), track(new THREE.MeshStandardMaterial({ map: gingham, roughness: 0.95, side: THREE.DoubleSide })));
+  const paper = new THREE.Mesh(track(new THREE.PlaneGeometry(3.0, 3.0, 8, 8)), track(M.cloth(0xffffff, gingham)));
   paper.rotation.x = -Math.PI / 2; paper.rotation.z = 0.08; paper.position.y = 0.005; paper.receiveShadow = true; fixed.add(paper);
 
   const profile = [new THREE.Vector2(0, 0), new THREE.Vector2(R * 0.985, 0), new THREE.Vector2(R, 0.03)];
   for (let i = 0; i <= 10; i++) { const a = (i / 10) * Math.PI / 2; profile.push(new THREE.Vector2(R - 0.06 + 0.06 * Math.cos(a), H - 0.06 + 0.06 * Math.sin(a))); }
   profile.push(new THREE.Vector2(0, H));
-  const cakeMat = mat(0xffffff, 0.68);
+  const cakeMat = track(M.frosting(0xffffff));
   const cake = new THREE.Mesh(track(new THREE.LatheGeometry(profile, 96)), cakeMat); cake.castShadow = true; cake.receiveShadow = true; fixed.add(cake);
 
   const decor = new THREE.Group(); world.add(decor);
@@ -201,8 +289,12 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     root.updateMatrixWorld(true);
     const yTop = (o) => (o ? new THREE.Box3().setFromObject(o).max.y : null);
     H = Math.max(yTop(parts.top_frosting), yTop(parts.cake));
-    // Own materials for recoloured parts, so the originals stay untouched.
-    for (const name of ['cake', 'top_frosting', 'border_top_shell', 'border_bottom_shell', 'drip']) if (parts[name]) forEachMesh(parts[name], (m) => { m.material = m.material.clone(); });
+    // Bakery materials in place of the model's plain ones (base colours kept; frosting parts are recoloured later).
+    const swap = (o, make) => o && forEachMesh(o, (m) => { const old = m.material; m.material = make(old.color.clone()); old.dispose(); });
+    for (const name of ['cake', 'top_frosting']) swap(parts[name], M.frosting);
+    for (const name of ['border_top_shell', 'border_bottom_shell']) swap(parts[name], M.piped);
+    swap(parts.drip, M.glaze); swap(parts.box_clamshell, M.pulp); swap(parts.gingham_paper, (c) => M.cloth(c));
+    for (const name of ['flower_piped', 'leaf_piped']) if (templates[name]) swap(templates[name], M.piped);
     model = { root, parts, templates, bow, topShellY: yTop(parts.border_top_shell), bottomShellY: yTop(parts.border_bottom_shell) };
     fixed.visible = false; world.add(root);
     if (lastDesign) update(lastDesign, lastPalette); else request();
@@ -225,7 +317,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     if (model) return updateModel(design, palette, hexOf, frost);
     const rand = seeded(97);
     const accents = new Set(design.accents || []); const borders = new Set(design.border || []);
-    const frostMat = dmat(shade(frost, 0.03), 0.6);
+    const frostMat = M.piped(shade(frost, 0.03));
 
     const shell = (radius, y, count, scale) => {
       const geo = new THREE.SphereGeometry(0.1, 14, 10);
@@ -239,7 +331,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     if (borders.has('shell_bottom')) shell(R + 0.03, 0.08, 30, [1.0, 0.85, 1.6]);
 
     if (accents.has('drip')) {
-      const dripMat = dmat(shade(frost, -0.28), 0.4);
+      const dripMat = M.glaze(shade(frost, -0.28));
       for (let i = 0; i < 30; i++) {
         const a = (i / 30) * Math.PI * 2 + rand() * 0.08, len = 0.12 + rand() * 0.35;
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, len, 4, 10), dripMat);
@@ -248,16 +340,16 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
       const cap = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.05, 96), dripMat); cap.position.y = H - 0.02; decor.add(cap);
     }
 
-    const pearl = (hex) => dmat(hex, 0.25, 0.85);
+    const pearl = (hex) => M.metal(hex);
     if (accents.has('pearls_gold') || accents.has('pearls_silver')) {
-      const pm = pearl(accents.has('pearls_gold') ? '#d4af37' : '#c9ccd3'); const g = new THREE.SphereGeometry(0.028, 14, 10);
+      const pm = pearl(accents.has('pearls_gold') ? '#d4af37' : '#e4e7ec'); const g = new THREE.SphereGeometry(0.028, 14, 10);
       for (let i = 0; i < 26; i++) { const a = ((i + 0.5) / 26) * Math.PI * 2; const m = new THREE.Mesh(i ? g.clone() : g, pm); m.position.set(Math.cos(a) * (R - 0.05), H + 0.1, Math.sin(a) * (R - 0.05)); decor.add(m); }
       for (let i = 0; i < 18; i++) { const a = rand() * Math.PI * 2, r = TEXT_R + 0.04 + rand() * (R - TEXT_R - 0.2); const m = new THREE.Mesh(g.clone(), pm); m.position.set(Math.cos(a) * r, H + 0.02, Math.sin(a) * r); decor.add(m); }
       if (borders.has('shell_bottom')) for (let i = 0; i < 30; i++) { const a = ((i + 0.5) / 30) * Math.PI * 2; const m = new THREE.Mesh(g.clone(), pm); m.position.set(Math.cos(a) * (R + 0.1), 0.17, Math.sin(a) * (R + 0.1)); decor.add(m); }
     }
 
     if (accents.has('ribbon_bows')) {
-      const bm = dmat(hexOf(design.bow_color, '#ee82a8'), 0.35, 0.05);
+      const bm = M.satin(hexOf(design.bow_color, '#ee82a8'));
       for (let i = 0; i < 4; i++) {
         const a = Math.PI / 4 + i * Math.PI / 2; const bow = new THREE.Group();
         for (const s of [-1, 1]) {
@@ -272,14 +364,14 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     if (accents.has('piped_flowers')) {
       const petalCols = ['#f4b6c8', '#f9e27d', '#bfdddf', '#ffffff', '#cdb8e8'];
       for (let i = 0; i < 7; i++) {
-        const a = (i / 7) * Math.PI * 2 + 0.3, r = R - 0.22; const flower = new THREE.Group(); const pm = dmat(petalCols[i % petalCols.length], 0.55);
+        const a = (i / 7) * Math.PI * 2 + 0.3, r = R - 0.22; const flower = new THREE.Group(); const pm = M.piped(petalCols[i % petalCols.length]);
         for (let p = 0; p < 5; p++) { const pa = (p / 5) * Math.PI * 2; const petal = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), pm); petal.scale.set(1.2, 0.5, 0.8); petal.position.set(Math.cos(pa) * 0.05, 0, Math.sin(pa) * 0.05); flower.add(petal); }
-        const center = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), dmat('#f4d03f', 0.5)); center.position.y = 0.02; flower.add(center);
+        const center = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), M.piped('#f4d03f')); center.position.y = 0.02; flower.add(center);
         flower.position.set(Math.cos(a) * r, H + 0.02, Math.sin(a) * r); decor.add(flower);
       }
     }
     if (accents.has('piped_leaves')) {
-      const lm = dmat('#3fa66b', 0.5), dm = dmat('#ffffff', 0.5);
+      const lm = M.piped('#3fa66b'), dm = M.piped('#ffffff');
       for (let i = 0; i < 12; i++) {
         const a = (i / 12) * Math.PI * 2 + 0.05, r = R - 0.14;
         const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), lm); leaf.scale.set(1.6, 0.35, 0.6); leaf.position.set(Math.cos(a) * r, H + 0.015, Math.sin(a) * r); leaf.rotation.y = -a + 0.8; decor.add(leaf);
@@ -295,25 +387,29 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     const dmat = (color, rough = 0.62, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
     if (accents.has('sprinkles')) {
       const cols = ['#e0457b', '#f4d03f', '#7fb8e6', '#3fa66b', '#ffffff', '#7e57c2']; const g = new THREE.CapsuleGeometry(0.009, 0.04, 2, 6);
-      for (let i = 0; i < 90; i++) { const a = rand() * Math.PI * 2, r = TEXT_R + 0.03 + rand() * (R - TEXT_R - 0.12); const m = new THREE.Mesh(g.clone(), dmat(cols[i % cols.length], 0.45)); m.position.set(Math.cos(a) * r, H + 0.012, Math.sin(a) * r); m.rotation.set(Math.PI / 2, 0, rand() * Math.PI); decor.add(m); }
+      for (let i = 0; i < 90; i++) { const a = rand() * Math.PI * 2, r = TEXT_R + 0.03 + rand() * (R - TEXT_R - 0.12); const m = new THREE.Mesh(g.clone(), M.sugar(cols[i % cols.length])); m.position.set(Math.cos(a) * r, H + 0.012, Math.sin(a) * r); m.rotation.set(Math.PI / 2, 0, rand() * Math.PI); decor.add(m); }
     }
     if (accents.has('gold_leaf')) {
-      const gm = new THREE.MeshStandardMaterial({ color: '#d4af37', roughness: 0.35, metalness: 0.9, side: THREE.DoubleSide });
+      const gm = M.goldLeaf();
       for (let i = 0; i < 26; i++) { const a = rand() * Math.PI * 2, y = 0.18 + rand() * (H - 0.35); const m = new THREE.Mesh(new THREE.CircleGeometry(0.03 + rand() * 0.035, 5), gm); m.position.set(Math.cos(a) * (R + 0.004), y, Math.sin(a) * (R + 0.004)); m.lookAt(Math.cos(a) * 3, y, Math.sin(a) * 3); m.rotation.z = rand() * 3; decor.add(m); }
     }
 
-    const tex = design.message ? messageTexture(design.message, hexOf(design.lettering_color, '#4f3163'), design.lettering) : null;
+    const tex = design.message ? messageTextures(design.message, hexOf(design.lettering_color, '#4f3163'), design.lettering) : null;
     if (tex) {
-      const plane = new THREE.Mesh(new THREE.CircleGeometry(TEXT_R, 64), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: design.lettering === 'pearl_letters' ? 0.3 : 0.6, depthWrite: false }));
+      const pearls = design.lettering === 'pearl_letters';
+      const plane = new THREE.Mesh(new THREE.CircleGeometry(TEXT_R, 64), new THREE.MeshPhysicalMaterial({
+        map: tex.map, normalMap: tex.normalMap, normalScale: new THREE.Vector2(1.4, 1.4), transparent: true, depthWrite: false,
+        roughness: pearls ? 0.25 : 0.55, clearcoat: pearls ? 1 : 0, clearcoatRoughness: 0.12, sheen: pearls ? 0 : 0.3, sheenRoughness: 0.75, sheenColor: 0x3a3a3a,
+        iridescence: pearls ? 0.55 : 0, iridescenceIOR: 1.35, iridescenceThicknessRange: [180, 420], envMapIntensity: pearls ? 0.85 : 0.28 }));
       plane.rotation.x = -Math.PI / 2; plane.position.y = H + 0.004; decor.add(plane);
     }
 
     if (design.topper && design.topper !== 'none') {
       const label = design.topper === 'number' ? (design.topper_text || '1') : design.topper === 'congrats' ? 'Congrats' : 'Happy Birthday';
       const t = topperTexture(label); const topper = new THREE.Group();
-      const face = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.68), new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.2, metalness: 0.6, roughness: 0.3, side: THREE.DoubleSide }));
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.68), new THREE.MeshPhysicalMaterial({ map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: 0.35, transparent: true, alphaTest: 0.2, metalness: 0.75, roughness: 0.22, clearcoat: 0.7, clearcoatRoughness: 0.08, envMapIntensity: 1.4, side: THREE.DoubleSide }));
       face.position.y = 0.62; face.castShadow = true; topper.add(face);
-      const stick = new THREE.MeshStandardMaterial({ color: '#c9a227', metalness: 0.7, roughness: 0.3 });
+      const stick = M.metal('#c9a227', 0.25);
       for (const x of [-0.28, 0.28]) { const s = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 6), stick); s.position.set(x, 0.25, 0); topper.add(s); }
       topper.position.set(0, H - 0.05, -0.32); decor.add(topper);
     }
@@ -323,14 +419,14 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   function updateModel(design, palette, hexOf, frost) {
     const P = model.parts, rand = seeded(97);
     const accents = new Set(design.accents || []), borders = new Set(design.border || []);
-    const recolor = (o, hex) => o && forEachMesh(o, (m) => { m.material.color.set(hex); });
+    const recolor = (o, hex) => o && forEachMesh(o, (m) => { m.material.color.set(hex); if (m.material.sheenColor && m.material.sheen > 0.8) m.material.sheenColor.copy(shade(hex, 0.28)); });
     recolor(P.cake, frost); recolor(P.top_frosting, frost);
     if (P.border_top_shell) { P.border_top_shell.visible = borders.has('shell_top'); recolor(P.border_top_shell, shade(frost, 0.03)); }
     if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(frost, 0.03)); }
     if (P.drip) { P.drip.visible = accents.has('drip'); recolor(P.drip, shade(frost, -0.28)); }
 
     if ((accents.has('pearls_gold') || accents.has('pearls_silver')) && model.templates.pearl) {
-      const mat = new THREE.MeshStandardMaterial({ color: accents.has('pearls_gold') ? '#d4af37' : '#c9ccd3', roughness: 0.25, metalness: 0.85 });
+      const mat = M.metal(accents.has('pearls_gold') ? '#d4af37' : '#e4e7ec');
       const put = (x, y, z) => placeCopy(model.templates.pearl, x, y, z).traverse((m) => { if (m.isMesh) { m.material = mat; m.userData.sharedMaterial = false; } });
       const topY = borders.has('shell_top') && model.topShellY ? model.topShellY - 0.01 : H + 0.02;
       for (let i = 0; i < 26; i++) { const a = ((i + 0.5) / 26) * Math.PI * 2; put(Math.cos(a) * (R - 0.06), topY, Math.sin(a) * (R - 0.06)); }
@@ -338,7 +434,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
       if (borders.has('shell_bottom') && model.bottomShellY) for (let i = 0; i < 30; i++) { const a = ((i + 0.5) / 30) * Math.PI * 2; put(Math.cos(a) * (R + 0.08), model.bottomShellY - 0.01, Math.sin(a) * (R + 0.08)); }
     }
     if (accents.has('ribbon_bows') && model.bow) {
-      const mat = new THREE.MeshStandardMaterial({ color: hexOf(design.bow_color, '#ee82a8'), roughness: 0.35, metalness: 0.05 });
+      const mat = M.satin(hexOf(design.bow_color, '#ee82a8'));
       for (let i = 0; i < 4; i++) {
         const target = Math.PI / 4 + i * Math.PI / 2, pivot = new THREE.Group();
         const bow = model.bow.object.clone(true);
@@ -371,7 +467,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   function dispose() {
     alive = false; cancelAnimationFrame(frame); ro.disconnect(); clearDecor();
     if (model) forEachMesh(model.root, (m) => { m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => { x.map?.dispose(); x.dispose(); }); });
-    disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
+    envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
   }
   return { update, resetView, snapshot, dispose, canvas: renderer.domElement };
 }
