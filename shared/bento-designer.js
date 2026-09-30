@@ -5,10 +5,28 @@
   const STEPS = [['style', 'Style'], ['decorate', 'Decorate'], ['message', 'Message'], ['review', 'Review']];
   const SUGGESTIONS = ['Happy Birthday', 'Congratulations', 'Happy Anniversary', 'Best wishes', 'I love you'];
   const DRAFT_KEY = 'lexc_bento_draft_v1';
+  // One-tap starting points, based on LexC's own bento photos. Everything stays editable.
+  const PRESETS = [
+    { key: 'wishes', name: 'Minimal wishes', note: 'White, piped flowers', state: { frosting_color: 'white', border: [], accents: ['piped_flowers', 'piped_leaves'], message: 'Best wishes\nfor your future', lettering: 'piped', lettering_color: 'burgundy', topper: 'none', topper_text: '' } },
+    { key: 'vintage_pink', name: 'Vintage pink', note: 'Shells, gold pearls, bows', state: { frosting_color: 'pink', border: ['shell_top'], accents: ['pearls_gold', 'ribbon_bows'], bow_color: 'hot_pink', message: 'Happy\nBirthday', lettering: 'pearl_letters', lettering_color: 'white', topper: 'none', topper_text: '' } },
+    { key: 'periwinkle', name: 'Periwinkle pearls', note: 'Silver pearls, lilac bows', state: { frosting_color: 'periwinkle', border: ['shell_top'], accents: ['pearls_silver', 'ribbon_bows'], bow_color: 'lilac', message: 'Love you', lettering: 'pearl_letters', lettering_color: 'white', topper: 'none', topper_text: '' } },
+    { key: 'red_gold', name: 'Red and gold', note: 'Number topper, black bows', state: { frosting_color: 'red', border: ['shell_top', 'shell_bottom'], accents: ['pearls_gold', 'ribbon_bows'], bow_color: 'black', message: '', lettering: 'piped', lettering_color: 'white', topper: 'number', topper_text: '22' } },
+    { key: 'lavender', name: 'Lavender script', note: 'Piped message, flowers', state: { frosting_color: 'lavender', border: [], accents: ['piped_flowers'], message: 'Happy Birthday', lettering: 'piped', lettering_color: 'white', topper: 'none', topper_text: '' } }
+  ];
+  const COLOR_GROUPS = [
+    ['Pastels', ['white', 'ivory', 'cream', 'butter', 'peach', 'blush', 'baby_pink', 'lavender', 'lilac', 'baby_blue', 'mint']],
+    ['Brights', ['lemon', 'coral', 'pink', 'hot_pink', 'red', 'purple', 'periwinkle', 'sky_blue', 'sage']],
+    ['Deep', ['burgundy', 'navy', 'chocolate', 'black']]
+  ];
+  // WCAG contrast between two hex colours (1 = none, 21 = black on white).
+  const luminance = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const contrast = (a, b) => { const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
   const ICON = {
     back: '<path d="m15 18-6-6 6-6"/>', undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
-    chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>', view: '<circle cx="12" cy="12" r="3"/><path d="M3 12a9 9 0 0 1 18 0"/>'
+    chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>', view: '<circle cx="12" cy="12" r="3"/><path d="M3 12a9 9 0 0 1 18 0"/>',
+    warn: '<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    chev: '<path d="m18 15-6-6-6 6"/>'
   };
   const icon = (n) => `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
   const esc = (v) => authEscape(String(v ?? ''));
@@ -39,6 +57,12 @@
     return { sum, lines };
   }
   const unitPrice = () => Number(variant()?.price || 0) + (quote.status === 'ok' ? quote.extra : localExtras().sum);
+  function extrasFor(p) {
+    let sum = 0; const add = (o) => { if (o) sum += Number(o.price) || 0; };
+    (p.border || []).forEach((c) => add(opt('border', c))); (p.accents || []).forEach((c) => add(opt('accent', c)));
+    if ((p.message || '').trim()) { add(opt('message', 'custom_message')); add(opt('lettering', p.lettering)); }
+    add(opt('topper', p.topper)); return sum;
+  }
 
   // ---- data -------------------------------------------------------------------------------------
   function bentoProduct() { return (typeof liveCatalog !== 'undefined' ? liveCatalog : []).find((p) => p.customization_config?.designer === 'bento'); }
@@ -73,7 +97,12 @@
   function saveDraft() { try { if (editIndex === null) localStorage.setItem(DRAFT_KEY, JSON.stringify({ product_id: product.id, state, step })); } catch {} }
   function undo() { if (!past.length) return; future.push(snapshot()); state = JSON.parse(past.pop()); afterChange(true); }
   function redo() { if (!future.length) return; past.push(snapshot()); state = JSON.parse(future.pop()); afterChange(true); }
-  function resetDesign() { if (!window.confirm('Start over with a plain white cake? You can undo this.')) return; commit((s) => Object.assign(s, blank(), { qty: s.qty, variant_id: s.variant_id })); }
+  function resetDesign() { commit((s) => Object.assign(s, blank(), { qty: s.qty, variant_id: s.variant_id })); showToast('Design reset to a plain white cake. Tap Undo to bring it back.'); }
+  function applyPreset(key) {
+    const p = PRESETS.find((x) => x.key === key); if (!p) return;
+    commit((s) => Object.assign(s, blank(), JSON.parse(JSON.stringify(p.state)), { qty: s.qty, variant_id: s.variant_id }));
+    showToast(`Started from “${p.name}” — change anything you like.`);
+  }
 
   function afterChange(rerender = false) {
     saveDraft(); renderPreview(); scheduleQuote(); updateFooter(); updateTools();
@@ -129,9 +158,10 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=3');
+        const mod = await import('./bento-scene.js?v=9');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion });
+        if (step === 'message') { scene.setView('top'); scene.setAutoRotate(false); }
       } catch (error) {
         console.info('3D preview unavailable, using top view:', error?.message || error);
         view3d = false; syncViewButtons();
@@ -142,7 +172,7 @@
     return sceneLoading;
   }
   function disposeScene() { scene?.dispose(); scene = null; }
-  function syncViewButtons() { root.querySelectorAll('[data-bd-view]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.bdView === '3d') === view3d))); root.querySelector('[data-bd-resetview]').hidden = !view3d; }
+  function syncViewButtons() { root.querySelectorAll('[data-bd-view]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.bdView === '3d') === view3d))); root.querySelector('[data-bd-resetview]').hidden = !view3d; root.querySelector('.bd-cams').hidden = !view3d; }
 
   // ---- markup -----------------------------------------------------------------------------------
   function shell() {
@@ -165,7 +195,8 @@
           </div>
           <div class="bd-stage-bar">
             <div class="bd-seg" role="group" aria-label="Preview type"><button type="button" data-bd-view="3d" aria-pressed="true">3D</button><button type="button" data-bd-view="top" aria-pressed="false">Top view</button></div>
-            <button type="button" class="bd-tool" data-bd-resetview>${icon('view')}<span>Reset view</span></button>
+            <div class="bd-seg bd-cams" role="group" aria-label="Camera"><button type="button" data-bd-cam="front">Front</button><button type="button" data-bd-cam="top">Top</button><button type="button" data-bd-cam="side">Side</button></div>
+            <button type="button" class="bd-tool" data-bd-resetview aria-label="Reset view">${icon('view')}<span>Reset</span></button>
           </div>
           <p class="bd-hint">Drag to turn the cake, scroll or pinch to zoom. The preview is a guide — handmade decorations vary slightly.</p>
         </section>
@@ -173,7 +204,8 @@
           <div class="bd-steps" role="tablist" aria-label="Design steps">${STEPS.map(([k, l], i) => `<button type="button" role="tab" class="bd-step" id="bd-tab-${k}" data-bd-step="${k}" aria-controls="bd-body"><b>${i + 1}</b>${l}</button>`).join('')}</div>
           <div class="bd-body" id="bd-body" role="tabpanel" tabindex="-1"></div>
           <div class="bd-foot">
-            <div class="bd-price"><strong data-bd-price>—</strong><span data-bd-price-note aria-live="polite"></span></div>
+            <button type="button" class="bd-price" data-bd-breakdown aria-expanded="false" aria-controls="bd-breakdown"><strong data-bd-price>—</strong><span data-bd-price-note aria-live="polite"></span></button>
+            <div class="bd-breakdown" id="bd-breakdown" hidden></div>
             <button type="button" class="bd-secondary" data-bd-prev>Back</button>
             <button type="button" class="bd-primary" data-bd-next>Next</button>
           </div>
@@ -182,14 +214,32 @@
     </div>`;
   }
 
-  const swatches = (field, current, label) => `<div class="bd-swatches" role="radiogroup" aria-label="${label}">${options.color.map((c) =>
-    `<button type="button" role="radio" class="bd-swatch" style="background:${c.hex}" data-bd-set="${field}" data-value="${c.code}" aria-checked="${c.code === current}" aria-label="${esc(c.label)}" title="${esc(c.label)}"></button>`).join('')}</div>
-    <p class="bd-swatch-name" aria-hidden="true">${esc(opt('color', current)?.label || '')}</p>`;
+  const swatch = (field, current, c) => `<button type="button" role="radio" class="bd-swatch" style="background:${c.hex}" data-bd-set="${field}" data-value="${c.code}" aria-checked="${c.code === current}" aria-label="${esc(c.label)}" title="${esc(c.label)}"></button>`;
+  function swatches(field, current, label) {
+    const known = new Set(COLOR_GROUPS.flatMap(([, codes]) => codes));
+    const groups = COLOR_GROUPS.map(([name, codes]) => [name, codes.map((c) => opt('color', c)).filter(Boolean)]);
+    const extra = options.color.filter((c) => !known.has(c.code)); if (extra.length) groups.push(['More', extra]);
+    return `<div role="radiogroup" aria-label="${label}">${groups.filter(([, list]) => list.length).map(([name, list]) =>
+      `<p class="bd-swatch-group" aria-hidden="true">${name}</p><div class="bd-swatches">${list.map((c) => swatch(field, current, c)).join('')}</div>`).join('')}</div>
+      <p class="bd-swatch-name" aria-hidden="true">Selected: <b>${esc(opt('color', current)?.label || '')}</b></p>`;
+  }
+  function contrastWarning() {
+    const s = state; if (!s.message.trim()) return '';
+    const bg = palette[s.frosting_color], fg = palette[s.lettering_color]; if (!bg || !fg) return '';
+    const ratio = contrast(bg, fg); if (ratio >= 2.2) return '';
+    const best = ['white', 'black', 'burgundy', 'purple', 'navy', 'chocolate', 'hot_pink'].filter((c) => palette[c] && c !== s.lettering_color)
+      .sort((a, b) => contrast(bg, palette[b]) - contrast(bg, palette[a]))[0];
+    return `<div class="bd-warning" role="status">${icon('warn')}<span>${esc(opt('color', s.lettering_color)?.label)} letters may be hard to read on ${esc(opt('color', s.frosting_color)?.label.toLowerCase())} frosting.</span>
+      ${best ? `<button type="button" class="bd-link" data-bd-set="lettering_color" data-value="${best}">Use ${esc(opt('color', best)?.label.toLowerCase())}</button>` : ''}</div>`;
+  }
   const priceTag = (o) => Number(o.price) > 0 ? `<small>+${money(o.price)}</small>` : '<small>Free</small>';
 
   function bodyMarkup() {
     const s = state, max = Number(cfg().max_accents || 6);
     if (step === 'style') return `
+      <fieldset class="bd-group"><legend>Start from a design <small>Optional · all editable</small></legend>
+        <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
+          return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
       <fieldset class="bd-group"><legend>Flavor <small>Same size and weight</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Flavor">${product.product_variants.filter((v) => v.is_active).map((v) =>
           `<button type="button" role="radio" class="bd-card" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === s.variant_id}"><strong>${esc(v.label === 'Minimalist' ? 'Plain' : v.label)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>
@@ -218,7 +268,7 @@
       <div class="bd-chips" style="margin-bottom:18px" aria-label="Message suggestions">${SUGGESTIONS.map((t) => `<button type="button" class="bd-chip" data-bd-suggest="${esc(t)}">${esc(t)}</button>`).join('')}</div>
       <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering <small>${s.message.trim() ? '' : 'Write a message first'}</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Lettering style">${(options.lettering || []).map((o) => `<button type="button" role="radio" class="bd-card" data-bd-set="lettering" data-value="${o.code}" aria-checked="${s.lettering === o.code}" ${s.message.trim() ? '' : 'disabled'}><strong>${esc(o.label)}</strong><span>${Number(o.price) > 0 ? '+' + money(o.price) : 'Included'}</span></button>`).join('')}</div></fieldset>
-      <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering color</legend>${s.message.trim() ? swatches('lettering_color', s.lettering_color, 'Lettering color') : '<p class="bd-note">Choose after writing your message.</p>'}</fieldset>`;
+      <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering color</legend>${s.message.trim() ? contrastWarning() + swatches('lettering_color', s.lettering_color, 'Lettering color') : '<p class="bd-note">Choose after writing your message.</p>'}</fieldset>`;
     }
     const v = variant(), ex = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : localExtras().lines;
     return `
@@ -265,7 +315,8 @@
   function updateFooter() {
     if (!root) return;
     const v = variant(); const idx = STEPS.findIndex(([k]) => k === step);
-    root.querySelector('[data-bd-price]').textContent = money(unitPrice() * state.qty);
+    animatePrice(unitPrice() * state.qty);
+    renderBreakdown();
     const note = root.querySelector('[data-bd-price-note]');
     note.classList.toggle('is-error', quote.status === 'error');
     note.textContent = quote.status === 'error' ? quote.message : quote.status === 'ok' ? `${state.qty} × ${money(unitPrice())} · price confirmed` : `${state.qty} × ${money(unitPrice())} · checking price…`;
@@ -274,6 +325,27 @@
     if (idx < STEPS.length - 1) { next.textContent = 'Next'; next.disabled = false; }
     else { next.textContent = editIndex !== null ? 'Update cart' : 'Add to cart'; next.disabled = quote.status !== 'ok' || !v; }
   }
+  let shownTotal = null, priceFrame = 0;
+  function animatePrice(total) {
+    const el = root.querySelector('[data-bd-price]');
+    if (shownTotal === null || reducedMotion || shownTotal === total) { shownTotal = total; el.textContent = money(total); return; }
+    const from = shownTotal, start = performance.now(); shownTotal = total; cancelAnimationFrame(priceFrame);
+    const tick = (now) => { const k = Math.min(1, (now - start) / 260); el.textContent = money(Math.round(from + (total - from) * k)); if (k < 1) priceFrame = requestAnimationFrame(tick); };
+    priceFrame = requestAnimationFrame(tick);
+  }
+  function renderBreakdown() {
+    const box = root.querySelector('#bd-breakdown'); if (!box) return;
+    const v = variant(), lines = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : localExtras().lines;
+    box.innerHTML = `<p class="bd-breakdown-title">Price per cake</p><ul>
+      <li><span>${esc(v?.label === 'Minimalist' ? 'Plain' : v?.label || 'Cake')} bento</span><b>${money(v?.price || 0)}</b></li>
+      ${lines.map(([l, p]) => `<li><span>${esc(l)}</span><b>+${money(p)}</b></li>`).join('') || '<li><span>No extras</span><b>—</b></li>'}
+      <li class="is-total"><span>${state.qty} × ${money(unitPrice())}</span><b>${money(unitPrice() * state.qty)}</b></li></ul>
+      <p class="bd-note">${quote.status === 'ok' ? 'Confirmed by LexC’s — this is what checkout will charge.' : 'Checking the price…'}</p>`;
+  }
+  function toggleBreakdown(force) {
+    const btn = root.querySelector('[data-bd-breakdown]'), box = root.querySelector('#bd-breakdown');
+    const open = force ?? box.hidden; box.hidden = !open; btn.setAttribute('aria-expanded', String(open));
+  }
   function updateTools() {
     if (!root) return;
     root.querySelector('[data-bd-undo]').disabled = !past.length;
@@ -281,6 +353,7 @@
   }
   function goStep(k, focusBody = true) {
     step = k; renderBody(); saveDraft();
+    if (scene) { scene.setView(k === 'message' ? 'top' : 'default'); scene.setAutoRotate(k !== 'message'); }
     if (focusBody) root.querySelector('#bd-body').focus({ preventScroll: true });
     if (matchMedia('(max-width: 900px)').matches) root.querySelector('.bd-panel').scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
   }
@@ -302,6 +375,9 @@
         });
       }
       if (t.dataset.bdSuggest) { const text = t.dataset.bdSuggest; return commit((s) => { s.message = text; }); }
+      if (t.dataset.bdPreset) return applyPreset(t.dataset.bdPreset);
+      if (t.dataset.bdCam) return scene?.setView(t.dataset.bdCam);
+      if ('bdBreakdown' in t.dataset) return toggleBreakdown();
       if (t.dataset.bdQty) return commit((s) => { s.qty += Number(t.dataset.bdQty); });
       if (t.dataset.bdView) { view3d = t.dataset.bdView === '3d'; syncViewButtons(); if (view3d) ensureScene(); return renderPreview(); }
       if ('bdResetview' in t.dataset) return scene?.resetView();
@@ -325,7 +401,17 @@
       commit((s) => { s[f] = value; }, { soft: !first });
       textTimer = setTimeout(() => { textTimer = 0; }, 800);
     });
+    document.addEventListener('click', (e) => { if (root.isConnected && !e.target.closest('[data-bd-breakdown],#bd-breakdown')) root.querySelector('#bd-breakdown') && !root.querySelector('#bd-breakdown').hidden && toggleBreakdown(false); });
+    let swipe = null;
+    root.addEventListener('touchstart', (e) => { const b = e.target.closest('#bd-body'); if (!b || e.target.matches('textarea,input') || e.touches.length !== 1) { swipe = null; return; } swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
+    root.addEventListener('touchend', (e) => {
+      if (!swipe) return; const t = e.changedTouches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y; swipe = null;
+      if (Math.abs(dx) < 70 || Math.abs(dy) > 45) return;
+      const i = STEPS.findIndex(([k]) => k === step), n = i + (dx < 0 ? 1 : -1);
+      if (n >= 0 && n < STEPS.length) goStep(STEPS[n][0]);
+    }, { passive: true });
     root.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !root.querySelector('#bd-breakdown').hidden) { toggleBreakdown(false); root.querySelector('[data-bd-breakdown]').focus(); return; }
       if (e.target.closest('[role=tablist]') && ['ArrowLeft', 'ArrowRight'].includes(e.key)) {
         const i = STEPS.findIndex(([k]) => k === step); const n = STEPS[(i + (e.key === 'ArrowRight' ? 1 : STEPS.length - 1)) % STEPS.length][0];
         goStep(n, false); root.querySelector(`[data-bd-step="${n}"]`).focus();

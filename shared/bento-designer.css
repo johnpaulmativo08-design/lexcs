@@ -78,9 +78,35 @@
 .bd-primary:hover{background:var(--bd-purple-dark)}
 .bd-primary:disabled{background:#d9cfe2;color:#8c7c99;cursor:not-allowed}
 .bd-secondary{border:1px solid #d8c7e6;background:#fff;border-radius:12px;color:var(--bd-plum);font:600 .9rem 'DM Sans',sans-serif;padding:0 14px;min-height:48px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.bd-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.bd-preset{border:1.5px solid var(--bd-line);background:#fff;border-radius:14px;padding:10px 12px;text-align:left;cursor:pointer;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;font:inherit;color:inherit;min-height:64px}
+.bd-preset:hover{border-color:#cdb6e3;background:#fcf8ff}
+.bd-preset strong{font-size:.88rem;color:var(--bd-plum)}
+.bd-preset>span:last-child{font-size:.74rem;color:var(--bd-muted);grid-column:2}
+.bd-preset-cake{grid-row:1/3;width:40px;height:40px;border-radius:50%;background:var(--f);box-shadow:inset 0 -6px 0 rgba(0,0,0,.08),0 0 0 3px var(--r),0 0 0 4px #e6dbef;display:grid;place-items:center}
+.bd-preset-cake i{width:18px;height:4px;border-radius:3px;background:var(--l);box-shadow:0 6px 0 var(--l)}
+.bd-swatch-group{font-size:.72rem;font-weight:700;color:var(--bd-muted);margin:10px 0 6px;letter-spacing:.03em}
+.bd-swatch-group:first-child{margin-top:0}
+.bd-swatch-name b{color:var(--bd-plum)}
+.bd-warning{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff7e3;color:#6c4a09;border-radius:12px;padding:8px 12px;font-size:.84rem;margin-bottom:12px}
+.bd-warning .ui-icon{width:18px;height:18px;flex:none}
+.bd-warning span{flex:1;min-width:160px}
+.bd-cams button{padding:7px 12px}
+.bd-price{border:0;background:none;text-align:left;padding:4px 6px;margin:-4px -6px;border-radius:10px;cursor:pointer;font:inherit;color:inherit}
+.bd-price:hover{background:var(--bd-soft)}
+.bd-price span::after{content:" · details";color:var(--bd-purple);font-weight:600}
+.bd-foot{position:relative}
+.bd-breakdown{position:absolute;left:12px;bottom:calc(100% + 8px);width:min(340px,calc(100% - 24px));background:#fff;border:1px solid var(--bd-line);border-radius:16px;box-shadow:0 18px 40px rgba(60,30,80,.18);padding:14px 16px;z-index:30}
+.bd-breakdown-title{font:700 .78rem 'DM Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--bd-plum);margin:0 0 8px}
+.bd-breakdown ul{list-style:none;margin:0 0 8px;padding:0}
+.bd-breakdown li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:.88rem;border-bottom:1px dashed var(--bd-line)}
+.bd-breakdown li.is-total{border-bottom:0;font-weight:700;color:var(--bd-plum);padding-top:8px}
+.bd-breakdown .bd-note{margin:0}
+@media (max-width:900px){.bd-breakdown{position:fixed;left:10px;right:10px;width:auto;bottom:calc(76px + env(safe-area-inset-bottom))}.bd-cams button{padding:7px 10px}}
+@media (prefers-reduced-motion:reduce){.bd-price span::after{content:" · details"}}
 /* Keep the site's chat bubble clear of the designer's price bar and Add to cart button. */
 body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="bento"] .lcw-tray{bottom:92px!important}
-.bd-topview[hidden],.bd-skeleton[hidden],.bd-stage-msg[hidden],.bd-foot [hidden],.bd-tool[hidden]{display:none!important}
+.bd-cams[hidden],.bd-breakdown[hidden],.bd-topview[hidden],.bd-skeleton[hidden],.bd-stage-msg[hidden],.bd-foot [hidden],.bd-tool[hidden]{display:none!important}
 .bd-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .cart-item-edit{border:0;background:none;color:#7d52a8;font:700 .78rem 'DM Sans',sans-serif;padding:4px 0;cursor:pointer;text-decoration:underline}
 .pd-design{display:flex;align-items:center;gap:10px;width:100%;margin:14px 0 4px;border:1.5px dashed #c8b2dc;background:#faf5fe;border-radius:14px;padding:12px 14px;text-align:left;cursor:pointer;font:inherit;color:#4f3163;min-height:56px}

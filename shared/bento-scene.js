@@ -120,24 +120,38 @@ function messageTextures(message, colorHex, style) {
     if (lines.length <= 4 && Math.hypot(widest / 2, blockH / 2) < size * 0.485) break;
   }
   const lh = fontSize * 1.08, top = size / 2 - (lines.length - 1) * lh / 2;
-  const base = new THREE.Color(colorHex), dark = shade(colorHex, -0.25).getStyle(), light = shade(colorHex, 0.3).getStyle();
+  const base = new THREE.Color(colorHex), dark = shade(colorHex, -0.2).getStyle(), light = shade(colorHex, 0.12).getStyle();
   const drawText = (ctx, fill, stroke = 0) => {
     ctx.font = `800 ${fontSize}px ${family}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     lines.forEach((l, i) => { const y = top + i * lh; if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = fill; ctx.strokeText(l, size / 2, y); } ctx.fillStyle = fill; ctx.fillText(l, size / 2, y); });
+  };
+  // Colours each line with a gentle top-to-bottom shade and a thin highlight on the upper edge only,
+  // so dark colours (black, navy, burgundy) stay dark.
+  const shadeLines = (width, spec) => {
+    g.save(); g.globalCompositeOperation = 'source-atop';
+    lines.forEach((l, i) => {
+      const y = top + i * lh, grad = g.createLinearGradient(0, y - fontSize * 0.55, 0, y + fontSize * 0.55);
+      grad.addColorStop(0, light); grad.addColorStop(0.45, base.getStyle()); grad.addColorStop(1, dark);
+      g.fillStyle = grad; g.fillRect(0, y - fontSize, size, fontSize * 2);
+    });
+    g.globalAlpha = spec; g.font = `800 ${fontSize}px ${family}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    g.lineWidth = width; g.strokeStyle = '#ffffff';
+    lines.forEach((l, i) => g.strokeText(l, size / 2 - fontSize * 0.015, top + i * lh - fontSize * 0.03));
+    g.restore();
   };
   if (style === 'pearl_letters') {
     // Smooth, rounded candy letters with a soft pearly highlight (the shimmer itself comes from the material).
     g.save(); g.filter = `blur(${Math.round(fontSize * 0.025)}px)`; g.globalAlpha = 0.3; g.translate(5, 8); drawText(g, 'rgba(40,20,50,1)', fontSize * 0.2); g.restore();
     drawText(g, dark, fontSize * 0.2);
     drawText(g, base.getStyle(), fontSize * 0.15);
-    g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.7; g.translate(-fontSize * 0.03, -fontSize * 0.045); drawText(g, '#ffffff', fontSize * 0.02); g.restore();
+    shadeLines(fontSize * 0.018, 0.38);
     hg.save(); hg.filter = `blur(${Math.round(fontSize * 0.075)}px)`; drawText(hg, '#fff', fontSize * 0.2); hg.restore();
   } else {
     // Piped icing: a thick rounded line with a darker rim and a soft highlight, plus a blurred height map.
     g.save(); g.filter = `blur(${Math.round(fontSize * 0.02)}px)`; g.globalAlpha = 0.35; g.translate(4, 6); drawText(g, 'rgba(40,20,50,1)', fontSize * 0.16); g.restore();
     drawText(g, dark, fontSize * 0.17);
     drawText(g, base.getStyle(), fontSize * 0.12);
-    g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.45; g.translate(-fontSize * 0.02, -fontSize * 0.03); drawText(g, light, fontSize * 0.03); g.restore();
+    shadeLines(fontSize * 0.014, 0.25);
     hg.save(); hg.filter = `blur(${Math.round(fontSize * 0.05)}px)`; drawText(hg, '#fff', fontSize * 0.15); hg.restore();
   }
   const map = new THREE.CanvasTexture(color); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
@@ -217,13 +231,45 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   // --- camera orbit (drag / one-finger rotate, wheel / pinch zoom, arrow keys) ----------------------
   const view = { yaw: 0.55, pitch: 0.62, dist: 6.2 };
   const DEFAULT = { ...view };
+  const VIEWS = { default: DEFAULT, front: { yaw: 0, pitch: 0.3, dist: 5.8 }, top: { yaw: 0, pitch: 1.3, dist: 5.2 }, side: { yaw: Math.PI / 2, pitch: 0.42, dist: 6 } };
+  // Small animation system: runs only while something is moving, then the scene goes back to render-on-demand.
+  const anims = new Set(); let spin = false, spinTimer = 0, lastTick = 0, spinAllowed = !reducedMotion;
+  function animate(fn, ms) {
+    if (reducedMotion || ms <= 0) { fn(1); request(); return; }
+    const start = performance.now(); anims.add({ fn, start, ms }); loop();
+  }
+  function loop() {
+    if (loop.running) return; loop.running = true; lastTick = performance.now();
+    const step = (now) => {
+      if (!alive) { loop.running = false; return; }
+      for (const a of [...anims]) { const t = Math.min(1, (now - a.start) / a.ms); a.fn(t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2); if (t >= 1) anims.delete(a); }
+      if (spin) { view.yaw += (now - lastTick) * 0.00018; placeCamera(false); }
+      lastTick = now;
+      renderer.render(scene, camera);
+      if (anims.size || spin) requestAnimationFrame(step); else loop.running = false;
+    };
+    requestAnimationFrame(step);
+  }
+  // Gentle turntable after a few seconds without interaction (never with reduced motion).
+  function idle() {
+    clearTimeout(spinTimer); spin = false;
+    if (spinAllowed && alive) spinTimer = setTimeout(() => { if (alive && !document.hidden) { spin = true; loop(); } }, 6000);
+  }
+  function setView(name) {
+    const to = VIEWS[name] || DEFAULT, from = { ...view };
+    let dy = ((to.yaw - from.yaw) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;   // shortest turn
+    idle();
+    animate((k) => { view.yaw = from.yaw + dy * k; view.pitch = from.pitch + (to.pitch - from.pitch) * k; view.dist = from.dist + (to.dist - from.dist) * k; placeCamera(false); }, 650);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { spin = false; clearTimeout(spinTimer); } else idle(); });
   const pointers = new Map(); let pinchStart = null;
-  function placeCamera() {
+  function placeCamera(render = true) {
     view.pitch = Math.min(1.35, Math.max(0.18, view.pitch)); view.dist = Math.min(9, Math.max(3.4, view.dist));
     camera.position.set(Math.sin(view.yaw) * Math.cos(view.pitch) * view.dist, 0.55 + Math.sin(view.pitch) * view.dist, Math.cos(view.yaw) * Math.cos(view.pitch) * view.dist);
-    camera.lookAt(0, 0.55, 0); request();
+    camera.lookAt(0, 0.55, 0); if (render) request();
   }
   const el = renderer.domElement;
+  for (const type of ['pointerdown', 'wheel', 'keydown']) el.addEventListener(type, () => { anims.clear(); idle(); }, { passive: true });
   el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: view.dist }; } });
   el.addEventListener('pointermove', (e) => {
     const p = pointers.get(e.pointerId); if (!p) return;
@@ -306,13 +352,23 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     decor.add(copy); return copy;
   };
 
+  // Frosting colour changes fade over ~0.3 s instead of jumping.
+  const fadeTargets = new Map();   // material -> target colour
+  function fadeColor(material, hex) {
+    const to = new THREE.Color(hex);
+    if (!material.userData.faded) { material.color.copy(to); material.userData.faded = true; return; }   // first paint: no fade
+    if (material.color.equals(to)) return;
+    const from = material.color.clone(); fadeTargets.set(material, to);
+    animate((k) => { if (fadeTargets.get(material) === to) material.color.copy(from).lerp(to, k); }, 320);
+  }
+
   // --- decorations from the design state ---------------------------------------------------------
   function update(design, palette) {
     lastDesign = design; lastPalette = palette;
     const dmat = (color, rough = 0.62, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
     const hexOf = (code, fallback = '#ffffff') => palette[code] || fallback;
     const frost = hexOf(design.frosting_color);
-    cakeMat.color.set(frost);
+    fadeColor(cakeMat, frost);
     clearDecor();
     if (model) return updateModel(design, palette, hexOf, frost);
     const rand = seeded(97);
@@ -397,10 +453,12 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     const tex = design.message ? messageTextures(design.message, hexOf(design.lettering_color, '#4f3163'), design.lettering) : null;
     if (tex) {
       const pearls = design.lettering === 'pearl_letters';
+      // Pearly shimmer only on light letters; dark candy letters keep their true colour.
+      const hsl = {}; new THREE.Color(hexOf(design.lettering_color, '#4f3163')).getHSL(hsl); const shimmer = pearls && hsl.l > 0.55;
       const plane = new THREE.Mesh(new THREE.CircleGeometry(TEXT_R, 64), new THREE.MeshPhysicalMaterial({
-        map: tex.map, normalMap: tex.normalMap, normalScale: new THREE.Vector2(1.4, 1.4), transparent: true, depthWrite: false,
-        roughness: pearls ? 0.25 : 0.55, clearcoat: pearls ? 1 : 0, clearcoatRoughness: 0.12, sheen: pearls ? 0 : 0.3, sheenRoughness: 0.75, sheenColor: 0x3a3a3a,
-        iridescence: pearls ? 0.55 : 0, iridescenceIOR: 1.35, iridescenceThicknessRange: [180, 420], envMapIntensity: pearls ? 0.85 : 0.28 }));
+        map: tex.map, normalMap: tex.normalMap, normalScale: new THREE.Vector2(pearls ? 0.9 : 1.2, pearls ? 0.9 : 1.2), transparent: true, depthWrite: false,
+        roughness: pearls ? 0.45 : 0.6, clearcoat: shimmer ? 0.5 : pearls ? 0.15 : 0, clearcoatRoughness: 0.25, sheen: pearls ? 0 : 0.3, sheenRoughness: 0.75, sheenColor: 0x3a3a3a,
+        iridescence: shimmer ? 0.45 : 0, iridescenceIOR: 1.3, iridescenceThicknessRange: [180, 420], envMapIntensity: shimmer ? 0.5 : 0.2 }));
       plane.rotation.x = -Math.PI / 2; plane.position.y = H + 0.004; decor.add(plane);
     }
 
@@ -419,7 +477,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   function updateModel(design, palette, hexOf, frost) {
     const P = model.parts, rand = seeded(97);
     const accents = new Set(design.accents || []), borders = new Set(design.border || []);
-    const recolor = (o, hex) => o && forEachMesh(o, (m) => { m.material.color.set(hex); if (m.material.sheenColor && m.material.sheen > 0.8) m.material.sheenColor.copy(shade(hex, 0.28)); });
+    const recolor = (o, hex) => o && forEachMesh(o, (m) => { fadeColor(m.material, hex); if (m.material.sheenColor && m.material.sheen > 0.8) m.material.sheenColor.copy(shade(hex, 0.28)); });
     recolor(P.cake, frost); recolor(P.top_frosting, frost);
     if (P.border_top_shell) { P.border_top_shell.visible = borders.has('shell_top'); recolor(P.border_top_shell, shade(frost, 0.03)); }
     if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(frost, 0.03)); }
@@ -452,10 +510,10 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     request();
   }
 
-  function resetView() { Object.assign(view, DEFAULT); placeCamera(); }
+  function resetView() { setView('default'); }
   // Small image of the current design for the cart line (supplementary to the stored choices).
   function snapshot(size = 240) {
-    const saved = { ...view }; Object.assign(view, { yaw: 0.35, pitch: 0.75, dist: 5.4 }); placeCamera();
+    const saved = { ...view }; Object.assign(view, { yaw: 0.35, pitch: 0.75, dist: 5.4 }); placeCamera(false);
     renderer.render(scene, camera);
     const out = document.createElement('canvas'); out.width = out.height = size; const g = out.getContext('2d');
     const src = renderer.domElement, s = Math.min(src.width, src.height);
@@ -465,9 +523,10 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     return out.toDataURL('image/jpeg', 0.78);
   }
   function dispose() {
-    alive = false; cancelAnimationFrame(frame); ro.disconnect(); clearDecor();
+    alive = false; clearTimeout(spinTimer); anims.clear(); spin = false; cancelAnimationFrame(frame); ro.disconnect(); clearDecor();
     if (model) forEachMesh(model.root, (m) => { m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => { x.map?.dispose(); x.dispose(); }); });
     envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
   }
-  return { update, resetView, snapshot, dispose, canvas: renderer.domElement };
+  idle();
+  return { update, resetView, setView, setAutoRotate: (on) => { spinAllowed = on && !reducedMotion; idle(); }, snapshot, dispose, canvas: renderer.domElement };
 }
