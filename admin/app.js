@@ -12,13 +12,15 @@ import { icon } from './components.js?v=3';
 
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
-  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['orders', 'Orders'], ['bookings', 'Bookings']]],
+  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['orders', 'Orders'], ['bookings', 'Bookings'],
+    // Posts are written on the storefront's "Fresh from LexC's" page (owner composer), not inside Admin.
+    ['fresh-posts', 'Fresh posts ↗', '../index.html?fresh=1', 'gallery']]],
   ['Analytics', [['reports', 'Reports'], ['gallery', 'Gallery']]],
   ['Account', [['profile', 'Profile']]],
 ];
 const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', orders: 'Orders', bookings: 'Booking Schedule', reports: 'Reports', gallery: 'Gallery', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
-navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label]) => `<a class="nav-item" href="#${key}" data-page="${key}">${icon(key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
+navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
 let toastTimer;
 document.querySelector('.logout').addEventListener('click', () => window.LexcAdminAuth.logout());
