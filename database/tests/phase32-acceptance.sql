@@ -14,7 +14,7 @@ insert into t values
   ('bento', (select id::text from public.products where slug = 'product-8')),
   ('plain', (select v.id::text from public.product_variants v join public.products p on p.id = v.product_id where p.slug = 'product-8' and v.label = 'Minimalist')),
   ('choco', (select v.id::text from public.product_variants v join public.products p on p.id = v.product_id where p.slug = 'product-8' and v.label = 'Chocolate')),
-  ('other', (select v.id::text from public.product_variants v join public.products p on p.id = v.product_id where p.slug = 'product-6' limit 1));
+  ('other', (select v.id::text from public.product_variants v join public.products p on p.id = v.product_id where p.slug = 'product-20' limit 1));
 insert into public.availability_slots (starts_at, ends_at, capacity, is_open)
   values (date_trunc('day', now()) + interval '400 days 3 hours 17 minutes', date_trunc('day', now()) + interval '400 days 4 hours 17 minutes', 20, true);
 insert into t values ('slot', (select id::text from public.availability_slots where starts_at = date_trunc('day', now()) + interval '400 days 3 hours 17 minutes'));
@@ -44,7 +44,7 @@ select pg_temp.check(pg_temp.fails($$select public.quote_bento_design((select v:
 select pg_temp.check(pg_temp.fails($$select public.quote_bento_design((select v::uuid from t where k='bento'), '{"designer":"bento","frosting_color":"white","topper":"number","topper_text":"abc"}')$$) like '22023%digits%', 'number topper needs digits');
 select pg_temp.check(pg_temp.fails($$select public.quote_bento_design((select v::uuid from t where k='bento'), '{"designer":"bento","frosting_color":"white","accents":["unicorn"]}')$$) like '22023%', 'imaginary decoration rejected');
 select pg_temp.check(pg_temp.fails($$select public.quote_bento_design((select id from public.products where slug='product-6'), '{"designer":"bento","frosting_color":"white"}')$$) like '22023%', 'non-bento product cannot be designed');
-select pg_temp.check((select count(*) from public.design_options where group_key <> 'font') = 41, 'customers can read the 41 options (fonts added in phase 35 are counted there)');
+select pg_temp.check((select count(*) from public.design_options where group_key <> 'font' and product_id = (select v::uuid from t where k='bento')) = 41, 'customers can read the 41 bento options (fonts: phase 35, cupcakes: phase 36)');
 select pg_temp.check(pg_temp.fails($$update public.design_options set price = 0$$) is not null or (select sum(price) from public.design_options) > 0, 'customers cannot change prices');
 reset role;
 

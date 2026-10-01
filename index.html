@@ -689,6 +689,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <link rel="stylesheet" href="shared/fresh-feed.css?v=1">
 <link rel="stylesheet" href="shared/landing.css?v=6">
 <link rel="stylesheet" href="shared/bento-designer.css?v=14">
+<link rel="stylesheet" href="shared/cupcake-designer.css?v=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@700&family=Pacifico&family=Lobster&family=Satisfy&family=Parisienne&family=Montserrat:wght@800&family=Poppins:wght@700&family=Fredoka:wght@600&family=Baloo+2:wght@800&family=Caveat:wght@700&family=Cinzel:wght@700&family=Grenze+Gotisch:wght@700&family=UnifrakturMaguntia&display=swap">
 </head>
@@ -701,7 +702,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
   <ul class="nav-links">
     <li><a href="#" onclick="event.preventDefault();navigate('home')" data-page="home">Home</a></li>
     <li><a href="#" onclick="event.preventDefault();navigate('shop')" data-page="shop">Menu</a></li>
-    <li><a href="#" onclick="event.preventDefault();window.LexcBento ? LexcBento.open() : navigate('shop')" data-page="bento">Custom</a></li>
+    <li><a href="#" onclick="event.preventDefault();window.LexcCustom ? LexcCustom.choose() : navigate('shop')" data-page="bento">Custom</a></li>
     <li><a href="?fresh=1" onclick="event.preventDefault();navigate('fresh')" data-page="fresh">Updates</a></li>
     <li><a href="#about" onclick="event.preventDefault();navigate('home','about')" data-page="about">About</a></li>
   </ul>
@@ -724,7 +725,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
   <div class="customer-more-heading"><strong>Explore LexC’s</strong><button type="button" aria-label="Close menu" onclick="closeCustomerMoreMenu()">×</button></div>
   <button type="button" onclick="navigate('home')">Home</button>
   <button type="button" onclick="navigate('shop')">Shop</button>
-  <button type="button" onclick="window.LexcBento ? LexcBento.open() : navigate('shop')">Custom</button>
+  <button type="button" onclick="window.LexcCustom ? LexcCustom.choose() : navigate('shop')">Custom</button>
   <button type="button" onclick="navigate('fresh')">Fresh from LexC’s</button>
   <button type="button" onclick="navigate('packages')">Packages</button>
   <button type="button" onclick="navigate('gallery')">Gallery</button>
@@ -806,7 +807,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
       <h2 id="lp-about-title" class="lp-title">Baked just for you.</h2>
       <p>A homemade pastry bakeshop where every treat is baked from scratch in small batches, inspired by simple designs and comforting flavors. Each pastry is thoughtfully made with care, creativity, and a personal touch.</p>
       <p>From classic brownies to themed birthday cupcakes, everything we make is baked with a whole lot of love.</p>
-      <button type="button" class="lp-btn lp-btn--ghost" onclick="window.LexcBento ? LexcBento.open() : navigate('shop')">Design your own bento cake</button>
+      <button type="button" class="lp-btn lp-btn--ghost" onclick="window.LexcCustom ? LexcCustom.choose() : navigate('shop')">Design your own cake or cupcakes</button>
     </div>
     <img class="lp-about-img" src="assets/landing/about.webp" width="680" height="680" loading="lazy" decoding="async" alt="A LexC’s cupcake bouquet with purple and lavender buttercream flowers">
   </section>
@@ -857,7 +858,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
     <div class="lp-footer-nav" role="navigation" aria-label="Footer">
       <a href="#" onclick="event.preventDefault();navigate('home')">Home</a>
       <a href="#" onclick="event.preventDefault();navigate('shop')">Menu</a>
-      <a href="#" onclick="event.preventDefault();window.LexcBento ? LexcBento.open() : navigate('shop')">Custom</a>
+      <a href="#" onclick="event.preventDefault();window.LexcCustom ? LexcCustom.choose() : navigate('shop')">Custom</a>
       <a href="?fresh=1" onclick="event.preventDefault();navigate('fresh')">Updates</a>
       <a href="#" onclick="event.preventDefault();navigate('packages')">Packages</a>
       <a href="#about" onclick="event.preventDefault();navigate('home','about')">About</a>
@@ -1387,6 +1388,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 </div>
 
 <div id="page-bento" class="page bd-page"></div>
+<div id="page-cupcake" class="page bd-page cd-page"></div>
 
 <div class="lightbox" id="lightbox">
   <div class="lightbox-content">
@@ -1977,7 +1979,7 @@ function renderCart() {
       <div class="cart-item-info">
         <div class="cart-item-name">${authEscape(c.name)}</div>
         <div class="cart-item-sub">${authEscape(c.sizeLabel)}</div>
-        ${c.customization?.designer === 'bento' ? `<button type="button" class="cart-item-edit" onclick="LexcBento.edit(${i})">Edit design</button>` : ''}
+        ${c.customization?.designer === 'bento' ? `<button type="button" class="cart-item-edit" onclick="LexcBento.edit(${i})">Edit design</button>` : c.customization?.designer === 'cupcake' ? `<button type="button" class="cart-item-edit" onclick="LexcCupcake.edit(${i})">Edit design</button>` : ''}
         <div class="cart-qty-ctrl">
           <button class="qty-btn" type="button" aria-label="Decrease ${authEscape(c.name)} quantity" onclick="changeQty(${i},-1)">−</button>
           <span class="qty-num">${c.qty}</span>
@@ -2401,13 +2403,14 @@ document.getElementById('loginName').value = localStorage.getItem('lexc_login_hi
 document.getElementById('loginRemember').checked = Boolean(localStorage.getItem('lexc_login_hint'));
 </script>
 
-<script src="shared/customer-backend.js?v=17"></script>
-<script src="shared/product-detail.js?v=5"></script>
+<script src="shared/customer-backend.js?v=18"></script>
+<script src="shared/product-detail.js?v=6"></script>
 <script src="shared/fresh-feed.js?v=4"></script>
 <script src="shared/landing.js?v=2"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/bento-designer.js?v=21"></script>
+<script src="shared/cupcake-designer.js?v=1"></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=9';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=10';mountChatWidget();</script>
 </body>
 </html>

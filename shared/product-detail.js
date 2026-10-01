@@ -175,7 +175,7 @@
       const tab = t.closest('[data-tab]'); if (tab) return setTab(tab.dataset.tab);
       if (t.closest('[data-see-all]')) { dialog.querySelector('.pd-reviews')?.classList.add('is-expanded'); t.closest('[data-see-all]').remove(); }
       if (t.closest('[data-chat]')) { closeDetail(); document.querySelector('#customer-chat-toggle')?.click(); }
-      if (t.closest('[data-design]')) { closeDetail(); setTimeout(() => window.LexcBento?.open(), 200); }
+      if (t.closest('[data-design]')) { const kind = t.closest('[data-design]').dataset.design, id = t.closest('[data-design]').dataset.productId; closeDetail(); setTimeout(() => (kind === 'cupcake' ? window.LexcCupcake?.open({ productId: id }) : window.LexcBento?.open()), 200); }
     });
     dialog.addEventListener('keydown', (event) => {
       if (event.target.closest('[role=tablist]') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
@@ -278,7 +278,8 @@
           <li>${icon('chef')}<span>Baked from Scratch</span></li>
           <li>${icon('truck')}<span>Pickup or Delivery</span></li>
         </ul>
-        ${window.LexcBento?.isDesignable(p.product_id) ? '<button type="button" class="pd-design" data-design><span aria-hidden="true" style="font-size:1.5rem">🎨</span><span><strong>Design your own</strong><span>Pick colors, decorations and a message, with a live 3D preview.</span></span></button>' : ''}
+        ${window.LexcCupcake?.isDesignable(p.product_id) ? `<button type="button" class="pd-design" data-design="cupcake" data-product-id="${p.product_id}"><span aria-hidden="true" style="font-size:1.5rem">🧁</span><span><strong>Design your own</strong><span>Pick piping styles, colors and toppers, with a live box preview.</span></span></button>` : ''}
+        ${window.LexcBento?.isDesignable(p.product_id) ? '<button type="button" class="pd-design" data-design="bento"><span aria-hidden="true" style="font-size:1.5rem">🎨</span><span><strong>Design your own</strong><span>Pick colors, decorations and a message, with a live 3D preview.</span></span></button>' : ''}
       </section>
       <div class="pd-buy">
         <div class="pd-qty" role="group" aria-label="Quantity">

@@ -4,7 +4,17 @@ import {renderOrderPayments} from './payments.js?v=3';
 import {orderInventorySection,mountOrderInventory,showShortageFromError} from './order-inventory.js?v=2';
 
 // Bento designs (phase 32) are shown as a readable bake sheet; older custom items keep the raw details.
+function cupcakeDetails(c){
+ const part=p=>p?(p.style_label||p.style)+' — '+(p.color_labels||p.colors||[]).join(', '):'';
+ const rows=[['Size',c.size==='regular'?'3oz cupcakes':'Mini cupcakes'],['Flavor',c.flavor_label||c.flavor],['Arrangement',c.pattern_label||c.pattern],
+  [c.pattern==='alternate'?'Design A':c.pattern==='assorted'?'Palette':'Design',part(c.a)]];
+ if(c.b)rows.push(['Design B',part(c.b)]);
+ rows.push(['Finishing',(c.finishes||[]).map(f=>String(f).replace(/_/g,' ')).join(', ')||'None'],['Theme',c.theme&&c.theme!=='none'?(c.theme_label||c.theme)+(c.theme_note?': '+c.theme_note:''):'None'],['Design extras',money(c.extras_per_item||0)+' per box']);
+ return '<div style="margin:8px 0 4px;padding:10px 12px;border:1px solid #e5ddec;border-radius:10px;background:#fcf9fe"><strong>Cupcake design</strong><dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0">'
+  +rows.map(([k,v])=>'<dt style="color:#705c7c">'+e(k)+'</dt><dd style="margin:0">'+e(v)+'</dd>').join('')+'</dl></div>';
+}
 function designDetails(c){
+ if(c.designer==='cupcake')return cupcakeDetails(c);
  if(c.designer!=='bento')return '<pre style="white-space:pre-wrap">'+e(JSON.stringify(c,null,2))+'</pre>';
  const name=code=>String(code||'').replace(/_/g,' ');
  const rows=[['Frosting',c.frosting_color_label||name(c.frosting_color)],['Border',(c.border||[]).map(name).join(', ')||'None'],
@@ -59,7 +69,7 @@ export async function renderOrders(content){
    const next={pending:['confirmed','cancelled'],confirmed:['preparing','cancelled'],preparing:['ready','cancelled'],ready:['completed','cancelled']}[o.status]||[];
    const canQuote=o.fulfillment_method==='lalamove'&&o.status!=='cancelled'&&Number(o.amount_paid||0)===0&&o.payment_status!=='verification_pending';
    const quoteForm=canQuote?'<form id="delivery-quote"><label class="form-field">Delivery fee (₱)<input name="fee" type="number" min="0" max="99999" step="0.01" required value="'+e(o.delivery_fee??'')+'"></label><button class="button" type="submit">'+(o.delivery_fee_status==='quoted'?'Update delivery quote':'Set delivery quote')+'</button></form>':'';
-   const dialog=showDetails('Order #'+o.order_number,'<div class="order-detail-status">'+statusIndicator(o.status,orderTone(o.status),'Order')+statusIndicator(o.payment_status,payTone(o.payment_status),'Payment')+statusIndicator(o.fulfillment_method==='lalamove'?'Delivery':'Pickup','info','Fulfillment')+'</div><p>'+e(o.customer_name)+' · '+e(o.contact_phone)+'</p><p>'+e(o.address)+'</p><p>'+e(o.notes)+'</p><p><strong>Total:</strong> '+(o.total_amount===null?'Pending quote':money(o.total_amount))+' · <strong>Required:</strong> '+(o.deposit_due===null?'Pending quote':money(o.deposit_due))+' · <strong>Verified paid:</strong> '+money(o.amount_paid)+'</p>'+quoteForm+'<ul>'+o.order_items.map(i=>'<li>'+e(i.name_snapshot)+' · '+e(i.variant_label_snapshot)+' × '+i.quantity+' · '+money(i.line_total)+(i.customization?designDetails(i.customization):'')+(i.reference_image_path?'<button class="button" data-reference="'+e(i.reference_image_path)+'">'+(i.customization?.designer==='bento'?'View design picture':'View private reference')+'</button>':'')+'</li>').join('')+'</ul>'+orderInventorySection()+'<div class="order-status-actions">'+next.map(s=>'<button class="button'+(s==='confirmed'?' button--primary':'')+'" data-status="'+s+'">'+(s==='confirmed'?'Confirm order':s==='cancelled'?'Cancel order':'Mark '+s)+'</button>').join('')+'</div><p role="alert"></p>',b);
+   const dialog=showDetails('Order #'+o.order_number,'<div class="order-detail-status">'+statusIndicator(o.status,orderTone(o.status),'Order')+statusIndicator(o.payment_status,payTone(o.payment_status),'Payment')+statusIndicator(o.fulfillment_method==='lalamove'?'Delivery':'Pickup','info','Fulfillment')+'</div><p>'+e(o.customer_name)+' · '+e(o.contact_phone)+'</p><p>'+e(o.address)+'</p><p>'+e(o.notes)+'</p><p><strong>Total:</strong> '+(o.total_amount===null?'Pending quote':money(o.total_amount))+' · <strong>Required:</strong> '+(o.deposit_due===null?'Pending quote':money(o.deposit_due))+' · <strong>Verified paid:</strong> '+money(o.amount_paid)+'</p>'+quoteForm+'<ul>'+o.order_items.map(i=>'<li>'+e(i.name_snapshot)+' · '+e(i.variant_label_snapshot)+' × '+i.quantity+' · '+money(i.line_total)+(i.customization?designDetails(i.customization):'')+(i.reference_image_path?'<button class="button" data-reference="'+e(i.reference_image_path)+'">'+(['bento','cupcake'].includes(i.customization?.designer)?'View design picture':'View private reference')+'</button>':'')+'</li>').join('')+'</ul>'+orderInventorySection()+'<div class="order-status-actions">'+next.map(s=>'<button class="button'+(s==='confirmed'?' button--primary':'')+'" data-status="'+s+'">'+(s==='confirmed'?'Confirm order':s==='cancelled'?'Cancel order':'Mark '+s)+'</button>').join('')+'</div><p role="alert"></p>',b);
    mountOrderInventory(dialog,o,{onChanged:()=>{}});
    const quote=dialog.querySelector('#delivery-quote');
    if(quote)quote.onsubmit=async event=>{

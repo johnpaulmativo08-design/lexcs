@@ -33,17 +33,21 @@ export async function ensureCustomerChat({userId,orderId=null}){
 // the summary and price, and an "Open in 3D" link that rebuilds the exact design in the designer.
 const DESIGN_KEYS=['frosting_color','border','accents','bow_color','message','lettering','lettering_color','topper','topper_text','layout','drip_color','font'];
 const siteIndex=new URL('../index.html',import.meta.url).href;
+const CUPCAKE_KEYS=['flavor','pattern','finishes','theme','theme_note'];
+const partOf=p=>p&&{style:p.style,colors:p.colors};
 function designLink(line){
-  const d={};for(const key of DESIGN_KEYS)if(line.design?.[key]!=null)d[key]=line.design[key];
+  const cupcake=line.design?.designer==='cupcake',d={};
+  for(const key of cupcake?CUPCAKE_KEYS:DESIGN_KEYS)if(line.design?.[key]!=null)d[key]=line.design[key];
+  if(cupcake){d.a=partOf(line.design.a);if(line.design.b)d.b=partOf(line.design.b);}
   const bytes=new TextEncoder().encode(JSON.stringify({v:line.variant_id,d}));
   const code=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  return siteIndex+'?design='+code;
+  return siteIndex+(cupcake?'?cupcake=':'?design=')+code;
 }
 export function designCardHTML(m){
   if(m.message_type!=='design_card'||!Array.isArray(m.attachments))return '';
   const picture=(path,label)=>path?'<button type="button" class="design-card-pic" data-design-img="'+escapeHtml(path)+'" aria-label="Open '+label+' picture full size"><img alt="'+label+'" hidden><span class="skel" aria-hidden="true"></span><small>'+label+'</small></button>':'';
-  return '<div class="design-card">'+m.attachments.map(line=>'<section class="design-card-line"><div class="design-card-pics">'+picture(line.angle_path,'Angled view')+picture(line.top_path,'Top view')+'</div>'+
-    '<strong>'+escapeHtml(line.name)+(Number(line.qty)>1?' × '+Number(line.qty):'')+'</strong><p>'+escapeHtml(line.summary||'')+'</p><div class="design-card-foot"><b>'+money(line.unit_price)+' per cake</b><a href="'+escapeHtml(designLink(line))+'" target="_blank" rel="noopener">Open in 3D ↗</a></div></section>').join('')+'</div>';
+  return '<div class="design-card">'+m.attachments.map(line=>'<section class="design-card-line"><div class="design-card-pics">'+picture(line.angle_path,line.design?.designer==='cupcake'?'Box picture':'Angled view')+picture(line.top_path,'Top view')+'</div>'+
+    '<strong>'+escapeHtml(line.name)+(Number(line.qty)>1?' × '+Number(line.qty):'')+'</strong><p>'+escapeHtml(line.summary||'')+'</p><div class="design-card-foot"><b>'+money(line.unit_price)+(line.design?.designer==='cupcake'?' per box':' per cake')+'</b><a href="'+escapeHtml(designLink(line))+'" target="_blank" rel="noopener">'+(line.design?.designer==='cupcake'?'Open design ↗':'Open in 3D ↗')+'</a></div></section>').join('')+'</div>';
 }
 const signedPictures=new Map();
 export function hydrateDesignImages(root){
