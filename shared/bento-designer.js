@@ -5,7 +5,7 @@
   const STEPS = [['style', 'Style'], ['decorate', 'Decorate'], ['message', 'Message'], ['review', 'Review']];
   // Tapping a part of the 3D cake opens its option: [step, section legend, name shown on hover].
   const PICK = {
-    frosting: ['style', 'Frosting color', 'Frosting'], border: ['decorate', 'Border', 'Shell border'], drip: ['decorate', 'Decorations', 'Frosting drip'],
+    frosting: ['style', 'Frosting color', 'Frosting'], border: ['decorate', 'Border', 'Shell border'], drip: ['decorate', 'Drip color', 'Frosting drip'],
     pearls: ['decorate', 'Decorations', 'Pearls'], bows: ['decorate', 'Ribbon color', 'Ribbon bows'], flowers: ['decorate', 'Decorations', 'Piped flowers'],
     leaves: ['decorate', 'Decorations', 'Piped leaves'], sprinkles: ['decorate', 'Decorations', 'Sprinkles'], gold_leaf: ['decorate', 'Decorations', 'Gold leaf'],
     message: ['message', null, 'Message'], topper: ['decorate', 'Topper', 'Topper']
@@ -46,11 +46,12 @@
   let textTimer = 0, view3d = true, packed = false;
 
   const blank = () => ({ variant_id: product.product_variants.filter((v) => v.is_active)[0]?.id, frosting_color: 'white', border: [], accents: [], bow_color: 'pink',
-    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {} });
+    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {}, drip_color: '', font: 'rounded' });
   const design = () => ({ designer: 'bento', frosting_color: state.frosting_color, border: [...state.border], accents: [...state.accents],
     bow_color: state.accents.includes('ribbon_bows') ? state.bow_color : null, message: state.message.trim(),
     lettering: state.message.trim() ? state.lettering : null, lettering_color: state.message.trim() ? state.lettering_color : null,
-    topper: state.topper, topper_text: state.topper === 'number' ? state.topper_text : '', layout: JSON.parse(JSON.stringify(state.layout || {})) });
+    topper: state.topper, topper_text: state.topper === 'number' ? state.topper_text : '', layout: JSON.parse(JSON.stringify(state.layout || {})),
+    drip_color: state.accents.includes('drip') && state.drip_color ? state.drip_color : null, font: state.message.trim() ? state.font : null });
   const hasLayout = () => Object.keys(state.layout || {}).length > 0;
   const opt = (group, code) => options[group]?.find((o) => o.code === code);
   const variant = () => product.product_variants.find((v) => v.id === state.variant_id && v.is_active);
@@ -119,6 +120,8 @@
     if (!palette[state.lettering_color]) state.lettering_color = 'purple';
     if (!opt('topper', state.topper)) state.topper = 'none';
     if (!opt('lettering', state.lettering)) state.lettering = 'piped';
+    if (state.drip_color && !palette[state.drip_color]) state.drip_color = '';
+    if (!opt('font', state.font)) state.font = opt('font', 'rounded') ? 'rounded' : (options.font?.[0]?.code || 'rounded');
     state.topper_text = String(state.topper_text || '').replace(/\D/g, '').slice(0, 3);
     state.qty = Math.min(20, Math.max(1, Number(state.qty) || 1));
     if (!variant()) state.variant_id = product.product_variants.find((v) => v.is_active)?.id;
@@ -234,7 +237,10 @@
       bow_color: pick(readable(1.4).length ? readable(1.4) : allColors), message,
       lettering: message ? pick(codes('lettering').length ? codes('lettering') : ['piped']) : s.lettering,
       lettering_color: message ? pick(contrastPick) : s.lettering_color,
-      topper, topper_text: topper === 'number' ? String(1 + Math.floor(Math.random() * 60)) : ''
+      topper, topper_text: topper === 'number' ? String(1 + Math.floor(Math.random() * 60)) : '',
+      font: pick(codes('font').length ? codes('font') : ['rounded']),
+      drip_color: accents.includes('drip') && Math.random() < 0.5 ? pick(readable(1.3).length ? readable(1.3) : allColors) : '',
+      layout: {}
     }));
     scene?.spinOnce();
     if (button && !reducedMotion) { button.classList.remove('is-rolling'); void button.offsetWidth; button.classList.add('is-rolling'); }
@@ -277,7 +283,7 @@
       ${d.border.includes('shell_top') ? beads(160, 30, f) + `<circle cx="200" cy="200" r="160" fill="none" stroke="#00000018" stroke-width="16"/>` : ''}
       ${d.accents.includes('pearls_gold') || d.accents.includes('pearls_silver') ? beads(148, 26, d.accents.includes('pearls_gold') ? '#d4af37' : '#c9ccd3') : ''}
       ${d.accents.includes('ribbon_bows') ? [45, 135, 225, 315].map((deg) => { const a = deg * Math.PI / 180; return `<text x="${200 + Math.cos(a) * 175}" y="${206 + Math.sin(a) * 175}" font-size="30" text-anchor="middle" fill="${palette[d.bow_color]}">⋈</text>`; }).join('') : ''}
-      ${lines.map((l, i) => `<text x="200" y="${200 + (i - (lines.length - 1) / 2) * size * 1.15}" font-family="Nunito,DM Sans,sans-serif" font-weight="800" font-size="${size}" text-anchor="middle" dominant-baseline="middle" fill="${lc}">${esc(d.lettering === 'pearl_letters' ? l.toUpperCase() : l)}</text>`).join('')}
+      ${lines.map((l, i) => `<text x="200" y="${200 + (i - (lines.length - 1) / 2) * size * 1.15}" font-family="${esc((window.LexcBentoFonts?.[d.font] || {}).family || 'Nunito')},Nunito,sans-serif" font-weight="${(window.LexcBentoFonts?.[d.font] || {}).weight || 800}" font-size="${size}" text-anchor="middle" dominant-baseline="middle" fill="${lc}">${esc(d.lettering === 'pearl_letters' ? l.toUpperCase() : l)}</text>`).join('')}
     </svg>`;
   }
   function renderPreview() {
@@ -295,7 +301,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=20');
+        const mod = await import('./bento-scene.js?v=21');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -364,6 +370,12 @@
       `<p class="bd-swatch-group" aria-hidden="true">${name}</p><div class="bd-swatches">${list.map((c) => swatch(field, current, c)).join('')}</div>`).join('')}</div>
       <p class="bd-swatch-name" aria-hidden="true">Selected: <b>${esc(opt('color', current)?.label || '')}</b></p>`;
   }
+  function fontPicker() {
+    const sample = (state.message.trim().split('\n')[0] || 'Happy Birthday').slice(0, 18), fonts = window.LexcBentoFonts || {};
+    return `<div class="bd-fonts" role="radiogroup" aria-label="Font">${(options.font || []).map((o) => { const f = fonts[o.code] || {};
+      return `<button type="button" role="radio" class="bd-font" data-bd-set="font" data-value="${esc(o.code)}" aria-checked="${o.code === state.font}">
+        <span class="bd-font-sample" style="font-family:'${esc(f.family || 'Nunito')}',sans-serif;font-weight:${f.weight || 700}">${esc(sample)}</span><small>${esc(o.label)}</small></button>`; }).join('')}</div>`;
+  }
   function contrastWarning() {
     const s = state; if (!s.message.trim()) return '';
     const bg = palette[s.frosting_color], fg = palette[s.lettering_color]; if (!bg || !fg) return '';
@@ -395,6 +407,9 @@
         <p class="bd-note">Pick gold or silver pearls, not both.</p>
         <div class="bd-chips">${(options.accent || []).map((o) => { const on = s.accents.includes(o.code); return `<button type="button" class="bd-chip" data-bd-toggle="accents" data-value="${o.code}" aria-pressed="${on}" ${!on && count >= max ? 'disabled' : ''}>${esc(o.label)} ${priceTag(o)}</button>`; }).join('')}</div></fieldset>
       ${s.accents.includes('ribbon_bows') ? `<fieldset class="bd-group"><legend>Ribbon color</legend>${swatches('bow_color', s.bow_color, 'Ribbon color')}</fieldset>` : ''}
+      ${s.accents.includes('drip') ? `<fieldset class="bd-group"><legend>Drip color <small>Free</small></legend>
+        <div class="bd-chips" style="margin-bottom:10px"><button type="button" class="bd-chip" role="radio" data-bd-set="drip_color" data-value="" aria-checked="${!s.drip_color}">Matching (darker ${esc(opt('color', s.frosting_color)?.label.toLowerCase() || 'frosting')})</button></div>
+        ${swatches('drip_color', s.drip_color, 'Drip color')}</fieldset>` : ''}
       <fieldset class="bd-group"><legend>Topper</legend>
         <div class="bd-chips" role="radiogroup" aria-label="Topper">${(options.topper || []).map((o) => `<button type="button" role="radio" class="bd-chip" data-bd-set="topper" data-value="${o.code}" aria-checked="${s.topper === o.code}">${esc(o.label)} ${o.code === 'none' ? '' : priceTag(o)}</button>`).join('')}</div>
         ${s.topper === 'number' ? `<label class="bd-label" for="bd-topper-text" style="margin-top:12px">Number on the topper <small>1–3 digits</small></label><input id="bd-topper-text" class="bd-input" inputmode="numeric" maxlength="3" autocomplete="off" data-bd-text="topper_text" value="${esc(s.topper_text)}">` : ''}
@@ -410,6 +425,7 @@
       <div class="bd-chips" style="margin-bottom:18px" aria-label="Message suggestions">${SUGGESTIONS.map((t) => `<button type="button" class="bd-chip" data-bd-suggest="${esc(t)}">${esc(t)}</button>`).join('')}</div>
       <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering <small>${s.message.trim() ? '' : 'Write a message first'}</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Lettering style">${(options.lettering || []).map((o) => `<button type="button" role="radio" class="bd-card" data-bd-set="lettering" data-value="${o.code}" aria-checked="${s.lettering === o.code}" ${s.message.trim() ? '' : 'disabled'}><strong>${esc(o.label)}</strong><span>${Number(o.price) > 0 ? '+' + money(o.price) : 'Included'}</span></button>`).join('')}</div></fieldset>
+      <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Font <small>${(options.font || []).length} styles · free</small></legend>${fontPicker()}</fieldset>
       <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering color</legend>${s.message.trim() ? contrastWarning() + swatches('lettering_color', s.lettering_color, 'Lettering color') : '<p class="bd-note">Choose after writing your message.</p>'}</fieldset>`;
     }
     const v = variant(), ex = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : localExtras().lines;

@@ -8,8 +8,8 @@ function designDetails(c){
  if(c.designer!=='bento')return '<pre style="white-space:pre-wrap">'+e(JSON.stringify(c,null,2))+'</pre>';
  const name=code=>String(code||'').replace(/_/g,' ');
  const rows=[['Frosting',c.frosting_color_label||name(c.frosting_color)],['Border',(c.border||[]).map(name).join(', ')||'None'],
-  ['Decorations',(c.accents||[]).map(a=>name(a)+(a==='ribbon_bows'&&c.bow_color?' ('+name(c.bow_color)+')':'')).join(', ')||'None'],
-  ['Message',c.message?'':'None'],['Lettering',c.message?name(c.lettering)+', '+name(c.lettering_color):'—'],
+  ['Decorations',(c.accents||[]).map(a=>name(a)+(a==='ribbon_bows'&&c.bow_color?' ('+name(c.bow_color)+')':'')+(a==='drip'?' ('+(c.drip_color?name(c.drip_color):'matching, darker frosting')+')':'')).join(', ')||'None'],
+  ['Message',c.message?'':'None'],['Lettering',c.message?name(c.lettering)+', '+name(c.lettering_color)+(c.font?', font: '+name(c.font):''):'—'],
   ['Topper',c.topper&&c.topper!=='none'?name(c.topper)+(c.topper_text?' '+c.topper_text:''):'None'],['Placement',c.layout?'Arranged by the customer — follow the design pictures':'Standard'],['Design extras',money(c.extras_per_item||0)+' per cake']];
  return '<div style="margin:8px 0 4px;padding:10px 12px;border:1px solid #e5ddec;border-radius:10px;background:#fcf9fe"><strong>Bento design</strong><dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0">'
   +rows.map(([k,v])=>'<dt style="color:#705c7c">'+e(k)+'</dt><dd style="margin:0">'+(k==='Message'&&c.message?'<span style="display:block;white-space:pre-wrap;font-size:1.05rem;font-weight:700;padding:6px 8px;background:#fff;border:1px dashed #c8b2dc;border-radius:8px">'+e(c.message)+'</span>':e(v))+'</dd>').join('')+'</dl></div>';

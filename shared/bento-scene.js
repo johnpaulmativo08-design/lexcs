@@ -108,56 +108,35 @@ function layoutLines(ctx, text, maxWidth) {
 }
 // Returns { map, normalMap } for the message: piped letters get a raised, rounded bead of icing;
 // pearl letters are built from individual pearls following the letter shapes.
-function messageTextures(message, colorHex, style) {
+// Letters are one solid colour (the customer's pick); depth comes only from the lighting/normal map.
+function fontFor(code) { return (window.LexcBentoFonts || {})[code] || (window.LexcBentoFonts || {}).rounded || { family: 'Nunito', weight: 800, stroke: 1 }; }
+function messageTextures(message, colorHex, style, fontCode = 'rounded') {
   const text = message.trim(); if (!text) return null;
-  const size = 1024, family = "'Nunito','DM Sans',sans-serif";
+  const f = fontFor(fontCode), weight = f.weight, family = `"${f.family}",'Nunito','DM Sans',sans-serif`, k = f.stroke ?? 1;
+  const size = 1024;
   const color = document.createElement('canvas'), height = document.createElement('canvas');
   color.width = color.height = height.width = height.height = size;
   const g = color.getContext('2d'), hg = height.getContext('2d');
   hg.fillStyle = '#000'; hg.fillRect(0, 0, size, size);
   let fontSize = 150, lines;
-  const body = style === 'pearl_letters' ? text.toUpperCase() : text;
+  const body = style === 'pearl_letters' && fontCode === 'rounded' ? text.toUpperCase() : text;
   for (; fontSize > 40; fontSize -= 6) {
-    g.font = `800 ${fontSize}px ${family}`;
+    g.font = `${weight} ${fontSize}px ${family}`;
     lines = layoutLines(g, body, size * 0.84);
     const blockH = lines.length * fontSize * 1.08, widest = Math.max(...lines.map((l) => g.measureText(l).width));
     if (lines.length <= 4 && Math.hypot(widest / 2, blockH / 2) < size * 0.485) break;
   }
   const lh = fontSize * 1.08, top = size / 2 - (lines.length - 1) * lh / 2;
-  const base = new THREE.Color(colorHex), dark = shade(colorHex, -0.2).getStyle(), light = shade(colorHex, 0.12).getStyle();
+  const solid = new THREE.Color(colorHex).getStyle();
   const drawText = (ctx, fill, stroke = 0) => {
-    ctx.font = `800 ${fontSize}px ${family}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.font = `${weight} ${fontSize}px ${family}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     lines.forEach((l, i) => { const y = top + i * lh; if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = fill; ctx.strokeText(l, size / 2, y); } ctx.fillStyle = fill; ctx.fillText(l, size / 2, y); });
   };
-  // Colours each line with a gentle top-to-bottom shade and a thin highlight on the upper edge only,
-  // so dark colours (black, navy, burgundy) stay dark.
-  const shadeLines = (width, spec) => {
-    g.save(); g.globalCompositeOperation = 'source-atop';
-    lines.forEach((l, i) => {
-      const y = top + i * lh, grad = g.createLinearGradient(0, y - fontSize * 0.55, 0, y + fontSize * 0.55);
-      grad.addColorStop(0, light); grad.addColorStop(0.45, base.getStyle()); grad.addColorStop(1, dark);
-      g.fillStyle = grad; g.fillRect(0, y - fontSize, size, fontSize * 2);
-    });
-    g.globalAlpha = spec; g.font = `800 ${fontSize}px ${family}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
-    g.lineWidth = width; g.strokeStyle = '#ffffff';
-    lines.forEach((l, i) => g.strokeText(l, size / 2 - fontSize * 0.015, top + i * lh - fontSize * 0.03));
-    g.restore();
-  };
-  if (style === 'pearl_letters') {
-    // Smooth, rounded candy letters with a soft pearly highlight (the shimmer itself comes from the material).
-    g.save(); g.filter = `blur(${Math.round(fontSize * 0.025)}px)`; g.globalAlpha = 0.3; g.translate(5, 8); drawText(g, 'rgba(40,20,50,1)', fontSize * 0.2); g.restore();
-    drawText(g, dark, fontSize * 0.2);
-    drawText(g, base.getStyle(), fontSize * 0.15);
-    shadeLines(fontSize * 0.018, 0.38);
-    hg.save(); hg.filter = `blur(${Math.round(fontSize * 0.075)}px)`; drawText(hg, '#fff', fontSize * 0.2); hg.restore();
-  } else {
-    // Piped icing: a thick rounded line with a darker rim and a soft highlight, plus a blurred height map.
-    g.save(); g.filter = `blur(${Math.round(fontSize * 0.02)}px)`; g.globalAlpha = 0.35; g.translate(4, 6); drawText(g, 'rgba(40,20,50,1)', fontSize * 0.16); g.restore();
-    drawText(g, dark, fontSize * 0.17);
-    drawText(g, base.getStyle(), fontSize * 0.12);
-    shadeLines(fontSize * 0.014, 0.25);
-    hg.save(); hg.filter = `blur(${Math.round(fontSize * 0.05)}px)`; drawText(hg, '#fff', fontSize * 0.15); hg.restore();
-  }
+  // A soft shadow on the frosting under the letters, then the letters in one solid colour.
+  const thick = fontSize * (style === 'pearl_letters' ? 0.15 : 0.12) * k;
+  g.save(); g.filter = `blur(${Math.round(fontSize * 0.025)}px)`; g.globalAlpha = 0.22; g.translate(4, 7); drawText(g, 'rgba(40,20,50,1)', thick); g.restore();
+  drawText(g, solid, thick);
+  hg.save(); hg.filter = `blur(${Math.round(fontSize * (style === 'pearl_letters' ? 0.06 : 0.04))}px)`; drawText(hg, '#fff', thick); hg.restore();
   const map = new THREE.CanvasTexture(color); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
   const normalMap = new THREE.CanvasTexture(heightToNormal(height, style === 'pearl_letters' ? 4.5 : 3.5));
   return { map, normalMap };
@@ -498,7 +477,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     for (const [code, part, radius, y] of [['shell_top', 'border_top_shell', R - 0.06, model.topShellY], ['shell_bottom', 'border_bottom_shell', R + 0.07, model.bottomShellY]])
       if ((design.border || []).includes(code) && !before.has(code) && model.parts[part]) pipeRing(model.parts[part], radius, y ?? H, frost);
     const msg = design.message || '', old = prev.message || '';
-    if (msg && messagePlane && (design.lettering !== prev.lettering || (msg !== old && Math.abs(msg.length - old.length) > 1)))
+    if (msg && messagePlane && (design.lettering !== prev.lettering || design.font !== prev.font || (msg !== old && Math.abs(msg.length - old.length) > 1)))
       pipeMessage(messagePlane, palette[design.lettering_color] || '#4f3163');
   }
   function build(design, palette) {
@@ -526,7 +505,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
 
     currentPick = 'drip';
     if (accents.has('drip')) {
-      const dripMat = M.glaze(shade(frost, -0.28));
+      const dripMat = M.glaze(design.drip_color && palette[design.drip_color] ? palette[design.drip_color] : shade(frost, -0.28));
       for (let i = 0; i < 30; i++) {
         const a = (i / 30) * Math.PI * 2 + rand() * 0.08, len = 0.12 + rand() * 0.35;
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, len, 4, 10), dripMat);
@@ -597,13 +576,18 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     }
 
     currentPick = 'message';
-    const tex = design.message ? messageTextures(design.message, hexOf(design.lettering_color, '#4f3163'), design.lettering) : null;
+    const tex = design.message ? messageTextures(design.message, hexOf(design.lettering_color, '#4f3163'), design.lettering, design.font || 'rounded') : null;
+    // Draw now with whatever font is ready, then redraw once the chosen web font has loaded.
+    if (design.message) {
+      const f = fontFor(design.font || 'rounded'), spec = `${f.weight} 100px "${f.family}"`;
+      if (document.fonts && !document.fonts.check(spec)) document.fonts.load(spec, design.message).then(() => { if (alive && lastDesign === design) update(design, lastPalette); }).catch(() => {});
+    }
     if (tex) {
       const pearls = design.lettering === 'pearl_letters';
       // Pearly shimmer only on light letters; dark candy letters keep their true colour.
-      const hsl = {}; new THREE.Color(hexOf(design.lettering_color, '#4f3163')).getHSL(hsl); const shimmer = pearls && hsl.l > 0.55;
+      const shimmer = false;   // letters keep the exact colour the customer picked
       const plane = new THREE.Mesh(new THREE.CircleGeometry(TEXT_R, 64), new THREE.MeshPhysicalMaterial({
-        map: tex.map, normalMap: tex.normalMap, normalScale: new THREE.Vector2(pearls ? 0.9 : 1.2, pearls ? 0.9 : 1.2), transparent: true, depthWrite: false,
+        map: tex.map, normalMap: tex.normalMap, normalScale: new THREE.Vector2(pearls ? 0.6 : 0.7, pearls ? 0.6 : 0.7), transparent: true, depthWrite: false,
         roughness: pearls ? 0.45 : 0.6, clearcoat: shimmer ? 0.5 : pearls ? 0.15 : 0, clearcoatRoughness: 0.25, sheen: pearls ? 0 : 0.3, sheenRoughness: 0.75, sheenColor: 0x3a3a3a,
         iridescence: shimmer ? 0.45 : 0, iridescenceIOR: 1.3, iridescenceThicknessRange: [180, 420], envMapIntensity: shimmer ? 0.5 : 0.2 }));
       plane.rotation.x = -Math.PI / 2; plane.position.set(L.message ? L.message[0] * R : 0, H + 0.004, L.message ? L.message[1] * R : 0);
@@ -630,7 +614,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     recolor(P.cake, frost); recolor(P.top_frosting, frost);
     if (P.border_top_shell) { P.border_top_shell.visible = borders.has('shell_top'); recolor(P.border_top_shell, shade(frost, 0.03)); }
     if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(frost, 0.03)); }
-    if (P.drip) { P.drip.visible = accents.has('drip'); recolor(P.drip, shade(frost, -0.28)); }
+    if (P.drip) { P.drip.visible = accents.has('drip'); recolor(P.drip, design.drip_color && palette[design.drip_color] ? palette[design.drip_color] : shade(frost, -0.28)); }
 
     currentPick = 'pearls';
     if ((accents.has('pearls_gold') || accents.has('pearls_silver')) && model.templates.pearl) {

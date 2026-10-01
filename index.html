@@ -687,7 +687,9 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <link rel="stylesheet" href="shared/product-detail.css?v=2">
 <link rel="stylesheet" href="shared/chat-widget.css?v=4">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=1">
-<link rel="stylesheet" href="shared/bento-designer.css?v=9">
+<link rel="stylesheet" href="shared/bento-designer.css?v=10">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@700&family=Pacifico&family=Lobster&family=Satisfy&family=Parisienne&family=Montserrat:wght@800&family=Poppins:wght@700&family=Fredoka:wght@600&family=Baloo+2:wght@800&family=Caveat:wght@700&family=Cinzel:wght@700&family=Grenze+Gotisch:wght@700&family=UnifrakturMaguntia&display=swap">
 </head>
 <body>
 
@@ -2425,8 +2427,9 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/customer-backend.js?v=16"></script>
 <script src="shared/product-detail.js?v=4"></script>
 <script src="shared/fresh-feed.js?v=2"></script>
-<script src="shared/bento-designer.js?v=15"></script>
+<script src="shared/bento-fonts.js?v=2"></script>
+<script src="shared/bento-designer.js?v=16"></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=8';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=9';mountChatWidget();</script>
 </body>
 </html>

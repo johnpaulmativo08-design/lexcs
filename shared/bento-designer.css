@@ -179,3 +179,12 @@ body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="
 .bd-scenes.is-loading button[aria-pressed="true"] { opacity: .7; }
 .bd-canvas-box:has(.bd-topview:not([hidden])) .bd-scenes, #page-bento.is-packing .bd-scenes { display: none; }
 @media (max-width: 900px) { .bd-scenes button { min-height: 30px; padding: 4px 10px; } }
+
+/* Font picker */
+.bd-fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.bd-font { display: grid; gap: 2px; min-height: 64px; padding: 8px 10px; border: 1.5px solid #e5ddec; border-radius: 12px; background: #fff; color: #3d2a52; text-align: left; cursor: pointer; font: inherit; }
+.bd-font[aria-checked="true"] { border-color: #7551aa; background: #f7f2ff; box-shadow: 0 0 0 2px rgba(117, 81, 170, .18); }
+.bd-font:focus-visible { outline: 3px solid #9272db; outline-offset: 2px; }
+.bd-font-sample { font-size: 21px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #4f3163; }
+.bd-font small { color: #7a6a86; font-size: 11px; }
+fieldset[disabled] .bd-font { opacity: .55; cursor: not-allowed; }
