@@ -406,7 +406,11 @@
     deepLinkDone = true;
     const wanted = new URL(location.href).searchParams.get('product');
     const p = wanted && products.find((x) => x.product_id === wanted);
-    if (!p) return;
+    if (!p) {
+      // A link to a treat that is no longer on the menu: say so once and drop it from the address bar.
+      if (wanted) { const url = new URL(location.href); url.searchParams.delete('product'); history.replaceState(history.state, '', url); showToast('That treat is no longer on the menu.'); }
+      return;
+    }
     if (!document.getElementById('page-shop')?.classList.contains('active')) navigate('shop');
     history.replaceState({ ...(history.state || {}), lexcProduct: p.product_id }, '', location.href);
     openProductDetails(p.id, { fromHistory: true });

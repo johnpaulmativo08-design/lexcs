@@ -393,14 +393,16 @@
       await navigator.clipboard.writeText(data.url); showToast('Link copied — share it with anyone.');
     } catch (error) { if (error?.name !== 'AbortError') showToast('Could not share. Copy the address bar link instead.'); }
   }
+  // A broken or removed post link must not stay in the address bar (each reload would retry it).
+  function dropPostParam() { const u = new URL(location.href); if (u.searchParams.has('post')) { u.searchParams.delete('post'); history.replaceState(history.state, '', u); } }
   async function openPostById(id) {
     try {
       const rows = await LexcBackend.rpc('get_store_feed', { p_kind: 'all', p_post_id: id, p_limit: 1 });
-      if (!rows?.length) { showToast('That post is no longer available.'); return; }
+      if (!rows?.length) { dropPostParam(); showToast('That post is no longer available.'); return; }
       const post = normalise(rows[0]); state.byId.set(post.id, post);
       history.replaceState({ ...(history.state || {}) }, '', (() => { const u = new URL(location.href); u.searchParams.delete('post'); return u; })());
       openViewer(post);
-    } catch (error) { console.warn('Post could not load:', error); showToast('That post could not load. Please try again.'); }
+    } catch (error) { console.warn('Post could not load:', error); dropPostParam(); showToast('That post could not load. Please try again.'); }
   }
 
   // ---- Owner menu and actions ----------------------------------------------------------------
