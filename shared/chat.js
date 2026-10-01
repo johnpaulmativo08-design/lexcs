@@ -28,6 +28,36 @@ export async function ensureCustomerChat({userId,orderId=null}){
   if(result.error.code==='23505')return query().then(db.unwrap);
   throw result.error;
 }
+// ---- Bento design card (posted by the database after a successful order, phase 33) ----------------
+// Each line shows the angled + top-view pictures (private storage, short-lived signed links),
+// the summary and price, and an "Open in 3D" link that rebuilds the exact design in the designer.
+const DESIGN_KEYS=['frosting_color','border','accents','bow_color','message','lettering','lettering_color','topper','topper_text'];
+const siteIndex=new URL('../index.html',import.meta.url).href;
+function designLink(line){
+  const d={};for(const key of DESIGN_KEYS)if(line.design?.[key]!=null)d[key]=line.design[key];
+  const bytes=new TextEncoder().encode(JSON.stringify({v:line.variant_id,d}));
+  const code=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return siteIndex+'?design='+code;
+}
+export function designCardHTML(m){
+  if(m.message_type!=='design_card'||!Array.isArray(m.attachments))return '';
+  const picture=(path,label)=>path?'<button type="button" class="design-card-pic" data-design-img="'+escapeHtml(path)+'" aria-label="Open '+label+' picture full size"><img alt="'+label+'" hidden><span class="skel" aria-hidden="true"></span><small>'+label+'</small></button>':'';
+  return '<div class="design-card">'+m.attachments.map(line=>'<section class="design-card-line"><div class="design-card-pics">'+picture(line.angle_path,'Angled view')+picture(line.top_path,'Top view')+'</div>'+
+    '<strong>'+escapeHtml(line.name)+(Number(line.qty)>1?' × '+Number(line.qty):'')+'</strong><p>'+escapeHtml(line.summary||'')+'</p><div class="design-card-foot"><b>'+money(line.unit_price)+' per cake</b><a href="'+escapeHtml(designLink(line))+'" target="_blank" rel="noopener">Open in 3D ↗</a></div></section>').join('')+'</div>';
+}
+const signedPictures=new Map();
+export function hydrateDesignImages(root){
+  root.querySelectorAll('[data-design-img]').forEach(async button=>{
+    const path=button.dataset.designImg,img=button.querySelector('img');if(!img||img.getAttribute('src'))return;
+    try{
+      let cached=signedPictures.get(path);
+      if(!cached||Date.now()-cached.at>45000){cached={at:Date.now(),url:db.privateImage('customer-references',path)};signedPictures.set(path,cached);}
+      img.onload=()=>{img.hidden=false;button.querySelector('.skel')?.remove();};
+      img.src=await cached.url;
+      button.onclick=()=>window.open(img.src,'_blank','noopener');
+    }catch(error){signedPictures.delete(path);button.querySelector('.skel')?.remove();button.querySelector('small').textContent='Picture unavailable';}
+  });
+}
 export function subscribeChatChanges(onChange,onStatus=()=>{}){
   const channel=db.client.channel('lexc-chat-'+crypto.randomUUID())
     .on('postgres_changes',{event:'*',schema:'public',table:'chat_conversations'},onChange)
@@ -104,7 +134,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
   function messageCard(m){
     const p=payments.find(row=>row.id===m.payment_id);
     const eventClass=m.message_type!=='text'?' chat-event '+escapeHtml(m.message_type):'';
-    return '<article class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(m.sender_type==='system'?'LexC Assistant':m.sender_type==='admin'?'LexC staff':'You')+'</small><p>'+escapeHtml(m.body)+'</p>'+
+    return '<article class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(m.sender_type==='system'?'LexC Assistant':m.sender_type==='admin'?'LexC staff':'You')+'</small><p>'+escapeHtml(m.body)+'</p>'+designCardHTML(m)+
       (p&&m.message_type==='payment_proof'?'<div class="chat-proof"><strong>Payment proof · '+money(p.amount)+'</strong><span>Reference: '+escapeHtml(p.transaction_reference||'—')+'</span><span>Current status: '+escapeHtml(p.status.replaceAll('_',' '))+'</span>'+(p.proof_storage_path?'<button type="button" data-proof="'+escapeHtml(p.id)+'">View receipt</button>':'')+'</div>':'')+
       '<time>'+escapeHtml(stamp(m.created_at))+'</time></div></article>';
   }
@@ -121,6 +151,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
       if(customerHeading)customerHeading.textContent='LexC’s Snacktime';
       if(customerSubheading)customerSubheading.textContent=selected?.order_id?'Your order #'+(orders.find(o=>o.id===selected.order_id)?.order_number||'')+' · We’re here to help':'Typically replies in a few minutes';
     }
+    hydrateDesignImages(root);
     const contextPanel=root.querySelector('.chat-context');
     if(contextPanel&&selected){const close=document.createElement('button');close.type='button';close.className='chat-context-close';close.textContent='← Back to chat';close.addEventListener('click',()=>root.querySelector('.chat-workspace').classList.remove('show-context'));contextPanel.prepend(close);}
     root.querySelectorAll('[data-thread]').forEach(button=>{

@@ -179,7 +179,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=9');
+        const mod = await import('./bento-scene.js?v=10');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion });
         if (step === 'message') { scene.setView('top'); scene.setAutoRotate(false); }
@@ -476,7 +476,7 @@
     const item = {
       id: 'bento-' + crypto.randomUUID(), product_id: product.id, variant_id: v.id, name: product.name, emoji: '🎂',
       sizeLabel: `${v.label === 'Minimalist' ? 'Plain' : v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra,
-      base_price: Number(v.price), extras: quote.extra, qty: state.qty, selected: true, customization: d, preview: scene ? scene.snapshot(400) : ''
+      base_price: Number(v.price), extras: quote.extra, qty: state.qty, selected: true, customization: d, preview: scene ? scene.snapshot(400) : '', preview_top: scene ? scene.snapshot(400, 'top') : ''
     };
     if (editIndex !== null && cart[editIndex]?.customization?.designer === 'bento') { item.id = cart[editIndex].id; cart[editIndex] = item; }
     else cart.push(item);

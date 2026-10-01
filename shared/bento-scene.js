@@ -512,8 +512,9 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
 
   function resetView() { setView('default'); }
   // Small image of the current design for the cart line (supplementary to the stored choices).
-  function snapshot(size = 240) {
-    const saved = { ...view }; Object.assign(view, { yaw: 0.35, pitch: 0.75, dist: 5.4 }); placeCamera(false);
+  // 'angle' is the cart/order picture; 'top' shows the message and border for the design card.
+  function snapshot(size = 240, angle = 'angle') {
+    const saved = { ...view }; Object.assign(view, angle === 'top' ? VIEWS.top : { yaw: 0.35, pitch: 0.75, dist: 5.4 }); placeCamera(false);
     renderer.render(scene, camera);
     const out = document.createElement('canvas'); out.width = out.height = size; const g = out.getContext('2d');
     const src = renderer.domElement, s = Math.min(src.width, src.height);

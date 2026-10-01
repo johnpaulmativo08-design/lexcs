@@ -17,3 +17,20 @@
 @media(max-width:800px){.lcw-mobile-thread .lcw-thread>header button{min-width:44px}.lcw-row{min-height:72px}}
 @media(max-width:360px){.lcw-thread>header button{width:44px}.lcw-thread>header{gap:2px}}
 .lcw-skeleton-list{width:100%}.lcw-skeleton-row{display:grid;grid-template-columns:38px minmax(0,1fr) 32px;gap:10px;align-items:center;min-height:72px;padding:12px 15px;border-bottom:1px solid #f2edf6}.lcw-skeleton-row>span:nth-child(2){display:grid;gap:8px}.lcw-skeleton-thread{display:flex;flex-direction:column;gap:14px;width:100%;padding:16px}.lcw-skeleton-thread>div{display:grid;gap:8px;width:68%;padding:12px;border:1px solid #eee7f4;border-radius:10px;background:#fff}.lcw-skeleton-thread>div.mine{align-self:flex-end;width:54%;background:#f7f3fb}
+
+/* Bento design card (phase 33) */
+.design-card{display:grid;gap:10px;margin-top:9px;white-space:normal;text-align:left}
+.design-card-line{display:grid;gap:4px;padding:9px;border:1px solid #e5ddf2;border-radius:12px;background:#fff;color:#241a38}
+.design-card-pics{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px;margin-bottom:4px}
+.design-card-pic{position:relative;display:block;aspect-ratio:1;padding:0;border:0;border-radius:9px;overflow:hidden;background:#f6f1fb;cursor:zoom-in}
+.design-card-pic img{width:100%;height:100%;object-fit:cover;display:block}
+.design-card-pic img[hidden]{display:none}
+.design-card-pic .skel{position:absolute;inset:0;border-radius:0}
+.design-card-pic small{position:absolute;left:5px;bottom:5px;padding:2px 7px;border-radius:999px;background:rgba(36,26,56,.68);color:#fff;font-size:10px;font-weight:600}
+.design-card-line>strong{font-size:12.5px}
+.design-card-line>p{margin:0;color:#675873;font-size:11.5px;line-height:1.45}
+.design-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:3px;font-size:11.5px}
+.design-card-foot a{display:inline-flex;align-items:center;min-height:32px;padding:5px 11px;border-radius:999px;background:#7551aa;color:#fff;font-weight:700;text-decoration:none}
+.design-card-foot a:hover{background:#5f3f93}
+.design-card-pic:focus-visible,.design-card-foot a:focus-visible{outline:3px solid #9272db;outline-offset:2px}
+.lcw-message.system>div:has(.design-card){width:100%;max-width:100%;text-align:left}

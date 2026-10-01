@@ -1,4 +1,4 @@
-import {readChatThread,markChatRead,sendChatMessage,ensureCustomerChat,subscribeChatChanges} from './chat.js?v=8';
+import {readChatThread,markChatRead,sendChatMessage,ensureCustomerChat,subscribeChatChanges,designCardHTML,hydrateDesignImages} from './chat.js?v=9';
 
 const db=window.LexcBackend;
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -46,7 +46,7 @@ export async function mountChatWidget({admin=false}={}){
     badge();draw();
   }
   function capture(){root.querySelectorAll('[data-compose]').forEach(form=>{drafts.set(form.dataset.compose,form.elements.body.value);});root.querySelectorAll('[data-stream]').forEach(stream=>{scrollPositions.set(stream.dataset.stream,stream.scrollHeight-stream.clientHeight-stream.scrollTop<24?null:stream.scrollTop);});}
-  function messageView(id){if(!threads.has(id))return messageSkeleton();const rows=threads.get(id)||[];return rows.length?rows.map(m=>`<div class="lcw-message ${esc(m.sender_type)} ${m.sender_type===(admin?'admin':'customer')?'mine':''}"><div>${esc(m.body)}<time>${time(m.created_at)}</time></div></div>`).join(''):'<p class="lcw-empty">No messages yet. Send a message to start the conversation.</p>';}
+  function messageView(id){if(!threads.has(id))return messageSkeleton();const rows=threads.get(id)||[];return rows.length?rows.map(m=>`<div class="lcw-message ${esc(m.sender_type)} ${m.sender_type===(admin?'admin':'customer')?'mine':''}"><div>${esc(m.body)}${designCardHTML(m)}<time>${time(m.created_at)}</time></div></div>`).join(''):'<p class="lcw-empty">No messages yet. Send a message to start the conversation.</p>';}
   function composer(id){return `<form class="lcw-compose" data-compose="${esc(id)}"><label class="lcw-sr" for="lcw-text-${esc(id)}">Message</label><textarea id="lcw-text-${esc(id)}" name="body" rows="1" maxlength="3000" placeholder="${admin?'Reply to customer…':'Message LexC’s Admin…'}" required>${esc(drafts.get(id)||'')}</textarea><button type="submit" aria-label="Send message" ${sending.has(id)?'disabled':''}>➤</button></form>`;}
   function threadView(id,{popup=false}={}){
     const c=conversation(id),o=order(c),mini=minimized.has(id);
@@ -62,6 +62,7 @@ export async function mountChatWidget({admin=false}={}){
       trigger.hidden=isOpen;trigger.classList.toggle('lcw-minimized',minimized.size>0&&!isOpen);trigger.innerHTML=(minimized.size&&!isOpen?'<span class="lcw-avatar">L</span>':'<svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span>Chat</span>')+'<span data-chat-count hidden></span>';
       badge();
     }
+    hydrateDesignImages(root);
     root.querySelectorAll('[data-stream]').forEach(el=>{const saved=scrollPositions.get(el.dataset.stream);el.scrollTop=saved==null?el.scrollHeight:saved;});
     trigger.setAttribute('aria-expanded',String(drawer));
   }

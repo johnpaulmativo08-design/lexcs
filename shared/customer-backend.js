@@ -89,7 +89,7 @@ async function submitCheckout(){
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
   if(cartIsPaymentTest()&&(selectedItems.some(item=>!item.isTest)||selectedDelivery!=='Pick-up'))return showToast('Payment Test Product must be checked out separately for pickup.');
   if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
-  const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,reference_image_path,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
+  const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,preview_top,reference_image_path,design_top_path,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
  let request=readAuthStorage(localStorage,'lexc_checkout_request',null);
  if(!request||request.fingerprint!==fingerprint)request={fingerprint,id:crypto.randomUUID()};
  localStorage.setItem('lexc_checkout_request',JSON.stringify(request));checkoutSaving=true;
@@ -115,11 +115,12 @@ async function submitCheckout(){
   }
   // Bento designs: upload the preview picture privately so Admin can see exactly what was designed.
   // The structured choices remain the record; the picture is a visual aid. Failure does not block checkout.
+  const uploadDesign = async (dataUrl) => LexcBackend.upload('customer-references', currentUser.id + '/designs', new File([await (await fetch(dataUrl)).blob()], 'bento-design.jpg', { type: 'image/jpeg' }));
   for (const item of selectedItems) {
-    if (item.customization?.designer !== 'bento' || !item.preview || item.reference_image_path) continue;
+    if (item.customization?.designer !== 'bento') continue;
     try {
-      const blob = await (await fetch(item.preview)).blob();
-      item.reference_image_path = await LexcBackend.upload('customer-references', currentUser.id + '/designs', new File([blob], 'bento-design.jpg', { type: 'image/jpeg' }));
+      if (item.preview && !item.reference_image_path) item.reference_image_path = await uploadDesign(item.preview);
+      if (item.preview_top && !item.design_top_path) item.design_top_path = await uploadDesign(item.preview_top);
     } catch (error) { console.warn('Design picture could not be attached:', error); }
   }
   const selectedDate=field('coDate');
@@ -127,7 +128,10 @@ async function submitCheckout(){
   const selectedDay=freshAvailability[0];
   if(!selectedDay||selectedDay.is_closed||selectedDay.remaining_slots<=0||!selectedDay.has_receiving_slot)throw new Error('This booking date is no longer available. Please choose another date.');
    const order=await LexcBackend.rpc('create_order',{payload:{request_id:request.id,name:field('coName'),phone:field('coContact'),address:field('coAddress'),notes:field('coNotes'),slot_id:document.getElementById('coDate').dataset.slotId,fulfillment:selectedDelivery==='Lalamove'?'lalamove':'pickup',payment_method:selectedPayment,items:selectedItems.map(i=>({variant_id:i.variant_id,qty:i.qty,customization:i.customization||null,reference_image_path:i.reference_image_path||null}))}});
-   const orderedItems=new Set(selectedItems);
+   // Add the top-view pictures to the design card the database posted in the customer's chat.
+  const topViews=selectedItems.map((item,index)=>({line:index+1,top_path:item.design_top_path})).filter(view=>view.top_path);
+  if(topViews.length){try{await LexcBackend.rpc('attach_design_views',{p_order_id:order.id,p_views:topViews});}catch(error){console.warn('Top-view pictures could not be added to the chat:',error);}}
+  const orderedItems=new Set(selectedItems);
    cart=cart.filter(item=>!orderedItems.has(item));renderCart();localStorage.removeItem('lexc_checkout_request');
   try { await flushCustomerCart(); } catch (syncError) { console.warn('Order created, but cart sync needs retry:', syncError); }
   location.replace('payment/index.html?order='+encodeURIComponent(order.id));
