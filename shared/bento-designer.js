@@ -317,7 +317,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=22');
+        const mod = await import('./bento-scene.js?v=23');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });

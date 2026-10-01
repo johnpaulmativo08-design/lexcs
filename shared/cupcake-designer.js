@@ -36,7 +36,7 @@
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let root = null, products = {}, optionsBy = {}, state = null, step = 'box', past = [], future = [], editIndex = null;
-  let quote = { status: 'idle' }, quoteTimer = 0, quoteSeq = 0, visited = new Set();
+  let quote = { status: 'idle' }, quoteTimer = 0, quoteSeq = 0, visited = new Set(), scene = null, sceneLoading = null, previewFrame = 0;
   const product = () => products[state.size];
   const options = () => optionsBy[state.size] || {};
   const palette = () => Object.fromEntries((options().color || []).map((c) => [c.code, c.hex]));
@@ -233,7 +233,7 @@
     root.innerHTML = `<div class="bd-wrap cd-wrap">
       <header class="bd-head">
         <button type="button" class="bd-back" data-cd-exit aria-label="Back to the menu">${icon('back')}<span class="bd-back-text">Menu</span></button>
-        <h1>Design your cupcakes</h1>
+        <h1><span class="cd-h1-long">Design your cupcakes</span><span class="cd-h1-short" aria-hidden="true">Your cupcakes</span></h1>
         <div class="bd-tools" role="group" aria-label="Design history">
           <button type="button" class="bd-tool" data-cd-undo aria-label="Undo">${icon('undo')}<span>Undo</span></button>
           <button type="button" class="bd-tool" data-cd-redo aria-label="Redo">${icon('redo')}<span>Redo</span></button>
@@ -242,8 +242,13 @@
       </header>
       <div class="bd-layout">
         <section class="bd-stage cd-stage" aria-label="Box preview">
+          <div class="bd-canvas-box cd-canvas" data-cd-3d hidden></div>
           <div class="cd-box" data-cd-box></div>
-          <p class="bd-hint">Your box seen from above. Handmade piping varies a little from box to box.</p>
+          <div class="bd-stage-bar" data-cd-bar hidden>
+            <div class="bd-seg" role="group" aria-label="View">${[['angle', 'Box'], ['close', 'Close-up'], ['top', 'Top']].map(([k, l]) => `<button type="button" data-cd-view="${k}" aria-pressed="${k === 'angle'}">${l}</button>`).join('')}</div>
+            <div class="bd-seg" role="group" aria-label="Scene">${[['studio', 'Studio'], ['bakery', 'Bakery'], ['party', 'Party']].map(([k, l]) => `<button type="button" data-cd-scene="${k}" aria-pressed="${k === 'studio'}">${l}</button>`).join('')}</div>
+          </div>
+          <p class="bd-hint" data-cd-hint>Your box seen from above. Handmade piping varies a little from box to box.</p>
         </section>
         <section class="bd-panel">
           <div class="bd-steps" role="tablist" aria-label="Design steps">${STEPS.map(([k, l], i) => `<button type="button" role="tab" class="bd-step" data-cd-step="${k}" aria-controls="cd-body"><b>${i + 1}</b>${l}</button>`).join('')}</div>
@@ -359,7 +364,47 @@
     body.innerHTML = bodyMarkup(); updateFooter(); updateTools();
     if (sel) { const again = body.querySelector(sel); if (again) { again.focus({ preventScroll: true }); if (caret != null && again.setSelectionRange) again.setSelectionRange(caret, caret); } }
   }
-  function renderPreview() { const box = root.querySelector('[data-cd-box]'); if (box) { box.innerHTML = boxSvg(); box.firstElementChild?.setAttribute('aria-label', 'Your cupcake box. ' + summaryText()); } }
+  function renderPreview() {
+    if (scene) {
+      // Several quick changes (e.g. undo/redo) rebuild the 3D box once per frame.
+      if (!previewFrame) previewFrame = requestAnimationFrame(() => { previewFrame = 0; if (!scene) return; scene.update(sceneSpec()); scene.canvas.setAttribute('aria-label', 'Your cupcake box in 3D. ' + summaryText()); });
+      return;
+    }
+    const box = root.querySelector('[data-cd-box]'); if (box) { box.innerHTML = boxSvg(); box.firstElementChild?.setAttribute('aria-label', 'Your cupcake box. ' + summaryText()); }
+  }
+  function sceneSpec() {
+    const pal = palette(), hex = (code) => pal[code] || '#ffffff', count = countOf(variant()?.label), [cols, rows] = grid(count), cells = [];
+    for (let i = 0, r = 0; r < rows; r++) for (let c = 0; c < cols && i < count; c++, i++) { const sp = specFor(i, r, c); cells.push({ style: sp.style, colors: sp.colors.map(hex), sub: sp.style === 'floral' ? sp.sub : '' }); }
+    return { size: state.size, cols, rows, flavor: state.flavor, finishes: state.finishes, theme: state.theme, themeIcon: THEME_ICON[state.theme], cells };
+  }
+  // The realistic 3D box (three.js) loads on demand; without WebGL the flat picture stays.
+  function ensureScene() {
+    if (scene || sceneLoading) return sceneLoading;
+    const host = root.querySelector('[data-cd-3d]');
+    sceneLoading = (async () => {
+      try {
+        const mod = await import('./cupcake-scene.js?v=1');
+        if (currentPage !== 'cupcake' || scene) return;
+        host.hidden = false;
+        scene = mod.createCupcakeScene(host, { reducedMotion });
+        root.querySelector('[data-cd-box]').hidden = true; root.querySelector('[data-cd-bar]').hidden = false;
+        root.querySelector('[data-cd-hint]').textContent = 'Drag to turn the box, scroll or pinch to zoom. Handmade piping varies a little from box to box.';
+        root.querySelectorAll('[data-cd-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cdView === 'angle')));
+        root.querySelectorAll('[data-cd-scene]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cdScene === 'studio')));
+        renderPreview();
+      } catch (error) {
+        console.info('3D preview unavailable, showing the flat picture:', error?.message || error);
+        disposeScene(); host.hidden = true; root.querySelector('[data-cd-box]').hidden = false; renderPreview();
+      } finally { sceneLoading = null; }
+    })();
+    return sceneLoading;
+  }
+  function disposeScene() {
+    cancelAnimationFrame(previewFrame); previewFrame = 0;
+    try { scene?.dispose(); } catch {}
+    scene = null;
+    if (root) { root.querySelector('[data-cd-3d]').hidden = true; root.querySelector('[data-cd-bar]').hidden = true; root.querySelector('[data-cd-box]').hidden = false; }
+  }
   function summaryText() { return quote.status === 'ok' ? quote.clean.summary : `${opt('flavor', state.flavor)?.label} · ${opt('style', state.a.style)?.label}`; }
   function updateFooter() {
     if (!root) return;
@@ -403,6 +448,9 @@
       const t = e.target.closest('button'); if (!t || t.disabled) return;
       const d = t.dataset;
       if (d.cdStep) return goStep(d.cdStep);
+      if (d.cdView) { root.querySelectorAll('[data-cd-view]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); return scene?.setView(d.cdView); }
+      if (d.cdScene) { root.querySelectorAll('[data-cd-scene]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); t.disabled = true;
+        return scene?.setScene(d.cdScene).then((shown) => { t.disabled = false; if (shown !== d.cdScene) { showToast('That scene could not load, so the studio is shown.'); root.querySelectorAll('[data-cd-scene]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cdScene === shown))); } }); }
       if (d.cdPreset) return applyPreset(d.cdPreset);
       if (d.cdSize) return commit((s) => { if (s.size !== d.cdSize) { s.size = d.cdSize; s.variant_id = null; } });
       if (d.cdVariant) return commit((s) => { s.variant_id = d.cdVariant; });
@@ -436,7 +484,7 @@
     const v = variant(), d = design(), p = product();
     const item = { id: 'cupcake-' + crypto.randomUUID(), product_id: p.id, variant_id: v.id, name: p.name, emoji: '🧁',
       sizeLabel: `${v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra, base_price: Number(v.price), extras: quote.extra,
-      qty: state.qty, selected: true, customization: d, preview: await snapshot(400) };
+      qty: state.qty, selected: true, customization: d, preview: scene ? scene.snapshot(480) : await snapshot(400) };
     const wasEdit = editIndex !== null && cart[editIndex]?.customization?.designer === 'cupcake';
     if (wasEdit) { item.id = cart[editIndex].id; cart[editIndex] = item; } else cart.push(item);
     editIndex = null; try { localStorage.removeItem(DRAFT_KEY); } catch {}
@@ -471,7 +519,7 @@
       else state = blank(size && products[size] ? size : Object.keys(products)[0]);
     }
     if (!state.b) state.b = { style: 'rosette', colors: ['white'] };
-    normalise(); renderBody(); renderPreview(); scheduleQuote();
+    normalise(); renderBody(); renderPreview(); scheduleQuote(); ensureScene();
   }
   function whenReady(fn) {
     if (window.lexcCatalogState === 'ready') return fn();
@@ -515,7 +563,7 @@
 
   const baseNavigate = window.navigate;
   window.navigate = function navigate(page, anchor) {
-    if (currentPage === 'cupcake' && page !== 'cupcake') clearTimeout(quoteTimer);
+    if (currentPage === 'cupcake' && page !== 'cupcake') { clearTimeout(quoteTimer); quoteSeq++; disposeScene(); }
     const r = baseNavigate.call(this, page, anchor);
     if (page === 'cupcake') document.querySelectorAll('#mainNav .nav-links a[data-page="bento"]').forEach((a) => a.classList.add('active'));
     return r;

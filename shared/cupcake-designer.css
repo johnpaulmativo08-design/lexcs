@@ -64,3 +64,14 @@
   .cd-styles{grid-template-columns:1fr}
   .cd-chooser-grid{grid-template-columns:1fr}
 }
+
+/* Realistic 3D box (cupcake-scene.js); the flat picture is the fallback without WebGL. */
+.cd-canvas{aspect-ratio:4/3;background:radial-gradient(circle at 50% 38%,#fff 0,#f4ecf9 72%)}
+.cd-page [data-cd-box][hidden],.cd-page [data-cd-bar][hidden],.cd-page [data-cd-3d][hidden]{display:none!important}
+@media (max-width:900px){.cd-canvas{aspect-ratio:auto;height:min(38vh,320px)}}
+.cd-page .bd-input{display:block;width:100%;box-sizing:border-box;min-height:44px;border:1.5px solid #dccde8;border-radius:12px;padding:10px 12px;font:500 .95rem "DM Sans",sans-serif;color:var(--bd-ink);background:#fff}
+.cd-page .bd-input:focus{outline:none;border-color:var(--bd-purple);box-shadow:0 0 0 3px rgba(125,82,168,.15)}
+@media (max-width:900px){.cd-stage .bd-stage-bar{flex-wrap:nowrap;gap:4px;padding:6px 8px}.cd-stage .bd-seg button{padding:6px 9px;min-height:36px;font-size:.75rem}}
+@media (max-width:360px){.cd-stage .bd-seg button{padding:6px 6px;font-size:.7rem}}
+.cd-h1-short{display:none}
+@media (max-width:420px){.cd-page .cd-h1-long{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.cd-page .cd-h1-short{display:inline}.cd-page .bd-head h1{min-width:0;overflow:hidden;text-overflow:ellipsis}}

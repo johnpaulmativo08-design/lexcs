@@ -884,3 +884,6 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   idle();
   return { update, resetView, setView, setAutoRotate: (on) => { spinAllowed = on && !reducedMotion && !arranging; idle(); }, snapshot, pack, unpack, spinOnce, setArrange, hasMovable, setScene, dispose, canvas: renderer.domElement };
 }
+
+// Shared with the cupcake preview (cupcake-scene.js).
+export { M, SURF, withSurface, shade, marbleTexture, linenTexture, fadeTexture };
