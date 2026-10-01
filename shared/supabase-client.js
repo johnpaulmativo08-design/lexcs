@@ -17,14 +17,19 @@
     }
     if (!data.user) return null;
     const [profile, role] = await Promise.all([
-      client.from('profiles').select('*').eq('id', data.user.id).single().then(unwrap),
-      client.from('user_roles').select('role').eq('user_id', data.user.id).single().then(unwrap)
+      client.from('profiles').select('*').eq('id', data.user.id).maybeSingle().then(unwrap),
+      client.from('user_roles').select('role').eq('user_id', data.user.id).maybeSingle().then(unwrap)
     ]);
+    if (!profile || !role) throw new Error('Your account details could not be loaded. Please try again in a moment.');
     return { ...data.user, profile, role: role.role, name: profile.full_name };
   }
   async function signIn(email, password) {
     unwrap(await client.auth.signInWithPassword({ email: email.trim(), password }));
-    return identity();
+    // A slow connection can briefly return no account right after the password is accepted; try once more.
+    let user = await identity().catch(() => null);
+    if (!user) { await new Promise((resolve) => setTimeout(resolve, 800)); user = await identity(); }
+    if (!user) throw new Error('You are signed in, but your account did not load. Please try again in a moment.');
+    return user;
   }
   const mediaURL = value => {
     if (!value) return '';
