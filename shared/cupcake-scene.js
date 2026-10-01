@@ -342,7 +342,12 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
   const cellKeys = [], cellObjs = [];
   function update(spec) {
     const fresh = !layout || layout.size !== spec.size || layout.cols !== spec.cols || layout.rows !== spec.rows;
-    if (fresh) buildBox(spec.size, spec.cols, spec.rows);
+    if (fresh) {
+      // New box: every cupcake gets a hole in the new insert, so none keep their old place.
+      buildBox(spec.size, spec.cols, spec.rows);
+      for (const o of cellObjs) cupcakes.remove(o);
+      cellObjs.length = 0; cellKeys.length = 0;
+    }
     const finishes = [...spec.finishes].sort(), used = new Set();
     spec.cells.forEach((cell, i) => {
       const variant = i % 2, k = JSON.stringify([spec.size, spec.flavor, cell.style, cell.colors, cell.sub || '', finishes, spec.theme, variant]);
