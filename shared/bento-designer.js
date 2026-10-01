@@ -36,7 +36,7 @@
 
   let root = null, product = null, options = null, palette = {}, scene = null, sceneLoading = null;
   let state = null, step = 'style', past = [], future = [], editIndex = null, quote = { status: 'idle' }, quoteTimer = 0, quoteSeq = 0;
-  let textTimer = 0, view3d = true;
+  let textTimer = 0, view3d = true, packed = false;
 
   const blank = () => ({ variant_id: product.product_variants.filter((v) => v.is_active)[0]?.id, frosting_color: 'white', border: [], accents: [], bow_color: 'pink',
     message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1 });
@@ -179,7 +179,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=10');
+        const mod = await import('./bento-scene.js?v=13');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion });
         if (step === 'message') { scene.setView('top'); scene.setAutoRotate(false); }
@@ -408,6 +408,9 @@
       if ('bdReset' in t.dataset) return resetDesign();
       if ('bdChat' in t.dataset) return openChat();
       if ('bdShare' in t.dataset) return shareDesign();
+      if ('bdViewcart' in t.dataset) { navigate('shop'); return openCart(); }
+      if ('bdAgain' in t.dataset) return designAnother();
+      if (packed) return;
       if ('bdExit' in t.dataset) return exit();
       if ('bdPrev' in t.dataset) { const i = STEPS.findIndex(([k]) => k === step); return goStep(STEPS[Math.max(0, i - 1)][0]); }
       if ('bdNext' in t.dataset) { const i = STEPS.findIndex(([k]) => k === step); return i < STEPS.length - 1 ? goStep(STEPS[i + 1][0]) : addToCart(); }
@@ -483,8 +486,26 @@
     const wasEdit = editIndex !== null;
     editIndex = null;
     try { localStorage.removeItem(DRAFT_KEY); } catch {}
-    renderCart(); showToast(wasEdit ? 'Your cart design was updated.' : 'Your bento design was added to the cart.');
-    navigate('shop'); openCart();
+    renderCart();
+    // The cake is packed into its box on screen, then a finish panel offers the cart or a new design.
+    packed = true; root.classList.add('is-packing');
+    const unit = Number(v.price) + quote.extra, summary = esc(quote.clean.summary || '');
+    const body = root.querySelector('#bd-body');
+    body.innerHTML = `<div class="bd-packed" role="status"><span class="bd-packed-icon" aria-hidden="true">📦</span><h2>Packing your cake…</h2><p class="bd-note">${summary}</p></div>`;
+    if (matchMedia('(max-width: 900px)').matches) root.querySelector('.bd-stage').scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
+    if (scene && view3d) { try { await scene.pack(); } catch (error) { console.info('Packing animation skipped:', error?.message || error); } }
+    if (!packed || currentPage !== 'bento') return;
+    body.innerHTML = `<div class="bd-packed" role="status"><span class="bd-packed-icon" aria-hidden="true">🎉</span>
+      <h2>${wasEdit ? 'Your cart design was updated' : 'Packed and added to your cart!'}</h2>
+      <p class="bd-note">${summary}</p>
+      <p class="bd-packed-price">${item.qty} × ${money(unit)} = <b>${money(unit * item.qty)}</b></p>
+      <div class="bd-packed-actions"><button type="button" class="bd-primary" data-bd-viewcart>View cart</button><button type="button" class="bd-secondary" data-bd-again>Design another</button></div></div>`;
+    body.querySelector('[data-bd-viewcart]').focus({ preventScroll: true });
+  }
+  function designAnother() {
+    packed = false; root.classList.remove('is-packing'); scene?.unpack();
+    state = blank(); past = []; future = []; editIndex = null; normalise(); lastHadMessage = false;
+    step = 'style'; renderBody(); renderPreview(); scheduleQuote(); saveDraft();
   }
 
   // ---- open / close -----------------------------------------------------------------------------
@@ -504,7 +525,7 @@
       root.querySelector('[data-bd-retry]').onclick = () => start({ fromCart });
       return;
     }
-    past = []; future = []; editIndex = null;
+    past = []; future = []; editIndex = null; packed = false; root.classList.remove('is-packing');
     if (fromCart !== null && cart[fromCart]?.customization?.designer === 'bento') {
       const c = cart[fromCart]; editIndex = fromCart;
       state = { ...blank(), ...c.customization, border: [...(c.customization.border || [])], accents: [...(c.customization.accents || [])], message: c.customization.message || '', topper_text: c.customization.topper_text || '', variant_id: c.variant_id, qty: c.qty };

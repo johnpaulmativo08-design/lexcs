@@ -136,3 +136,15 @@ body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="
 }
 @media (max-width:360px){.bd-step{font-size:.72rem}.bd-primary{padding:0 14px}}
 @media (prefers-reduced-motion:reduce){.bd-skeleton span::after{animation:none}}
+
+/* Packing animation + finish panel */
+#page-bento.is-packing .bd-steps, #page-bento.is-packing .bd-foot, #page-bento.is-packing .bd-tools, #page-bento.is-packing .bd-stage-bar, #page-bento.is-packing .bd-hint { display: none; }
+.bd-packed { display: grid; justify-items: center; gap: 10px; padding: 28px 8px; text-align: center; }
+.bd-packed h2 { margin: 0; font-family: 'Playfair Display', serif; font-size: 1.45rem; color: var(--plum, #5c3d6e); }
+.bd-packed .bd-note { max-width: 36ch; margin: 0; }
+.bd-packed-icon { font-size: 2.4rem; animation: bd-pop .5s ease-out; }
+.bd-packed-price { margin: 4px 0 6px; font-size: .95rem; color: #5b4a66; }
+.bd-packed-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.bd-packed-actions button { min-height: 44px; }
+@keyframes bd-pop { from { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.15); opacity: 1; } to { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .bd-packed-icon { animation: none; } }

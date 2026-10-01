@@ -172,6 +172,16 @@ function topperTexture(label) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
+function stickerTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#7551aa'; g.beginPath(); g.arc(128, 128, 124, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 6; g.setLineDash([10, 9]); g.beginPath(); g.arc(128, 128, 106, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = "italic 700 64px 'Playfair Display',serif"; g.fillText('LexC’s', 128, 112);
+  g.font = "600 26px 'DM Sans',sans-serif"; g.fillText('SNACKTIME', 128, 164);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
 export function createBentoScene(host, { reducedMotion = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -215,6 +225,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   const gingham = ginghamTexture(); track(gingham);
   const paper = new THREE.Mesh(track(new THREE.PlaneGeometry(3.0, 3.0, 8, 8)), track(M.cloth(0xffffff, gingham)));
   paper.rotation.x = -Math.PI / 2; paper.rotation.z = 0.08; paper.position.y = 0.005; paper.receiveShadow = true; fixed.add(paper);
+  fixed.children.forEach((o) => { o.visible = false; });   // no box while designing; the fallback shows the cake only
 
   const profile = [new THREE.Vector2(0, 0), new THREE.Vector2(R * 0.985, 0), new THREE.Vector2(R, 0.03)];
   for (let i = 0; i <= 10; i++) { const a = (i / 10) * Math.PI / 2; profile.push(new THREE.Vector2(R - 0.06 + 0.06 * Math.cos(a), H - 0.06 + 0.06 * Math.sin(a))); }
@@ -222,7 +233,15 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   const cakeMat = track(M.frosting(0xffffff));
   const cake = new THREE.Mesh(track(new THREE.LatheGeometry(profile, 96)), cakeMat); cake.castShadow = true; cake.receiveShadow = true; fixed.add(cake);
 
-  const decor = new THREE.Group(); world.add(decor);
+  // The cake (model + decorations) sits in "lift" so the packing animation can raise and lower it.
+  const lift = new THREE.Group(); world.add(lift);
+  const decor = new THREE.Group(); lift.add(decor);
+  // While designing, the cake stands on a white cake stand; the box only appears when it is packed.
+  const ceramic = track(new THREE.MeshPhysicalMaterial({ color: 0xfbf8ff, roughness: 0.28, clearcoat: 0.6, clearcoatRoughness: 0.2, envMapIntensity: 0.6, transparent: true }));
+  const stand = new THREE.Group(); world.add(stand);
+  for (const [r1, r2, h, y] of [[R * 1.32, R * 1.28, 0.07, -0.035], [0.2, 0.26, 0.42, -0.28], [0.72, 0.8, 0.06, -0.52]]) {
+    const part = new THREE.Mesh(track(new THREE.CylinderGeometry(r1, r2, h, 72)), ceramic); part.position.y = y; part.castShadow = true; part.receiveShadow = true; stand.add(part);
+  }
   const clearDecor = () => {
     decor.traverse((o) => { if (o.isMesh) { if (!o.userData.sharedGeometry) o.geometry.dispose(); if (!o.userData.sharedMaterial) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.map?.dispose(); m.dispose(); }); } });
     decor.clear();
@@ -231,7 +250,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   // --- camera orbit (drag / one-finger rotate, wheel / pinch zoom, arrow keys) ----------------------
   const view = { yaw: 0.55, pitch: 0.62, dist: 6.2 };
   const DEFAULT = { ...view };
-  const VIEWS = { default: DEFAULT, front: { yaw: 0, pitch: 0.3, dist: 5.8 }, top: { yaw: 0, pitch: 1.3, dist: 5.2 }, side: { yaw: Math.PI / 2, pitch: 0.42, dist: 6 } };
+  const VIEWS = { pack: { yaw: 0.6, pitch: 0.5, dist: 8.4 }, default: DEFAULT, front: { yaw: 0, pitch: 0.3, dist: 5.8 }, top: { yaw: 0, pitch: 1.3, dist: 5.2 }, side: { yaw: Math.PI / 2, pitch: 0.42, dist: 6 } };
   // Small animation system: runs only while something is moving, then the scene goes back to render-on-demand.
   const anims = new Set(); let spin = false, spinTimer = 0, lastTick = 0, spinAllowed = !reducedMotion;
   function animate(fn, ms) {
@@ -269,7 +288,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     camera.lookAt(0, 0.55, 0); if (render) request();
   }
   const el = renderer.domElement;
-  for (const type of ['pointerdown', 'wheel', 'keydown']) el.addEventListener(type, () => { anims.clear(); idle(); }, { passive: true });
+  for (const type of ['pointerdown', 'wheel', 'keydown']) el.addEventListener(type, () => { if (packing) return; anims.clear(); idle(); }, { passive: true });
   el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: view.dist }; } });
   el.addEventListener('pointermove', (e) => {
     const p = pointers.get(e.pointerId); if (!p) return;
@@ -341,9 +360,75 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     for (const name of ['border_top_shell', 'border_bottom_shell']) swap(parts[name], M.piped);
     swap(parts.drip, M.glaze); swap(parts.box_clamshell, M.pulp); swap(parts.gingham_paper, (c) => M.cloth(c));
     for (const name of ['flower_piped', 'leaf_piped']) if (templates[name]) swap(templates[name], M.piped);
-    model = { root, parts, templates, bow, topShellY: yTop(parts.border_top_shell), bottomShellY: yTop(parts.border_bottom_shell) };
-    fixed.visible = false; world.add(root);
+    model = { root, parts, templates, bow, topShellY: yTop(parts.border_top_shell), bottomShellY: yTop(parts.border_bottom_shell), pack: buildPack(parts) };
+    fixed.visible = false; lift.add(root);
     if (lastDesign) update(lastDesign, lastPalette); else request();
+  }
+  // --- packaging ---------------------------------------------------------------------------------
+  // The model's clamshell is one mesh with its lid standing open behind the base. Split it: triangles
+  // above the base rim become the lid, hung on a hinge along the base's back edge (model units).
+  const BASE_RIM = 0.0425, HINGE = new THREE.Vector3(0, 0.043, -0.079), LID_CLOSED = 1.83;
+  function buildPack(parts) {
+    const box = parts.box_clamshell; if (!box?.isMesh) return null;
+    const pack = new THREE.Group(); world.add(pack);
+    pack.attach(box); if (parts.gingham_paper) pack.attach(parts.gingham_paper);
+    const src = box.geometry.index ? box.geometry.toNonIndexed() : box.geometry.clone();
+    const names = Object.keys(src.attributes), pos = src.attributes.position, keepBase = [], keepLid = [];
+    for (let t = 0; t < pos.count; t += 3) ((pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3 > BASE_RIM ? keepLid : keepBase).push(t);
+    const subset = (tris) => {
+      const g = new THREE.BufferGeometry();
+      for (const name of names) {
+        const a = src.attributes[name], out = new a.array.constructor(tris.length * 3 * a.itemSize);
+        tris.forEach((t, i) => out.set(a.array.subarray(t * a.itemSize, (t + 3) * a.itemSize), i * 3 * a.itemSize));
+        g.setAttribute(name, new THREE.BufferAttribute(out, a.itemSize, a.normalized));
+      }
+      return g;
+    };
+    if (!keepLid.length) { src.dispose(); return null; }
+    box.geometry.dispose(); box.geometry = subset(keepBase);
+    const lid = new THREE.Mesh(subset(keepLid), box.material); lid.castShadow = lid.receiveShadow = true; src.dispose();
+    const hinge = new THREE.Group(); hinge.position.copy(HINGE); lid.position.copy(HINGE).negate(); hinge.add(lid); box.add(hinge);
+    const sticker = new THREE.Mesh(track(new THREE.CircleGeometry(0.42, 48)), track(new THREE.MeshPhysicalMaterial({ map: track(stickerTexture()), roughness: 0.4, clearcoat: 0.4, transparent: true })));
+    sticker.rotation.x = -Math.PI / 2; sticker.visible = false; pack.add(sticker);
+    pack.visible = false;
+    return { group: pack, hinge, lid, sticker };
+  }
+  const tween = (fn, ms) => new Promise((done) => animate((k) => { fn(k); if (k >= 1) done(); }, ms));
+  const wait = (ms) => new Promise((done) => setTimeout(done, reducedMotion ? 0 : ms));
+  let packing = null;
+  // Lift the cake off the stand, slide the open box underneath, lower the cake in, close the lid, seal it.
+  function pack() {
+    if (packing) return packing;
+    packing = (async () => {
+      const P = model?.pack; if (!P) return;
+      clearTimeout(spinTimer); spin = false; spinAllowed = false; anims.clear();
+      const toppers = []; decor.traverse((o) => { if (o.userData.topper) toppers.push(o); });
+      P.group.visible = true; P.group.position.set(0, 0, -7); P.hinge.rotation.x = 0; P.sticker.visible = false;
+      setView('pack'); clearTimeout(spinTimer);
+      await tween((k) => { lift.position.y = 0.95 * k; stand.position.y = -1.4 * k; ceramic.opacity = 1 - k; }, 750);
+      stand.visible = false;
+      await tween((k) => { P.group.position.z = -7 * (1 - k); }, 850);
+      await tween((k) => { lift.position.y = 0.95 * (1 - k); }, 650);
+      await wait(120);
+      await tween((k) => { P.hinge.rotation.x = LID_CLOSED * k; for (const t of toppers) t.scale.setScalar(Math.max(0.001, 1 - k * 1.6)); }, 950);
+      await tween((k) => { const b = Math.sin(k * Math.PI); world.scale.set(1 + 0.025 * b, 1 - 0.035 * b, 1 + 0.025 * b); }, 260);
+      world.scale.set(1, 1, 1);
+      world.updateMatrixWorld(true);
+      const top = new THREE.Box3().setFromObject(P.lid, true), c = top.getCenter(new THREE.Vector3());
+      P.sticker.position.set(c.x - P.group.position.x, top.max.y + 0.004, c.z - P.group.position.z);
+      P.sticker.visible = true;
+      await tween((k) => { P.sticker.scale.setScalar(Math.max(0.001, k < 0.7 ? k / 0.7 * 1.15 : 1.15 - (k - 0.7) / 0.3 * 0.15)); }, 420);
+      spinAllowed = !reducedMotion; idle();
+    })();
+    return packing;
+  }
+  // Back to designing: box away, cake on its stand.
+  function unpack() {
+    packing = null; anims.clear(); const P = model?.pack;
+    if (P) { P.group.visible = false; P.hinge.rotation.x = 0; P.sticker.visible = false; }
+    lift.position.y = 0; stand.position.y = 0; stand.visible = true; ceramic.opacity = 1; world.scale.set(1, 1, 1);
+    decor.traverse((o) => { if (o.userData.topper) o.scale.setScalar(1); });
+    spinAllowed = !reducedMotion; setView('default');
   }
   loadModel().catch((error) => { console.info('Bento model unavailable, using built-in shapes:', error?.message || error); model = null; fixed.visible = true; });
   const placeCopy = (tpl, x, y, z, rotY = 0) => {
@@ -469,7 +554,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
       face.position.y = 0.62; face.castShadow = true; topper.add(face);
       const stick = M.metal('#c9a227', 0.25);
       for (const x of [-0.28, 0.28]) { const s = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 6), stick); s.position.set(x, 0.25, 0); topper.add(s); }
-      topper.position.set(0, H - 0.05, -0.32); decor.add(topper);
+      topper.position.set(0, H - 0.05, -0.32); topper.userData.topper = true; decor.add(topper);
     }
   }
 
@@ -525,9 +610,10 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   }
   function dispose() {
     alive = false; clearTimeout(spinTimer); anims.clear(); spin = false; cancelAnimationFrame(frame); ro.disconnect(); clearDecor();
+    if (model?.pack) forEachMesh(model.pack.group, (m) => m.geometry.dispose());
     if (model) forEachMesh(model.root, (m) => { m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => { x.map?.dispose(); x.dispose(); }); });
     envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
   }
   idle();
-  return { update, resetView, setView, setAutoRotate: (on) => { spinAllowed = on && !reducedMotion; idle(); }, snapshot, dispose, canvas: renderer.domElement };
+  return { update, resetView, setView, setAutoRotate: (on) => { spinAllowed = on && !reducedMotion; idle(); }, snapshot, pack, unpack, dispose, canvas: renderer.domElement };
 }
