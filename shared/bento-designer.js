@@ -248,7 +248,7 @@
   }
 
   function afterChange(rerender = false) {
-    saveDraft(); renderPreview(); scheduleQuote(); updateFooter(); updateTools();
+    saveDraft(); renderPreview(); scheduleQuote(); updateFooter(); updateTools(); syncFontSheet();
     if (rerender) renderBody(); else refreshBodyState();
   }
 
@@ -301,7 +301,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=21');
+        const mod = await import('./bento-scene.js?v=22');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -370,12 +370,73 @@
       `<p class="bd-swatch-group" aria-hidden="true">${name}</p><div class="bd-swatches">${list.map((c) => swatch(field, current, c)).join('')}</div>`).join('')}</div>
       <p class="bd-swatch-name" aria-hidden="true">Selected: <b>${esc(opt('color', current)?.label || '')}</b></p>`;
   }
-  function fontPicker() {
-    const sample = (state.message.trim().split('\n')[0] || 'Happy Birthday').slice(0, 18), fonts = window.LexcBentoFonts || {};
-    return `<div class="bd-fonts" role="radiogroup" aria-label="Font">${(options.font || []).map((o) => { const f = fonts[o.code] || {};
-      return `<button type="button" role="radio" class="bd-font" data-bd-set="font" data-value="${esc(o.code)}" aria-checked="${o.code === state.font}">
-        <span class="bd-font-sample" style="font-family:'${esc(f.family || 'Nunito')}',sans-serif;font-weight:${f.weight || 700}">${esc(sample)}</span><small>${esc(o.label)}</small></button>`; }).join('')}</div>`;
+  // ---- Font: one compact button in the Message step opens a sheet of all fonts ---------------------
+  const FONT_GROUPS = ['All', 'Script', 'Classic', 'Modern', 'Fun', 'Gothic'];
+  let fontGroup = 'All', fontSheetOpen = false;
+  const fontInfo = (code) => (window.LexcBentoFonts || {})[code] || { family: 'Nunito', weight: 800, kind: 'Rounded', group: 'Classic' };
+  const fontSample = () => (state.message.trim().split('\n')[0] || 'Happy Birthday').slice(0, 24);
+  const fontStyle = (f) => `font-family:'${esc(f.family)}',sans-serif;font-weight:${f.weight}`;
+  function fontButton() {
+    const f = fontInfo(state.font), has = !!state.message.trim();
+    return `<button type="button" class="bd-font-open" data-bd-font-open aria-haspopup="dialog" aria-expanded="${fontSheetOpen}" ${has ? '' : 'disabled'}>
+      <span class="bd-font-current" style="${fontStyle(f)}">${esc(fontSample())}</span>
+      <span class="bd-font-meta"><b>${esc(opt('font', state.font)?.label || 'Rounded')}</b><small>${f.kind && f.kind !== opt('font', state.font)?.label ? esc(f.kind) + ' · ' : ''}${(options.font || []).length} fonts, all free</small></span>
+      <span class="bd-font-cta">Change</span></button>`;
   }
+  function fontSheetMarkup() {
+    const list = (options.font || []).filter((o) => fontGroup === 'All' || fontInfo(o.code).group === fontGroup);
+    return `<div class="bd-font-head"><h2 id="bd-font-title">Choose a font</h2><button type="button" class="bd-font-x" data-bd-font-done aria-label="Close fonts">×</button></div>
+      <div class="bd-font-groups" role="group" aria-label="Font style">${FONT_GROUPS.map((g) => `<button type="button" data-bd-font-group="${g}" aria-pressed="${g === fontGroup}">${g}</button>`).join('')}</div>
+      <p class="bd-font-tip" data-bd-font-tip aria-live="polite">${fontTip()}</p>
+      <div class="bd-font-list" role="radiogroup" aria-labelledby="bd-font-title">${list.map((o) => { const f = fontInfo(o.code);
+        return `<button type="button" role="radio" class="bd-font-item" data-bd-font-pick="${esc(o.code)}" aria-checked="${o.code === state.font}" tabindex="${o.code === state.font ? 0 : -1}">
+          <span class="bd-font-sample" style="${fontStyle(f)}">${esc(fontSample())}</span><span class="bd-font-name">${esc(o.label)}${f.kind && f.kind !== o.label ? `<small>${esc(f.kind)}</small>` : ''}</span></button>`; }).join('') || '<p class="bd-note">No fonts in this style right now.</p>'}</div>
+      <div class="bd-font-foot"><button type="button" class="bd-primary" data-bd-font-done>Done</button></div>`;
+  }
+  function fontTip() {
+    const f = fontInfo(state.font);
+    if (f.group === 'Script' && state.message.trim().length > 20) return 'Fancy scripts look best on short messages. For a long message, try a Classic or Modern font.';
+    if (f.group === 'Gothic') return 'Gothic letters are detailed, so a dark color on a light frosting reads best.';
+    return 'Tap a font and the cake updates right away.';
+  }
+  function renderFontSheet() {
+    const sheet = root.querySelector('[data-bd-font-sheet]'); if (!sheet) return;
+    sheet.innerHTML = fontSheetMarkup();
+  }
+  function syncFontSheet() {
+    const sheet = root.querySelector('[data-bd-font-sheet]'); if (!sheet || !fontSheetOpen) return;
+    sheet.querySelectorAll('[data-bd-font-pick]').forEach((b) => { const on = b.dataset.bdFontPick === state.font; b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; });
+    const tip = sheet.querySelector('[data-bd-font-tip]'); if (tip) tip.textContent = fontTip();
+  }
+  function openFontSheet() {
+    if (!state.message.trim()) return;
+    let sheet = root.querySelector('[data-bd-font-sheet]');
+    if (!sheet) { sheet = document.createElement('div'); sheet.className = 'bd-font-sheet'; sheet.dataset.bdFontSheet = ''; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-labelledby', 'bd-font-title'); root.querySelector('.bd-panel').append(sheet); }
+    fontSheetOpen = true; renderFontSheet(); sheet.hidden = false; root.classList.add('is-font-sheet');
+    root.querySelector('[data-bd-font-open]')?.setAttribute('aria-expanded', 'true');
+    if (scene) { scene.setView('top'); scene.setAutoRotate(false); }
+    (sheet.querySelector('[aria-checked="true"]') || sheet.querySelector('[data-bd-font-pick]'))?.focus({ preventScroll: true });
+  }
+  function closeFontSheet(returnFocus = true) {
+    const sheet = root?.querySelector('[data-bd-font-sheet]'); if (!sheet || !fontSheetOpen) return;
+    fontSheetOpen = false; sheet.hidden = true; root.classList.remove('is-font-sheet');
+    const btn = root.querySelector('[data-bd-font-open]'); btn?.setAttribute('aria-expanded', 'false'); if (returnFocus) btn?.focus({ preventScroll: true });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (!fontSheetOpen) return;
+    if (e.key === 'Escape') { e.preventDefault(); return closeFontSheet(); }
+    const items = [...root.querySelectorAll('[data-bd-font-pick]')], i = items.indexOf(document.activeElement);
+    if (i < 0 || !['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (i + (e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1) + items.length) % items.length;
+    items[next].focus(); items[next].click();
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!fontSheetOpen || e.target.closest('[data-bd-font-sheet],[data-bd-font-open]')) return;
+    // Taps on the cake preview keep the sheet open so customers can look closer.
+    if (e.target.closest('[data-bd-canvas],.bd-stage-bar')) return;
+    closeFontSheet(false);
+  });
   function contrastWarning() {
     const s = state; if (!s.message.trim()) return '';
     const bg = palette[s.frosting_color], fg = palette[s.lettering_color]; if (!bg || !fg) return '';
@@ -425,7 +486,7 @@
       <div class="bd-chips" style="margin-bottom:18px" aria-label="Message suggestions">${SUGGESTIONS.map((t) => `<button type="button" class="bd-chip" data-bd-suggest="${esc(t)}">${esc(t)}</button>`).join('')}</div>
       <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering <small>${s.message.trim() ? '' : 'Write a message first'}</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Lettering style">${(options.lettering || []).map((o) => `<button type="button" role="radio" class="bd-card" data-bd-set="lettering" data-value="${o.code}" aria-checked="${s.lettering === o.code}" ${s.message.trim() ? '' : 'disabled'}><strong>${esc(o.label)}</strong><span>${Number(o.price) > 0 ? '+' + money(o.price) : 'Included'}</span></button>`).join('')}</div></fieldset>
-      <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Font <small>${(options.font || []).length} styles · free</small></legend>${fontPicker()}</fieldset>
+      <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Font <small>${s.message.trim() ? '' : 'Write a message first'}</small></legend>${fontButton()}</fieldset>
       <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering color</legend>${s.message.trim() ? contrastWarning() + swatches('lettering_color', s.lettering_color, 'Lettering color') : '<p class="bd-note">Choose after writing your message.</p>'}</fieldset>`;
     }
     const v = variant(), ex = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : localExtras().lines;
@@ -512,6 +573,7 @@
     root.querySelector('[data-bd-redo]').disabled = !future.length;
   }
   function goStep(k, focusBody = true) {
+    closeFontSheet(false);
     step = k; renderBody(); saveDraft();
     if (scene) { scene.setView(k === 'message' ? 'top' : 'default'); scene.setAutoRotate(k !== 'message'); }
     if (focusBody) root.querySelector('#bd-body').focus({ preventScroll: true });
@@ -537,6 +599,10 @@
       if (t.dataset.bdSuggest) { const text = t.dataset.bdSuggest; return commit((s) => { s.message = text; }); }
       if (t.dataset.bdPreset) return applyPreset(t.dataset.bdPreset);
       if ('bdSurprise' in t.dataset) return surprise(t);
+      if ('bdFontOpen' in t.dataset) return fontSheetOpen ? closeFontSheet() : openFontSheet();
+      if ('bdFontDone' in t.dataset) return closeFontSheet();
+      if (t.dataset.bdFontGroup) { fontGroup = t.dataset.bdFontGroup; renderFontSheet(); return root.querySelector(`[data-bd-font-group="${fontGroup}"]`)?.focus(); }
+      if (t.dataset.bdFontPick) { const code = t.dataset.bdFontPick; commit((s) => { s.font = code; }); return announce(`${opt('font', code)?.label || 'Font'} selected`); }
       if (t.dataset.bdCam) return scene?.setView(t.dataset.bdCam);
       if ('bdBreakdown' in t.dataset) return toggleBreakdown();
       if (t.dataset.bdQty) return commit((s) => { s.qty += Number(t.dataset.bdQty); });
@@ -668,6 +734,7 @@
       root.querySelector('[data-bd-retry]').onclick = () => start({ fromCart });
       return;
     }
+    closeFontSheet(false);
     past = []; future = []; editIndex = null; packed = false; root.classList.remove('is-packing'); arranging = false; root.classList.remove('is-arranging');
     root.querySelector('[data-bd-arrange]')?.setAttribute('aria-pressed', 'false'); const arrangeBar = root.querySelector('[data-bd-arrange-bar]'); if (arrangeBar) arrangeBar.hidden = true;
     if (fromCart !== null && cart[fromCart]?.customization?.designer === 'bento') {

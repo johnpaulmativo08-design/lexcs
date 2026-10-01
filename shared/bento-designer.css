@@ -180,11 +180,42 @@ body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="
 .bd-canvas-box:has(.bd-topview:not([hidden])) .bd-scenes, #page-bento.is-packing .bd-scenes { display: none; }
 @media (max-width: 900px) { .bd-scenes button { min-height: 30px; padding: 4px 10px; } }
 
-/* Font picker */
-.bd-fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
-.bd-font { display: grid; gap: 2px; min-height: 64px; padding: 8px 10px; border: 1.5px solid #e5ddec; border-radius: 12px; background: #fff; color: #3d2a52; text-align: left; cursor: pointer; font: inherit; }
-.bd-font[aria-checked="true"] { border-color: #7551aa; background: #f7f2ff; box-shadow: 0 0 0 2px rgba(117, 81, 170, .18); }
-.bd-font:focus-visible { outline: 3px solid #9272db; outline-offset: 2px; }
-.bd-font-sample { font-size: 21px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #4f3163; }
-.bd-font small { color: #7a6a86; font-size: 11px; }
-fieldset[disabled] .bd-font { opacity: .55; cursor: not-allowed; }
+
+/* Font button + font sheet */
+.bd-panel { position: relative; }
+.bd-font-open { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "sample cta" "meta cta"; align-items: center; gap: 2px 12px; width: 100%; min-height: 64px; padding: 10px 14px; border: 1.5px solid #e5ddec; border-radius: 14px; background: #fff; color: #3d2a52; text-align: left; font: inherit; cursor: pointer; }
+.bd-font-open:hover:not(:disabled) { border-color: #b9a2e6; background: #fcfaff; }
+.bd-font-open:focus-visible { outline: 3px solid #9272db; outline-offset: 2px; }
+.bd-font-open:disabled { opacity: .55; cursor: not-allowed; }
+.bd-font-current { grid-area: sample; font-size: 24px; line-height: 1.25; color: #4f3163; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bd-font-meta { grid-area: meta; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; }
+.bd-font-meta small { color: #7a6a86; font-size: 12px; }
+.bd-font-cta { grid-area: cta; padding: 7px 14px; border-radius: 999px; background: #f1e9fd; color: #5b3a96; font-weight: 700; font-size: 13px; }
+.bd-font-sheet { position: absolute; inset: 0 0 auto 0; height: min(100%, calc(100vh - 120px)); min-height: 360px; z-index: 6; display: flex; flex-direction: column; background: #fff; border-radius: inherit; box-shadow: 0 10px 40px rgba(60, 30, 90, .18); animation: bd-sheet-in .18s ease-out; }
+.bd-font-sheet[hidden] { display: none; }
+.bd-font-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 6px; }
+.bd-font-sheet h2 { margin: 0; font-family: 'Playfair Display', serif; font-size: 1.25rem; color: #4f3163; }
+.bd-font-x { width: 40px; height: 40px; border: 0; border-radius: 50%; background: #f4eff9; color: #4f3163; font-size: 22px; cursor: pointer; }
+.bd-font-groups { display: flex; gap: 6px; padding: 4px 16px 6px; overflow-x: auto; scrollbar-width: none; }
+.bd-font-groups button { flex: none; min-height: 36px; padding: 6px 14px; border: 1.5px solid #e5ddec; border-radius: 999px; background: #fff; color: #5b4a66; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.bd-font-groups button[aria-pressed="true"] { background: #7551aa; border-color: #7551aa; color: #fff; }
+.bd-font-tip { margin: 2px 16px 8px; color: #6e5d7c; font-size: 12.5px; }
+.bd-font-list { flex: 1; overflow-y: auto; padding: 2px 16px 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; align-content: start; }
+.bd-font-item { display: grid; gap: 4px; min-height: 76px; padding: 10px 12px; border: 1.5px solid #ece4f3; border-radius: 14px; background: #fff; color: #3d2a52; text-align: left; font: inherit; cursor: pointer; }
+.bd-font-item:hover { border-color: #c9b5ec; }
+.bd-font-item[aria-checked="true"] { border-color: #7551aa; background: #f7f2ff; box-shadow: 0 0 0 2px rgba(117, 81, 170, .2); }
+.bd-font-item:focus-visible { outline: 3px solid #9272db; outline-offset: 2px; }
+.bd-font-sample { font-size: 26px; line-height: 1.2; color: #4f3163; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bd-font-name { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 600; }
+.bd-font-name small { color: #8a7a96; font-weight: 500; }
+.bd-font-foot { padding: 10px 16px 14px; border-top: 1px solid #f0eaf6; display: flex; justify-content: flex-end; }
+.bd-font-foot .bd-primary { min-width: 120px; }
+@keyframes bd-sheet-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (max-width: 900px) {
+  .bd-font-sheet { position: fixed; inset: auto 0 0 0; height: min(62vh, 560px); border-radius: 20px 20px 0 0; padding-bottom: env(safe-area-inset-bottom); animation-name: bd-sheet-up; }
+  .bd-font-list { grid-template-columns: 1fr 1fr; }
+  .bd-font-sample { font-size: 22px; }
+  #page-bento.is-font-sheet .bd-foot { visibility: hidden; }
+}
+@keyframes bd-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bd-font-sheet { animation: none; } }

@@ -133,10 +133,10 @@ function messageTextures(message, colorHex, style, fontCode = 'rounded') {
     lines.forEach((l, i) => { const y = top + i * lh; if (stroke) { ctx.lineWidth = stroke; ctx.strokeStyle = fill; ctx.strokeText(l, size / 2, y); } ctx.fillStyle = fill; ctx.fillText(l, size / 2, y); });
   };
   // A soft shadow on the frosting under the letters, then the letters in one solid colour.
-  const thick = fontSize * (style === 'pearl_letters' ? 0.15 : 0.12) * k;
+  const thick = fontSize * (style === 'pearl_letters' ? 0.075 : 0.055) * k;
   g.save(); g.filter = `blur(${Math.round(fontSize * 0.025)}px)`; g.globalAlpha = 0.22; g.translate(4, 7); drawText(g, 'rgba(40,20,50,1)', thick); g.restore();
   drawText(g, solid, thick);
-  hg.save(); hg.filter = `blur(${Math.round(fontSize * (style === 'pearl_letters' ? 0.06 : 0.04))}px)`; drawText(hg, '#fff', thick); hg.restore();
+  hg.save(); hg.filter = `blur(${Math.round(fontSize * (style === 'pearl_letters' ? 0.035 : 0.025))}px)`; drawText(hg, '#fff', thick); hg.restore();
   const map = new THREE.CanvasTexture(color); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
   const normalMap = new THREE.CanvasTexture(heightToNormal(height, style === 'pearl_letters' ? 4.5 : 3.5));
   return { map, normalMap };
