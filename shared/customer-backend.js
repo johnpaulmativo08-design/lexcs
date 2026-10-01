@@ -2,7 +2,7 @@
 let liveCatalog=[], liveSlots=[], selectedSlotId=null, checkoutSaving=false;
 function customerActionError(error,fallback){
  const message=String(error?.message||'');
- if(/no longer available|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp|choose (an available|a ribbon|a lettering|gold or silver)|keep the message|number topper|too many or repeated/i.test(message))return message;
+ if(/no longer available|enter a name|receiving slot|fully booked|delivery address|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp|choose (an available|a ribbon|a lettering|gold or silver)|keep the message|number topper|too many or repeated/i.test(message))return message;
  console.warn('Customer action failed:',error);
  return fallback;
 }
@@ -82,6 +82,9 @@ async function submitCheckout(){
   const selectedItems=cartSelectedItems();
   if(!selectedItems.length)return showToast('Select at least one cart item to place an order.');
  const field=id=>document.getElementById(id).value.trim();
+ const needField=(id,message)=>{const input=document.getElementById(id);input.focus();input.scrollIntoView({block:'center',behavior:'smooth'});showToast(message);};
+ if(!field('coName'))return needField('coName','Enter your full name.');
+ if(field('coContact').length<5||field('coContact').length>40)return needField('coContact','Enter a contact number, like 0917 123 4567.');
  if(!field('coDate')||!field('coTime'))return showToast('Choose a booking date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
   if(cartIsPaymentTest()&&(selectedItems.some(item=>!item.isTest)||selectedDelivery!=='Pick-up'))return showToast('Payment Test Product must be checked out separately for pickup.');
