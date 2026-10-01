@@ -890,7 +890,7 @@
     if (!state.loaded || state.stale) { state.stale = false; load(true); } else relayout();
   }
 
-  window.LexcFresh = Object.freeze({ show, compose: (opts = {}) => { if (!page.classList.contains('active')) navigate('fresh'); Composer.open(opts); } });
+  window.LexcFresh = Object.freeze({ show, open: showLive, compose: (opts = {}) => { if (!page.classList.contains('active')) navigate('fresh'); Composer.open(opts); } });
 
   // Deep links: ?post=<id> opens that published post, ?fresh=1 opens the feed (Admin shortcut).
   const params = new URL(location.href).searchParams;

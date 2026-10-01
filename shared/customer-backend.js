@@ -38,6 +38,7 @@ async function loadStorefront(){
     packageContainer.querySelectorAll('[data-package]').forEach(button => button.onclick = () => addPackageToCart(liveCatalog.find(p => p.id === button.dataset.package).name));
   }
   window.lexcCatalogState='ready';
+  document.dispatchEvent(new Event('lexc:catalog-ready'));
   renderShop();updateCategoryCounts();renderCart();renderGallery();
  }catch(error){console.warn('Storefront could not load:',error);window.lexcCatalogState='error';renderShop();renderGallery();if(packageContainer)packageContainer.innerHTML='<div class="shop-no-results" role="alert"><strong>Packages could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>';document.getElementById('checkoutPaymentMethods').innerHTML='<p role="alert">Payment methods could not load. <button type="button" class="btn-outline" onclick="loadStorefront()">Try again</button></p>';}
 }
@@ -213,6 +214,7 @@ function showReviewForm(orderId) {
 }
 async function loadPublicReviews() {
   const container = document.getElementById('publicReviews');
+  if (!container) return;   // the landing page no longer has a reviews block
   container.innerHTML=Array.from({length:3},()=>'<article class="t-card t-card-skeleton" aria-hidden="true"><span class="skel skel-line skel-line--long"></span><span class="skel skel-line"></span><div class="skel-list-row"><span class="skel skel-circle"></span><span class="skel skel-stack"><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span></span></div></article>').join('');
   container.setAttribute('aria-busy','true');
   try {
