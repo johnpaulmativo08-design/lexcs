@@ -294,3 +294,13 @@
 .product-img img,.product-detail-image img,.cart-item-emoji img,.gallery-item img,.admin-product img{background:#eee8f2;object-fit:cover}.product-detail-image{background:#eee8f2}
 .product-detail-image{position:relative;overflow:hidden}.product-detail-image img{opacity:0;transition:opacity .2s ease}.product-detail-image img.is-loaded{opacity:1}.product-detail-image-skeleton{position:absolute;inset:0;border-radius:0}
 @media(max-width:600px){.checkout-method-skeleton{grid-template-columns:1fr}.pkg-card-skeleton{min-height:250px}.gallery-item-skeleton{min-height:190px}.gallery-item-skeleton .skel-image{min-height:190px}}
+
+/* Phones: the bottom navigation floats as a rounded bar (inset from the edges, soft shadow);
+   the More menu and the Chat button sit above it, and Chat hides while the More menu is open. */
+@media(max-width:900px){
+  .customer-mobile-nav{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));padding:6px 4px;border:1px solid rgba(117,81,170,.14);border-radius:22px;background:rgba(255,255,255,.9);box-shadow:0 10px 30px rgba(40,20,60,.16),0 2px 6px rgba(40,20,60,.06)}
+  nav.customer-more-menu{bottom:calc(86px + env(safe-area-inset-bottom))}
+  body #customer-chat-toggle{bottom:calc(88px + env(safe-area-inset-bottom))}
+  body.customer-more-open #customer-chat-toggle{display:none}
+  body[data-customer-page="home"],body[data-customer-page="shop"],body[data-customer-page="orders"],body[data-customer-page="login"],body[data-customer-page="register"],body[data-customer-page="packages"],body[data-customer-page="gallery"],body[data-customer-page="fresh"]{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+}
