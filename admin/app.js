@@ -2,13 +2,13 @@ import { renderDashboard } from './pages/dashboard.js?v=8';
 import { renderProducts } from './pages/products.js?v=4';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=18';
 import { renderReports } from './pages/reports.js?v=5';
-import { renderOrders } from './pages/orders.js?v=15';
+import { renderOrders } from './pages/orders.js?v=16';
 import { renderBookings } from './pages/bookings.js?v=10';
 import { renderGallery } from './pages/gallery.js?v=3';
 import { renderDesignOptions } from './pages/design-options.js?v=3';
 import { renderProfile } from './pages/profile.js?v=3';
-import { mountChat } from '../shared/chat.js?v=9';
-import { mountChatWidget } from '../shared/chat-widget.js?v=7';
+import { mountChat } from '../shared/chat.js?v=10';
+import { mountChatWidget } from '../shared/chat-widget.js?v=8';
 import { icon } from './components.js?v=3';
 
 const groups = [

@@ -31,7 +31,7 @@ export async function ensureCustomerChat({userId,orderId=null}){
 // ---- Bento design card (posted by the database after a successful order, phase 33) ----------------
 // Each line shows the angled + top-view pictures (private storage, short-lived signed links),
 // the summary and price, and an "Open in 3D" link that rebuilds the exact design in the designer.
-const DESIGN_KEYS=['frosting_color','border','accents','bow_color','message','lettering','lettering_color','topper','topper_text'];
+const DESIGN_KEYS=['frosting_color','border','accents','bow_color','message','lettering','lettering_color','topper','topper_text','layout'];
 const siteIndex=new URL('../index.html',import.meta.url).href;
 function designLink(line){
   const d={};for(const key of DESIGN_KEYS)if(line.design?.[key]!=null)d[key]=line.design[key];

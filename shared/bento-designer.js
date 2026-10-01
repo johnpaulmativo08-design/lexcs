@@ -46,11 +46,12 @@
   let textTimer = 0, view3d = true, packed = false;
 
   const blank = () => ({ variant_id: product.product_variants.filter((v) => v.is_active)[0]?.id, frosting_color: 'white', border: [], accents: [], bow_color: 'pink',
-    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1 });
+    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {} });
   const design = () => ({ designer: 'bento', frosting_color: state.frosting_color, border: [...state.border], accents: [...state.accents],
     bow_color: state.accents.includes('ribbon_bows') ? state.bow_color : null, message: state.message.trim(),
     lettering: state.message.trim() ? state.lettering : null, lettering_color: state.message.trim() ? state.lettering_color : null,
-    topper: state.topper, topper_text: state.topper === 'number' ? state.topper_text : '' });
+    topper: state.topper, topper_text: state.topper === 'number' ? state.topper_text : '', layout: JSON.parse(JSON.stringify(state.layout || {})) });
+  const hasLayout = () => Object.keys(state.layout || {}).length > 0;
   const opt = (group, code) => options[group]?.find((o) => o.code === code);
   const variant = () => product.product_variants.find((v) => v.id === state.variant_id && v.is_active);
   const cfg = () => product.customization_config || {};
@@ -121,6 +122,12 @@
     state.topper_text = String(state.topper_text || '').replace(/\D/g, '').slice(0, 3);
     state.qty = Math.min(20, Math.max(1, Number(state.qty) || 1));
     if (!variant()) state.variant_id = product.product_variants.find((v) => v.is_active)?.id;
+    const L = state.layout && typeof state.layout === 'object' && !Array.isArray(state.layout) ? { ...state.layout } : {};
+    if (!state.accents.includes('piped_flowers')) delete L.flowers;
+    if (!state.accents.includes('ribbon_bows')) delete L.bows;
+    if (state.topper === 'none') delete L.topper;
+    if (!state.message.trim()) delete L.message;
+    state.layout = L;
   }
   function saveDraft() { try { if (editIndex === null) localStorage.setItem(DRAFT_KEY, JSON.stringify({ product_id: product.id, state, step })); } catch {} }
   function undo() { if (!past.length) return; future.push(snapshot()); state = JSON.parse(past.pop()); afterChange(true); }
@@ -149,7 +156,49 @@
       announce(`${name}: options opened`);
     });
   }
+  // ---- Scenes: where the cake is shown (Studio / Bakery counter / Party table) ---------------------
+  // A per-device preference only; the order pictures always use the plain Studio look.
+  const SCENE_KEY = 'lexc_bento_scene';
+  const savedScene = () => { try { const v = localStorage.getItem(SCENE_KEY); return ['studio', 'bakery', 'party'].includes(v) ? v : 'studio'; } catch { return 'studio'; } };
+  async function chooseScene(name, { quiet = false } = {}) {
+    if (!scene) return;
+    const group = root.querySelector('[data-bd-scenes]'); group.classList.add('is-loading');
+    const mark = (n) => group.querySelectorAll('[data-bd-scene]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.bdScene === n)));
+    mark(name);
+    const shown = await scene.setScene(name);
+    group.classList.remove('is-loading'); mark(shown);
+    try { localStorage.setItem(SCENE_KEY, shown); } catch {}
+    if (shown !== name && !quiet) showToast('That scene could not load right now, so the cake is shown in the studio.');
+    else if (!quiet && name !== 'studio') announce(`${name === 'bakery' ? 'Bakery counter' : 'Party table'} scene. Colors stay true to life.`);
+  }
+
+  // ---- Arrange mode: drag decorations; each drag is one undoable change ----------------------------
+  let arranging = false;
+  function toggleArrange(on) {
+    if (on && (!scene || !view3d)) return showToast('Switch to the 3D preview to arrange decorations.');
+    if (on && !scene.hasMovable()) return showToast('Add flowers, ribbon bows, a message or a topper first, then arrange them.');
+    arranging = !!scene?.setArrange(on);
+    const btn = root.querySelector('[data-bd-arrange]'); btn.setAttribute('aria-pressed', String(arranging));
+    root.querySelector('[data-bd-arrange-bar]').hidden = !arranging; root.classList.toggle('is-arranging', arranging);
+    if (arranging) announce('Arrange mode on. Drag decorations on the cake to move them.');
+  }
+  function moveDecoration(kind, index, value) {
+    commit((s) => {
+      const L = { ...(s.layout || {}) };
+      if (kind === 'flowers' || kind === 'bows') { const list = [...(L[kind] || [])]; while (list.length <= index) list.push(null); list[index] = value; L[kind] = list; }
+      else L[kind] = value;
+      s.layout = L;
+    });
+  }
+  const MOVE_NAMES = { flowers: 'Flower', bows: 'Ribbon bow', topper: 'Topper', message: 'Message' };
   function hoverTip(part, x, y) {
+    if (part && part.startsWith('move:')) {
+      const box = root?.querySelector('[data-bd-canvas]'); if (!box) return;
+      let tip = box.querySelector('.bd-pick-tip'); if (!tip) { tip = document.createElement('span'); tip.className = 'bd-pick-tip'; tip.setAttribute('aria-hidden', 'true'); box.append(tip); }
+      const r = box.getBoundingClientRect(); tip.textContent = `${MOVE_NAMES[part.slice(5)] || 'Decoration'} · drag to move`; tip.hidden = false;
+      tip.style.left = Math.min(r.width - 12, Math.max(12, x - r.left)) + 'px'; tip.style.top = Math.max(10, y - r.top - 14) + 'px';
+      return;
+    }
     const box = root?.querySelector('[data-bd-canvas]'); if (!box) return;
     let tip = box.querySelector('.bd-pick-tip');
     if (!part || !PICK[part]) { if (tip) tip.hidden = true; return; }
@@ -246,9 +295,10 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=15');
+        const mod = await import('./bento-scene.js?v=20');
         if (!root.isConnected || currentPage !== 'bento') return;
-        scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip });
+        scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
+        if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
         if (step === 'message') { scene.setView('top'); scene.setAutoRotate(false); }
       } catch (error) {
         console.info('3D preview unavailable, using top view:', error?.message || error);
@@ -279,13 +329,16 @@
           <div class="bd-canvas-box" data-bd-canvas>
             <div class="bd-skeleton" aria-hidden="true"><span></span></div>
             <div class="bd-topview" data-bd-top hidden></div>
+            <div class="bd-scenes" role="group" aria-label="Scene" data-bd-scenes>${[['studio', 'Studio'], ['bakery', 'Bakery'], ['party', 'Party']].map(([k, l]) => `<button type="button" data-bd-scene="${k}" aria-pressed="${k === 'studio'}">${l}</button>`).join('')}</div>
             <p class="bd-stage-msg" data-bd-stage-msg role="status" hidden>3D preview isn’t available on this device, so you’re seeing a top view. Every option still works.</p>
           </div>
           <div class="bd-stage-bar">
             <div class="bd-seg" role="group" aria-label="Preview type"><button type="button" data-bd-view="3d" aria-pressed="true">3D</button><button type="button" data-bd-view="top" aria-pressed="false">Top view</button></div>
             <div class="bd-seg bd-cams" role="group" aria-label="Camera"><button type="button" data-bd-cam="front">Front</button><button type="button" data-bd-cam="top">Top</button><button type="button" data-bd-cam="side">Side</button></div>
+            <button type="button" class="bd-tool bd-arrange" data-bd-arrange aria-pressed="false" aria-label="Arrange decorations" title="Move decorations">✋<span>Arrange</span></button>
             <button type="button" class="bd-tool" data-bd-resetview aria-label="Reset view">${icon('view')}<span>Reset</span></button>
           </div>
+          <p class="bd-arrange-bar" data-bd-arrange-bar hidden><span>Drag the flowers, bows, topper or message to move them.</span><button type="button" class="bd-link" data-bd-arrange-reset>Reset positions</button><button type="button" class="bd-link" data-bd-arrange-done>Done</button></p>
           <p class="bd-hint">Tap any part of the cake to change it. Drag to turn, scroll or pinch to zoom. The preview is a guide — handmade decorations vary slightly.</p>
         </section>
         <section class="bd-panel" aria-label="Design options">
@@ -368,6 +421,7 @@
         <li><span>Decorations</span><strong>${s.accents.length ? s.accents.map((c) => esc(opt('accent', c).label) + (c === 'ribbon_bows' ? ' (' + esc(opt('color', s.bow_color)?.label) + ')' : '')).join(', ') : 'None'}</strong></li>
         <li><span>Message</span><strong>${s.message.trim() ? '“' + esc(s.message.trim()) + '”\n' + esc(opt('lettering', s.lettering)?.label) + ', ' + esc(opt('color', s.lettering_color)?.label) : 'None'}</strong></li>
         <li><span>Topper</span><strong>${esc(opt('topper', s.topper)?.label)}${s.topper === 'number' ? ' ' + esc(s.topper_text) : ''}</strong></li>
+        ${hasLayout() ? '<li><span>Placement</span><strong>Arranged by you</strong></li>' : ''}
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       <div class="bd-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -470,8 +524,11 @@
       if (t.dataset.bdCam) return scene?.setView(t.dataset.bdCam);
       if ('bdBreakdown' in t.dataset) return toggleBreakdown();
       if (t.dataset.bdQty) return commit((s) => { s.qty += Number(t.dataset.bdQty); });
-      if (t.dataset.bdView) { view3d = t.dataset.bdView === '3d'; syncViewButtons(); if (view3d) ensureScene(); return renderPreview(); }
+      if (t.dataset.bdView) { if (arranging) toggleArrange(false); view3d = t.dataset.bdView === '3d'; syncViewButtons(); if (view3d) ensureScene(); return renderPreview(); }
       if ('bdResetview' in t.dataset) return scene?.resetView();
+      if (t.dataset.bdScene) return chooseScene(t.dataset.bdScene);
+      if ('bdArrange' in t.dataset || 'bdArrangeDone' in t.dataset) return toggleArrange('bdArrangeDone' in t.dataset ? false : !arranging);
+      if ('bdArrangeReset' in t.dataset) { if (!hasLayout()) return; commit((s) => { s.layout = {}; }); return showToast('Decorations are back in their usual places. Tap Undo to bring your arrangement back.'); }
       if ('bdUndo' in t.dataset) return undo();
       if ('bdRedo' in t.dataset) return redo();
       if ('bdReset' in t.dataset) return resetDesign();
@@ -557,6 +614,7 @@
     try { localStorage.removeItem(DRAFT_KEY); } catch {}
     renderCart();
     // The cake is packed into its box on screen, then a finish panel offers the cart or a new design.
+    if (arranging) toggleArrange(false);
     packed = true; root.classList.add('is-packing');
     const unit = Number(v.price) + quote.extra, summary = esc(quote.clean.summary || '');
     const body = root.querySelector('#bd-body');
@@ -594,7 +652,8 @@
       root.querySelector('[data-bd-retry]').onclick = () => start({ fromCart });
       return;
     }
-    past = []; future = []; editIndex = null; packed = false; root.classList.remove('is-packing');
+    past = []; future = []; editIndex = null; packed = false; root.classList.remove('is-packing'); arranging = false; root.classList.remove('is-arranging');
+    root.querySelector('[data-bd-arrange]')?.setAttribute('aria-pressed', 'false'); const arrangeBar = root.querySelector('[data-bd-arrange-bar]'); if (arrangeBar) arrangeBar.hidden = true;
     if (fromCart !== null && cart[fromCart]?.customization?.designer === 'bento') {
       const c = cart[fromCart]; editIndex = fromCart;
       state = { ...blank(), ...c.customization, border: [...(c.customization.border || [])], accents: [...(c.customization.accents || [])], message: c.customization.message || '', topper_text: c.customization.topper_text || '', variant_id: c.variant_id, qty: c.qty };
