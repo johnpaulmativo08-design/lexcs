@@ -175,11 +175,27 @@
     else if (!quiet && name !== 'studio') announce(`${name === 'bakery' ? 'Bakery counter' : 'Party table'} scene. Colors stay true to life.`);
   }
 
+  // ---- Phones: the 3D preview shrinks to a small floating cake while the options are scrolled -------
+  let compact = false, compactFrame = 0;
+  function compactStage(on) {
+    if (!root || compact === on) return; compact = on; root.classList.toggle('is-compact', on);
+    root.querySelector('[data-bd-expand]')?.toggleAttribute('hidden', !on);
+  }
+  window.addEventListener('scroll', () => {
+    if (compactFrame || !root || currentPage !== 'bento') return;
+    compactFrame = requestAnimationFrame(() => {
+      compactFrame = 0;
+      const phone = matchMedia('(max-width: 900px)').matches;
+      compactStage(phone && !packed && !arranging && window.scrollY > 90);
+    });
+  }, { passive: true });
+
   // ---- Arrange mode: drag decorations; each drag is one undoable change ----------------------------
   let arranging = false;
   function toggleArrange(on) {
     if (on && (!scene || !view3d)) return showToast('Switch to the 3D preview to arrange decorations.');
     if (on && !scene.hasMovable()) return showToast('Add flowers, ribbon bows, a message or a topper first, then arrange them.');
+    if (on) { compactStage(false); window.scrollTo({ top: 0 }); }
     arranging = !!scene?.setArrange(on);
     const btn = root.querySelector('[data-bd-arrange]'); btn.setAttribute('aria-pressed', String(arranging));
     root.querySelector('[data-bd-arrange-bar]').hidden = !arranging; root.classList.toggle('is-arranging', arranging);
@@ -248,7 +264,7 @@
   }
 
   function afterChange(rerender = false) {
-    saveDraft(); renderPreview(); scheduleQuote(); updateFooter(); updateTools(); syncFontSheet();
+    saveDraft(); renderPreview(); scheduleQuote(); updateFooter(); updateTools(); syncSheet();
     if (rerender) renderBody(); else refreshBodyState();
   }
 
@@ -335,6 +351,7 @@
           <div class="bd-canvas-box" data-bd-canvas>
             <div class="bd-skeleton" aria-hidden="true"><span></span></div>
             <div class="bd-topview" data-bd-top hidden></div>
+            <button type="button" class="bd-expand" data-bd-expand hidden aria-label="Show the bigger preview">⤢ Bigger</button>
             <div class="bd-scenes" role="group" aria-label="Scene" data-bd-scenes>${[['studio', 'Studio'], ['bakery', 'Bakery'], ['party', 'Party']].map(([k, l]) => `<button type="button" data-bd-scene="${k}" aria-pressed="${k === 'studio'}">${l}</button>`).join('')}</div>
             <p class="bd-stage-msg" data-bd-stage-msg role="status" hidden>3D preview isn’t available on this device, so you’re seeing a top view. Every option still works.</p>
           </div>
@@ -362,36 +379,71 @@
   }
 
   const swatch = (field, current, c) => `<button type="button" role="radio" class="bd-swatch" style="background:${c.hex}" data-bd-set="${field}" data-value="${c.code}" aria-checked="${c.code === current}" aria-label="${esc(c.label)}" title="${esc(c.label)}"></button>`;
-  function swatches(field, current, label) {
+  // Popular colours first; the full 24 open with "More colors" (remembered per field while designing).
+  const POPULAR = {
+    frosting_color: ['white', 'blush', 'baby_pink', 'lavender', 'lilac', 'baby_blue', 'mint', 'butter'],
+    bow_color: ['pink', 'hot_pink', 'red', 'white', 'lavender', 'baby_blue', 'burgundy', 'black'],
+    drip_color: ['chocolate', 'white', 'pink', 'red', 'lavender', 'butter', 'burgundy', 'black']
+  };
+  const expandedColors = new Set();
+  function swatches(field, current, label, { full = false } = {}) {
+    const popular = POPULAR[field];
+    if (popular && !full && !expandedColors.has(field)) {
+      const list = [...popular, ...(current && !popular.includes(current) ? [current] : [])].map((c) => opt('color', c)).filter(Boolean);
+      return `<div role="radiogroup" aria-label="${label}"><div class="bd-swatches">${list.map((c) => swatch(field, current, c)).join('')}</div></div>
+        <div class="bd-swatch-row"><p class="bd-swatch-name" aria-hidden="true">Selected: <b>${esc(opt('color', current)?.label || 'Matching')}</b></p>
+        <button type="button" class="bd-more-colors" data-bd-more="${field}" aria-expanded="false">+${Math.max(0, options.color.length - list.length)} more colors</button></div>`;
+    }
     const known = new Set(COLOR_GROUPS.flatMap(([, codes]) => codes));
     const groups = COLOR_GROUPS.map(([name, codes]) => [name, codes.map((c) => opt('color', c)).filter(Boolean)]);
     const extra = options.color.filter((c) => !known.has(c.code)); if (extra.length) groups.push(['More', extra]);
     return `<div role="radiogroup" aria-label="${label}">${groups.filter(([, list]) => list.length).map(([name, list]) =>
       `<p class="bd-swatch-group" aria-hidden="true">${name}</p><div class="bd-swatches">${list.map((c) => swatch(field, current, c)).join('')}</div>`).join('')}</div>
-      <p class="bd-swatch-name" aria-hidden="true">Selected: <b>${esc(opt('color', current)?.label || '')}</b></p>`;
+      <div class="bd-swatch-row"><p class="bd-swatch-name" aria-hidden="true">Selected: <b>${esc(opt('color', current)?.label || (field === 'drip_color' ? 'Matching' : ''))}</b></p>
+      ${popular && !full ? `<button type="button" class="bd-more-colors" data-bd-more="${field}" aria-expanded="true">Fewer colors</button>` : ''}</div>`;
   }
-  // ---- Font: one compact button in the Message step opens a sheet of all fonts ---------------------
+  // ---- Sheets: Font and Lettering color open from compact buttons in the Message step ---------------
+  // The cake updates as soon as something is picked; Done, Esc or tapping outside closes the sheet.
   const FONT_GROUPS = ['All', 'Script', 'Classic', 'Modern', 'Fun', 'Gothic'];
-  let fontGroup = 'All', fontSheetOpen = false;
+  let fontGroup = 'All', sheetKind = null;
   const fontInfo = (code) => (window.LexcBentoFonts || {})[code] || { family: 'Nunito', weight: 800, kind: 'Rounded', group: 'Classic' };
   const fontSample = () => (state.message.trim().split('\n')[0] || 'Happy Birthday').slice(0, 24);
   const fontStyle = (f) => `font-family:'${esc(f.family)}',sans-serif;font-weight:${f.weight}`;
+  const readability = () => {
+    const bg = palette[state.frosting_color], fg = palette[state.lettering_color]; if (!bg || !fg) return ['', ''];
+    const r = contrast(bg, fg); return r >= 3 ? ['good', 'Easy to read'] : r >= 2.2 ? ['ok', 'Readable'] : ['low', 'Hard to read'];
+  };
   function fontButton() {
-    const f = fontInfo(state.font), has = !!state.message.trim();
-    return `<button type="button" class="bd-font-open" data-bd-font-open aria-haspopup="dialog" aria-expanded="${fontSheetOpen}" ${has ? '' : 'disabled'}>
-      <span class="bd-font-current" style="${fontStyle(f)}">${esc(fontSample())}</span>
-      <span class="bd-font-meta"><b>${esc(opt('font', state.font)?.label || 'Rounded')}</b><small>${f.kind && f.kind !== opt('font', state.font)?.label ? esc(f.kind) + ' · ' : ''}${(options.font || []).length} fonts, all free</small></span>
-      <span class="bd-font-cta">Change</span></button>`;
+    const f = fontInfo(state.font), has = !!state.message.trim(), label = opt('font', state.font)?.label || 'Rounded';
+    return `<button type="button" class="bd-pick-open" data-bd-sheet-open="font" aria-haspopup="dialog" aria-expanded="${sheetKind === 'font'}" ${has ? '' : 'disabled'}>
+      <span class="bd-pick-current" style="${fontStyle(f)}">${esc(fontSample())}</span>
+      <span class="bd-pick-meta"><b>${esc(label)}</b><small>${f.kind && f.kind !== label ? esc(f.kind) + ' · ' : ''}${(options.font || []).length} fonts, all free</small></span>
+      <span class="bd-pick-cta">Change</span></button>`;
   }
-  function fontSheetMarkup() {
+  function letteringColorButton() {
+    const f = fontInfo(state.font), [level, words] = readability(), has = !!state.message.trim();
+    return `<button type="button" class="bd-pick-open" data-bd-sheet-open="lettering_color" aria-haspopup="dialog" aria-expanded="${sheetKind === 'lettering_color'}" ${has ? '' : 'disabled'}>
+      <span class="bd-pick-current"><span class="bd-lc-chip" style="background:${palette[state.frosting_color] || '#fff'}"><span style="${fontStyle(f)};color:${palette[state.lettering_color] || '#4f3163'}">Aa</span></span>${esc(opt('color', state.lettering_color)?.label || '')}</span>
+      <span class="bd-pick-meta"><small class="bd-read is-${level}">${words}</small><small>on ${esc(opt('color', state.frosting_color)?.label.toLowerCase() || '')} frosting · ${options.color.length} colors</small></span>
+      <span class="bd-pick-cta">Change</span></button>`;
+  }
+  function sheetMarkup() {
+    if (sheetKind === 'lettering_color') {
+      const f = fontInfo(state.font), [level, words] = readability();
+      return `<div class="bd-sheet-head"><h2 id="bd-sheet-title">Lettering color</h2><button type="button" class="bd-sheet-x" data-bd-sheet-done aria-label="Close lettering colors">×</button></div>
+        <div class="bd-lc-preview" data-bd-lc-preview style="background:${palette[state.frosting_color] || '#fff'}"><span style="${fontStyle(f)};color:${palette[state.lettering_color] || '#4f3163'}">${esc(fontSample())}</span></div>
+        <p class="bd-sheet-tip" data-bd-sheet-tip aria-live="polite"><span class="bd-read is-${level}">${words}</span> on ${esc(opt('color', state.frosting_color)?.label.toLowerCase() || '')} frosting. Colors marked with a dot are hard to read on this frosting.</p>
+        <div class="bd-sheet-scroll">${swatches('lettering_color', state.lettering_color, 'Lettering color', { full: true })}</div>
+        <div class="bd-sheet-foot"><button type="button" class="bd-primary" data-bd-sheet-done>Done</button></div>`;
+    }
     const list = (options.font || []).filter((o) => fontGroup === 'All' || fontInfo(o.code).group === fontGroup);
-    return `<div class="bd-font-head"><h2 id="bd-font-title">Choose a font</h2><button type="button" class="bd-font-x" data-bd-font-done aria-label="Close fonts">×</button></div>
+    return `<div class="bd-sheet-head"><h2 id="bd-sheet-title">Choose a font</h2><button type="button" class="bd-sheet-x" data-bd-sheet-done aria-label="Close fonts">×</button></div>
       <div class="bd-font-groups" role="group" aria-label="Font style">${FONT_GROUPS.map((g) => `<button type="button" data-bd-font-group="${g}" aria-pressed="${g === fontGroup}">${g}</button>`).join('')}</div>
-      <p class="bd-font-tip" data-bd-font-tip aria-live="polite">${fontTip()}</p>
-      <div class="bd-font-list" role="radiogroup" aria-labelledby="bd-font-title">${list.map((o) => { const f = fontInfo(o.code);
+      <p class="bd-sheet-tip" data-bd-sheet-tip aria-live="polite">${fontTip()}</p>
+      <div class="bd-font-list" role="radiogroup" aria-labelledby="bd-sheet-title">${list.map((o) => { const f = fontInfo(o.code);
         return `<button type="button" role="radio" class="bd-font-item" data-bd-font-pick="${esc(o.code)}" aria-checked="${o.code === state.font}" tabindex="${o.code === state.font ? 0 : -1}">
           <span class="bd-font-sample" style="${fontStyle(f)}">${esc(fontSample())}</span><span class="bd-font-name">${esc(o.label)}${f.kind && f.kind !== o.label ? `<small>${esc(f.kind)}</small>` : ''}</span></button>`; }).join('') || '<p class="bd-note">No fonts in this style right now.</p>'}</div>
-      <div class="bd-font-foot"><button type="button" class="bd-primary" data-bd-font-done>Done</button></div>`;
+      <div class="bd-sheet-foot"><button type="button" class="bd-primary" data-bd-sheet-done>Done</button></div>`;
   }
   function fontTip() {
     const f = fontInfo(state.font);
@@ -399,32 +451,49 @@
     if (f.group === 'Gothic') return 'Gothic letters are detailed, so a dark color on a light frosting reads best.';
     return 'Tap a font and the cake updates right away.';
   }
-  function renderFontSheet() {
-    const sheet = root.querySelector('[data-bd-font-sheet]'); if (!sheet) return;
-    sheet.innerHTML = fontSheetMarkup();
+  // Mark lettering colours that are hard to read on the current frosting.
+  function markLowContrast(sheet) {
+    const bg = palette[state.frosting_color]; if (!bg) return;
+    sheet.querySelectorAll('[data-bd-set="lettering_color"]').forEach((b) => { const low = contrast(bg, palette[b.dataset.value] || bg) < 2.2; b.classList.toggle('is-low', low); b.title = opt('color', b.dataset.value)?.label + (low ? ' (hard to read on this frosting)' : ''); });
   }
-  function syncFontSheet() {
-    const sheet = root.querySelector('[data-bd-font-sheet]'); if (!sheet || !fontSheetOpen) return;
-    sheet.querySelectorAll('[data-bd-font-pick]').forEach((b) => { const on = b.dataset.bdFontPick === state.font; b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; });
-    const tip = sheet.querySelector('[data-bd-font-tip]'); if (tip) tip.textContent = fontTip();
+  function renderSheet() {
+    const sheet = root.querySelector('[data-bd-sheet]'); if (!sheet || !sheetKind) return;
+    sheet.innerHTML = sheetMarkup(); sheet.setAttribute('aria-labelledby', 'bd-sheet-title');
+    if (sheetKind === 'lettering_color') markLowContrast(sheet);
   }
-  function openFontSheet() {
+  // After each change: update the open sheet in place (keeps its scroll position and focus).
+  function syncSheet() {
+    const sheet = root.querySelector('[data-bd-sheet]'); if (!sheet || !sheetKind) return;
+    if (sheetKind === 'font') {
+      sheet.querySelectorAll('[data-bd-font-pick]').forEach((b) => { const on = b.dataset.bdFontPick === state.font; b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; });
+      const tip = sheet.querySelector('[data-bd-sheet-tip]'); if (tip) tip.textContent = fontTip();
+      return;
+    }
+    const f = fontInfo(state.font), [level, words] = readability(), preview = sheet.querySelector('[data-bd-lc-preview]');
+    if (preview) { preview.style.background = palette[state.frosting_color] || '#fff'; preview.firstElementChild.setAttribute('style', `${fontStyle(f)};color:${palette[state.lettering_color] || '#4f3163'}`); }
+    sheet.querySelectorAll('[data-bd-set="lettering_color"]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.value === state.lettering_color)));
+    const name = sheet.querySelector('.bd-swatch-name b'); if (name) name.textContent = opt('color', state.lettering_color)?.label || '';
+    const tip = sheet.querySelector('[data-bd-sheet-tip] .bd-read'); if (tip) { tip.className = `bd-read is-${level}`; tip.textContent = words; }
+  }
+  function openSheet(kind) {
     if (!state.message.trim()) return;
-    let sheet = root.querySelector('[data-bd-font-sheet]');
-    if (!sheet) { sheet = document.createElement('div'); sheet.className = 'bd-font-sheet'; sheet.dataset.bdFontSheet = ''; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-labelledby', 'bd-font-title'); root.querySelector('.bd-panel').append(sheet); }
-    fontSheetOpen = true; renderFontSheet(); sheet.hidden = false; root.classList.add('is-font-sheet');
-    root.querySelector('[data-bd-font-open]')?.setAttribute('aria-expanded', 'true');
+    if (sheetKind) closeSheet(false);
+    let sheet = root.querySelector('[data-bd-sheet]');
+    if (!sheet) { sheet = document.createElement('div'); sheet.className = 'bd-sheet'; sheet.dataset.bdSheet = ''; sheet.setAttribute('role', 'dialog'); root.querySelector('.bd-panel').append(sheet); }
+    sheetKind = kind; renderSheet(); sheet.hidden = false; root.classList.add('is-sheet');
+    root.querySelector(`[data-bd-sheet-open="${kind}"]`)?.setAttribute('aria-expanded', 'true');
     if (scene) { scene.setView('top'); scene.setAutoRotate(false); }
-    (sheet.querySelector('[aria-checked="true"]') || sheet.querySelector('[data-bd-font-pick]'))?.focus({ preventScroll: true });
+    (sheet.querySelector('[aria-checked="true"]') || sheet.querySelector('[data-bd-font-pick],[data-bd-set]'))?.focus({ preventScroll: true });
   }
-  function closeFontSheet(returnFocus = true) {
-    const sheet = root?.querySelector('[data-bd-font-sheet]'); if (!sheet || !fontSheetOpen) return;
-    fontSheetOpen = false; sheet.hidden = true; root.classList.remove('is-font-sheet');
-    const btn = root.querySelector('[data-bd-font-open]'); btn?.setAttribute('aria-expanded', 'false'); if (returnFocus) btn?.focus({ preventScroll: true });
+  function closeSheet(returnFocus = true) {
+    const sheet = root?.querySelector('[data-bd-sheet]'); if (!sheet || !sheetKind) return;
+    const kind = sheetKind; sheetKind = null; sheet.hidden = true; root.classList.remove('is-sheet');
+    const btn = root.querySelector(`[data-bd-sheet-open="${kind}"]`); btn?.setAttribute('aria-expanded', 'false'); if (returnFocus) btn?.focus({ preventScroll: true });
   }
   document.addEventListener('keydown', (e) => {
-    if (!fontSheetOpen) return;
-    if (e.key === 'Escape') { e.preventDefault(); return closeFontSheet(); }
+    if (!sheetKind) return;
+    if (e.key === 'Escape') { e.preventDefault(); return closeSheet(); }
+    if (sheetKind !== 'font') return;
     const items = [...root.querySelectorAll('[data-bd-font-pick]')], i = items.indexOf(document.activeElement);
     if (i < 0 || !['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
     e.preventDefault();
@@ -432,11 +501,20 @@
     items[next].focus(); items[next].click();
   });
   document.addEventListener('pointerdown', (e) => {
-    if (!fontSheetOpen || e.target.closest('[data-bd-font-sheet],[data-bd-font-open]')) return;
+    if (!sheetKind || e.target.closest('[data-bd-sheet],[data-bd-sheet-open]')) return;
     // Taps on the cake preview keep the sheet open so customers can look closer.
     if (e.target.closest('[data-bd-canvas],.bd-stage-bar')) return;
-    closeFontSheet(false);
+    closeSheet(false);
   });
+  function reviewChecklist() {
+    const s = state, todo = [];
+    if (!s.border.length && !s.accents.length) todo.push(['No border or decorations yet.', 'Decorate', 'decorate']);
+    if (!s.message.trim()) todo.push(['No message on the cake.', 'Add a message', 'message']);
+    else if (palette[s.frosting_color] && palette[s.lettering_color] && contrast(palette[s.frosting_color], palette[s.lettering_color]) < 2.2) todo.push(['The message may be hard to read.', 'Fix the color', 'message']);
+    if (!todo.length) return '<p class="bd-check is-ready" role="status"><span aria-hidden="true">✓</span> Everything is set. Your cake is ready for the cart.</p>';
+    return `<div class="bd-check" role="group" aria-label="Before you add to cart"><p>Before you add to cart <small>(all optional)</small></p>${todo.map(([text, action, k]) =>
+      `<div class="bd-check-item"><span>${text}</span><button type="button" class="bd-link" data-bd-step="${k}">${action}</button></div>`).join('')}</div>`;
+  }
   function contrastWarning() {
     const s = state; if (!s.message.trim()) return '';
     const bg = palette[s.frosting_color], fg = palette[s.lettering_color]; if (!bg || !fg) return '';
@@ -487,10 +565,11 @@
       <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering <small>${s.message.trim() ? '' : 'Write a message first'}</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Lettering style">${(options.lettering || []).map((o) => `<button type="button" role="radio" class="bd-card" data-bd-set="lettering" data-value="${o.code}" aria-checked="${s.lettering === o.code}" ${s.message.trim() ? '' : 'disabled'}><strong>${esc(o.label)}</strong><span>${Number(o.price) > 0 ? '+' + money(o.price) : 'Included'}</span></button>`).join('')}</div></fieldset>
       <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Font <small>${s.message.trim() ? '' : 'Write a message first'}</small></legend>${fontButton()}</fieldset>
-      <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering color</legend>${s.message.trim() ? contrastWarning() + swatches('lettering_color', s.lettering_color, 'Lettering color') : '<p class="bd-note">Choose after writing your message.</p>'}</fieldset>`;
+      <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering color <small>${s.message.trim() ? '' : 'Write a message first'}</small></legend>${s.message.trim() ? contrastWarning() : ''}${letteringColorButton()}</fieldset>`;
     }
     const v = variant(), ex = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : localExtras().lines;
     return `
+      ${reviewChecklist()}
       <ul class="bd-summary" aria-label="Your design">
         <li><span>Cake</span><strong>${esc(product.name)} · ${esc(v?.label === 'Minimalist' ? 'Plain' : v?.label)} ${money(v?.price || 0)}</strong></li>
         <li><span>Frosting</span><strong>${esc(opt('color', s.frosting_color)?.label)}</strong></li>
@@ -509,8 +588,15 @@
       <div class="bd-theme"><span>Questions, or want a themed design like figures or characters? Ask us — your design is attached.</span><button type="button" class="bd-link" data-bd-chat>${icon('chat')} Ask LexC’s</button></div>`;
   }
 
+  // Steps already visited show a check mark; Review lists anything still worth a look.
+  const visited = new Set();
   function renderBody() {
-    root.querySelectorAll('[data-bd-step]').forEach((b) => { const on = b.dataset.bdStep === step; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+    root.querySelectorAll('.bd-steps [data-bd-step]').forEach((b, i) => {
+      const k = b.dataset.bdStep, on = k === step, done = visited.has(k) && !on && k !== 'review';
+      b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; b.classList.toggle('is-done', done);
+      b.querySelector('b').textContent = done ? '✓' : String(i + 1);
+      b.setAttribute('aria-label', `Step ${i + 1}: ${STEPS[i][1]}${done ? ', done' : ''}`);
+    });
     root.querySelector('#bd-body').setAttribute('aria-labelledby', `bd-tab-${step}`);
     root.querySelector('#bd-body').innerHTML = bodyMarkup();
     updateFooter(); updateTools();
@@ -573,7 +659,8 @@
     root.querySelector('[data-bd-redo]').disabled = !future.length;
   }
   function goStep(k, focusBody = true) {
-    closeFontSheet(false);
+    closeSheet(false);
+    if (step && step !== k) visited.add(step);
     step = k; renderBody(); saveDraft();
     if (scene) { scene.setView(k === 'message' ? 'top' : 'default'); scene.setAutoRotate(k !== 'message'); }
     if (focusBody) root.querySelector('#bd-body').focus({ preventScroll: true });
@@ -599,9 +686,11 @@
       if (t.dataset.bdSuggest) { const text = t.dataset.bdSuggest; return commit((s) => { s.message = text; }); }
       if (t.dataset.bdPreset) return applyPreset(t.dataset.bdPreset);
       if ('bdSurprise' in t.dataset) return surprise(t);
-      if ('bdFontOpen' in t.dataset) return fontSheetOpen ? closeFontSheet() : openFontSheet();
-      if ('bdFontDone' in t.dataset) return closeFontSheet();
-      if (t.dataset.bdFontGroup) { fontGroup = t.dataset.bdFontGroup; renderFontSheet(); return root.querySelector(`[data-bd-font-group="${fontGroup}"]`)?.focus(); }
+      if (t.dataset.bdSheetOpen) return sheetKind === t.dataset.bdSheetOpen ? closeSheet() : openSheet(t.dataset.bdSheetOpen);
+      if ('bdSheetDone' in t.dataset) return closeSheet();
+      if (t.dataset.bdFontGroup) { fontGroup = t.dataset.bdFontGroup; renderSheet(); return root.querySelector(`[data-bd-font-group="${fontGroup}"]`)?.focus(); }
+      if (t.dataset.bdMore) { const f = t.dataset.bdMore; if (expandedColors.has(f)) expandedColors.delete(f); else expandedColors.add(f); renderBody(); return root.querySelector(`[data-bd-more="${f}"]`)?.focus({ preventScroll: true }); }
+      if ('bdExpand' in t.dataset) { compactStage(false); return window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' }); }
       if (t.dataset.bdFontPick) { const code = t.dataset.bdFontPick; commit((s) => { s.font = code; }); return announce(`${opt('font', code)?.label || 'Font'} selected`); }
       if (t.dataset.bdCam) return scene?.setView(t.dataset.bdCam);
       if ('bdBreakdown' in t.dataset) return toggleBreakdown();
@@ -648,7 +737,7 @@
       if (e.key === 'Escape' && !root.querySelector('#bd-breakdown').hidden) { toggleBreakdown(false); root.querySelector('[data-bd-breakdown]').focus(); return; }
       if (e.target.closest('[role=tablist]') && ['ArrowLeft', 'ArrowRight'].includes(e.key)) {
         const i = STEPS.findIndex(([k]) => k === step); const n = STEPS[(i + (e.key === 'ArrowRight' ? 1 : STEPS.length - 1)) % STEPS.length][0];
-        goStep(n, false); root.querySelector(`[data-bd-step="${n}"]`).focus();
+        goStep(n, false); root.querySelector(`.bd-steps [data-bd-step="${n}"]`).focus();
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.target.matches('textarea,input')) { e.preventDefault(); e.shiftKey ? redo() : undo(); }
     });
@@ -734,7 +823,7 @@
       root.querySelector('[data-bd-retry]').onclick = () => start({ fromCart });
       return;
     }
-    closeFontSheet(false);
+    closeSheet(false); visited.clear(); compactStage(false);
     past = []; future = []; editIndex = null; packed = false; root.classList.remove('is-packing'); arranging = false; root.classList.remove('is-arranging');
     root.querySelector('[data-bd-arrange]')?.setAttribute('aria-pressed', 'false'); const arrangeBar = root.querySelector('[data-bd-arrange-bar]'); if (arrangeBar) arrangeBar.hidden = true;
     if (fromCart !== null && cart[fromCart]?.customization?.designer === 'bento') {
