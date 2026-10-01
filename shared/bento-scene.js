@@ -42,11 +42,15 @@ function withSurface(material, cfg) {
     shader.uniforms.uSdFine = { value: cfg.fine };
     shader.uniforms.uSdStrength = { value: cfg.strength };
     shader.uniforms.uSdRough = { value: cfg.rough };
+    // Piping reveal: only the part of a ring from uSdRevealStart through uSdReveal radians is drawn.
+    shader.uniforms.uSdReveal = material.userData.sdReveal || (material.userData.sdReveal = { value: 7 });
+    shader.uniforms.uSdRevealStart = material.userData.sdRevealStart || (material.userData.sdRevealStart = { value: 0 });
     shader.vertexShader = shader.vertexShader
       .replace('void main() {', 'varying vec3 vSdPos;\nvoid main() {')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vSdPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('void main() {', `varying vec3 vSdPos;\nuniform vec3 uSdScale;\nuniform float uSdFine, uSdStrength, uSdRough;\n${NOISE_GLSL}\nvoid main() {`)
+      .replace('void main() {', `varying vec3 vSdPos;\nuniform vec3 uSdScale;\nuniform float uSdFine, uSdStrength, uSdRough, uSdReveal, uSdRevealStart;\n${NOISE_GLSL}\nvoid main() {
+  if (uSdReveal < 6.2831) { float sdA = mod(atan(vSdPos.z, vSdPos.x) - uSdRevealStart + 12.5664, 6.2832); if (sdA > uSdReveal) discard; }`)
       .replace('#include <roughnessmap_fragment>', `float sdH = sdFbm(vSdPos * uSdScale) * 0.8 + sdNoise(vSdPos * uSdFine) * 0.2;
 #include <roughnessmap_fragment>
   roughnessFactor = clamp(roughnessFactor + (sdH - 0.5) * uSdRough, 0.04, 1.0);`)
@@ -182,10 +186,11 @@ function stickerTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-export function createBentoScene(host, { reducedMotion = false } = {}) {
+export function createBentoScene(host, { reducedMotion = false, onPick = null, onHover = null } = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.localClippingEnabled = true;   // the message is "piped" on with a moving clipping plane
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.domElement.tabIndex = 0;
   renderer.domElement.setAttribute('role', 'img');
@@ -231,11 +236,15 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   for (let i = 0; i <= 10; i++) { const a = (i / 10) * Math.PI / 2; profile.push(new THREE.Vector2(R - 0.06 + 0.06 * Math.cos(a), H - 0.06 + 0.06 * Math.sin(a))); }
   profile.push(new THREE.Vector2(0, H));
   const cakeMat = track(M.frosting(0xffffff));
-  const cake = new THREE.Mesh(track(new THREE.LatheGeometry(profile, 96)), cakeMat); cake.castShadow = true; cake.receiveShadow = true; fixed.add(cake);
+  const cake = new THREE.Mesh(track(new THREE.LatheGeometry(profile, 96)), cakeMat); cake.userData.pick = 'frosting'; cake.castShadow = true; cake.receiveShadow = true; fixed.add(cake);
 
   // The cake (model + decorations) sits in "lift" so the packing animation can raise and lower it.
   const lift = new THREE.Group(); world.add(lift);
   const decor = new THREE.Group(); lift.add(decor);
+  // Every decoration remembers which choice made it (userData.pick), so a tap can open that option.
+  let currentPick = null;
+  const decorAdd = decor.add.bind(decor);
+  decor.add = (...objects) => { for (const o of objects) if (currentPick && !o.userData.pick) o.userData.pick = currentPick; return decorAdd(...objects); };
   // While designing, the cake stands on a white cake stand; the box only appears when it is packed.
   const ceramic = track(new THREE.MeshPhysicalMaterial({ color: 0xfbf8ff, roughness: 0.28, clearcoat: 0.6, clearcoatRoughness: 0.2, envMapIntensity: 0.6, transparent: true }));
   const stand = new THREE.Group(); world.add(stand);
@@ -357,6 +366,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     // Bakery materials in place of the model's plain ones (base colours kept; frosting parts are recoloured later).
     const swap = (o, make) => o && forEachMesh(o, (m) => { const old = m.material; m.material = make(old.color.clone()); old.dispose(); });
     for (const name of ['cake', 'top_frosting']) swap(parts[name], M.frosting);
+    for (const [name, pick] of [['cake', 'frosting'], ['top_frosting', 'frosting'], ['border_top_shell', 'border'], ['border_bottom_shell', 'border'], ['drip', 'drip']]) if (parts[name]) parts[name].userData.pick = pick;
     for (const name of ['border_top_shell', 'border_bottom_shell']) swap(parts[name], M.piped);
     swap(parts.drip, M.glaze); swap(parts.box_clamshell, M.pulp); swap(parts.gingham_paper, (c) => M.cloth(c));
     for (const name of ['flower_piped', 'leaf_piped']) if (templates[name]) swap(templates[name], M.piped);
@@ -401,7 +411,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     if (packing) return packing;
     packing = (async () => {
       const P = model?.pack; if (!P) return;
-      clearTimeout(spinTimer); spin = false; spinAllowed = false; anims.clear();
+      finishPiping(); clearTimeout(spinTimer); spin = false; spinAllowed = false; anims.clear();
       const toppers = []; decor.traverse((o) => { if (o.userData.topper) toppers.push(o); });
       P.group.visible = true; P.group.position.set(0, 0, -7); P.hinge.rotation.x = 0; P.sticker.visible = false;
       setView('pack'); clearTimeout(spinTimer);
@@ -448,8 +458,22 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   }
 
   // --- decorations from the design state ---------------------------------------------------------
+  let messagePlane = null;
   function update(design, palette) {
-    lastDesign = design; lastPalette = palette;
+    const prev = lastDesign;
+    lastDesign = design; lastPalette = palette; messagePlane = null;
+    finishPiping();
+    try { build(design, palette); } finally { currentPick = null; }
+    if (!prev || prev === design || !model || packing) return;
+    // Piping animations for what was just added (not while typing the message letter by letter).
+    const before = new Set(prev.border || []), frost = palette[design.frosting_color] || '#ffffff';
+    for (const [code, part, radius, y] of [['shell_top', 'border_top_shell', R - 0.06, model.topShellY], ['shell_bottom', 'border_bottom_shell', R + 0.07, model.bottomShellY]])
+      if ((design.border || []).includes(code) && !before.has(code) && model.parts[part]) pipeRing(model.parts[part], radius, y ?? H, frost);
+    const msg = design.message || '', old = prev.message || '';
+    if (msg && messagePlane && (design.lettering !== prev.lettering || (msg !== old && Math.abs(msg.length - old.length) > 1)))
+      pipeMessage(messagePlane, palette[design.lettering_color] || '#4f3163');
+  }
+  function build(design, palette) {
     const dmat = (color, rough = 0.62, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
     const hexOf = (code, fallback = '#ffffff') => palette[code] || fallback;
     const frost = hexOf(design.frosting_color);
@@ -468,9 +492,11 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
         m.scale.set(scale[0], scale[1], scale[2]); m.position.set(Math.cos(a) * radius, y, Math.sin(a) * radius); m.rotation.y = -a; m.castShadow = true; decor.add(m);
       }
     };
+    currentPick = 'border';
     if (borders.has('shell_top')) shell(R - 0.05, H + 0.01, 26, [0.95, 0.8, 1.55]);
     if (borders.has('shell_bottom')) shell(R + 0.03, 0.08, 30, [1.0, 0.85, 1.6]);
 
+    currentPick = 'drip';
     if (accents.has('drip')) {
       const dripMat = M.glaze(shade(frost, -0.28));
       for (let i = 0; i < 30; i++) {
@@ -481,6 +507,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
       const cap = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.05, 96), dripMat); cap.position.y = H - 0.02; decor.add(cap);
     }
 
+    currentPick = 'pearls';
     const pearl = (hex) => M.metal(hex);
     if (accents.has('pearls_gold') || accents.has('pearls_silver')) {
       const pm = pearl(accents.has('pearls_gold') ? '#d4af37' : '#e4e7ec'); const g = new THREE.SphereGeometry(0.028, 14, 10);
@@ -489,6 +516,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
       if (borders.has('shell_bottom')) for (let i = 0; i < 30; i++) { const a = ((i + 0.5) / 30) * Math.PI * 2; const m = new THREE.Mesh(g.clone(), pm); m.position.set(Math.cos(a) * (R + 0.1), 0.17, Math.sin(a) * (R + 0.1)); decor.add(m); }
     }
 
+    currentPick = 'bows';
     if (accents.has('ribbon_bows')) {
       const bm = M.satin(hexOf(design.bow_color, '#ee82a8'));
       for (let i = 0; i < 4; i++) {
@@ -502,6 +530,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
       }
     }
 
+    currentPick = 'flowers';
     if (accents.has('piped_flowers')) {
       const petalCols = ['#f4b6c8', '#f9e27d', '#bfdddf', '#ffffff', '#cdb8e8'];
       for (let i = 0; i < 7; i++) {
@@ -511,6 +540,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
         flower.position.set(Math.cos(a) * r, H + 0.02, Math.sin(a) * r); decor.add(flower);
       }
     }
+    currentPick = 'leaves';
     if (accents.has('piped_leaves')) {
       const lm = M.piped('#3fa66b'), dm = M.piped('#ffffff');
       for (let i = 0; i < 12; i++) {
@@ -526,15 +556,18 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
   // Sprinkles, gold leaf, the written message and the topper are drawn the same way for both paths.
   function decorateShared(design, hexOf, rand, accents) {
     const dmat = (color, rough = 0.62, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
+    currentPick = 'sprinkles';
     if (accents.has('sprinkles')) {
       const cols = ['#e0457b', '#f4d03f', '#7fb8e6', '#3fa66b', '#ffffff', '#7e57c2']; const g = new THREE.CapsuleGeometry(0.009, 0.04, 2, 6);
       for (let i = 0; i < 90; i++) { const a = rand() * Math.PI * 2, r = TEXT_R + 0.03 + rand() * (R - TEXT_R - 0.12); const m = new THREE.Mesh(g.clone(), M.sugar(cols[i % cols.length])); m.position.set(Math.cos(a) * r, H + 0.012, Math.sin(a) * r); m.rotation.set(Math.PI / 2, 0, rand() * Math.PI); decor.add(m); }
     }
+    currentPick = 'gold_leaf';
     if (accents.has('gold_leaf')) {
       const gm = M.goldLeaf();
       for (let i = 0; i < 26; i++) { const a = rand() * Math.PI * 2, y = 0.18 + rand() * (H - 0.35); const m = new THREE.Mesh(new THREE.CircleGeometry(0.03 + rand() * 0.035, 5), gm); m.position.set(Math.cos(a) * (R + 0.004), y, Math.sin(a) * (R + 0.004)); m.lookAt(Math.cos(a) * 3, y, Math.sin(a) * 3); m.rotation.z = rand() * 3; decor.add(m); }
     }
 
+    currentPick = 'message';
     const tex = design.message ? messageTextures(design.message, hexOf(design.lettering_color, '#4f3163'), design.lettering) : null;
     if (tex) {
       const pearls = design.lettering === 'pearl_letters';
@@ -544,9 +577,10 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
         map: tex.map, normalMap: tex.normalMap, normalScale: new THREE.Vector2(pearls ? 0.9 : 1.2, pearls ? 0.9 : 1.2), transparent: true, depthWrite: false,
         roughness: pearls ? 0.45 : 0.6, clearcoat: shimmer ? 0.5 : pearls ? 0.15 : 0, clearcoatRoughness: 0.25, sheen: pearls ? 0 : 0.3, sheenRoughness: 0.75, sheenColor: 0x3a3a3a,
         iridescence: shimmer ? 0.45 : 0, iridescenceIOR: 1.3, iridescenceThicknessRange: [180, 420], envMapIntensity: shimmer ? 0.5 : 0.2 }));
-      plane.rotation.x = -Math.PI / 2; plane.position.y = H + 0.004; decor.add(plane);
+      plane.rotation.x = -Math.PI / 2; plane.position.y = H + 0.004; decor.add(plane); messagePlane = plane;
     }
 
+    currentPick = 'topper';
     if (design.topper && design.topper !== 'none') {
       const label = design.topper === 'number' ? (design.topper_text || '1') : design.topper === 'congrats' ? 'Congrats' : 'Happy Birthday';
       const t = topperTexture(label); const topper = new THREE.Group();
@@ -568,6 +602,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(frost, 0.03)); }
     if (P.drip) { P.drip.visible = accents.has('drip'); recolor(P.drip, shade(frost, -0.28)); }
 
+    currentPick = 'pearls';
     if ((accents.has('pearls_gold') || accents.has('pearls_silver')) && model.templates.pearl) {
       const mat = M.metal(accents.has('pearls_gold') ? '#d4af37' : '#e4e7ec');
       const put = (x, y, z) => placeCopy(model.templates.pearl, x, y, z).traverse((m) => { if (m.isMesh) { m.material = mat; m.userData.sharedMaterial = false; } });
@@ -576,6 +611,7 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
       for (let i = 0; i < 18; i++) { const a = rand() * Math.PI * 2, r = TEXT_R + 0.04 + rand() * Math.max(0.02, R - TEXT_R - 0.2); put(Math.cos(a) * r, H + 0.015, Math.sin(a) * r); }
       if (borders.has('shell_bottom') && model.bottomShellY) for (let i = 0; i < 30; i++) { const a = ((i + 0.5) / 30) * Math.PI * 2; put(Math.cos(a) * (R + 0.08), model.bottomShellY - 0.01, Math.sin(a) * (R + 0.08)); }
     }
+    currentPick = 'bows';
     if (accents.has('ribbon_bows') && model.bow) {
       const mat = M.satin(hexOf(design.bow_color, '#ee82a8'));
       for (let i = 0; i < 4; i++) {
@@ -585,9 +621,11 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
         pivot.add(bow); pivot.rotation.y = model.bow.angle - target; decor.add(pivot);
       }
     }
+    currentPick = 'flowers';
     if (accents.has('piped_flowers') && model.templates.flower_piped) {
       for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + 0.3, r = R - 0.2; placeCopy(model.templates.flower_piped, Math.cos(a) * r, H + 0.02, Math.sin(a) * r, rand() * Math.PI); }
     }
+    currentPick = 'leaves';
     if (accents.has('piped_leaves') && model.templates.leaf_piped) {
       for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + 0.05, r = R - 0.13; placeCopy(model.templates.leaf_piped, Math.cos(a) * r, H + 0.012, Math.sin(a) * r, -a + 0.8); }
     }
@@ -595,10 +633,99 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     request();
   }
 
+  // --- piping: a piping bag travels around the cake while the border appears behind its nozzle -----
+  const bagGeo = track(new THREE.ConeGeometry(0.17, 0.62, 28, 1, true)), fillGeo = track(new THREE.ConeGeometry(0.13, 0.48, 20));
+  const tipGeo = track(new THREE.ConeGeometry(0.05, 0.15, 14)), bagMat = track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, roughness: 0.2, clearcoat: 0.6, side: THREE.DoubleSide, depthWrite: false }));
+  const tipMat = track(M.metal('#c9ccd3'));
+  function makeBag(hex) {
+    const g = new THREE.Group(); g.rotation.order = 'YZX';
+    const bag = new THREE.Mesh(bagGeo, bagMat); bag.rotation.x = Math.PI; bag.position.y = 0.45;
+    const fillMat = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.7 }); g.userData.fillMat = fillMat;
+    const fill = new THREE.Mesh(fillGeo, fillMat); fill.rotation.x = Math.PI; fill.position.y = 0.42;
+    const tip = new THREE.Mesh(tipGeo, tipMat); tip.rotation.x = Math.PI; tip.position.y = 0.075;
+    g.add(bag, fill, tip); g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); lift.add(g); return g;
+  }
+  const pipings = new Set();
+  function finishPiping() { for (const p of [...pipings]) p.finish(); }
+  function piping(ms, step, done) {
+    const p = { finish() { if (!pipings.delete(p)) return; done(); request(); } };
+    pipings.add(p); animate((k) => { if (!pipings.has(p)) return; step(k); if (k >= 1) p.finish(); }, ms); return p;
+  }
+  function pipeRing(part, radius, y, hex) {
+    if (reducedMotion) return;
+    const mats = []; forEachMesh(part, (m) => { if (m.material.userData) mats.push(m.material); });
+    const start = Math.atan2(camera.position.z, camera.position.x) - 0.9, bag = makeBag(hex);
+    for (const m of mats) { if (!m.userData.sdReveal) m.userData.sdReveal = { value: 7 }; if (!m.userData.sdRevealStart) m.userData.sdRevealStart = { value: 0 }; m.userData.sdRevealStart.value = (start % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2); m.userData.sdReveal.value = 0.001; }
+    piping(1500, (k) => {
+      const a = start + k * Math.PI * 2;
+      for (const m of mats) m.userData.sdReveal.value = Math.max(0.001, k * Math.PI * 2);
+      bag.position.set(Math.cos(a) * radius, y + 0.02 + Math.abs(Math.sin(k * 80)) * 0.015, Math.sin(a) * radius);
+      bag.rotation.set(0, -a, -0.45);
+    }, () => { for (const m of mats) m.userData.sdReveal.value = 7; bag.removeFromParent(); bag.userData.fillMat.dispose(); });
+  }
+  function pipeMessage(plane, hex) {
+    if (reducedMotion) return;
+    const clip = new THREE.Plane(new THREE.Vector3(-1, 0, 0), -TEXT_R); plane.material.clippingPlanes = [clip];
+    const bag = makeBag(hex);
+    piping(1700, (k) => {
+      const x = -TEXT_R + k * TEXT_R * 2; clip.constant = x;
+      bag.position.set(x, H + 0.03, Math.sin(k * Math.PI * 7) * TEXT_R * 0.32); bag.rotation.set(0, 0, -0.3);
+    }, () => { plane.material.clippingPlanes = null; bag.removeFromParent(); bag.userData.fillMat.dispose(); });
+  }
+
+  // --- tap a part of the cake to edit it; hovering (mouse) names the part --------------------------
+  const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  const shown = (o) => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true; };
+  function pickAt(clientX, clientY) {
+    const r = el.getBoundingClientRect(); ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    for (const hit of raycaster.intersectObject(lift, true)) {
+      if (!shown(hit.object)) continue;
+      let o = hit.object; while (o && !o.userData.pick) o = o.parent;
+      if (o) return o.userData.pick;
+    }
+    return null;
+  }
+  function pop(part) {
+    if (reducedMotion) return;
+    const items = [];
+    lift.traverse((o) => {
+      if (o.userData.pick !== part || o.parent?.userData.pick === part) return;
+      // Bows hang on a pivot at the cake's centre; pop the bow itself so it stays in place.
+      const target = !o.isMesh && o.children.length === 1 && o.position.lengthSq() < 1e-6 ? o.children[0] : o;
+      // Always scale from the original size, so quick repeated taps can never make a part grow.
+      if (!target.userData.baseScale) target.userData.baseScale = target.scale.clone();
+      items.push(target);
+    });
+    const amount = part === 'frosting' ? 0.025 : 0.12, start = performance.now();
+    const tick = (now) => {
+      const k = Math.min(1, (now - start) / 360), b = 1 + Math.sin(k * Math.PI) * amount;
+      for (const o of items) o.scale.copy(o.userData.baseScale).multiplyScalar(b);
+      request(); if (k < 1 && alive) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  let tap = null, hoverFrame = 0;
+  el.addEventListener('pointerdown', (e) => { tap = { x: e.clientX, y: e.clientY, t: performance.now(), multi: pointers.size > 1 }; onHover?.(null); });
+  el.addEventListener('pointerup', (e) => {
+    const t = tap; tap = null; if (!t || t.multi || packing || !onPick) return;
+    if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > 6 || performance.now() - t.t > 450) return;
+    const part = pickAt(e.clientX, e.clientY); if (part) { pop(part); onPick(part); }
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse' || pointers.size || !onHover || hoverFrame) return;
+    const { clientX, clientY } = e;
+    hoverFrame = requestAnimationFrame(() => { hoverFrame = 0; const part = packing ? null : pickAt(clientX, clientY); el.style.cursor = part ? 'pointer' : ''; onHover(part, clientX, clientY); });
+  });
+  el.addEventListener('pointerleave', () => { el.style.cursor = ''; onHover?.(null); });
+  // One quick turn of the turntable (used by "Surprise me").
+  function spinOnce() { if (reducedMotion) return; idle(); const from = view.yaw; animate((k) => { view.yaw = from + k * Math.PI * 2; placeCamera(false); }, 1100); }
+
   function resetView() { setView('default'); }
   // Small image of the current design for the cart line (supplementary to the stored choices).
   // 'angle' is the cart/order picture; 'top' shows the message and border for the design card.
   function snapshot(size = 240, angle = 'angle') {
+    finishPiping();
     const saved = { ...view }; Object.assign(view, angle === 'top' ? VIEWS.top : { yaw: 0.35, pitch: 0.75, dist: 5.4 }); placeCamera(false);
     renderer.render(scene, camera);
     const out = document.createElement('canvas'); out.width = out.height = size; const g = out.getContext('2d');
@@ -615,5 +742,5 @@ export function createBentoScene(host, { reducedMotion = false } = {}) {
     envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
   }
   idle();
-  return { update, resetView, setView, setAutoRotate: (on) => { spinAllowed = on && !reducedMotion; idle(); }, snapshot, pack, unpack, dispose, canvas: renderer.domElement };
+  return { update, resetView, setView, setAutoRotate: (on) => { spinAllowed = on && !reducedMotion; idle(); }, snapshot, pack, unpack, spinOnce, dispose, canvas: renderer.domElement };
 }

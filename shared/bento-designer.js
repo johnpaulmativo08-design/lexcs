@@ -3,6 +3,13 @@
 // (quote_bento_design / create_order). Adds to the existing cart; never creates an order.
 (() => {
   const STEPS = [['style', 'Style'], ['decorate', 'Decorate'], ['message', 'Message'], ['review', 'Review']];
+  // Tapping a part of the 3D cake opens its option: [step, section legend, name shown on hover].
+  const PICK = {
+    frosting: ['style', 'Frosting color', 'Frosting'], border: ['decorate', 'Border', 'Shell border'], drip: ['decorate', 'Decorations', 'Frosting drip'],
+    pearls: ['decorate', 'Decorations', 'Pearls'], bows: ['decorate', 'Ribbon color', 'Ribbon bows'], flowers: ['decorate', 'Decorations', 'Piped flowers'],
+    leaves: ['decorate', 'Decorations', 'Piped leaves'], sprinkles: ['decorate', 'Decorations', 'Sprinkles'], gold_leaf: ['decorate', 'Decorations', 'Gold leaf'],
+    message: ['message', null, 'Message'], topper: ['decorate', 'Topper', 'Topper']
+  };
   const SUGGESTIONS = ['Happy Birthday', 'Congratulations', 'Happy Anniversary', 'Best wishes', 'I love you'];
   const DRAFT_KEY = 'lexc_bento_draft_v1';
   // One-tap starting points, based on LexC's own bento photos. Everything stays editable.
@@ -125,6 +132,66 @@
     showToast(`Started from “${p.name}” — change anything you like.`);
   }
 
+  // ---- tap-to-edit -------------------------------------------------------------------------------
+  function jumpTo(part) {
+    const target = PICK[part]; if (!target || packed) return;
+    const [k, legend, name] = target;
+    hoverTip(null);
+    if (step !== k) goStep(k, false);
+    requestAnimationFrame(() => {
+      const box = part === 'message' ? root.querySelector('#bd-message')
+        : [...root.querySelectorAll('#bd-body legend')].find((l) => l.textContent.trim().startsWith(legend))?.closest('fieldset');
+      if (!box) return;
+      box.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
+      box.classList.remove('bd-flash'); void box.offsetWidth; box.classList.add('bd-flash');
+      const focusEl = part === 'message' ? box : box.querySelector('[aria-checked="true"],[aria-pressed="true"],button:not([disabled]),input');
+      focusEl?.focus({ preventScroll: true });
+      announce(`${name}: options opened`);
+    });
+  }
+  function hoverTip(part, x, y) {
+    const box = root?.querySelector('[data-bd-canvas]'); if (!box) return;
+    let tip = box.querySelector('.bd-pick-tip');
+    if (!part || !PICK[part]) { if (tip) tip.hidden = true; return; }
+    if (!tip) { tip = document.createElement('span'); tip.className = 'bd-pick-tip'; tip.setAttribute('aria-hidden', 'true'); box.append(tip); }
+    const r = box.getBoundingClientRect();
+    tip.textContent = `${PICK[part][2]} · click to change`; tip.hidden = false;
+    tip.style.left = Math.min(r.width - 12, Math.max(12, x - r.left)) + 'px'; tip.style.top = Math.max(10, y - r.top - 14) + 'px';
+  }
+  function announce(text) {
+    let live = root.querySelector('.bd-live');
+    if (!live) { live = document.createElement('p'); live.className = 'bd-live sr-only'; live.setAttribute('aria-live', 'polite'); root.append(live); }
+    live.textContent = text;
+  }
+
+  // ---- Surprise me: a random design that still looks good -------------------------------------------
+  function surprise(button) {
+    const pick = (list) => list[Math.floor(Math.random() * list.length)];
+    const codes = (group) => (options[group] || []).map((o) => o.code);
+    const colorsIn = (name) => (COLOR_GROUPS.find(([n]) => n === name)?.[1] || []).filter((c) => palette[c]);
+    const roll = Math.random(), frosting = pick(colorsIn(roll < 0.6 ? 'Pastels' : roll < 0.9 ? 'Brights' : 'Deep'));
+    const allColors = codes('color').filter((c) => palette[c] && c !== frosting);
+    const readable = (min) => allColors.filter((c) => contrast(palette[frosting], palette[c]) >= min);
+    const max = Number(cfg().max_accents || 6);
+    let accents = codes('accent').sort(() => Math.random() - 0.5).slice(0, 1 + Math.floor(Math.random() * Math.min(3, max)));
+    if (accents.includes('pearls_gold') && accents.includes('pearls_silver')) accents = accents.filter((a) => a !== 'pearls_silver');
+    const border = codes('border').filter(() => Math.random() < 0.55);
+    const message = Math.random() < 0.6 ? pick(SUGGESTIONS) : '';
+    const toppers = codes('topper').filter((t) => t !== 'none');
+    const topper = toppers.length && Math.random() < 0.25 ? pick(toppers) : 'none';
+    const contrastPick = readable(3).length ? readable(3) : readable(2).length ? readable(2) : allColors;
+    commit((s) => Object.assign(s, blank(), {
+      qty: s.qty, variant_id: s.variant_id, frosting_color: frosting, border, accents,
+      bow_color: pick(readable(1.4).length ? readable(1.4) : allColors), message,
+      lettering: message ? pick(codes('lettering').length ? codes('lettering') : ['piped']) : s.lettering,
+      lettering_color: message ? pick(contrastPick) : s.lettering_color,
+      topper, topper_text: topper === 'number' ? String(1 + Math.floor(Math.random() * 60)) : ''
+    }));
+    scene?.spinOnce();
+    if (button && !reducedMotion) { button.classList.remove('is-rolling'); void button.offsetWidth; button.classList.add('is-rolling'); }
+    showToast('Here’s a surprise design! Roll again, change anything, or tap Undo.');
+  }
+
   function afterChange(rerender = false) {
     saveDraft(); renderPreview(); scheduleQuote(); updateFooter(); updateTools();
     if (rerender) renderBody(); else refreshBodyState();
@@ -179,9 +246,9 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=13');
+        const mod = await import('./bento-scene.js?v=15');
         if (!root.isConnected || currentPage !== 'bento') return;
-        scene = mod.createBentoScene(box, { reducedMotion });
+        scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip });
         if (step === 'message') { scene.setView('top'); scene.setAutoRotate(false); }
       } catch (error) {
         console.info('3D preview unavailable, using top view:', error?.message || error);
@@ -219,7 +286,7 @@
             <div class="bd-seg bd-cams" role="group" aria-label="Camera"><button type="button" data-bd-cam="front">Front</button><button type="button" data-bd-cam="top">Top</button><button type="button" data-bd-cam="side">Side</button></div>
             <button type="button" class="bd-tool" data-bd-resetview aria-label="Reset view">${icon('view')}<span>Reset</span></button>
           </div>
-          <p class="bd-hint">Drag to turn the cake, scroll or pinch to zoom. The preview is a guide — handmade decorations vary slightly.</p>
+          <p class="bd-hint">Tap any part of the cake to change it. Drag to turn, scroll or pinch to zoom. The preview is a guide — handmade decorations vary slightly.</p>
         </section>
         <section class="bd-panel" aria-label="Design options">
           <div class="bd-steps" role="tablist" aria-label="Design steps">${STEPS.map(([k, l], i) => `<button type="button" role="tab" class="bd-step" id="bd-tab-${k}" data-bd-step="${k}" aria-controls="bd-body"><b>${i + 1}</b>${l}</button>`).join('')}</div>
@@ -258,6 +325,7 @@
   function bodyMarkup() {
     const s = state, max = Number(cfg().max_accents || 6);
     if (step === 'style') return `
+      <div class="bd-surprise-row"><button type="button" class="bd-surprise" data-bd-surprise><span class="bd-dice" aria-hidden="true">🎲</span> Surprise me</button><span class="bd-note">Rolls a random design you can change</span></div>
       <fieldset class="bd-group"><legend>Start from a design <small>Optional · all editable</small></legend>
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
@@ -398,6 +466,7 @@
       }
       if (t.dataset.bdSuggest) { const text = t.dataset.bdSuggest; return commit((s) => { s.message = text; }); }
       if (t.dataset.bdPreset) return applyPreset(t.dataset.bdPreset);
+      if ('bdSurprise' in t.dataset) return surprise(t);
       if (t.dataset.bdCam) return scene?.setView(t.dataset.bdCam);
       if ('bdBreakdown' in t.dataset) return toggleBreakdown();
       if (t.dataset.bdQty) return commit((s) => { s.qty += Number(t.dataset.bdQty); });
