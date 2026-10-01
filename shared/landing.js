@@ -30,11 +30,6 @@
       if (p) { card.dataset.productId = p.id; card.href = `?product=${encodeURIComponent(p.id)}`; }
       else { card.removeAttribute('data-product-id'); card.href = '#'; }
     });
-    // Yema cake uses the store's own catalog photo.
-    const yema = catalog.find((x) => x.slug === 'product-4'), box = grid.querySelector('[data-lp-catalog-photo]');
-    if (box && yema?.image_path && !box.querySelector('img')) {
-      box.innerHTML = `<img src="${esc(LexcBackend.mediaURL(yema.image_path))}" width="280" height="280" loading="lazy" decoding="async" alt="Yema cake from LexC’s">`;
-    }
   }
   function openProduct(card) {
     const id = card.dataset.productId;

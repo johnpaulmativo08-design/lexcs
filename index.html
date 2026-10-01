@@ -687,7 +687,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <link rel="stylesheet" href="shared/product-detail.css?v=2">
 <link rel="stylesheet" href="shared/chat-widget.css?v=4">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=1">
-<link rel="stylesheet" href="shared/landing.css?v=5">
+<link rel="stylesheet" href="shared/landing.css?v=6">
 <link rel="stylesheet" href="shared/bento-designer.css?v=14">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@700&family=Pacifico&family=Lobster&family=Satisfy&family=Parisienne&family=Montserrat:wght@800&family=Poppins:wght@700&family=Fredoka:wght@600&family=Baloo+2:wght@800&family=Caveat:wght@700&family=Cinzel:wght@700&family=Grenze+Gotisch:wght@700&family=UnifrakturMaguntia&display=swap">
@@ -736,7 +736,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 
   <!-- Hero: photo composition of the real products; headline, copy and button are live HTML. -->
   <section class="lp-hero" aria-labelledby="lp-hero-title">
-    <img class="lp-hero-img" src="assets/landing/hero.webp" width="971" height="516" fetchpriority="high" decoding="async"
+    <img class="lp-hero-img" src="assets/landing/hero.webp" srcset="assets/landing/hero-1100.webp 1100w, assets/landing/hero.webp 1659w" sizes="(max-width: 640px) 560px, min(100vw, 1240px)" width="1659" height="948" fetchpriority="high" decoding="async"
       alt="A banana loaf with piped cream and walnuts, a box of pink and purple butterfly mini donuts, a bento cake with cartoon birthday toppers, and a yema cake topped with grated cheese, on a lavender table">
     <div class="lp-hero-copy">
       <p class="lp-eyebrow">Good food brighter days</p>
@@ -763,7 +763,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
         <span class="lp-card-foot"><span class="lp-card-name">Mini donuts</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
       </a>
       <a class="lp-card" data-group="baked" data-slug="product-18" href="?product=" data-lp-product>
-        <span class="lp-card-img"><img src="assets/landing/banana-loaf.webp" width="463" height="680" loading="lazy" decoding="async" alt="Banana loaf in a foil pan topped with walnuts and chocolate chips" style="object-position:50% 60%"></span>
+        <span class="lp-card-img"><img src="assets/landing/banana-loaf.webp" width="680" height="680" loading="lazy" decoding="async" alt="Banana loaf in a foil pan with piped cream and walnuts"></span>
         <span class="lp-card-foot"><span class="lp-card-name">Banana loaf</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
       </a>
       <a class="lp-card" data-group="cakes" data-slug="product-8" href="?product=" data-lp-product>
@@ -771,15 +771,12 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
         <span class="lp-card-foot"><span class="lp-card-name">Bento cake</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
       </a>
       <a class="lp-card" data-group="cakes" data-slug="product-4" href="?product=" data-lp-product>
-        <span class="lp-card-img" data-lp-catalog-photo><span class="lp-ph" aria-hidden="true">🍰</span></span>
+        <span class="lp-card-img"><img src="assets/landing/yema-cake.webp" width="680" height="466" loading="lazy" decoding="async" alt="Yema cakes with golden glaze and grated cheese in white square boxes"></span>
         <span class="lp-card-foot"><span class="lp-card-name">Yema cake</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
       </a>
-      <!-- Cake pops are sold inside the party packages (no separate catalog product or photo yet). -->
+      <!-- Cake pops are sold inside the party packages (no separate catalog product), so this card opens Packages. -->
       <a class="lp-card" data-group="party" href="#packages" data-lp-page="packages">
-        <span class="lp-card-img lp-card-img--soon">
-          <svg viewBox="0 0 120 90" aria-hidden="true" class="lp-pops"><g stroke="#cdbbe6" stroke-width="3" stroke-linecap="round"><path d="M34 46v34M60 38v42M86 46v34"/></g><circle cx="34" cy="38" r="15" fill="#f4b6c8"/><circle cx="60" cy="28" r="16" fill="#8f7bd8"/><circle cx="86" cy="38" r="15" fill="#f9e27d"/><g fill="#fff" opacity=".8"><circle cx="29" cy="33" r="2"/><circle cx="55" cy="22" r="2"/><circle cx="81" cy="33" r="2"/></g></svg>
-          <span class="lp-soon">Photo coming soon</span>
-        </span>
+        <span class="lp-card-img"><img src="assets/landing/cake-pops.webp" width="680" height="680" loading="lazy" decoding="async" alt="Blue and yellow character cake pops on sticks in white stands" style="object-position:50% 62%"></span>
         <span class="lp-card-foot"><span class="lp-card-name">Cake pops<small>In our party packages</small></span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
       </a>
       <a class="lp-card" data-group="baked" data-slug="product-20" href="?product=" data-lp-product>
@@ -2407,7 +2404,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/customer-backend.js?v=17"></script>
 <script src="shared/product-detail.js?v=4"></script>
 <script src="shared/fresh-feed.js?v=3"></script>
-<script src="shared/landing.js?v=1"></script>
+<script src="shared/landing.js?v=2"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/bento-designer.js?v=21"></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>

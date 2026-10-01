@@ -55,8 +55,8 @@ nav.dark-nav .nav-order-now { background: #fff; color: var(--lp-plum); }
 /* The photo is anchored to the bottom at full width; the copy sits over its empty lavender top.
    padding-bottom (a % of the width) keeps the food clear of the copy at every size. */
 .lp-hero { position: relative; overflow: hidden; border-radius: 28px; text-align: center;
-  background: radial-gradient(120% 90% at 50% 0%, #ddc9e9 0%, #d4bee5 60%, #c9aeda 100%);
-  padding: clamp(28px, 4.2vw, 52px) 20px max(27.5%, 150px); }
+  background: radial-gradient(120% 90% at 50% 0%, #cbb0e6 0%, #c2a7df 60%, #b79bd4 100%);
+  padding: clamp(28px, 4.2vw, 52px) 20px max(29%, 150px); }
 .lp-hero-img { position: absolute; left: 50%; bottom: 0; width: max(100%, 560px); height: auto; transform: translateX(-50%);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14%); mask-image: linear-gradient(to bottom, transparent 0, #000 14%); }
 .lp-hero-copy { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
@@ -92,10 +92,6 @@ nav.dark-nav .nav-order-now { background: #fff; color: var(--lp-plum); }
 .lp-arrow { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border: 1.5px solid #d9cbe5; border-radius: 50%; color: var(--lp-plum-dark); transition: background .2s, color .2s, border-color .2s; }
 .lp-arrow .ui-icon { width: 16px; height: 16px; }
 .lp-card:hover .lp-arrow, .lp-update:hover .lp-arrow { background: var(--lp-plum); border-color: var(--lp-plum); color: #fff; }
-.lp-ph { position: absolute; inset: 0; display: grid; place-items: center; font-size: 2.6rem; }
-.lp-card-img--soon { display: grid; place-items: center; align-content: center; gap: 6px; background: linear-gradient(160deg, #f3ecfb, #e6d9f4); }
-.lp-pops { width: 46%; max-width: 150px; }
-.lp-soon { font: 600 .74rem var(--lp-head); letter-spacing: .08em; text-transform: uppercase; color: #7a6390; }
 .lp-empty { margin: 20px 0 0; color: var(--lp-muted); }
 
 /* ---- Fresh from LexC's ----------------------------------------------------------------------------- */
