@@ -2,9 +2,10 @@ import { renderDashboard } from './pages/dashboard.js?v=8';
 import { renderProducts } from './pages/products.js?v=4';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=18';
 import { renderReports } from './pages/reports.js?v=5';
-import { renderOrders } from './pages/orders.js?v=14';
+import { renderOrders } from './pages/orders.js?v=15';
 import { renderBookings } from './pages/bookings.js?v=10';
 import { renderGallery } from './pages/gallery.js?v=3';
+import { renderDesignOptions } from './pages/design-options.js?v=3';
 import { renderProfile } from './pages/profile.js?v=3';
 import { mountChat } from '../shared/chat.js?v=8';
 import { mountChatWidget } from '../shared/chat-widget.js?v=6';
@@ -12,13 +13,13 @@ import { icon } from './components.js?v=3';
 
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
-  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['orders', 'Orders'], ['bookings', 'Bookings'],
+  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Bento options', null, 'products'], ['orders', 'Orders'], ['bookings', 'Bookings'],
     // Posts are written on the storefront's "Fresh from LexC's" page (owner composer), not inside Admin.
     ['fresh-posts', 'Fresh posts ↗', '../index.html?fresh=1', 'gallery']]],
   ['Analytics', [['reports', 'Reports'], ['gallery', 'Gallery']]],
   ['Account', [['profile', 'Profile']]],
 ];
-const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', orders: 'Orders', bookings: 'Booking Schedule', reports: 'Reports', gallery: 'Gallery', profile: 'Profile' };
+const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Bento options', orders: 'Orders', bookings: 'Booking Schedule', reports: 'Reports', gallery: 'Gallery', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
@@ -100,6 +101,7 @@ async function renderRoute() {
   else if (current === 'orders') await renderOrders(content);
   else if (current === 'bookings') await renderBookings(content);
   else if (current === 'gallery') await renderGallery(content);
+  else if (current === 'designs') await renderDesignOptions(content);
   else if (current === 'profile') await renderProfile(content, subpage);
   await refreshInventoryNotificationBadge();
 }

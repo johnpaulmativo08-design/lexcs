@@ -86,7 +86,7 @@ async function submitCheckout(){
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
   if(cartIsPaymentTest()&&(selectedItems.some(item=>!item.isTest)||selectedDelivery!=='Pick-up'))return showToast('Payment Test Product must be checked out separately for pickup.');
   if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
-  const fingerprint=JSON.stringify({cart:selectedItems,name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
+  const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,reference_image_path,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
  let request=readAuthStorage(localStorage,'lexc_checkout_request',null);
  if(!request||request.fingerprint!==fingerprint)request={fingerprint,id:crypto.randomUUID()};
  localStorage.setItem('lexc_checkout_request',JSON.stringify(request));checkoutSaving=true;
@@ -109,6 +109,15 @@ async function submitCheckout(){
     renderCart(); renderCheckout();
     showToast('A product price has changed. Review the updated total before placing your order.');
     return;
+  }
+  // Bento designs: upload the preview picture privately so Admin can see exactly what was designed.
+  // The structured choices remain the record; the picture is a visual aid. Failure does not block checkout.
+  for (const item of selectedItems) {
+    if (item.customization?.designer !== 'bento' || !item.preview || item.reference_image_path) continue;
+    try {
+      const blob = await (await fetch(item.preview)).blob();
+      item.reference_image_path = await LexcBackend.upload('customer-references', currentUser.id + '/designs', new File([blob], 'bento-design.jpg', { type: 'image/jpeg' }));
+    } catch (error) { console.warn('Design picture could not be attached:', error); }
   }
   const selectedDate=field('coDate');
   const freshAvailability=await LexcBackend.rpc('get_customer_booking_dates',{from_date:selectedDate,to_date:selectedDate});

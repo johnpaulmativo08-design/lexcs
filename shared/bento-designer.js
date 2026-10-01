@@ -26,7 +26,8 @@
     redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>', reset: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
     chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>', view: '<circle cx="12" cy="12" r="3"/><path d="M3 12a9 9 0 0 1 18 0"/>',
     warn: '<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
-    chev: '<path d="m18 15-6-6-6 6"/>'
+    chev: '<path d="m18 15-6-6-6 6"/>',
+    share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>'
   };
   const icon = (n) => `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
   const esc = (v) => authEscape(String(v ?? ''));
@@ -62,6 +63,26 @@
     (p.border || []).forEach((c) => add(opt('border', c))); (p.accents || []).forEach((c) => add(opt('accent', c)));
     if ((p.message || '').trim()) { add(opt('message', 'custom_message')); add(opt('lettering', p.lettering)); }
     add(opt('topper', p.topper)); return sum;
+  }
+
+  // ---- share links: ?design=<base64url JSON> reopens the exact design --------------------------------
+  const toB64 = (text) => btoa(String.fromCharCode(...new TextEncoder().encode(text))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const fromB64 = (code) => new TextDecoder().decode(Uint8Array.from(atob(code.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)));
+  function shareUrl() {
+    const d = design(); delete d.designer;
+    const url = new URL(location.href); url.search = ''; url.hash = '';
+    url.searchParams.set('design', toB64(JSON.stringify({ v: state.variant_id, d })));
+    return url.toString();
+  }
+  function decodeShared(code) {
+    try { const o = JSON.parse(fromB64(code)); return o && typeof o === 'object' && o.d && typeof o.d === 'object' ? o : null; } catch { return null; }
+  }
+  async function shareDesign() {
+    const url = shareUrl(), text = `My bento design from LexC’s Snacktime: ${summaryText()}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: 'My LexC’s bento design', text, url }); return; }
+      await navigator.clipboard.writeText(url); showToast('Design link copied — anyone with it can open this exact design.');
+    } catch (error) { if (error?.name !== 'AbortError') showToast('Could not share. Try again.'); }
   }
 
   // ---- data -------------------------------------------------------------------------------------
@@ -285,7 +306,8 @@
         <span class="bd-label" style="margin:0" id="bd-qty-label">Quantity</span>
         <div class="bd-qty" role="group" aria-labelledby="bd-qty-label"><button type="button" data-bd-qty="-1" aria-label="Decrease quantity">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-bd-qty="1" aria-label="Increase quantity">+</button></div>
       </div>
-      <div class="bd-theme"><span>Want a themed design, like figures or characters? Ask us first.</span><button type="button" class="bd-link" data-bd-chat>${icon('chat')} Ask LexC’s</button></div>`;
+      <div class="bd-theme"><span>Send this design to a friend or save it for later.</span><button type="button" class="bd-link" data-bd-share>${icon('share')} Share design</button></div>
+      <div class="bd-theme"><span>Questions, or want a themed design like figures or characters? Ask us — your design is attached.</span><button type="button" class="bd-link" data-bd-chat>${icon('chat')} Ask LexC’s</button></div>`;
   }
 
   function renderBody() {
@@ -385,6 +407,7 @@
       if ('bdRedo' in t.dataset) return redo();
       if ('bdReset' in t.dataset) return resetDesign();
       if ('bdChat' in t.dataset) return openChat();
+      if ('bdShare' in t.dataset) return shareDesign();
       if ('bdExit' in t.dataset) return exit();
       if ('bdPrev' in t.dataset) { const i = STEPS.findIndex(([k]) => k === step); return goStep(STEPS[Math.max(0, i - 1)][0]); }
       if ('bdNext' in t.dataset) { const i = STEPS.findIndex(([k]) => k === step); return i < STEPS.length - 1 ? goStep(STEPS[i + 1][0]) : addToCart(); }
@@ -420,7 +443,7 @@
     });
     // Hide the fixed price bar while the phone keyboard is open, so it never covers the text field.
     const typing = (on) => root.classList.toggle('is-typing', on);
-    root.addEventListener('focusin', (e) => { if (e.target.matches('textarea,input')) typing(true); });
+    root.addEventListener('focusin', (e) => { if (e.target.matches('textarea,input')) typing(true); if (e.target.id === 'bd-message' && scene) { scene.setView('top'); scene.setAutoRotate(false); } });
     root.addEventListener('input', (e) => { if (e.target.matches('textarea,input')) typing(true); });
     root.addEventListener('focusout', (e) => { if (e.target.matches('textarea,input')) typing(false); });
     window.visualViewport?.addEventListener('resize', () => {
@@ -436,7 +459,15 @@
     if (!toggle) { showToast('Chat is loading. Try again in a moment.'); return; }
     if (!window.currentUser) { showToast('Log in to chat with LexC’s — your design is saved on this device.'); saveDraft(); return; }
     toggle.click();
-    try { navigator.clipboard?.writeText(`Bento design: ${summaryText()}`); showToast('Design details copied — paste them into the chat if you like.'); } catch {}
+    const text = `Hi! I’d like to ask about this bento design: ${summaryText()}. Price shown: ${money(unitPrice())} per cake.\nDesign link: ${shareUrl()}`;
+    let tries = 0;
+    const fill = () => {
+      const box = document.querySelector('.lcw-compose textarea');
+      if (!box) { if (++tries < 30) setTimeout(fill, 150); return; }
+      if (!box.value.trim()) { box.value = text; box.dispatchEvent(new Event('input', { bubbles: true })); }
+      box.focus(); box.setSelectionRange(0, 0); box.scrollTop = 0;
+    };
+    fill();
   }
   async function addToCart() {
     if (quote.status !== 'ok') return;
@@ -445,7 +476,7 @@
     const item = {
       id: 'bento-' + crypto.randomUUID(), product_id: product.id, variant_id: v.id, name: product.name, emoji: '🎂',
       sizeLabel: `${v.label === 'Minimalist' ? 'Plain' : v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra,
-      base_price: Number(v.price), extras: quote.extra, qty: state.qty, selected: true, customization: d, preview: scene ? scene.snapshot(160) : ''
+      base_price: Number(v.price), extras: quote.extra, qty: state.qty, selected: true, customization: d, preview: scene ? scene.snapshot(400) : ''
     };
     if (editIndex !== null && cart[editIndex]?.customization?.designer === 'bento') { item.id = cart[editIndex].id; cart[editIndex] = item; }
     else cart.push(item);
@@ -461,7 +492,7 @@
     root = document.getElementById('page-bento');
     if (!root.dataset.bound) { root.dataset.bound = '1'; shell(); bind(); }
   }
-  async function start({ fromCart = null } = {}) {
+  async function start({ fromCart = null, shared = null } = {}) {
     ensureRoot();
     product = bentoProduct();
     if (!product) { showToast('The bento designer is not available right now.'); navigate('shop'); return; }
@@ -479,6 +510,11 @@
       state = { ...blank(), ...c.customization, border: [...(c.customization.border || [])], accents: [...(c.customization.accents || [])], message: c.customization.message || '', topper_text: c.customization.topper_text || '', variant_id: c.variant_id, qty: c.qty };
       if (!state.bow_color) state.bow_color = 'pink'; if (!state.lettering) state.lettering = 'piped'; if (!state.lettering_color) state.lettering_color = 'purple';
       step = 'review';
+    } else if (shared) {
+      state = { ...blank(), ...shared.d, variant_id: shared.v || blank().variant_id, border: [...(shared.d.border || [])], accents: [...(shared.d.accents || [])],
+        message: String(shared.d.message || ''), topper_text: String(shared.d.topper_text || ''), qty: 1 };
+      if (!state.bow_color) state.bow_color = 'pink'; if (!state.lettering) state.lettering = 'piped'; if (!state.lettering_color) state.lettering_color = 'purple';
+      step = 'review'; showToast('Opened a shared design — change anything you like.');
     } else {
       let draft = null; try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch {}
       state = draft?.product_id === product.id ? { ...blank(), ...draft.state } : blank();
@@ -506,9 +542,15 @@
     let waited = 0; const t = setInterval(() => { waited += 200; if (window.lexcCatalogState === 'ready') { clearInterval(t); fn(); } else if (waited > 15000) { clearInterval(t); showToast('The menu could not load. Please try again.'); } }, 200);
   }
   window.LexcBento = Object.freeze({
-    open() { whenReady(() => { navigate('bento'); start(); }); },
+    open(shared = null) { whenReady(() => { navigate('bento'); start({ shared }); }); },
     edit(index) { window.closeCart?.(); whenReady(() => { navigate('bento'); start({ fromCart: index }); }); },
     isDesignable: (productId) => (typeof liveCatalog !== 'undefined' ? liveCatalog : []).some((p) => p.id === productId && p.customization_config?.designer === 'bento')
   });
-  if (new URL(location.href).searchParams.has('design')) { const u = new URL(location.href); u.searchParams.delete('design'); window.history.replaceState(window.history.state, '', u); window.LexcBento.open(); }
+  if (new URL(location.href).searchParams.has('design')) {
+    const u = new URL(location.href), code = u.searchParams.get('design');
+    u.searchParams.delete('design'); window.history.replaceState(window.history.state, '', u);
+    const shared = code && code !== '1' ? decodeShared(code) : null;
+    if (code && code !== '1' && !shared) showToast('That design link is incomplete, so a new design was started.');
+    window.LexcBento.open(shared);
+  }
 })();

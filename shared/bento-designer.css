@@ -102,7 +102,7 @@
 .bd-breakdown li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:.88rem;border-bottom:1px dashed var(--bd-line)}
 .bd-breakdown li.is-total{border-bottom:0;font-weight:700;color:var(--bd-plum);padding-top:8px}
 .bd-breakdown .bd-note{margin:0}
-@media (max-width:900px){.bd-breakdown{position:fixed;left:10px;right:10px;width:auto;bottom:calc(76px + env(safe-area-inset-bottom))}.bd-cams button{padding:7px 10px}}
+@media (max-width:900px){.bd-breakdown{position:fixed;left:10px;right:10px;width:auto;bottom:calc(96px + env(safe-area-inset-bottom))}.bd-cams button{padding:7px 10px}}
 @media (prefers-reduced-motion:reduce){.bd-price span::after{content:" · details"}}
 /* Keep the site's chat bubble clear of the designer's price bar and Add to cart button. */
 body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="bento"] .lcw-tray{bottom:92px!important}
