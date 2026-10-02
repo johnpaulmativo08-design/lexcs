@@ -7,6 +7,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { M, SURF, withSurface, shade } from './bento-scene.js?v=26';
 import { themePiece, plaquePiece, starPiece, letterTexture } from './donut-parts.js?v=2';
 import { createSet } from './scene-set.js?v=2';
+import { trayGeometry, blockGeometry, lidGeometry, ribbonGeometry, contactShadowTexture } from './box-parts.js?v=2';
 
 const TAU = Math.PI * 2;
 // Units: 1 = 5 cm. rb/rt: liner bottom/top radius, h: liner height, gap: spacing in the box insert.
@@ -283,6 +284,14 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     honey: track(new THREE.MeshPhysicalMaterial({ color: '#F2B21E', roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 0.9, side: THREE.DoubleSide }))
   };
   const letterMat = (text, hex) => cacheBy(letterMats, text + '|' + hex, () => new THREE.MeshStandardMaterial({ map: track(letterTexture(text, hex)), transparent: true, alphaTest: 0.3, roughness: 0.6 }));
+  const stickerMat = track(new THREE.MeshPhysicalMaterial({ map: track(stickerTexture()), roughness: 0.45, clearcoat: 0.4, transparent: true }));
+  // Box lid board (fades in when packing), clear window, lavender satin ribbon, and the contact shadow material.
+  const lidBoard = track(withSurface(new THREE.MeshPhysicalMaterial({ color: '#fbfaf7', roughness: 0.85, envMapIntensity: 0.25, transparent: true }), SURF.weave));
+  const windowMat = track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, roughness: 0.03, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.5, side: THREE.DoubleSide, depthWrite: false }));
+  const satin = track(new THREE.MeshPhysicalMaterial({ color: '#A98BDC', roughness: 0.32, sheen: 1, sheenRoughness: 0.35, sheenColor: '#E7DCFA', clearcoat: 0.25, envMapIntensity: 0.6, transparent: true }));
+  const aoMat = track(new THREE.MeshBasicMaterial({ map: contactShadowTexture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+  const aoGeo = track(new THREE.PlaneGeometry(1, 1)); aoGeo.rotateX(-Math.PI / 2);
+  const contact = (group, size, y) => { const m = new THREE.Mesh(aoGeo, aoMat); m.scale.set(size, 1, size); m.position.y = y; m.renderOrder = 1; m.userData.shared = true; group.add(m); };
   const themeMats = new Map();
   // gltf: the Blender plaque's UVs follow the glTF convention (texture not flipped).
   const themeMat = (theme, icon, gltf = false) => {
@@ -301,9 +310,10 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     boxGroup.traverse((o) => { if (o.isMesh) o.geometry.dispose(); }); boxGroup.clear();
     const s = SIZES[sizeKey], W = cols * s.gap + 0.22, D = rows * s.gap + 0.22, t = 0.025, wallH = s.wall ?? s.h * 0.66;
     const add = (geo, x, y, z) => { const m = new THREE.Mesh(geo, MAT.board); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; boxGroup.add(m); };
-    add(new THREE.BoxGeometry(W, t, D), 0, -t / 2, 0);
-    add(new THREE.BoxGeometry(W, wallH, t), 0, wallH / 2, -D / 2); add(new THREE.BoxGeometry(W, wallH, t), 0, wallH / 2, D / 2);
-    add(new THREE.BoxGeometry(t, wallH, D), -W / 2, wallH / 2, 0); add(new THREE.BoxGeometry(t, wallH, D), W / 2, wallH / 2, 0);
+    // A folded white paperboard tray with rounded corners, and LexC's round sticker on the front.
+    add(trayGeometry(W, D, wallH, t, 0.16), 0, 0, 0);
+    const stickR = Math.min(0.26, wallH * 0.36);
+    const sticker = new THREE.Mesh(new THREE.CircleGeometry(stickR, 40), stickerMat); sticker.position.set(0, wallH * 0.5, D / 2 + 0.002); boxGroup.add(sticker);
     const positions = [];
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) positions.push(V((c - (cols - 1) / 2) * s.gap, 0, (r - (rows - 1) / 2) * s.gap));
     // The insert: a card with a round hole for each cupcake, part-way up the liners.
@@ -313,7 +323,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
       layout = { size: sizeKey, cols, rows, W, D, s, positions };
       tableSet.resize({ W, D });
     };
-    if (s.stand) add(new THREE.BoxGeometry(W - 0.06, wallH, D - 0.06), 0, wallH / 2, 0);   // the pop stand the sticks go into
+    if (s.stand) add(blockGeometry(W - 0.07, D - 0.07, wallH * 0.96, 0.12), 0, 0, 0);   // the pop stand the sticks go into
     if (s.insert === false) { finishBox(); return; }   // donuts stand on the box floor
     const shape = new THREE.Shape(); shape.moveTo(-W / 2 + t, -D / 2 + t); shape.lineTo(W / 2 - t, -D / 2 + t); shape.lineTo(W / 2 - t, D / 2 - t); shape.lineTo(-W / 2 + t, D / 2 - t); shape.closePath();
     const yIns = s.h * 0.42, rHole = (s.rb + (s.rt - s.rb) * 0.42) * 1.04;
@@ -350,6 +360,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     const s = SIZES[sizeKey], R = s.rt, rand = seeded(variant * 7919 + spec.colors.join('').length * 131 + 17);
     const geos = [], group = new THREE.Group();
     const mesh = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; m.userData.shared = true; group.add(m); return m; };
+    contact(group, s.rt * 2.6, s.h * 0.42 + 0.016);   // soft shadow where the cup meets the insert card
     mesh(linerGeo(sizeKey), MAT.liner[flavor] || MAT.liner.chocolate);
     mesh(cakeGeo(sizeKey), MAT.cake[flavor] || MAT.cake.chocolate);
     const fin = new Set(finishes);
@@ -412,6 +423,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     const s = SIZES.donut, rand = seeded(variant * 7919 + cell.glaze.length * 131 + (cell.decor?.variant || 0) * 17 + 5);
     const geos = [], group = new THREE.Group();
     const mesh = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; m.userData.shared = true; group.add(m); return m; };
+    contact(group, s.rt * 2.7, 0.004);   // soft shadow on the box floor
     mesh(linerGeo('donut'), MAT.liner.vanilla);
     const base = donutGeo('donut_base', s); geos.push(base); mesh(base, donutBaseMat(cell.flavor));
     const glaze = donutGeo('glaze', s); geos.push(glaze); mesh(glaze, glazeMat(cell.glaze));
@@ -480,6 +492,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     const s = SIZES.cakepop, rand = seeded(variant * 7919 + cell.glaze.length * 131 + (cell.decor?.variant || 0) * 17 + 9);
     const geos = [], group = new THREE.Group(), round = box.style !== 'donut';
     const mesh = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; m.userData.shared = true; group.add(m); return m; };
+    contact(group, 0.34, s.wall + 0.004);   // where the stick goes into the stand
     const stick = new THREE.CylinderGeometry(0.03, 0.03, s.stick, 12); stick.translate(0, s.wall + s.stick / 2 - 0.25, 0); geos.push(stick); mesh(stick, stickMat);
     const stickTop = s.wall + s.stick - 0.25;
     let coat, cy, front, R;   // coating geometry, centre height, front surface z, half size
@@ -685,27 +698,22 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     sceneName = name; scene.background = tableSet.background; ground.visible = false; if (viewName === 'angle') setView('angle'); else request(); return name;
   }
 
-  // ---- Packing: a clear bakery lid swings shut over the box, then a LexC's sticker seals it (like the bento). ----
-  const lidMat = track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.4, side: THREE.DoubleSide, depthWrite: false }));
-  const edgeMat = track(new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
-  const stickerMat = track(new THREE.MeshPhysicalMaterial({ map: track(stickerTexture()), roughness: 0.45, clearcoat: 0.4, transparent: true }));
+  // ---- Packing: the box lid (white board, clear window) swings shut, then a lavender satin ribbon and bow tie it. ----
   let packGroup = null, packing = null;
   function buildLid() {
-    if (packGroup) { packGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); world.remove(packGroup); }
-    const { W, D, s } = layout, Hc = s.lidH ?? s.h + s.rt * 1.65, wallH = s.wall ?? s.h * 0.66;
-    // The lid covers the cupcakes: a clear top with four short skirts, hinged along the back edge of the box.
-    const lid = new THREE.Group();
-    const top = new THREE.Mesh(new THREE.BoxGeometry(W + 0.04, 0.012, D + 0.04), lidMat); top.position.set(0, Hc - wallH, D / 2); lid.add(top);
-    const skirtH = Hc - wallH + 0.02;
-    for (const [w, d, x, z] of [[W + 0.04, 0.012, 0, 0], [W + 0.04, 0.012, 0, D], [0.012, D + 0.04, -W / 2, D / 2], [0.012, D + 0.04, W / 2, D / 2]]) {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, skirtH, d), lidMat); m.position.set(x, Hc - skirtH / 2 - wallH, z); lid.add(m);
-    }
-    lid.children.forEach((m) => { const e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), edgeMat); e.position.copy(m.position); lid.add(e); });
-    const hinge = new THREE.Group(); hinge.position.set(0, wallH, -D / 2); hinge.add(lid);
-    const sticker = new THREE.Mesh(new THREE.CircleGeometry(Math.min(W, D) * 0.13, 48), stickerMat);
-    sticker.rotation.x = -Math.PI / 2; sticker.position.set(0, Hc + 0.012, 0); sticker.visible = false;
-    packGroup = new THREE.Group(); packGroup.add(hinge, sticker); packGroup.visible = false; world.add(packGroup);
-    return { hinge, sticker, lid };
+    if (packGroup) { packGroup.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); world.remove(packGroup); }
+    const { W, D, s } = layout, Hc = s.lidH ?? s.h + s.rt * 1.65, wallH = s.wall ?? s.h * 0.66, LW = W + 0.07, LD = D + 0.07;
+    const lid = new THREE.Group(), parts = lidGeometry(LW, LD, Hc - wallH + 0.02);
+    const board = new THREE.Mesh(parts.board, lidBoard); board.castShadow = true; board.receiveShadow = true;
+    const glass = new THREE.Mesh(parts.window, windowMat); glass.renderOrder = 3;
+    lid.add(board, glass); lid.position.y = -0.02;
+    const hinge = new THREE.Group(); hinge.position.set(0, wallH, -LD / 2); hinge.add(lid);
+    const rib = ribbonGeometry(LW, LD, Hc, Math.min(0.22, Math.min(W, D) * 0.07 + 0.08));
+    const ribbon = new THREE.Mesh(rib.ribbon, satin), bow = new THREE.Mesh(rib.bow, satin);
+    ribbon.castShadow = bow.castShadow = true; ribbon.visible = bow.visible = false;
+    const bowPivot = new THREE.Group(); bowPivot.position.y = rib.bowY; bow.position.y = -rib.bowY; bowPivot.add(bow);
+    packGroup = new THREE.Group(); packGroup.add(hinge, ribbon, bowPivot); packGroup.visible = false; world.add(packGroup);
+    return { hinge, ribbon, bow, bowPivot };
   }
   const tween = (fn, ms, delay = 0) => new Promise((done) => { const a = animate((t) => { fn(t); if (t >= 1) done(); }, ms, delay); if (!a) done(); });
   const OPEN = -1.95;
@@ -716,13 +724,17 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
       const P = buildLid(); packGroup.visible = true; P.hinge.rotation.x = OPEN;
       const from = { ...view }, to = { ...viewFor('angle'), pitch: 0.62, dist: viewFor('angle').dist * 1.12, yaw: 0.6 };
       // The lid fades in standing open, the camera steps back, then the lid closes.
-      lidMat.opacity = 0; edgeMat.opacity = 0;
-      await tween((t) => { const k = easeOut(t); lidMat.opacity = 0.16 * k; edgeMat.opacity = 0.85 * k; for (const p of ['yaw', 'pitch', 'dist', 'tx', 'tz']) view[p] = from[p] + (to[p] - from[p]) * k; placeCamera(false); }, 600);
+      lidBoard.opacity = 0; windowMat.opacity = 0;
+      await tween((t) => { const k = easeOut(t); lidBoard.opacity = k; windowMat.opacity = 0.12 * k; for (const p of ['yaw', 'pitch', 'dist', 'tx', 'tz']) view[p] = from[p] + (to[p] - from[p]) * k; placeCamera(false); }, 600);
+      lidBoard.transparent = false; lidBoard.needsUpdate = true;
       await tween((t) => { P.hinge.rotation.x = OPEN * (1 - (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)); }, 900);
       await tween((t) => { const b = Math.sin(t * Math.PI); world.scale.set(1 + 0.02 * b, 1 - 0.03 * b, 1 + 0.02 * b); }, 260);
       world.scale.set(1, 1, 1);
-      P.sticker.visible = true;
-      await tween((t) => P.sticker.scale.setScalar(Math.max(0.001, t < 0.7 ? t / 0.7 * 1.15 : 1.15 - (t - 0.7) / 0.3 * 0.15)), 420);
+      // the ribbon wraps the box, then the bow is tied on top
+      P.ribbon.visible = P.bow.visible = true; satin.opacity = 0; P.bowPivot.scale.setScalar(0.001);
+      await tween((t) => { satin.opacity = easeOut(t); }, 380);
+      await tween((t) => P.bowPivot.scale.setScalar(Math.max(0.001, t < 0.7 ? t / 0.7 * 1.15 : 1.15 - (t - 0.7) / 0.3 * 0.15)), 460);
+      satin.transparent = false; satin.needsUpdate = true;
       request();
     })();
     return packing;
@@ -730,7 +742,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
   function unpack() {
     packing = null; anims.clear();
     if (packGroup) packGroup.visible = false;
-    world.scale.set(1, 1, 1); lidMat.opacity = 0.16; edgeMat.opacity = 0.85;
+    world.scale.set(1, 1, 1); lidBoard.transparent = true; lidBoard.opacity = 1; lidBoard.needsUpdate = true; satin.transparent = true; satin.opacity = 1; satin.needsUpdate = true; windowMat.opacity = 0.12;
     setView('angle');
   }
 

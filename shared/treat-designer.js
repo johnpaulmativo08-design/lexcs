@@ -332,7 +332,7 @@ function makeTreatDesigner(K) {
     const host = root.querySelector('[data-dd-3d]');
     sceneLoading = (async () => {
       try {
-        const [mod] = await Promise.all([import('./cupcake-scene.js?v=15'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
+        const [mod] = await Promise.all([import('./cupcake-scene.js?v=17'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
         if (currentPage !== K.page || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion, kind: K.sceneKind });

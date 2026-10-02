@@ -383,7 +383,7 @@
     const host = root.querySelector('[data-cd-3d]');
     sceneLoading = (async () => {
       try {
-        const mod = await import('./cupcake-scene.js?v=15');
+        const mod = await import('./cupcake-scene.js?v=17');
         if (currentPage !== 'cupcake' || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion });
