@@ -90,7 +90,7 @@
 .stock-drawer::backdrop{background:rgba(26,18,48,.38)}
 .stock-drawer__panel{display:flex;flex-direction:column;height:100%}
 .stock-drawer__head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--stock-line,#eee)}
-.stock-drawer__head h2{flex:1;margin:0;color:var(--admin-ink);font-family:'Nunito',sans-serif;font-size:20px}
+.stock-drawer__head h2{flex:1;margin:0;color:var(--admin-ink);font-family:'Plus Jakarta Sans',sans-serif;font-size:20px}
 .stock-drawer__back{display:none}
 .stock-drawer__body{flex:1;overflow:auto;padding:18px 20px 28px}
 .stock-drawer__status{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;color:var(--admin-muted);font-size:14px}
@@ -173,7 +173,7 @@
 .stock-conversion-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;font-weight:700}
 .stock-conversion-row select,.stock-conversion-row input{min-height:44px;width:auto;min-width:90px;padding:8px 10px;border:1px solid #cfd2ea;border-radius:10px}
 .stock-back{display:inline-flex;align-items:center;gap:4px;margin-bottom:10px}
-.stock-editor__head h2{margin:0;color:var(--admin-ink);font-family:'Nunito',sans-serif;font-size:24px}
+.stock-editor__head h2{margin:0;color:var(--admin-ink);font-family:'Plus Jakarta Sans',sans-serif;font-size:24px}
 .stock-editor__head p{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 14px;color:var(--admin-muted);font-size:14px}
 .stock-editor__section{margin-bottom:14px;padding:18px 20px}
 .stock-editor__section h3{margin:0 0 12px;color:var(--admin-ink);font-size:16px}
@@ -212,7 +212,7 @@
 
 /* Order dialog section */
 .stock-order{margin:18px 0 14px;padding:16px;border:1px solid #e1dcf3;border-radius:14px;background:#fcfbff}
-.stock-order h3{display:flex;align-items:center;gap:8px;margin:0;color:var(--admin-ink);font-family:'Nunito',sans-serif;font-size:16px}
+.stock-order h3{display:flex;align-items:center;gap:8px;margin:0;color:var(--admin-ink);font-family:'Plus Jakarta Sans',sans-serif;font-size:16px}
 .stock-order__head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
 .stock-order>p{margin:0 0 10px}
 .stock-order__facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0 14px}
