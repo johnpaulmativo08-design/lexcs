@@ -2,6 +2,7 @@
 // Uses the Blender model (assets/3d/bento.glb) when it loads; otherwise a cake built from simple shapes,
 // so the preview never depends on the file. Renders on demand, not every frame.
 import * as THREE from 'three';
+import { createSet } from './scene-set.js?v=1';
 
 const MODEL_URL = new URL('../assets/3d/bento.glb?v=1', import.meta.url).href;
 const R = 1.0;                     // cake radius (4" bento, 1 unit = 2")
@@ -806,55 +807,21 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   }
   function hasMovable() { let any = false; decor.traverse((o) => { if (o.userData.move && shown(o)) any = true; }); return any; }
 
-  // --- Scenes: Studio (plain, default), Bakery counter and Party table --------------------------------
-  // The cake keeps the same neutral lights and reflections in every scene so frosting colours stay true;
-  // only the backdrop (a blurred 360° photo) and the surface under the stand change.
-  const SCENES = {
-    bakery: { url: new URL('../assets/3d/comfy_cafe_1k.hdr', import.meta.url).href, intensity: 0.46, blur: 0.42 },
-    party: { url: new URL('../assets/3d/warm_reception_dinner_1k.hdr', import.meta.url).href, intensity: 0.42, blur: 0.5 }
-  };
-  const TABLE_Y = -0.55, backdrops = new Map();
-  const surface = new THREE.Group(); surface.visible = false; world.add(surface);
-  const fade = track(fadeTexture());
-  const marble = new THREE.Mesh(track(new THREE.CircleGeometry(9, 72)), track(new THREE.MeshPhysicalMaterial({ map: track(marbleTexture()), alphaMap: fade, transparent: true, roughness: 0.22, clearcoat: 0.5, clearcoatRoughness: 0.15, envMapIntensity: 0.6 })));
-  const cloth = new THREE.Mesh(track(new THREE.CircleGeometry(9, 72)), track(new THREE.MeshPhysicalMaterial({ map: track(linenTexture()), alphaMap: fade, transparent: true, roughness: 0.9, sheen: 0.4, sheenRoughness: 0.7, sheenColor: 0xffffff, envMapIntensity: 0.3 })));
-  for (const m of [marble, cloth]) { m.rotation.x = -Math.PI / 2; m.receiveShadow = true; surface.add(m); }
-  surface.position.y = TABLE_Y;
-  // Party confetti: one instanced mesh, kept clear of the cake stand's foot.
-  const confetti = new THREE.InstancedMesh(track(new THREE.CircleGeometry(0.045, 10)), track(new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.15, side: THREE.DoubleSide })), 170);
-  {
-    let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const cols = ['#f4b6c8', '#f9e27d', '#bfdddf', '#cdb8e8', '#ffffff', '#f7a072', '#d4af37'].map((h) => new THREE.Color(h));
-    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
-    for (let i = 0; i < confetti.count; i++) {
-      const a = rnd() * Math.PI * 2, r = 1.05 + Math.pow(rnd(), 0.7) * 3.4;
-      q.setFromEuler(e.set(-Math.PI / 2 + (rnd() - 0.5) * 0.5, 0, rnd() * Math.PI));
-      m4.compose(new THREE.Vector3(Math.cos(a) * r, 0.006 + rnd() * 0.01, Math.sin(a) * r), q, new THREE.Vector3(1, 0.6 + rnd() * 0.6, 1));
-      confetti.setMatrixAt(i, m4); confetti.setColorAt(i, cols[i % cols.length]);
-    }
-    confetti.receiveShadow = true; surface.add(confetti);
-  }
+  // --- Scenes: Studio (plain, default), or LexC's styled table from Blender (scene-set.js) ----------------------
+  // Bakery or Party props stand around the cake stand. The cake keeps the same neutral lights and reflections in
+  // every scene so frosting colours stay true. The table sits in "surface", which rises to meet the box when packing.
+  const TABLE_Y = -0.55;
+  const surface = new THREE.Group(); surface.position.y = TABLE_Y; world.add(surface);
+  const tableSet = createSet(surface, { y: 0 });
   let sceneName = 'studio', sceneReq = 0;
-  async function loadBackdrop(name) {
-    if (!backdrops.has(name)) backdrops.set(name, (async () => {
-      const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
-      const tex = await new RGBELoader().loadAsync(SCENES[name].url); tex.mapping = THREE.EquirectangularReflectionMapping; track(tex); return tex;
-    })().catch((error) => { backdrops.delete(name); throw error; }));
-    return backdrops.get(name);
-  }
-  function applyScene(name, tex) {
-    sceneName = name;
-    if (name === 'studio' || !tex) { scene.background = null; surface.visible = false; request(); return; }
-    scene.background = tex; scene.backgroundBlurriness = SCENES[name].blur; scene.backgroundIntensity = SCENES[name].intensity;
-    surface.visible = true; marble.visible = name === 'bakery'; cloth.visible = confetti.visible = name === 'party';
-    request();
-  }
-  // Resolves to the scene actually shown (falls back to Studio if the photo cannot load).
+  // Resolves to the scene actually shown (falls back to Studio if the set cannot load).
   async function setScene(name) {
     const req = ++sceneReq;
-    if (!SCENES[name]) { applyScene('studio'); return 'studio'; }
-    try { const tex = await loadBackdrop(name); if (req === sceneReq && alive) applyScene(name, tex); return name; }
-    catch (error) { console.info('Scene photo unavailable:', error?.message || error); if (req === sceneReq) applyScene('studio'); return 'studio'; }
+    if (name !== 'bakery' && name !== 'party') { sceneName = 'studio'; tableSet.show(null); scene.background = null; request(); return 'studio'; }
+    const ok = await tableSet.show(name, { W: 5.2, D: 5.2 });   // the stand plus room so props frame the cake, not crowd it
+    if (req !== sceneReq || !alive) return name;
+    if (!ok) { sceneName = 'studio'; scene.background = null; request(); return 'studio'; }
+    sceneName = name; scene.background = tableSet.background; request(); return name;
   }
 
   // One quick turn of the turntable (used by "Surprise me").
@@ -865,18 +832,18 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   // 'angle' is the cart/order picture; 'top' shows the message and border for the design card.
   function snapshot(size = 240, angle = 'angle') {
     finishPiping();
-    const keepBackground = scene.background, keepSurface = surface.visible; scene.background = null; surface.visible = false;
+    const keepBackground = scene.background, keepSet = tableSet.peek(false); scene.background = null;
     const saved = { ...view }; Object.assign(view, angle === 'top' ? VIEWS.top : { yaw: 0.35, pitch: 0.75, dist: 5.4 }); placeCamera(false);
     renderer.render(scene, camera);
     const out = document.createElement('canvas'); out.width = out.height = size; const g = out.getContext('2d');
     const src = renderer.domElement, s = Math.min(src.width, src.height);
     g.fillStyle = '#fbf6ff'; g.fillRect(0, 0, size, size);
     g.drawImage(src, (src.width - s) / 2, (src.height - s) / 2, s, s, 0, 0, size, size);
-    Object.assign(view, saved); scene.background = keepBackground; surface.visible = keepSurface; placeCamera();
+    Object.assign(view, saved); scene.background = keepBackground; tableSet.peek(keepSet); placeCamera();
     return out.toDataURL('image/jpeg', 0.78);
   }
   function dispose() {
-    alive = false; clearTimeout(spinTimer); anims.clear(); spin = false; cancelAnimationFrame(frame); ro.disconnect(); clearDecor();
+    alive = false; tableSet.dispose(); clearTimeout(spinTimer); anims.clear(); spin = false; cancelAnimationFrame(frame); ro.disconnect(); clearDecor();
     if (model?.pack) forEachMesh(model.pack.group, (m) => m.geometry.dispose());
     if (model) forEachMesh(model.root, (m) => { m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => { x.map?.dispose(); x.dispose(); }); });
     envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();

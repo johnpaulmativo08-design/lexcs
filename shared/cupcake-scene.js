@@ -4,8 +4,9 @@
 // Loaded on demand; renders only when something changes. Identical cupcakes share one built template.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { M, SURF, withSurface, shade, marbleTexture, linenTexture, fadeTexture } from './bento-scene.js?v=23';
+import { M, SURF, withSurface, shade } from './bento-scene.js?v=25';
 import { themePiece, plaquePiece, letterTexture } from './donut-parts.js?v=1';
+import { createSet } from './scene-set.js?v=1';
 
 const TAU = Math.PI * 2;
 // Units: 1 = 5 cm. rb/rt: liner bottom/top radius, h: liner height, gap: spacing in the box insert.
@@ -308,6 +309,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
       const span = Math.max(W, D) * 0.75 + 1;
       Object.assign(key.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: 30 }); key.shadow.camera.updateProjectionMatrix();
       layout = { size: sizeKey, cols, rows, W, D, s, positions };
+      tableSet.resize({ W, D });
     };
     if (s.insert === false) { finishBox(); return; }   // donuts stand on the box floor
     const shape = new THREE.Shape(); shape.moveTo(-W / 2 + t, -D / 2 + t); shape.lineTo(W / 2 - t, -D / 2 + t); shape.lineTo(W / 2 - t, D / 2 - t); shape.lineTo(-W / 2 + t, D / 2 - t); shape.closePath();
@@ -318,6 +320,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     const span = Math.max(W, D) * 0.75 + 1;
     Object.assign(key.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: 30 }); key.shadow.camera.updateProjectionMatrix();
     layout = { size: sizeKey, cols, rows, W, D, s, positions };
+    tableSet.resize({ W, D });
   }
 
   // Cupcake templates ------------------------------------------------------------------------------
@@ -492,9 +495,9 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     const size = Math.max(layout.W, layout.D * 1.15), aspect = camera.aspect || 1, k = aspect < 1 ? 1 / Math.max(0.55, aspect) : 1;
     if (name === 'top') return { yaw: 0, pitch: 1.5, dist: (size * 1.75 + 0.6) * k * 0.92, tx: 0, tz: 0 };
     if (name === 'close') { const p = layout.positions[layout.positions.length - Math.ceil(layout.cols / 2)] || V(0, 0, 0); return { yaw: 0.35, pitch: 0.5, dist: layout.s.rt * 7.5, tx: p.x, tz: p.z }; }
-    return { yaw: 0.45, pitch: 0.72, dist: (size * 1.8 + 0.8) * k, tx: 0, tz: 0 };
+    return { yaw: 0.45, pitch: sceneName === 'studio' ? 0.72 : 0.6, dist: (size * 1.8 + 0.8) * k * (sceneName === 'studio' ? 1 : 1.25), tx: 0, tz: 0 };   // a set: step back to show the table
   }
-  let viewName = 'angle', viewAnim = null;
+  let viewName = 'angle', viewAnim = null, sceneName = 'studio';
   function setView(name, ms = 650) {
     viewName = name; const to = viewFor(name), from = { ...view };
     const dy = ((to.yaw - from.yaw) % TAU + TAU * 1.5) % TAU - Math.PI;
@@ -581,33 +584,17 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     request();
   }
 
-  // Scenes: Studio (plain), Bakery counter (marble) and Party table (linen), same lights so colours stay true.
-  const SCENES = {
-    bakery: { url: new URL('../assets/3d/comfy_cafe_1k.hdr', import.meta.url).href, intensity: 0.46, blur: 0.42 },
-    party: { url: new URL('../assets/3d/warm_reception_dinner_1k.hdr', import.meta.url).href, intensity: 0.42, blur: 0.5 }
-  };
-  const fade = track(fadeTexture()), surface = new THREE.Group(); surface.visible = false; world.add(surface);
-  const marble = new THREE.Mesh(track(new THREE.CircleGeometry(14, 72)), track(new THREE.MeshPhysicalMaterial({ map: track(marbleTexture()), alphaMap: fade, transparent: true, roughness: 0.22, clearcoat: 0.5, clearcoatRoughness: 0.15, envMapIntensity: 0.6 })));
-  const cloth = new THREE.Mesh(track(new THREE.CircleGeometry(14, 72)), track(new THREE.MeshPhysicalMaterial({ map: track(linenTexture()), alphaMap: fade, transparent: true, roughness: 0.9, sheen: 0.4, sheenRoughness: 0.7, sheenColor: 0xffffff, envMapIntensity: 0.3 })));
-  for (const m of [marble, cloth]) { m.rotation.x = -Math.PI / 2; m.position.y = -0.031; m.receiveShadow = true; surface.add(m); }
-  const backdrops = new Map(); let sceneReq = 0;
-  async function loadBackdrop(name) {
-    if (!backdrops.has(name)) backdrops.set(name, (async () => {
-      const { RGBELoader } = await import('three/addons/loaders/RGBELoader.js');
-      const tex = await new RGBELoader().loadAsync(SCENES[name].url); tex.mapping = THREE.EquirectangularReflectionMapping; track(tex); return tex;
-    })().catch((error) => { backdrops.delete(name); throw error; }));
-    return backdrops.get(name);
-  }
-  function applyScene(name, tex) {
-    if (name === 'studio' || !tex) { scene.background = null; surface.visible = false; ground.visible = true; request(); return; }
-    scene.background = tex; scene.backgroundBlurriness = SCENES[name].blur; scene.backgroundIntensity = SCENES[name].intensity;
-    surface.visible = true; ground.visible = false; marble.visible = name === 'bakery'; cloth.visible = name === 'party'; request();
-  }
+  // Scenes: Studio (plain) or LexC's styled table from Blender (scene-set.js): Bakery or Party props around the box.
+  // The lights and reflections stay the same in every scene so frosting and glaze colours stay true.
+  const tableSet = createSet(world, { y: -0.026 });
+  let sceneReq = 0;
   async function setScene(name) {
     const req = ++sceneReq;
-    if (!SCENES[name]) { applyScene('studio'); return 'studio'; }
-    try { const tex = await loadBackdrop(name); if (req === sceneReq && alive) applyScene(name, tex); return name; }
-    catch (error) { console.info('Scene photo unavailable:', error?.message || error); if (req === sceneReq) applyScene('studio'); return 'studio'; }
+    if (name !== 'bakery' && name !== 'party') { const was = sceneName; sceneName = 'studio'; tableSet.show(null); scene.background = null; ground.visible = true; if (was !== 'studio' && viewName === 'angle') setView('angle'); else request(); return 'studio'; }
+    const ok = await tableSet.show(name, layout ? { W: layout.W, D: layout.D } : undefined);
+    if (req !== sceneReq || !alive) return name;
+    if (!ok) { sceneName = 'studio'; scene.background = null; ground.visible = true; request(); return 'studio'; }
+    sceneName = name; scene.background = tableSet.background; ground.visible = false; if (viewName === 'angle') setView('angle'); else request(); return name;
   }
 
   // ---- Packing: a clear bakery lid swings shut over the box, then a LexC's sticker seals it (like the bento). ----
@@ -662,20 +649,21 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
   // Picture of the box for the cart line and the order (angled, plain background).
   function snapshot(size = 480) {
     for (const a of [...anims]) { a.fn(1); } anims.clear();
-    const keepBg = scene.background, keepSurface = surface.visible, keepGround = ground.visible, saved = { ...view };
-    scene.background = null; surface.visible = false; ground.visible = true;
+    const keepBg = scene.background, keepSet = tableSet.peek(false), keepGround = ground.visible, saved = { ...view };
+    scene.background = null; ground.visible = true;
     Object.assign(view, viewFor('angle')); placeCamera(false); renderer.render(scene, camera);
     const src = renderer.domElement, out = document.createElement('canvas');
     out.width = size; out.height = Math.round(size * Math.min(1.2, src.height / src.width));
     const g = out.getContext('2d'); g.fillStyle = '#fbf6ff'; g.fillRect(0, 0, out.width, out.height);
     const sh = src.width * out.height / out.width; g.drawImage(src, 0, (src.height - sh) / 2, src.width, sh, 0, 0, out.width, out.height);
-    Object.assign(view, saved); scene.background = keepBg; surface.visible = keepSurface; ground.visible = keepGround; placeCamera();
+    Object.assign(view, saved); scene.background = keepBg; tableSet.peek(keepSet); ground.visible = keepGround; placeCamera();
     return out.toDataURL('image/jpeg', 0.8);
   }
   function dispose() {
     alive = false; anims.clear(); cancelAnimationFrame(frame); ro.disconnect();
     for (const k of [...templates.keys()]) dropTemplate(k);
     boxGroup.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    tableSet.dispose();
     packGroup?.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
     envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
   }
