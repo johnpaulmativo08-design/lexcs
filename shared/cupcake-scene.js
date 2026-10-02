@@ -339,8 +339,8 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
   // Animation + camera ---------------------------------------------------------------------------------
   const anims = new Set();
   function animate(fn, ms, delay = 0) {
-    if (reducedMotion || ms <= 0) { fn(1); request(); return; }
-    anims.add({ fn, start: performance.now() + delay, ms }); loop();
+    if (reducedMotion || ms <= 0) { fn(1); request(); return null; }
+    const a = { fn, start: performance.now() + delay, ms }; anims.add(a); loop(); return a;
   }
   function loop() {
     if (loop.running) return; loop.running = true;
@@ -361,12 +361,12 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     if (name === 'close') { const p = layout.positions[layout.positions.length - Math.ceil(layout.cols / 2)] || V(0, 0, 0); return { yaw: 0.35, pitch: 0.5, dist: layout.s.rt * 7.5, tx: p.x, tz: p.z }; }
     return { yaw: 0.45, pitch: 0.72, dist: (size * 1.8 + 0.8) * k, tx: 0, tz: 0 };
   }
-  let viewName = 'angle';
+  let viewName = 'angle', viewAnim = null;
   function setView(name, ms = 650) {
     viewName = name; const to = viewFor(name), from = { ...view };
     const dy = ((to.yaw - from.yaw) % TAU + TAU * 1.5) % TAU - Math.PI;
     anims.clear();
-    animate((t) => { const k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; for (const p of ['pitch', 'dist', 'tx', 'tz']) view[p] = from[p] + (to[p] - from[p]) * k; view.yaw = from.yaw + dy * k; placeCamera(false); }, ms);
+    viewAnim = animate((t) => { const k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; for (const p of ['pitch', 'dist', 'tx', 'tz']) view[p] = from[p] + (to[p] - from[p]) * k; view.yaw = from.yaw + dy * k; placeCamera(false); }, ms);
   }
   function placeCamera(render = true) {
     const s = layout?.s || SIZES.mini, maxD = layout ? Math.max(layout.W, layout.D) * 3 + 4 : 20;
@@ -442,7 +442,7 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     while (cellObjs.length > spec.cells.length) cupcakes.remove(cellObjs.pop());
     cellKeys.length = spec.cells.length;
     for (const k of [...templates.keys()]) if (!used.has(k)) dropTemplate(k);
-    if (fresh) { Object.assign(view, viewFor(viewName === 'close' ? 'angle' : viewName)); if (viewName === 'close') viewName = 'angle'; placeCamera(false); }
+    if (fresh) { anims.delete(viewAnim); viewAnim = null; Object.assign(view, viewFor(viewName === 'close' ? 'angle' : viewName)); if (viewName === 'close') viewName = 'angle'; placeCamera(false); }
     request();
   }
 
