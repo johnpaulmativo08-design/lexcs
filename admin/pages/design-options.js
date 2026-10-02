@@ -82,7 +82,7 @@ export async function renderDesignOptions(content){
       const lockedAll=g.list.every(activeLocked),open=isOpen(g.key),paid=g.list.filter(o=>current(o).price>0).length,changed=g.list.filter(o=>edits.has(o.id)).length;
       return '<section class="panel dopt-group'+(open?' is-open':'')+'" id="dopt-'+e(g.key)+'" data-group="'+e(g.key)+'"><header class="dopt-group-head">'
        +'<button type="button" class="dopt-toggle" data-section="'+e(g.key)+'" aria-expanded="'+open+'" aria-controls="dopt-body-'+e(g.key)+'"><span class="dopt-caret" aria-hidden="true">▾</span><span><span class="dopt-group-title">'+e(g.title)+'</span>'
-       +'<span class="dopt-group-sub">'+g.list.filter(o=>current(o).is_active).length+' of '+g.list.length+' offered · '+(paid?paid+' with an extra':'all free')+(changed?' · <b>'+changed+' unsaved</b>':'')+'</span></span></button>'
+       +'<span class="dopt-group-sub"><span class="dopt-pill">'+g.list.filter(o=>current(o).is_active).length+' of '+g.list.length+' offered</span><span class="dopt-pill'+(paid?' is-paid':'')+'">'+(paid?paid+' with an extra':'All free')+'</span>'+(changed?'<span class="dopt-pill is-unsaved">'+changed+' unsaved</span>':'')+'</span></span></button>'
        +(lockedAll||!open?'':'<div class="dopt-group-actions"><button type="button" class="dopt-chip" data-all="on">Offer all</button><button type="button" class="dopt-chip" data-all="off">Hide all</button></div>')+'</header>'
        +(open?'<div id="dopt-body-'+e(g.key)+'"><p class="dopt-how">Extra charged '+(HOW[g.key]||'once per '+unit+' when chosen')+'.</p>'
          +'<div class="dopt-head" aria-hidden="true"><span>Option</span><span>Extra price (₱)</span><span>Customers see it</span><span></span></div>'
