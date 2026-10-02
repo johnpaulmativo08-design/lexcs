@@ -28,7 +28,6 @@ Every change is a permanent ledger row linked to its order, recipe version, batc
 | Order cancelled while **preparing/ready** | Materials are treated as used (*Consumed*). An Admin can return them with a mandatory reason. |
 | Product has no active recipe, or is a package | The line is listed under *Needs manual material review*. The rest of the order is still deducted. Use **Record extra materials** on the order. |
 | Custom order with a reference image | Recipe materials are deducted, and the line is flagged so decoration extras get recorded manually. |
-| ₱1 payment-test product | Never touches inventory. |
 
 This all runs in the `orders_inventory_sync` database trigger, never in the browser. The order dialog's
 "Confirming this order will allocate…" preview is only informational: the server recalculates at confirmation.

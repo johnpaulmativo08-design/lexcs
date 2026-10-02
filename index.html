@@ -1415,7 +1415,6 @@ function authEscape(value) {
 let selectedPayment = '';
 let selectedDelivery = '';
 const checkoutMoney = value => '₱' + (Math.round(Number(value || 0) * 100) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const cartIsPaymentTest = () => cartSelectedItems().some(item => item.isTest);
 
 function goToCheckout() {
   if (cart.length === 0) { showToast('Your cart is empty!'); return; }
@@ -1447,8 +1446,8 @@ function renderCheckout() {
   `).join('') : '<p class="checkout-empty-selection">No items selected. Return to your cart and choose what to buy.</p>';
   document.getElementById('checkoutSubtotal').textContent = checkoutMoney(subtotalCentavos / 100);
   document.getElementById('checkoutGrandTotal').textContent = checkoutMoney(subtotalCentavos / 100);
-  const requiredCentavos = cartIsPaymentTest() ? subtotalCentavos : Math.round(subtotalCentavos * 0.6);
-  document.getElementById('checkoutRequiredLabel').textContent = cartIsPaymentTest() ? 'Required payment (100%)' : 'Required downpayment (60%)';
+  const requiredCentavos = Math.round(subtotalCentavos * 0.6);
+  document.getElementById('checkoutRequiredLabel').textContent = 'Required downpayment (60%)';
   document.getElementById('checkoutRequired').textContent = checkoutMoney(requiredCentavos / 100);
   document.getElementById('checkoutBalance').textContent = checkoutMoney((subtotalCentavos - requiredCentavos) / 100);
   document.getElementById('checkoutCustomerEmail').textContent = currentUser?.email ? `Signed in as ${currentUser.email}` : '';
@@ -1487,7 +1486,7 @@ function updateCheckoutDelivery() {
     document.getElementById('checkoutBalance').textContent = 'Pending delivery quote';
     document.getElementById('checkoutStickyDue').textContent = 'After quote';
   } else {
-    const required = cartIsPaymentTest() ? Math.round(subtotal * 100) : Math.round(subtotal * 100 * 0.6);
+    const required = Math.round(subtotal * 100 * 0.6);
     document.getElementById('checkoutRequired').textContent = checkoutMoney(required / 100);
     document.getElementById('checkoutBalance').textContent = checkoutMoney(subtotal - required / 100);
     document.getElementById('checkoutStickyDue').textContent = checkoutMoney(required / 100);
@@ -1692,7 +1691,6 @@ function mergeCartItems(saved, guest) {
   const merged = saved.map(item => ({...item}));
   for (const item of guest) {
     if (!item?.variant_id || !Number.isInteger(item.qty) || item.qty < 1) continue;
-    if (merged.length && merged.some(other => Boolean(other.isTest) !== Boolean(item.isTest))) continue;
     const match = merged.find(other => other.variant_id === item.variant_id && other.sizeLabel === item.sizeLabel);
     if (match) match.qty = Math.min(999, match.qty + item.qty);
     else merged.push({...item});
@@ -1871,7 +1869,7 @@ function openProductDetails(id) {
   const dialog = document.createElement('dialog');
   dialog.className = 'product-detail-dialog';
   const image = PRODUCT_IMAGES[p.id] ? `<img src="${authEscape(PRODUCT_IMAGES[p.id])}" alt="${authEscape(p.name)}"><span class="skel product-detail-image-skeleton" aria-hidden="true"></span>` : `<span class="product-detail-emoji">${authEscape(p.emoji)}</span>`;
-  dialog.innerHTML = `<header class="product-detail-header"><button type="button" class="product-detail-close" aria-label="Back to products">←</button><span>Product details</span><button type="button" class="product-detail-cart" aria-label="Open cart"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></button></header><div class="product-detail-image">${image}</div><div class="product-detail-body"><div class="product-detail-heading"><h2>${authEscape(p.name)}</h2><strong data-price>${checkoutMoney(p.price)}</strong></div><p>${authEscape(p.desc)}</p>${p.isTest ? '<p>Real ₱1 payment test. No bakery item will be delivered. Checkout separately.</p>' : ''}<label for="detail-size-${p.id}">Choose size or flavor</label><select id="detail-size-${p.id}" class="product-detail-select" data-variant>${p.sizes.map((size, index) => `<option value="${index}">${authEscape(size.label)} — ${checkoutMoney(size.price)}</option>`).join('')}</select><div class="product-detail-quantity"><span>Quantity</span><div class="cart-qty-ctrl"><button type="button" class="qty-btn" data-less aria-label="Decrease quantity">−</button><span class="qty-num" data-quantity>1</span><button type="button" class="qty-btn" data-more aria-label="Increase quantity">+</button></div></div><p class="product-detail-description">Freshly made for your selected pickup or delivery date. Add to cart now and complete your order at checkout.</p></div><footer class="product-detail-footer"><button type="button" class="btn-primary" data-add>Add to Cart</button><button type="button" class="btn-outline" data-buy>Buy Now</button></footer>`;
+  dialog.innerHTML = `<header class="product-detail-header"><button type="button" class="product-detail-close" aria-label="Back to products">←</button><span>Product details</span><button type="button" class="product-detail-cart" aria-label="Open cart"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></button></header><div class="product-detail-image">${image}</div><div class="product-detail-body"><div class="product-detail-heading"><h2>${authEscape(p.name)}</h2><strong data-price>${checkoutMoney(p.price)}</strong></div><p>${authEscape(p.desc)}</p><label for="detail-size-${p.id}">Choose size or flavor</label><select id="detail-size-${p.id}" class="product-detail-select" data-variant>${p.sizes.map((size, index) => `<option value="${index}">${authEscape(size.label)} — ${checkoutMoney(size.price)}</option>`).join('')}</select><div class="product-detail-quantity"><span>Quantity</span><div class="cart-qty-ctrl"><button type="button" class="qty-btn" data-less aria-label="Decrease quantity">−</button><span class="qty-num" data-quantity>1</span><button type="button" class="qty-btn" data-more aria-label="Increase quantity">+</button></div></div><p class="product-detail-description">Freshly made for your selected pickup or delivery date. Add to cart now and complete your order at checkout.</p></div><footer class="product-detail-footer"><button type="button" class="btn-primary" data-add>Add to Cart</button><button type="button" class="btn-outline" data-buy>Buy Now</button></footer>`;
   document.body.append(dialog); dialog.showModal();
   const detailImage=dialog.querySelector('.product-detail-image img');
   if(detailImage){const settle=()=>{detailImage.classList.add('is-loaded');dialog.querySelector('.product-detail-image-skeleton')?.remove();};const failed=()=>{detailImage.replaceWith(Object.assign(document.createElement('span'),{className:'product-detail-emoji',textContent:p.emoji||'Pastry'}));dialog.querySelector('.product-detail-image-skeleton')?.remove();};if(detailImage.complete){if(detailImage.naturalWidth)settle();else failed();}else{detailImage.addEventListener('load',settle,{once:true});detailImage.addEventListener('error',failed,{once:true});}}
@@ -1899,9 +1897,6 @@ function openProductDetails(id) {
 function addToCartById(id, selectedIndex, quantity = 1) {
   const p = products.find(x => x.id === id);
   if (!p) return false;
-  if (cart.length && cart.some(item => Boolean(item.isTest) !== Boolean(p.isTest))) {
-    showToast('Payment Test Product must be checked out separately.'); return false;
-  }
   const sel = document.getElementById('size-' + id);
   const idx = Number.isInteger(selectedIndex) ? selectedIndex : (sel ? +sel.value : 0);
   const size = p.sizes[idx];
@@ -1913,7 +1908,7 @@ function addToCartById(id, selectedIndex, quantity = 1) {
     existing.qty += quantity;
     existing.selected = true;
   } else {
-    cart.push({ id, product_id: p.product_id, variant_id: size.id, name: p.name, emoji: p.emoji, sizeLabel: size.label, price: size.price, qty: quantity, isTest: Boolean(p.isTest), selected: true });
+    cart.push({ id, product_id: p.product_id, variant_id: size.id, name: p.name, emoji: p.emoji, sizeLabel: size.label, price: size.price, qty: quantity, selected: true });
   }
   renderCart();
   showToast(`✓ ${authEscape(p.name)} added!`);
@@ -2404,14 +2399,14 @@ document.getElementById('loginName').value = localStorage.getItem('lexc_login_hi
 document.getElementById('loginRemember').checked = Boolean(localStorage.getItem('lexc_login_hint'));
 </script>
 
-<script src="shared/customer-backend.js?v=20"></script>
-<script src="shared/product-detail.js?v=9"></script>
+<script src="shared/customer-backend.js?v=21"></script>
+<script src="shared/product-detail.js?v=10"></script>
 <script src="shared/fresh-feed.js?v=4"></script>
 <script src="shared/landing.js?v=2"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
-<script src="shared/bento-designer.js?v=25"></script>
-<script src="shared/cupcake-designer.js?v=18"></script>
-<script src="shared/treat-designer.js?v=7"></script>
+<script src="shared/bento-designer.js?v=26"></script>
+<script src="shared/cupcake-designer.js?v=19"></script>
+<script src="shared/treat-designer.js?v=8"></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
 <script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=12';mountChatWidget();</script>
 </body>

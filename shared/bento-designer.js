@@ -771,7 +771,6 @@
   }
   async function addToCart() {
     if (quote.status !== 'ok') return;
-    if (cart.some((i) => i.isTest)) return showToast('Payment Test Product must be checked out separately.');
     const v = variant(); const d = design();
     const item = {
       id: 'bento-' + crypto.randomUUID(), product_id: product.id, variant_id: v.id, name: product.name, emoji: '🎂',

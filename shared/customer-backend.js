@@ -23,7 +23,7 @@ async function loadStorefront(){
   methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'" aria-pressed="false"><span class="co-option-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span><span>'+authEscape(m.display_name)+'</span></button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
   methodRoot.querySelectorAll('[data-payment-code]').forEach(button=>button.onclick=()=>selectPayment(button,button.dataset.paymentCode));
   products.splice(0,products.length,...liveCatalog.filter(p=>p.kind==='standard').map((p,index)=>({
-   id:p.legacy_id||10000+index,product_id:p.id,name:p.name,desc:p.description,cat:p.categories?.slug||'',emoji:p.emoji||'🧁',badge:p.badge_label,stars:'',isTest:p.is_test_product,
+   id:p.legacy_id||10000+index,product_id:p.id,name:p.name,desc:p.description,cat:p.categories?.slug||'',emoji:p.emoji||'🧁',badge:p.badge_label,stars:'',
    sizes:p.product_variants.filter(v=>v.is_active).map(v=>({id:v.id,label:v.label,price:Number(v.price)}))
   })).filter(p=>p.sizes.length).map(p=>({...p,price:p.sizes[0].price})));
   for(const p of products){const db=liveCatalog.find(d=>d.id===p.product_id);if(db.image_path)PRODUCT_IMAGES[p.id]=LexcBackend.mediaURL(db.image_path);}
@@ -43,7 +43,6 @@ async function loadStorefront(){
  }catch(error){console.warn('Storefront could not load:',error);window.lexcCatalogState='error';renderShop();renderGallery();if(packageContainer)packageContainer.innerHTML='<div class="shop-no-results" role="alert"><strong>Packages could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>';document.getElementById('checkoutPaymentMethods').innerHTML='<p role="alert">Payment methods could not load. <button type="button" class="btn-outline" onclick="loadStorefront()">Try again</button></p>';}
 }
 function addPackageToCart(name){
- if(cart.some(item=>item.isTest))return showToast('Payment Test Product must be checked out separately.');
  const p=liveCatalog.find(p=>p.kind==='package'&&p.name===name),v=p?.product_variants.find(v=>v.is_active);
  if(!v)return showToast('This package is unavailable.');
  const item=cart.find(i=>i.variant_id===v.id);
@@ -88,7 +87,6 @@ async function submitCheckout(){
  if(field('coContact').length<5||field('coContact').length>40)return needField('coContact','Enter a contact number, like 0917 123 4567.');
  if(!field('coDate')||!field('coTime'))return showToast('Choose a booking date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
-  if(cartIsPaymentTest()&&(selectedItems.some(item=>!item.isTest)||selectedDelivery!=='Pick-up'))return showToast('Payment Test Product must be checked out separately for pickup.');
   if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
   const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,preview_top,reference_image_path,design_top_path,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
  let request=readAuthStorage(localStorage,'lexc_checkout_request',null);

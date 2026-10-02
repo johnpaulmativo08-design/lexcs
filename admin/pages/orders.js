@@ -33,30 +33,6 @@ function designDetails(c){
  return '<div style="margin:8px 0 4px;padding:10px 12px;border:1px solid #e5ddec;border-radius:10px;background:#fcf9fe"><strong>Bento design</strong><dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0">'
   +rows.map(([k,v])=>'<dt style="color:#705c7c">'+e(k)+'</dt><dd style="margin:0">'+(k==='Message'&&c.message?'<span style="display:block;white-space:pre-wrap;font-size:1.05rem;font-weight:700;padding:6px 8px;background:#fff;border:1px dashed #c8b2dc;border-radius:8px">'+e(c.message)+'</span>':e(v))+'</dd>').join('')+'</dl></div>';
 }
-async function renderPaymentTests(content){
- const panel=content.querySelector('#payment-tests');
- if(!panel)return;
- panel.innerHTML='<div class="payment-test-heading"><div><h2>QR payment tests</h2><p>Real ₱1 MariBank transfers · Verify against the bank account before approval.</p></div></div>'+loadingTable(['Customer','Created','Amount','Reference','Status','Action'],5);
- try{
-  const tests=db.unwrap(await db.client.from('payment_tests').select('*').order('created_at',{ascending:false}).limit(50));
-  if(!panel.isConnected)return;
-  panel.innerHTML='<div class="payment-test-heading"><div><h2>QR payment tests</h2><p>Real ₱1 MariBank transfers · Verify against the bank account before approval.</p></div><a class="button" href="../payment-test/" target="_blank" rel="noopener">Open customer test</a></div>'+
-   (tests.length?grid(['Customer','Created','Amount','Reference','Status','Action'],tests.map(test=>{
-    const status=test.status==='verified'?'Verified':test.status==='submitted'?'Needs review':test.status==='rejected'?'Rejected':'Awaiting transfer';
-    return '<tr><td>'+e(test.customer_name)+'</td><td>'+e(new Date(test.created_at).toLocaleString('en-PH',{timeZone:'Asia/Manila'}))+'</td><td>₱1.00</td><td>'+e(test.payment_reference||'—')+'</td><td>'+statusIndicator(status,test.status==='verified'?'success':test.status==='rejected'?'danger':'warning')+'</td><td>'+(test.status==='submitted'?'<button class="button" data-payment-test="'+e(test.id)+'">Review</button>':'—')+'</td></tr>';
-   }).join('')):'<p>No QR payment tests yet.</p>');
-  panel.querySelectorAll('[data-payment-test]').forEach(button=>button.onclick=()=>{
-   const test=tests.find(row=>row.id===button.dataset.paymentTest);
-   const dialog=showDetails('Review ₱1 MariBank test',
-    '<p><strong>Customer:</strong> '+e(test.customer_name)+'</p><p><strong>Amount to find in MariBank:</strong> ₱1.00</p><p><strong>Customer reference:</strong> '+e(test.payment_reference)+'</p><p>Check your MariBank transaction history for an actual ₱1.00 credit with this reference. A customer-submitted reference alone does not prove payment.</p><form id="review-qr-test"><label class="form-field">Decision<select name="decision"><option value="verified">Verified in MariBank</option><option value="rejected">Could not verify</option></select></label><label class="form-field">Bank confirmation details or rejection reason<input name="note" maxlength="500" required placeholder="Bank transaction date/time or reason"></label><p role="alert"></p><button class="button primary" type="submit">Save decision</button></form>',button);
-   dialog.querySelector('form').onsubmit=async event=>{
-    event.preventDefault();const form=event.currentTarget,submit=form.querySelector('button');submit.disabled=true;
-    try{await db.rpc('review_payment_test',{test_id:test.id,decision:form.elements.decision.value,note:form.elements.note.value.trim()});dialog.close();await renderPaymentTests(content);}
-    catch(error){dialog.querySelector('[role=alert]').textContent=error.message;submit.disabled=false;}
-   };
-  });
- }catch(error){if(panel.isConnected){console.warn('QR payment tests could not load:',error);panel.innerHTML='<div class="payment-test-heading"><div><h2>QR payment tests</h2></div></div><p role="alert">QR payment tests could not load.</p><button class="button" type="button" data-test-retry>Try again</button>';panel.querySelector('[data-test-retry]').onclick=()=>renderPaymentTests(content);}}
-}
 export async function renderOrders(content){
  content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders and payments.</p></div></header>'+loadingTable(['Order','Customer','Total','Payment','Status','Due date','Action']);
  try{
@@ -94,7 +70,7 @@ export async function renderOrders(content){
   const target=orders.find(o=>o.id===detailId);
   if(target){history=['completed','cancelled'].includes(target.status);content.querySelector('.search').value=String(target.order_number);}
   draw();
-  await Promise.all([renderOrderPayments(content,orders,()=>renderOrders(content)),renderPaymentTests(content)]);
+  await Promise.all([renderOrderPayments(content,orders,()=>renderOrders(content))]);
   if(target)content.querySelector('[data-order="'+target.id+'"]').click();
  }catch(error){fail(content,error);}
 }

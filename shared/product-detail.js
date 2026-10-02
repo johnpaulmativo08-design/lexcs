@@ -68,7 +68,6 @@
   };
   const catalogRow = (p) => (typeof liveCatalog !== 'undefined' ? liveCatalog.find((d) => d.id === p.product_id) : null);
   const priceLabel = (p) => `${p.sizes.length > 1 ? '<small>from</small>' : ''}<strong>${money(Math.min(...p.sizes.map((s) => s.price)))}</strong>`;
-  const shoppable = (p) => !p.isTest;
 
   // ---- Product grid (same filters/search/sort as before, new card design). ----
   window.renderShop = function renderShop() {
@@ -237,8 +236,8 @@
     const category = row?.categories?.name || '';
     const size = p.sizes[0];
     const r = ratingFor(p);
-    const related = products.filter((x) => x.id !== p.id && x.cat === p.cat && shoppable(x)).slice(0, 4);
-    const also = products.filter((x) => x.id !== p.id && x.cat !== p.cat && shoppable(x))
+    const related = products.filter((x) => x.id !== p.id && x.cat === p.cat).slice(0, 4);
+    const also = products.filter((x) => x.id !== p.id && x.cat !== p.cat)
       .sort((a, b) => ((ratingFor(b)?.count || 0) - (ratingFor(a)?.count || 0)) || (Boolean(b.badge) - Boolean(a.badge))).slice(0, 4);
     const short = (p.desc || '').split(/(?<=[.!?])\s/)[0] || p.desc || '';
     const hero = images.length

@@ -483,7 +483,6 @@
   // ---- cart -------------------------------------------------------------------------------------------------
   async function addToCart() {
     if (quote.status !== 'ok') return;
-    if (cart.some((i) => i.isTest)) return showToast('Payment Test Product must be checked out separately.');
     const v = variant(), d = design(), p = product();
     const item = { id: 'cupcake-' + crypto.randomUUID(), product_id: p.id, variant_id: v.id, name: p.name, emoji: '🧁',
       sizeLabel: `${v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra, base_price: Number(v.price), extras: quote.extra,

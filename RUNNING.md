@@ -106,7 +106,7 @@ checks using the publishable key. It requires internet access.
   computer.
 - Do not rerun the SQL files against the existing Supabase project unless you
   intentionally want to change the hosted database.
-- Manual MariBank/InstaPay QR payments are implemented. The order-linked payment
+- Manual GCash and MariBank InstaPay QR payments are implemented. The order-linked payment
   page accepts a bank reference and image proof, then an ADMIN must verify the
   actual incoming transfer before the order is marked paid. There is no automatic
   bank confirmation, PayMongo integration, or automatic refund.
