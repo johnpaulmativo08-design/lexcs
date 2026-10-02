@@ -1,11 +1,11 @@
 /* One look for every selected choice on the customer pages: filled LexC pastel purple (lilac),
    a lavender border and plum text. Loaded after the page styles so it wins over older per-page rules. */
 :root {
-  --sel-fill: #e8dff5;          /* brand lilac */
-  --sel-fill-hover: #ded1f1;
-  --sel-border: #b49ad3;
-  --sel-ink: #4e307c;
-  --sel-ring: rgba(125, 82, 168, .16);
+  --sel-fill: #d6c3ef;          /* solid LexC pastel purple */
+  --sel-fill-hover: #ccb6ea;
+  --sel-border: #d6c3ef;        /* same as the fill: one solid block */
+  --sel-ink: #3f2566;
+  --sel-ring: transparent;
   --sel-hover: #f6f1fc;
 }
 
@@ -22,12 +22,12 @@
   background: var(--sel-fill);
   border-color: var(--sel-border);
   color: var(--sel-ink);
-  box-shadow: 0 0 0 3px var(--sel-ring);
+  box-shadow: none;
 }
 .bd-card[aria-checked="true"] strong, .bd-card[aria-pressed="true"] strong,
 .cd-theme[aria-checked="true"] strong, .co-option.selected strong { color: var(--sel-ink); }
-.bd-card[aria-checked="true"] small, .bd-card[aria-pressed="true"] small, .bd-card[aria-checked="true"] span { color: #6a4f8a; }
-.bd-chip[aria-checked="true"] small, .bd-chip[aria-pressed="true"] small { color: #6a4f8a; }
+.bd-card[aria-checked="true"] small, .bd-card[aria-pressed="true"] small, .bd-card[aria-checked="true"] span { color: #4f3473; }
+.bd-chip[aria-checked="true"] small, .bd-chip[aria-pressed="true"] small { color: #4f3473; }
 
 /* Segmented controls and pill groups (view, scene, font groups, arrange, gallery). */
 .bd-seg button[aria-pressed="true"],
@@ -38,19 +38,19 @@
   background: var(--sel-fill);
   border-color: var(--sel-border);
   color: var(--sel-ink);
-  box-shadow: inset 0 0 0 1.5px var(--sel-border);
+  box-shadow: none;
 }
 .bd-step[aria-selected="true"] { background: var(--sel-fill); color: var(--sel-ink); }
 
 /* Things that used to turn dark plum when selected keep readable plum text on the lilac fill. */
-.filter-item.active .filter-count { background: rgba(92, 61, 110, .12); color: var(--sel-ink); }
+.filter-item.active .filter-count { background: rgba(255, 255, 255, .55); color: var(--sel-ink); }
 .dt-slot.selected .dt-slot-time { color: var(--sel-ink); }
 .dt-slot.selected .dt-slot-radio { border-color: var(--sel-ink); background: var(--sel-ink); box-shadow: inset 0 0 0 2px var(--sel-fill); }
 .dt-cal-day.selected {
   background: var(--sel-fill) !important; color: var(--sel-ink) !important;
-  border-color: var(--sel-border) !important; box-shadow: 0 0 0 3px var(--sel-ring) !important;
+  border-color: var(--sel-border) !important; box-shadow: none !important;
 }
-.dt-cal-day.selected .dt-day-state { color: #6a4f8a !important; }
+.dt-cal-day.selected .dt-day-state { color: #4f3473 !important; }
 
 /* Selected cards get a small tick so the choice reads at a glance, not only by colour. */
 .bd-card[aria-checked="true"], .co-option.selected, .cd-theme[aria-checked="true"] { position: relative; }
