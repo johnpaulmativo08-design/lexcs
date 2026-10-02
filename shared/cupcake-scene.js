@@ -17,6 +17,46 @@ const THEME_BG = { mermaid: '#9be3d6', butterfly: '#f9c8e0', unicorn: '#e8d9ff',
 function seeded(seed) { let s = seed >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
+// ---- Blender model (assets/3d/cupcake.glb) -------------------------------------------------------------
+// Modelled with the liner's top radius = 1 and its rim at y = 0.9. Pieces: liner, cake_top, frost_swirl,
+// frost_rosette (placed on the rim), and bloom, floret, petal, leaf, plaque, pearl_cc (unit parts at the
+// origin; their display positions in Blender are ignored). Frosting UVs: u = around the piped rope,
+// v = along it, so the customer's colours can be laid in as stripes. Built-in shapes are the fallback.
+const MODEL_URL = new URL('../assets/3d/cupcake.glb?v=1', import.meta.url).href, RIM = 0.9;
+let modelPromise = null;
+function loadModel() {
+  modelPromise ||= (async () => {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const gltf = await new GLTFLoader().loadAsync(MODEL_URL), parts = {};
+    gltf.scene.traverse((o) => {
+      if (!o.isMesh || parts[o.name]) return;
+      const g = o.geometry.clone();
+      // Pieces made on the cupcake keep their height; loose parts are used from their own origin.
+      if (['liner', 'cake_top', 'frost_swirl', 'frost_rosette'].includes(o.name)) g.translate(0, o.position.y, 0);
+      parts[o.name] = g;
+    });
+    for (const need of ['liner', 'cake_top', 'frost_swirl', 'frost_rosette']) if (!parts[need]) throw new Error('Model is missing "' + need + '"');
+    // Loose parts are modelled pointing along Blender +Y, which is -Z here; turn them to point along +Z.
+    for (const n of ['petal', 'leaf']) parts[n]?.rotateY(Math.PI);
+    gltf.scene.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.map?.dispose(); m.dispose(); }); } });
+    return parts;
+  })();
+  return modelPromise;
+}
+let MODEL = null;
+// Model -> this cupcake size: frosting keeps its shape (uniform scale) and sits on the liner rim.
+function onRim(geo, s, scale = 1) { const g = geo.clone(); g.translate(0, -RIM, 0); g.scale(s.rt * scale, s.rt * scale, s.rt * scale); g.translate(0, s.h, 0); return g; }
+// Colours from the UVs: several colours in one bag give stripes that turn along the rope.
+function stripes(geo, colors, turns) {
+  const uv = geo.attributes.uv, n = geo.attributes.position.count, out = new Float32Array(n * 3), cols = colors.map((c) => new THREE.Color(c));
+  for (let i = 0; i < n; i++) {
+    const c = cols.length === 1 || !uv ? cols[0] : cols[Math.floor(((((uv.getX(i) + uv.getY(i) * turns) % 1) + 1) % 1) * cols.length) % cols.length];
+    out[i * 3] = c.r; out[i * 3 + 1] = c.g; out[i * 3 + 2] = c.b;
+  }
+  if (uv) geo.deleteAttribute('uv');
+  geo.setAttribute('color', new THREE.BufferAttribute(out, 3)); return geo;
+}
+
 // ---- geometry helpers ------------------------------------------------------------------------------
 function paint(geo, color) {
   if (geo.attributes.uv) geo.deleteAttribute('uv');
@@ -58,6 +98,7 @@ function pipe(points, { radius, colors, teeth = 8, depth = 0.14, ridgeTwist = 0.
 }
 // Classic swirl (1M tip): one ring on the edge, then rising and narrowing to a peak.
 function swirl(s, colors) {
+  if (MODEL) return [stripes(onRim(MODEL.frost_swirl, s), colors, colors.length > 1 ? 5 : 0)];
   const R = s.rt, turns = 2.6, steps = 120, pts = [];
   for (let i = 0; i <= steps; i++) {
     const u = i / steps, a = u * turns * TAU, r = R * 0.8 * Math.pow(1 - u, 0.85) + R * 0.03;
@@ -68,6 +109,11 @@ function swirl(s, colors) {
 }
 // Flat rose: piped from the centre outwards, ending in a tapered tail on the edge.
 function rosette(s, colors, { cx = 0, cz = 0, scale = 1, lift = 0, phase = 0 } = {}) {
+  if (MODEL) {
+    // A smaller rose sits lower on its own, so lift it to stay on top of the cake dome.
+    const g = onRim(MODEL.frost_rosette, s, scale); g.translate(0, -s.h, 0); g.rotateY(phase); g.translate(cx, s.h + s.rt * 0.3 * (1 - scale) + lift, cz);
+    return stripes(g, colors, colors.length > 1 ? 1.5 : 0);
+  }
   const R = s.rt * scale, steps = 90, pts = [];
   for (let i = 0; i <= steps; i++) {
     const u = i / steps, a = phase + u * 1.75 * TAU, r = R * (0.06 + 0.74 * Math.pow(u, 0.85));
@@ -77,6 +123,7 @@ function rosette(s, colors, { cx = 0, cz = 0, scale = 1, lift = 0, phase = 0 } =
 }
 // Drop flower / star bloom: a short twisted star squeezed straight up.
 function bloom(x, y, z, rb, color, teeth = 6) {
+  if (MODEL?.bloom) { const g = MODEL.bloom.clone(); g.scale(rb, rb, rb); g.rotateY(x * 37 + z * 11); g.translate(x, y, z); return paint(g, color); }
   const pts = [];
   for (let i = 0; i <= 8; i++) { const u = i / 8; pts.push(V(x + Math.cos(u * 4) * rb * 0.12 * (1 - u), y + u * rb * 1.05, z + Math.sin(u * 4) * rb * 0.12 * (1 - u))); }
   return pipe(pts, { radius: (t) => rb * (1 - 0.3 * t), colors: [color], teeth, depth: 0.34, ridgeTwist: 0.5, seg: 24, tStart: 0, tEnd: 0.4, flat: 1 });
@@ -95,13 +142,20 @@ function hydrangea(s, colors, rand) {
     const th = rand() * TAU, ph = Math.acos(1 - rand() * 0.85), x = Math.sin(ph) * Math.cos(th) * R * 0.76, z = Math.sin(ph) * Math.sin(th) * R * 0.76;
     const y = s.h + R * 0.12 + Math.cos(ph) * R * 0.78 * 0.95 - R * 0.07;
     const tone = colors.length > 1 && rand() < 0.3 ? colors[1 + Math.floor(rand() * (colors.length - 1))] : shade(base, (rand() - 0.5) * 0.14);
-    list.push(bloom(x, y, z, R * 0.14, tone, 4));
+    if (MODEL?.floret) {
+      // Florets face outwards from the dome, like real hydrangea piping.
+      const g = MODEL.floret.clone(), q = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), V(x, (y - s.h - R * 0.05) * 1.1, z).normalize());
+      g.scale(R * 0.2, R * 0.2, R * 0.2); g.rotateY(rand() * TAU); g.applyQuaternion(q); g.translate(x, y + R * 0.06, z);
+      list.push(paint(g, tone));
+    } else list.push(bloom(x, y, z, R * 0.14, tone, 4));
   }
   return list;
 }
 function ruffle(s, colors, rand) {
   const R = s.rt, c = colors[0], list = [];
-  const petal = (a, dist, y, tilt, w, l, tone) => paint(placed(new THREE.SphereGeometry(1, 18, 10), V(Math.cos(a) * dist, y, Math.sin(a) * dist), [-tilt, Math.PI / 2 - a, 0], [w, R * 0.05, l], 'YXZ'), tone);
+  const petal = MODEL?.petal
+    ? (a, dist, y, tilt, w, l, tone) => paint(placed(MODEL.petal.clone(), V(Math.cos(a) * dist * 0.3, y - R * 0.06, Math.sin(a) * dist * 0.3), [-tilt, Math.PI / 2 - a, 0], [w * 2, l * 1.4, l * 2], 'YXZ'), tone)
+    : (a, dist, y, tilt, w, l, tone) => paint(placed(new THREE.SphereGeometry(1, 18, 10), V(Math.cos(a) * dist, y, Math.sin(a) * dist), [-tilt, Math.PI / 2 - a, 0], [w, R * 0.05, l], 'YXZ'), tone);
   for (let i = 0; i < 10; i++) list.push(petal(i * TAU / 10 + rand() * 0.2, R * 0.44, s.h + R * 0.36, 0.45, R * 0.27, R * 0.36, c));
   for (let i = 0; i < 7; i++) list.push(petal(i * TAU / 7 + 0.3, R * 0.24, s.h + R * 0.5, 0.95, R * 0.2, R * 0.26, shade(c, 0.05)));
   for (let i = 0; i < 6; i++) { const a = rand() * TAU, d = rand() * R * 0.09; list.push(paint(placed(new THREE.SphereGeometry(R * 0.045, 10, 8), V(Math.cos(a) * d, s.h + R * 0.62, Math.sin(a) * d)), '#E6D44A')); }
@@ -115,6 +169,7 @@ function leaves(s, rand) {
   const R = s.rt, list = [];
   for (let i = 0; i < 7; i++) {
     const a = (i / 7) * TAU + rand() * 0.3;
+    if (MODEL?.leaf) { list.push(paint(placed(MODEL.leaf.clone(), V(Math.cos(a) * R * 0.62, s.h + R * 0.22, Math.sin(a) * R * 0.62), [0.3, Math.PI / 2 - a, 0], [R * 0.38, R * 0.38, R * 0.38], 'YXZ'), shade('#3DB65A', (rand() - 0.5) * 0.12))); continue; }
     list.push(paint(placed(new THREE.SphereGeometry(1, 14, 8), V(Math.cos(a) * R * 0.86, s.h + R * 0.3, Math.sin(a) * R * 0.86), [0.25, Math.PI / 2 - a, 0], [R * 0.12, R * 0.035, R * 0.28], 'YXZ'), shade('#3DB65A', (rand() - 0.5) * 0.12)));
   }
   return list;
@@ -182,7 +237,12 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     board: track(withSurface(new THREE.MeshPhysicalMaterial({ color: '#fbfaf7', roughness: 0.85, envMapIntensity: 0.25 }), SURF.weave))
   };
   const themeMats = new Map();
-  const themeMat = (theme, icon) => { if (!themeMats.has(theme)) { const t = track(themeTexture(theme, icon)); themeMats.set(theme, track(new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.55, sheen: 0.2, envMapIntensity: 0.3 }))); } return themeMats.get(theme); };
+  // gltf: the Blender plaque's UVs follow the glTF convention (texture not flipped).
+  const themeMat = (theme, icon, gltf = false) => {
+    const key = theme + (gltf ? ':gltf' : '');
+    if (!themeMats.has(key)) { const t = track(themeTexture(theme, icon)); t.flipY = !gltf; themeMats.set(key, track(new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.55, sheen: 0.2, envMapIntensity: 0.3 }))); }
+    return themeMats.get(key);
+  };
 
   // Box (rebuilt when the size or count changes) and the ground -------------------------------------
   const boxGroup = new THREE.Group(); world.add(boxGroup);
@@ -212,8 +272,10 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
 
   // Cupcake templates ------------------------------------------------------------------------------
   const linerGeos = {}, cakeGeos = {};
-  const linerGeo = (k) => (linerGeos[k] ||= track(linerGeometry(SIZES[k])));
-  const cakeGeo = (k) => { if (!cakeGeos[k]) { const s = SIZES[k], g = new THREE.SphereGeometry(s.rt * 1.02, 48, 14, 0, TAU, 0, Math.PI / 2); g.scale(1, 0.32, 1); g.translate(0, s.h - 0.015, 0); cakeGeos[k] = track(g); } return cakeGeos[k]; };
+  // Liner and cake top: from the Blender model when loaded (stretched to this size's height), else built here.
+  const fitBody = (geo, s) => { const g = geo.clone(); if (g.attributes.uv) g.deleteAttribute('uv'); g.scale(s.rt, s.h / RIM, s.rt); return track(g); };
+  const linerGeo = (k) => (linerGeos[k] ||= MODEL ? fitBody(MODEL.liner, SIZES[k]) : track(linerGeometry(SIZES[k])));
+  const cakeGeo = (k) => { if (!cakeGeos[k] && MODEL) { const s = SIZES[k], g = onRim(MODEL.cake_top, s); if (g.attributes.uv) g.deleteAttribute('uv'); cakeGeos[k] = track(g); } if (!cakeGeos[k]) { const s = SIZES[k], g = new THREE.SphereGeometry(s.rt * 1.02, 48, 14, 0, TAU, 0, Math.PI / 2); g.scale(1, 0.32, 1); g.translate(0, s.h - 0.015, 0); cakeGeos[k] = track(g); } return cakeGeos[k]; };
   const templates = new Map();   // key -> { group, geos[] }
   const raycaster = new THREE.Raycaster(), down = V(0, -1, 0);
   function surfacePoint(mesh, x, z) {
@@ -264,8 +326,9 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     if (theme && theme !== 'none') {
       const at = spec.style === 'luxe' ? [-0.3, 0] : [0, 0.05], hit = surfacePoint(frostMesh, at[0] * R, at[1] * R);
       if (hit) {
-        const g = new THREE.CylinderGeometry(R * 0.32, R * 0.32, R * 0.05, 40); geos.push(g);
-        const plaque = new THREE.Mesh(g, [MAT.fondant, themeMat(theme, themeIcon), MAT.fondant]);
+        let plaque;
+        if (MODEL?.plaque) { const g = MODEL.plaque.clone(); g.scale(R * 0.32, R * 0.32, R * 0.32); geos.push(g); plaque = new THREE.Mesh(g, themeMat(theme, themeIcon, true)); }
+        else { const g = new THREE.CylinderGeometry(R * 0.32, R * 0.32, R * 0.05, 40); geos.push(g); plaque = new THREE.Mesh(g, [MAT.fondant, themeMat(theme, themeIcon), MAT.fondant]); }
         plaque.position.set(hit.p.x, hit.p.y + R * 0.2, hit.p.z + R * 0.06); plaque.rotation.set(1.0, 0, 0, 'YXZ'); plaque.castShadow = true; plaque.userData.shared = true; plaque.userData.plaque = true; group.add(plaque);
       }
     }
@@ -340,7 +403,19 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
 
   // Update: spec = { size, cols, rows, flavor, finishes, theme, themeIcon, cells: [{ style, colors: [hex], sub }] } --------
   const cellKeys = [], cellObjs = [];
+  let lastSpec = null;
+  // When the Blender model arrives, rebuild every cupcake from it (the built-in shapes showed meanwhile).
+  loadModel().then((parts) => {
+    const first = !MODEL; MODEL = parts;
+    if (!alive || !first && !lastSpec) return;
+    for (const k of [...templates.keys()]) dropTemplate(k);
+    for (const cache of [linerGeos, cakeGeos]) for (const k of Object.keys(cache)) { cache[k].dispose(); disposables.delete(cache[k]); delete cache[k]; }
+    for (const o of cellObjs) cupcakes.remove(o);
+    cellObjs.length = 0; cellKeys.length = 0;
+    if (lastSpec) update(lastSpec);
+  }).catch((error) => console.info('Cupcake model unavailable, using built-in shapes:', error?.message || error));
   function update(spec) {
+    lastSpec = spec;
     const fresh = !layout || layout.size !== spec.size || layout.cols !== spec.cols || layout.rows !== spec.rows;
     if (fresh) {
       // New box: every cupcake gets a hole in the new insert, so none keep their old place.
