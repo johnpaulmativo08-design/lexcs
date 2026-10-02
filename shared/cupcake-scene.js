@@ -4,9 +4,9 @@
 // Loaded on demand; renders only when something changes. Identical cupcakes share one built template.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { M, SURF, withSurface, shade } from './bento-scene.js?v=25';
+import { M, SURF, withSurface, shade } from './bento-scene.js?v=26';
 import { themePiece, plaquePiece, letterTexture } from './donut-parts.js?v=1';
-import { createSet } from './scene-set.js?v=1';
+import { createSet } from './scene-set.js?v=2';
 
 const TAU = Math.PI * 2;
 // Units: 1 = 5 cm. rb/rt: liner bottom/top radius, h: liner height, gap: spacing in the box insert.

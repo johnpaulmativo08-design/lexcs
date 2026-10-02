@@ -2,7 +2,7 @@
 // Uses the Blender model (assets/3d/bento.glb) when it loads; otherwise a cake built from simple shapes,
 // so the preview never depends on the file. Renders on demand, not every frame.
 import * as THREE from 'three';
-import { createSet } from './scene-set.js?v=1';
+import { createSet } from './scene-set.js?v=2';
 
 const MODEL_URL = new URL('../assets/3d/bento.glb?v=1', import.meta.url).href;
 const R = 1.0;                     // cake radius (4" bento, 1 unit = 2")

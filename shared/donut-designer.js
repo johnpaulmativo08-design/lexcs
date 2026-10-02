@@ -334,7 +334,7 @@
     const host = root.querySelector('[data-dd-3d]');
     sceneLoading = (async () => {
       try {
-        const [mod] = await Promise.all([import('./cupcake-scene.js?v=10'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
+        const [mod] = await Promise.all([import('./cupcake-scene.js?v=11'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
         if (currentPage !== 'donut' || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion, kind: 'donut' });

@@ -37,8 +37,10 @@ function loadSet() {
       o.receiveShadow = true; o.castShadow = !/confetti|bunting|wall|table/.test(o.name);
       for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
         m.envMapIntensity = /gold|steel|rim|balloon/.test(m.name) ? 1.1 : 0.35;
-        if (/oak/.test(m.name)) { m.color.lerp(new THREE.Color('#FFFFFF'), 0.32); woodGrain(m); }   // a pale, bright oak under the warm key light
-        if (/wall|panel/.test(m.name)) m.roughness = 0.95;
+        // Toned down so the set sits behind the treats: a warm mid oak, a dusky lilac wall, props a little muted.
+        if (/oak/.test(m.name)) { m.color.multiplyScalar(0.78); m.roughness = 0.7; woodGrain(m); }
+        else if (/wall|panel|shelf/.test(m.name)) { m.color.multiplyScalar(/wall/.test(m.name) ? 0.66 : 0.72); m.roughness = 0.95; }
+        else m.color.multiplyScalar(0.85);
         if (/glass/.test(m.name)) { m.transparent = true; m.opacity = 0.3; m.depthWrite = false; }
       }
     });
@@ -48,7 +50,7 @@ function loadSet() {
 }
 
 // Places the set in `parent` at height y. show('bakery' | 'party' | null, { W, D }) — W, D: footprint on the table.
-export function createSet(parent, { y = 0, background = '#EFE7F5' } = {}) {
+export function createSet(parent, { y = 0, background = '#B9AAC9' } = {}) {
   let root = null, base = null, current = null, footprint = { W: REF_HALF * 2, D: REF_HALF * 2 }, alive = true;
   const group = new THREE.Group(); group.position.y = y; group.visible = false; parent.add(group);
   async function ready() {
