@@ -196,6 +196,16 @@ function themeTexture(theme, icon) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
+function stickerTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#e8dff5'; g.beginPath(); g.arc(128, 128, 124, 0, TAU); g.fill();
+  g.strokeStyle = '#5c3d6e'; g.lineWidth = 6; g.setLineDash([10, 8]); g.beginPath(); g.arc(128, 128, 108, 0, TAU); g.stroke(); g.setLineDash([]);
+  g.fillStyle = '#5c3d6e'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '700 58px "Playfair Display", Georgia, serif'; g.fillText('LexC’s', 128, 112);
+  g.font = '600 26px "DM Sans", Arial, sans-serif'; g.fillText('SNACKTIME', 128, 162);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+
 export function createCupcakeScene(host, { reducedMotion = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power', preserveDrawingBuffer: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -475,6 +485,55 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     catch (error) { console.info('Scene photo unavailable:', error?.message || error); if (req === sceneReq) applyScene('studio'); return 'studio'; }
   }
 
+  // ---- Packing: a clear bakery lid swings shut over the box, then a LexC's sticker seals it (like the bento). ----
+  const lidMat = track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.4, side: THREE.DoubleSide, depthWrite: false }));
+  const edgeMat = track(new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+  const stickerMat = track(new THREE.MeshPhysicalMaterial({ map: track(stickerTexture()), roughness: 0.45, clearcoat: 0.4, transparent: true }));
+  let packGroup = null, packing = null;
+  function buildLid() {
+    if (packGroup) { packGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); world.remove(packGroup); }
+    const { W, D, s } = layout, Hc = s.h + s.rt * 1.65, wallH = s.h * 0.66;
+    // The lid covers the cupcakes: a clear top with four short skirts, hinged along the back edge of the box.
+    const lid = new THREE.Group();
+    const top = new THREE.Mesh(new THREE.BoxGeometry(W + 0.04, 0.012, D + 0.04), lidMat); top.position.set(0, Hc - wallH, D / 2); lid.add(top);
+    const skirtH = Hc - wallH + 0.02;
+    for (const [w, d, x, z] of [[W + 0.04, 0.012, 0, 0], [W + 0.04, 0.012, 0, D], [0.012, D + 0.04, -W / 2, D / 2], [0.012, D + 0.04, W / 2, D / 2]]) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, skirtH, d), lidMat); m.position.set(x, Hc - skirtH / 2 - wallH, z); lid.add(m);
+    }
+    lid.children.forEach((m) => { const e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), edgeMat); e.position.copy(m.position); lid.add(e); });
+    const hinge = new THREE.Group(); hinge.position.set(0, wallH, -D / 2); hinge.add(lid);
+    const sticker = new THREE.Mesh(new THREE.CircleGeometry(Math.min(W, D) * 0.13, 48), stickerMat);
+    sticker.rotation.x = -Math.PI / 2; sticker.position.set(0, Hc + 0.012, 0); sticker.visible = false;
+    packGroup = new THREE.Group(); packGroup.add(hinge, sticker); packGroup.visible = false; world.add(packGroup);
+    return { hinge, sticker, lid };
+  }
+  const tween = (fn, ms, delay = 0) => new Promise((done) => { const a = animate((t) => { fn(t); if (t >= 1) done(); }, ms, delay); if (!a) done(); });
+  const OPEN = -1.95;
+  function pack() {
+    if (packing || !layout) return packing || Promise.resolve();
+    packing = (async () => {
+      for (const a of [...anims]) a.fn(1); anims.clear();
+      const P = buildLid(); packGroup.visible = true; P.hinge.rotation.x = OPEN;
+      const from = { ...view }, to = { ...viewFor('angle'), pitch: 0.62, dist: viewFor('angle').dist * 1.12, yaw: 0.6 };
+      // The lid fades in standing open, the camera steps back, then the lid closes.
+      lidMat.opacity = 0; edgeMat.opacity = 0;
+      await tween((t) => { const k = easeOut(t); lidMat.opacity = 0.16 * k; edgeMat.opacity = 0.85 * k; for (const p of ['yaw', 'pitch', 'dist', 'tx', 'tz']) view[p] = from[p] + (to[p] - from[p]) * k; placeCamera(false); }, 600);
+      await tween((t) => { P.hinge.rotation.x = OPEN * (1 - (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)); }, 900);
+      await tween((t) => { const b = Math.sin(t * Math.PI); world.scale.set(1 + 0.02 * b, 1 - 0.03 * b, 1 + 0.02 * b); }, 260);
+      world.scale.set(1, 1, 1);
+      P.sticker.visible = true;
+      await tween((t) => P.sticker.scale.setScalar(Math.max(0.001, t < 0.7 ? t / 0.7 * 1.15 : 1.15 - (t - 0.7) / 0.3 * 0.15)), 420);
+      request();
+    })();
+    return packing;
+  }
+  function unpack() {
+    packing = null; anims.clear();
+    if (packGroup) packGroup.visible = false;
+    world.scale.set(1, 1, 1); lidMat.opacity = 0.16; edgeMat.opacity = 0.85;
+    setView('angle');
+  }
+
   // Picture of the box for the cart line and the order (angled, plain background).
   function snapshot(size = 480) {
     for (const a of [...anims]) { a.fn(1); } anims.clear();
@@ -492,8 +551,9 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     alive = false; anims.clear(); cancelAnimationFrame(frame); ro.disconnect();
     for (const k of [...templates.keys()]) dropTemplate(k);
     boxGroup.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    packGroup?.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
     envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
   }
   resize();
-  return { update, setView, setScene, snapshot, dispose, canvas: renderer.domElement };
+  return { update, setView, setScene, snapshot, pack, unpack, dispose, canvas: renderer.domElement };
 }

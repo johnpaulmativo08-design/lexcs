@@ -1,0 +1,86 @@
+/* One look for every selected choice on the customer pages: filled LexC pastel purple (lilac),
+   a lavender border and plum text. Loaded after the page styles so it wins over older per-page rules. */
+:root {
+  --sel-fill: #e8dff5;          /* brand lilac */
+  --sel-fill-hover: #ded1f1;
+  --sel-border: #b49ad3;
+  --sel-ink: #4e307c;
+  --sel-ring: rgba(125, 82, 168, .16);
+  --sel-hover: #f6f1fc;
+}
+
+/* ---- Selected ------------------------------------------------------------------------------------ */
+.bd-card[aria-checked="true"], .bd-card[aria-pressed="true"],
+.bd-chip[aria-checked="true"], .bd-chip[aria-pressed="true"],
+.cd-theme[aria-checked="true"],
+.bd-font-item[aria-checked="true"],
+.co-option.selected,
+.pd-option.is-active,
+#page-shop .filter-item.active, .filter-item.active,
+.lp-chips button[aria-pressed="true"],
+.dt-slot.selected {
+  background: var(--sel-fill);
+  border-color: var(--sel-border);
+  color: var(--sel-ink);
+  box-shadow: 0 0 0 3px var(--sel-ring);
+}
+.bd-card[aria-checked="true"] strong, .bd-card[aria-pressed="true"] strong,
+.cd-theme[aria-checked="true"] strong, .co-option.selected strong { color: var(--sel-ink); }
+.bd-card[aria-checked="true"] small, .bd-card[aria-pressed="true"] small, .bd-card[aria-checked="true"] span { color: #6a4f8a; }
+.bd-chip[aria-checked="true"] small, .bd-chip[aria-pressed="true"] small { color: #6a4f8a; }
+
+/* Segmented controls and pill groups (view, scene, font groups, arrange, gallery). */
+.bd-seg button[aria-pressed="true"],
+.bd-scenes button[aria-pressed="true"],
+.bd-arrange[aria-pressed="true"],
+.bd-font-groups button[aria-pressed="true"],
+.gpill.active {
+  background: var(--sel-fill);
+  border-color: var(--sel-border);
+  color: var(--sel-ink);
+  box-shadow: inset 0 0 0 1.5px var(--sel-border);
+}
+.bd-step[aria-selected="true"] { background: var(--sel-fill); color: var(--sel-ink); }
+
+/* Things that used to turn dark plum when selected keep readable plum text on the lilac fill. */
+.filter-item.active .filter-count { background: rgba(92, 61, 110, .12); color: var(--sel-ink); }
+.dt-slot.selected .dt-slot-time { color: var(--sel-ink); }
+.dt-slot.selected .dt-slot-radio { border-color: var(--sel-ink); background: var(--sel-ink); box-shadow: inset 0 0 0 2px var(--sel-fill); }
+.dt-cal-day.selected {
+  background: var(--sel-fill) !important; color: var(--sel-ink) !important;
+  border-color: var(--sel-border) !important; box-shadow: 0 0 0 3px var(--sel-ring) !important;
+}
+.dt-cal-day.selected .dt-day-state { color: #6a4f8a !important; }
+
+/* Selected cards get a small tick so the choice reads at a glance, not only by colour. */
+.bd-card[aria-checked="true"], .co-option.selected, .cd-theme[aria-checked="true"] { position: relative; }
+.bd-card[aria-checked="true"]::after, .co-option.selected::after, .cd-theme[aria-checked="true"]::after {
+  content: ""; position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--sel-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat;
+  animation: sel-pop .28s ease-out;
+}
+.cd-styles .bd-card[aria-checked="true"]::after { top: 6px; right: 6px; }
+
+/* ---- Hover / press / focus: the same family of colours ------------------------------------------------ */
+.bd-card, .bd-chip, .cd-theme, .cd-preset, .co-option, .pd-option, .filter-item, .lp-chips button, .dt-slot, .bd-seg button, .bd-font-item {
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .12s ease;
+}
+@media (hover: hover) {
+  .bd-card:not([aria-checked="true"]):not([aria-pressed="true"]):not(:disabled):hover,
+  .bd-chip:not([aria-checked="true"]):not([aria-pressed="true"]):not(:disabled):hover,
+  .cd-theme:not([aria-checked="true"]):hover, .cd-preset:hover,
+  .co-option:not(.selected):hover, .pd-option:not(.is-active):hover,
+  .lp-chips button:not([aria-pressed="true"]):hover { background: var(--sel-hover); border-color: #d5c4e9; }
+  .bd-card[aria-checked="true"]:hover, .bd-chip[aria-pressed="true"]:hover, .bd-chip[aria-checked="true"]:hover { background: var(--sel-fill-hover); }
+}
+.bd-card:active:not(:disabled), .bd-chip:active:not(:disabled), .cd-theme:active, .cd-preset:active, .co-option:active, .pd-option:active, .lp-chips button:active { transform: scale(.97); }
+.bd-card:focus-visible, .bd-chip:focus-visible, .cd-theme:focus-visible, .cd-preset:focus-visible, .co-option:focus-visible,
+.pd-option:focus-visible, .lp-chips button:focus-visible, .bd-seg button:focus-visible, .filter-item:focus-visible {
+  outline: 3px solid #9a76bc; outline-offset: 2px;
+}
+
+@keyframes sel-pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .bd-card[aria-checked="true"]::after, .co-option.selected::after, .cd-theme[aria-checked="true"]::after { animation: none; }
+  .bd-card:active, .bd-chip:active, .cd-theme:active, .cd-preset:active, .co-option:active, .pd-option:active, .lp-chips button:active { transform: none; }
+}

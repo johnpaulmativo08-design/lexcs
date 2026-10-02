@@ -36,7 +36,7 @@
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let root = null, products = {}, optionsBy = {}, state = null, step = 'box', past = [], future = [], editIndex = null;
-  let quote = { status: 'idle' }, quoteTimer = 0, quoteSeq = 0, visited = new Set(), scene = null, sceneLoading = null, previewFrame = 0;
+  let quote = { status: 'idle' }, quoteTimer = 0, quoteSeq = 0, visited = new Set(), scene = null, sceneLoading = null, previewFrame = 0, packed = false;
   const product = () => products[state.size];
   const options = () => optionsBy[state.size] || {};
   const palette = () => Object.fromEntries((options().color || []).map((c) => [c.code, c.hex]));
@@ -383,7 +383,7 @@
     const host = root.querySelector('[data-cd-3d]');
     sceneLoading = (async () => {
       try {
-        const mod = await import('./cupcake-scene.js?v=5');
+        const mod = await import('./cupcake-scene.js?v=6');
         if (currentPage !== 'cupcake' || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion });
@@ -447,6 +447,9 @@
     root.addEventListener('click', (e) => {
       const t = e.target.closest('button'); if (!t || t.disabled) return;
       const d = t.dataset;
+      if ('cdViewcart' in d) { navigate('shop'); return openCart(); }
+      if ('cdAgain' in d) return designAnother();
+      if (packed && !d.cdView && !d.cdScene && !('cdExit' in d)) return;
       if (d.cdStep) return goStep(d.cdStep);
       if (d.cdView) { root.querySelectorAll('[data-cd-view]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); return scene?.setView(d.cdView); }
       if (d.cdScene) { root.querySelectorAll('[data-cd-scene]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); t.disabled = true;
@@ -488,8 +491,27 @@
     const wasEdit = editIndex !== null && cart[editIndex]?.customization?.designer === 'cupcake';
     if (wasEdit) { item.id = cart[editIndex].id; cart[editIndex] = item; } else cart.push(item);
     editIndex = null; try { localStorage.removeItem(DRAFT_KEY); } catch {}
-    renderCart(); showToast(wasEdit ? 'Your cupcake design was updated.' : 'Your cupcakes were added to the cart.');
-    navigate('shop'); openCart();
+    renderCart();
+    if (!scene) { showToast(wasEdit ? 'Your cupcake design was updated.' : 'Your cupcakes were added to the cart.'); navigate('shop'); return openCart(); }
+    // Like the bento: the box is closed and sealed on screen, then a finish panel offers the cart or a new design.
+    packed = true; root.classList.add('is-packing');
+    const unit = item.price, summary = esc(quote.clean.summary || ''), body = root.querySelector('#cd-body');
+    body.innerHTML = `<div class="bd-packed" role="status"><span class="bd-packed-icon" aria-hidden="true">📦</span><h2>Packing your cupcakes…</h2><p class="bd-note">${summary}</p></div>`;
+    root.querySelector('[data-cd-view="angle"]')?.click();
+    if (matchMedia('(max-width: 900px)').matches) root.querySelector('.bd-stage').scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
+    try { await scene.pack(); } catch (error) { console.info('Packing animation skipped:', error?.message || error); }
+    if (!packed || currentPage !== 'cupcake') return;
+    body.innerHTML = `<div class="bd-packed" role="status"><span class="bd-packed-icon" aria-hidden="true">🎉</span>
+      <h2>${wasEdit ? 'Your cart design was updated' : 'Boxed and added to your cart!'}</h2>
+      <p class="bd-note">${summary}</p>
+      <p class="bd-packed-price">${item.qty} × ${money(unit)} = <b>${money(unit * item.qty)}</b></p>
+      <div class="bd-packed-actions"><button type="button" class="bd-primary" data-cd-viewcart>View cart</button><button type="button" class="bd-secondary" data-cd-again>Design another</button></div></div>`;
+    body.querySelector('[data-cd-viewcart]').focus({ preventScroll: true });
+  }
+  function designAnother() {
+    packed = false; root.classList.remove('is-packing'); scene?.unpack();
+    past = []; future = []; editIndex = null; visited.clear(); step = 'box';
+    state = blank(state.size); normalise(); renderBody(); renderPreview(); scheduleQuote(); updateTools();
   }
 
   // ---- open / leave -------------------------------------------------------------------------------------------
@@ -505,6 +527,7 @@
       return;
     }
     past = []; future = []; editIndex = null; visited.clear(); step = 'box';
+    packed = false; root.classList.remove('is-packing'); scene?.unpack();
     const sizeOf = (variantId) => Object.entries(products).find(([, p]) => p.product_variants.some((v) => v.id === variantId))?.[0];
     if (fromCart !== null && cart[fromCart]?.customization?.designer === 'cupcake') {
       const c = cart[fromCart], sz = sizeOf(c.variant_id) || 'mini'; editIndex = fromCart;

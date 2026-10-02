@@ -23,12 +23,7 @@ nav.dark-nav#mainNav .nav-logo .nav-logo-text { color: #fff; }
 #mainNav .nav-links a.active, #mainNav .nav-links a:hover { color: var(--lp-plum); }
 #mainNav .nav-links a::after { background: var(--lp-plum); height: 2px; }
 #mainNav .nav-links a:focus-visible, #mainNav .nav-logo:focus-visible { outline: 3px solid #9272db; outline-offset: 4px; border-radius: 6px; }
-.nav-order-now { flex: none; min-height: 42px; padding: 10px 22px; border: 0; border-radius: 999px; background: var(--lp-plum); color: #fff; font: 700 .9rem var(--lp-head); cursor: pointer; transition: background .2s; }
-.nav-order-now:hover { background: var(--lp-plum-dark); }
-.nav-order-now:focus-visible { outline: 3px solid #9272db; outline-offset: 3px; }
-nav.dark-nav .nav-order-now { background: #fff; color: var(--lp-plum); }
 @media (max-width: 900px) {
-  .nav-order-now { display: none; }
   #mainNav { justify-content: space-between; }
   #mainNav .nav-logo .nav-logo-text { font-size: 1.08rem; }
   #mainNav .nav-logo img { width: 40px; height: 40px; }

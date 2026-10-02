@@ -75,3 +75,7 @@
 @media (max-width:360px){.cd-stage .bd-seg button{padding:6px 6px;font-size:.7rem}}
 .cd-h1-short{display:none}
 @media (max-width:420px){.cd-page .cd-h1-long{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.cd-page .cd-h1-short{display:inline}.cd-page .bd-head h1{min-width:0;overflow:hidden;text-overflow:ellipsis}}
+
+/* Packing (after Add to cart): only the box and the finish panel show. */
+#page-cupcake.is-packing .bd-steps,#page-cupcake.is-packing .bd-foot,#page-cupcake.is-packing .bd-tools,#page-cupcake.is-packing [data-cd-bar]{display:none!important}
+#page-cupcake.is-packing .bd-panel{padding-bottom:0}

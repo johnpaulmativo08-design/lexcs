@@ -684,12 +684,13 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
 <link rel="stylesheet" href="shared/customer-flow.css?v=8">
-<link rel="stylesheet" href="shared/product-detail.css?v=2">
+<link rel="stylesheet" href="shared/product-detail.css?v=3">
 <link rel="stylesheet" href="shared/chat-widget.css?v=4">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=1">
-<link rel="stylesheet" href="shared/landing.css?v=6">
+<link rel="stylesheet" href="shared/landing.css?v=7">
 <link rel="stylesheet" href="shared/bento-designer.css?v=14">
-<link rel="stylesheet" href="shared/cupcake-designer.css?v=2">
+<link rel="stylesheet" href="shared/cupcake-designer.css?v=4">
+<link rel="stylesheet" href="shared/selected-ui.css?v=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@700&family=Pacifico&family=Lobster&family=Satisfy&family=Parisienne&family=Montserrat:wght@800&family=Poppins:wght@700&family=Fredoka:wght@600&family=Baloo+2:wght@800&family=Caveat:wght@700&family=Cinzel:wght@700&family=Grenze+Gotisch:wght@700&family=UnifrakturMaguntia&display=swap">
 </head>
@@ -707,7 +708,6 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
     <li><a href="#about" onclick="event.preventDefault();navigate('home','about')" data-page="about">About</a></li>
   </ul>
   <button id="navShoppingButton" class="nav-orders-btn nav-shopping-btn" type="button" onclick="openCart()" aria-label="Open cart"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span>Cart</span><span class="cart-badge" id="cartBadge" hidden>0</span></button>
-  <button type="button" class="nav-order-now" onclick="navigate('shop')">Order now</button>
   <div id="navAuthArea">
     <button class="nav-auth-btn" onclick="navigate('login')">Log In</button>
   </div>
@@ -2409,7 +2409,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/landing.js?v=2"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/bento-designer.js?v=22"></script>
-<script src="shared/cupcake-designer.js?v=6"></script>
+<script src="shared/cupcake-designer.js?v=7"></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
 <script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=10';mountChatWidget();</script>
 </body>

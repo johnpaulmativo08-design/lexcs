@@ -1,9 +1,9 @@
 /* Product cards + Product Detail — reproduces the LexC product-flow reference (mobile + desktop). */
 :root {
-  --product-primary: #7465D8;
-  --product-primary-hover: #6253C4;
-  --product-lavender: #F3F0FF;
-  --product-lavender-light: #FAF8FF;
+  --product-primary: #7551AA;   /* LexC purple (same as the designers) */
+  --product-primary-hover: #5F3F8E;
+  --product-lavender: #E8DFF5;   /* LexC lilac: selected fill */
+  --product-lavender-light: #F8F4FC;
   --product-background: #FFFFFF;
   --product-surface: #F8F7FC;
   --product-text: #202037;
