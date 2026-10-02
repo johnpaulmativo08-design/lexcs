@@ -104,7 +104,7 @@ async function submitCheckout(){
     if (!product || product.status !== 'active' || !variant) throw new Error(item.name + ' is no longer available. Please update your cart.');
     let expected = Number(variant.price);
     const designer = item.customization?.designer;
-    const quoteFn = { bento: 'quote_bento_design', cupcake: 'quote_cupcake_design', donut: 'quote_donut_design' }[designer];
+    const quoteFn = { bento: 'quote_bento_design', cupcake: 'quote_cupcake_design', donut: 'quote_donut_design', cakepop: 'quote_cakepop_design' }[designer];
     if (quoteFn) {
       const quote = await LexcBackend.rpc(quoteFn, { p_product_id: item.product_id, p_design: item.customization });
       expected += Number(quote.extra); item.base_price = Number(variant.price); item.extras = Number(quote.extra);
@@ -120,7 +120,7 @@ async function submitCheckout(){
   // The structured choices remain the record; the picture is a visual aid. Failure does not block checkout.
   const uploadDesign = async (dataUrl) => LexcBackend.upload('customer-references', currentUser.id + '/designs', new File([await (await fetch(dataUrl)).blob()], 'design.jpg', { type: 'image/jpeg' }));
   for (const item of selectedItems) {
-    if (!['bento', 'cupcake', 'donut'].includes(item.customization?.designer)) continue;
+    if (!['bento', 'cupcake', 'donut', 'cakepop'].includes(item.customization?.designer)) continue;
     try {
       if (item.preview && !item.reference_image_path) item.reference_image_path = await uploadDesign(item.preview);
       if (item.preview_top && !item.design_top_path) item.design_top_path = await uploadDesign(item.preview_top);

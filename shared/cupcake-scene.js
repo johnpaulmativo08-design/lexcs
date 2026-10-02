@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { M, SURF, withSurface, shade } from './bento-scene.js?v=26';
-import { themePiece, plaquePiece, letterTexture } from './donut-parts.js?v=1';
+import { themePiece, plaquePiece, starPiece, letterTexture } from './donut-parts.js?v=2';
 import { createSet } from './scene-set.js?v=2';
 
 const TAU = Math.PI * 2;
@@ -14,7 +14,9 @@ const SIZES = {
   mini: { rb: 0.3, rt: 0.4, h: 0.33, gap: 0.92 },
   regular: { rb: 0.45, rt: 0.58, h: 0.52, gap: 1.32 },
   // Mini donuts: a shallow fluted paper cup each, standing on the box floor (no insert card).
-  donut: { rb: 0.4, rt: 0.46, h: 0.12, gap: 1.0, wall: 0.26, insert: false, ty: 0.14, lidH: 0.52, dr: 0.4 }
+  donut: { rb: 0.4, rt: 0.46, h: 0.12, gap: 1.0, wall: 0.26, insert: false, ty: 0.14, lidH: 0.52, dr: 0.4 },
+  // Cake pops: standing upright on 10 cm sticks in a white pop stand that fills the box.
+  cakepop: { rb: 0.3, rt: 0.4, h: 0.35, gap: 0.95, wall: 0.35, insert: false, stand: true, ty: 1.95, lidH: 2.85, dr: 0.4, ball: 0.33, stick: 1.95, pitch: 0.42 }
 };
 const CRUMB = { scale: [22, 22, 22], fine: 60, strength: 0.022, rough: 0.2 };   // baked cake top: open crumb
 const THEME_BG = { mermaid: '#9be3d6', butterfly: '#f9c8e0', unicorn: '#e8d9ff', dinosaur: '#c8ecb0', space: '#2b2f5e', safari: '#f3d9a4', custom: '#fff3c4' };
@@ -228,7 +230,7 @@ function stickerTexture() {
 }
 
 export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcake' } = {}) {
-  const isDonut = kind === 'donut';
+  const isPop = kind === 'cakepop', isDonut = kind === 'donut' || isPop;
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power', preserveDrawingBuffer: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -311,6 +313,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
       layout = { size: sizeKey, cols, rows, W, D, s, positions };
       tableSet.resize({ W, D });
     };
+    if (s.stand) add(new THREE.BoxGeometry(W - 0.06, wallH, D - 0.06), 0, wallH / 2, 0);   // the pop stand the sticks go into
     if (s.insert === false) { finishBox(); return; }   // donuts stand on the box floor
     const shape = new THREE.Shape(); shape.moveTo(-W / 2 + t, -D / 2 + t); shape.lineTo(W / 2 - t, -D / 2 + t); shape.lineTo(W / 2 - t, D / 2 - t); shape.lineTo(-W / 2 + t, D / 2 - t); shape.closePath();
     const yIns = s.h * 0.42, rHole = (s.rb + (s.rt - s.rb) * 0.42) * 1.04;
@@ -470,6 +473,103 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     }
     return { group, geos };
   }
+  // ---- one cake pop on a stick: round ball or upright mini donut, coating, finishes, sprinkles, fondant on the
+  // front, then the clear pouch with its gold twist tie (every pop is wrapped). Stands in the box's pop stand.
+  const bagMat = track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.11, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.3, side: THREE.DoubleSide, depthWrite: false }));
+  const stickMat = track(new THREE.MeshPhysicalMaterial({ color: '#FBFAF6', roughness: 0.75, envMapIntensity: 0.2 }));
+  function buildPopTemplate(cell, box, variant) {
+    const s = SIZES.cakepop, rand = seeded(variant * 7919 + cell.glaze.length * 131 + (cell.decor?.variant || 0) * 17 + 9);
+    const geos = [], group = new THREE.Group(), round = box.style !== 'donut';
+    const mesh = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; m.userData.shared = true; group.add(m); return m; };
+    const stick = new THREE.CylinderGeometry(0.03, 0.03, s.stick, 12); stick.translate(0, s.wall + s.stick / 2 - 0.25, 0); geos.push(stick); mesh(stick, stickMat);
+    const stickTop = s.wall + s.stick - 0.25;
+    let coat, cy, front, R;   // coating geometry, centre height, front surface z, half size
+    if (round) {
+      R = s.ball; cy = stickTop + R * 0.75;
+      coat = new THREE.SphereGeometry(R * 1.02, 44, 30); coat.translate(0, cy, 0); geos.push(coat); mesh(coat, glazeMat(cell.glaze));
+      const pool = new THREE.TorusGeometry(0.055, 0.03, 10, 20); pool.rotateX(Math.PI / 2); pool.translate(0, cy - R * 0.97, 0); geos.push(pool); mesh(pool, glazeMat(cell.glaze));
+      front = R * 1.02;
+    } else {
+      // The donut model lies flat; stand it up so its glazed top faces the front, stick in its lower edge.
+      const upright = (g) => { g.rotateX(Math.PI / 2); return g; };
+      const base = upright(donutGeo('donut_base', s)); base.computeBoundingBox();
+      const bb = base.boundingBox, c = bb.getCenter(V(0, 0, 0)); R = (bb.max.x - bb.min.x) / 2; cy = stickTop + R * 0.8;
+      const place = (g) => { g.translate(-c.x, cy - c.y, -c.z); return g; };
+      place(base); geos.push(base); mesh(base, donutBaseMat(cell.flavor));
+      coat = place(upright(donutGeo('glaze', s))); geos.push(coat); mesh(coat, glazeMat(cell.glaze));
+      coat.computeBoundingBox(); front = coat.boundingBox.max.z;
+    }
+    const fin = new Set(box.finishes);
+    // drizzle: the donut model's piped zigzag, or loops piped around the ball
+    for (const [code, mat] of [['choco_drizzle', DMAT.choco], ['white_drizzle', DMAT.white]]) {
+      if (!fin.has(code)) continue;
+      let g;
+      if (round) {
+        const pts = []; for (let i = 0; i <= 160; i++) { const a = (i / 160) * TAU * 3, lat = 0.25 + 0.3 * Math.sin(i / 160 * TAU * 7); pts.push(V(Math.cos(a) * Math.cos(lat) * R * 1.07, cy + Math.sin(lat) * R * 1.07, Math.sin(a) * Math.cos(lat) * R * 1.07)); }
+        g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 320, 0.016, 6, false); g.deleteAttribute('uv');
+      } else { g = donutGeo('drizzle', s); if (g) { g.rotateX(Math.PI / 2); const b = donutGeo('donut_base', s); b.rotateX(Math.PI / 2); b.computeBoundingBox(); const c = b.boundingBox.getCenter(V(0, 0, 0)); g.translate(-c.x, cy - c.y, -c.z); b.dispose(); } }
+      if (g) { geos.push(g); mesh(g, mat); }
+    }
+    // points on the visible coating (facing the front and up), for sprinkles, dust and glitter
+    const gp = coat.attributes.position, gn = coat.attributes.normal;
+    const facePoints = (count) => {
+      const out = [];
+      for (let tries = 0; out.length < count && tries < count * 40; tries++) {
+        const v = Math.floor(rand() * gp.count), nz = gn.getZ(v), ny = gn.getY(v);
+        if (round ? (ny < -0.55) : (nz < 0.35)) continue;
+        out.push({ p: V(gp.getX(v), gp.getY(v), gp.getZ(v)), n: V(gn.getX(v), ny, nz) });
+      }
+      return out;
+    };
+    const beads = (pts, r, colors) => {
+      if (!pts.length) return null;
+      const list = pts.map(({ p, n }, i) => {
+        const g = new THREE.SphereGeometry(r, 7, 5); g.deleteAttribute('uv'); g.translate(p.x + n.x * r * 0.5, p.y + n.y * r * 0.5, p.z + n.z * r * 0.5);
+        const col = new THREE.Color(colors[i % colors.length]), a = new Float32Array(g.attributes.position.count * 3);
+        for (let k = 0; k < a.length; k += 3) { a[k] = col.r; a[k + 1] = col.g; a[k + 2] = col.b; }
+        g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g;
+      });
+      const g = mergeGeometries(list); list.forEach((x) => x.dispose()); return g;
+    };
+    const many = round ? 70 : 60;
+    let sp = null;
+    if (box.sprinkles === 'white_pearls') sp = beads(facePoints(many * 0.6), 0.016, ['#FBFAF6', '#F2EFEA']);
+    else if (box.sprinkles === 'nonpareils') sp = beads(facePoints(many), 0.013, box.sprinkleColors.length ? box.sprinkleColors : ['#FFFFFF']);
+    if (sp) { geos.push(sp); mesh(sp, DMAT.sprinkle, false); }
+    if (box.sprinkles === 'gold_pearls') { const g = beads(facePoints(many * 0.5), 0.017, ['#D4AF37']); if (g) { geos.push(g); mesh(g, MAT.gold, false); } }
+    const flakes = (pts, r, mat) => {
+      if (!pts.length) return;
+      const list = pts.map(({ p, n }) => { const f = new THREE.CircleGeometry(r * (0.6 + rand() * 0.8), 5); f.deleteAttribute('uv'); f.lookAt(n); f.translate(p.x + n.x * 0.003, p.y + n.y * 0.003, p.z + n.z * 0.003); return f; });
+      const g = mergeGeometries(list); list.forEach((x) => x.dispose()); geos.push(g); mesh(g, mat, false);
+    };
+    if (fin.has('gold_dust')) flakes(facePoints(120), 0.012, MAT.gold);
+    if (fin.has('edible_glitter')) flakes(facePoints(120), 0.009, MAT.glitter);
+    // Fondant pieces stand on the front of the pop (flat pieces turned to face the front).
+    const onFront = (g, z, y = cy, scaleNote = 1) => { g.rotateX(Math.PI / 2); g.scale(scaleNote, scaleNote, scaleNote); g.translate(0, y, z); return g; };
+    const d = cell.decor, size = round ? R * 1.05 : s.dr * 0.92;
+    if (d?.type === 'theme') {
+      const g = themePiece(d.theme, d.variant, cell.glaze, size);
+      if (g) { onFront(g, front - 0.02); geos.push(g); mesh(g, DMAT.fondant); }
+    } else if (d?.type === 'letters' || d?.type === 'plaque') {
+      let lift = front;
+      if (d.type === 'plaque') { const g = plaquePiece(size); g.computeBoundingBox(); const t = g.boundingBox.max.y; onFront(g, front - 0.01); geos.push(g); mesh(g, DMAT.fondant); lift = front + t - 0.005; }
+      const w = size * (d.type === 'plaque' ? 1.45 : 1.9), pg = new THREE.PlaneGeometry(w, w / 2); pg.translate(0, cy, lift + 0.006); geos.push(pg);
+      const m = new THREE.Mesh(pg, letterMat(d.text, box.messageColor)); m.userData.shared = true; group.add(m);
+    }
+    if (fin.has('gold_star')) { const g = starPiece(R * 0.42); onFront(g, front * 0.75, cy + R * 0.72); geos.push(g); mesh(g, MAT.gold); }
+    // The clear pouch, gathered under the pop and tied with a gold twist tie.
+    const tieY = cy - R - 0.22, top = cy + R + 0.16, wide = R * 1.28;
+    // A cello pouch: gathered at the tie, filling out around the pop, a soft closed top; flattened like a real bag.
+    const prof = [[0.02, tieY - 0.14], [0.04, tieY - 0.02], [0.05, tieY + 0.03], [wide * 0.5, cy - R * 0.95], [wide * 0.92, cy - R * 0.45], [wide * 1.04, cy + R * 0.15],
+      [wide * 1.0, cy + R * 0.7], [wide * 0.86, top - 0.04], [wide * 0.55, top + 0.02], [0.001, top + 0.035]].map(([x, y]) => new THREE.Vector2(x, y));
+    const bag = new THREE.LatheGeometry(new THREE.SplineCurve(prof).getPoints(40), 40); bag.scale(1, 1, round ? 0.8 : 0.55);
+    { const bp = bag.attributes.position; for (let i = 0; i < bp.count; i++) { const x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), k = 1 + 0.035 * Math.sin(y * 31 + Math.atan2(z, x) * 5); bp.setXYZ(i, x * k, y, z * k); } }
+    bag.computeVertexNormals(); bag.deleteAttribute('uv'); geos.push(bag);
+    const bm = mesh(bag, bagMat, false); bm.renderOrder = 2;
+    const tie = new THREE.TorusGeometry(0.05, 0.014, 8, 20); tie.rotateX(Math.PI / 2); tie.translate(0, tieY, 0); geos.push(tie); mesh(tie, MAT.gold);
+    for (const side of [-1, 1]) { const end = new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6); end.rotateZ(side * 0.9); end.translate(side * 0.1, tieY - 0.03, 0.02); geos.push(end); mesh(end, MAT.gold); }
+    return { group, geos };
+  }
   function dropTemplate(k) { const t = templates.get(k); if (!t) return; t.geos.forEach((g) => g.dispose()); templates.delete(k); }
 
   // Animation + camera ---------------------------------------------------------------------------------
@@ -495,7 +595,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     const size = Math.max(layout.W, layout.D * 1.15), aspect = camera.aspect || 1, k = aspect < 1 ? 1 / Math.max(0.55, aspect) : 1;
     if (name === 'top') return { yaw: 0, pitch: 1.5, dist: (size * 1.75 + 0.6) * k * 0.92, tx: 0, tz: 0 };
     if (name === 'close') { const p = layout.positions[layout.positions.length - Math.ceil(layout.cols / 2)] || V(0, 0, 0); return { yaw: 0.35, pitch: 0.5, dist: layout.s.rt * 7.5, tx: p.x, tz: p.z }; }
-    return { yaw: 0.45, pitch: sceneName === 'studio' ? 0.72 : 0.6, dist: (size * 1.8 + 0.8) * k * (sceneName === 'studio' ? 1 : 1.25), tx: 0, tz: 0 };   // a set: step back to show the table
+    return { yaw: 0.45, pitch: (layout.s.pitch ?? 0.72) - (sceneName === 'studio' ? 0 : 0.12), dist: (size * 1.8 + 0.8) * k * (sceneName === 'studio' ? 1 : 1.25), tx: 0, tz: 0 };   // a set: step back to show the table
   }
   let viewName = 'angle', viewAnim = null, sceneName = 'studio';
   function setView(name, ms = 650) {
@@ -562,13 +662,13 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     const finishes = [...spec.finishes].sort(), used = new Set();
     spec.cells.forEach((cell, i) => {
       const variant = i % 2;
-      const k = isDonut ? JSON.stringify([cell, finishes, spec.sprinkles, spec.sprinkleColors, spec.messageColor, variant])
+      const k = isDonut ? JSON.stringify([cell, finishes, spec.sprinkles, spec.sprinkleColors, spec.messageColor, spec.style || '', variant])
         : JSON.stringify([spec.size, spec.flavor, cell.style, cell.colors, cell.sub || '', finishes, spec.theme, variant]);
       used.add(k);
-      if (!templates.has(k)) templates.set(k, isDonut ? buildDonutTemplate(cell, spec, variant) : buildTemplate(cell, spec.size, spec.flavor, finishes, spec.theme, spec.themeIcon, variant));
+      if (!templates.has(k)) templates.set(k, isPop ? buildPopTemplate(cell, spec, variant) : isDonut ? buildDonutTemplate(cell, spec, variant) : buildTemplate(cell, spec.size, spec.flavor, finishes, spec.theme, spec.themeIcon, variant));
       if (cellKeys[i] === k && cellObjs[i]) return;
       const obj = templates.get(k).group.clone(), pos = layout.positions[i], rand = seeded(i * 97 + 3);
-      obj.position.copy(pos); obj.rotation.y = rand() * TAU;
+      obj.position.copy(pos); obj.rotation.y = isPop ? (rand() - 0.5) * 0.35 : rand() * TAU;   // pops all face the front
       // Topper plaques always face the front of the box, whichever way the cupcake was turned.
       obj.traverse((o) => { if (o.userData.plaque) { o.rotation.y = -obj.rotation.y + (rand() - 0.5) * 0.4; o.position.applyAxisAngle(V(0, 1, 0), -obj.rotation.y); } });
       if (cellObjs[i]) cupcakes.remove(cellObjs[i]);

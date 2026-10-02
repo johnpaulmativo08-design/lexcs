@@ -6,10 +6,11 @@ import {db,rows,fail,loadingTable} from '../backend-ui.js?v=3';
 const GROUPS={
  bento:[['border','Borders'],['accent','Decorations'],['message','Message'],['lettering','Lettering styles'],['topper','Toppers'],['font','Message fonts'],['color','Colors (frosting, lettering, ribbon, drip)']],
  cupcake:[['flavor','Flavors'],['style','Piping styles'],['pattern','Box arrangement'],['finish','Finishing touches'],['theme','Theme toppers'],['color','Frosting colors']],
+ cakepop:[['style','Pop shape'],['flavor','Flavors'],['pattern','Coating'],['finish','Finishes'],['sprinkle','Sprinkles'],['theme','Theme toppers'],['message','Fondant message'],['color','Coating, sprinkle and letter colors']],
  donut:[['flavor','Flavors'],['pattern','Glaze dip'],['finish','Finishes'],['sprinkle','Sprinkles'],['theme','Theme toppers'],['message','Fondant message'],['color','Glaze, sprinkle and letter colors']]};
-const UNIT={bento:'cake',cupcake:'box',donut:'box'};
+const UNIT={bento:'cake',cupcake:'box',donut:'box',cakepop:'box'};
 const FREE=new Set(['color','font','flavor']);
-const heading='<header class="module-heading"><div><h1>Designer options</h1><p>Extras charged for each choice in the bento, cupcake and donut designers (per cake, or once per cupcake or donut box). Turn an option off to hide it from customers.</p></div></header>';
+const heading='<header class="module-heading"><div><h1>Designer options</h1><p>Extras charged for each choice in the bento, cupcake, donut and cake pop designers (per cake, or once per box). Turn an option off to hide it from customers.</p></div></header>';
 
 export async function renderDesignOptions(content){
  content.innerHTML=heading+loadingTable(['Option','Extra per cake','Offered',''],8);
@@ -18,7 +19,7 @@ export async function renderDesignOptions(content){
   const ids=[...new Set(options.map(o=>o.product_id))];
   const products=ids.length?await rows(db.client.from('products').select('id,name,customization_config').in('id',ids).order('name')):[];
   if(!options.length){content.innerHTML=heading+'<section class="panel"><p>No designer options yet. Apply database phase 32 first.</p></section>';return;}
-  const kind=p=>['cupcake','donut'].includes(p.customization_config?.designer)?p.customization_config.designer:'bento';
+  const kind=p=>['cupcake','donut','cakepop'].includes(p.customization_config?.designer)?p.customization_config.designer:'bento';
   const sorted=[...products].sort((a,b)=>kind(a).localeCompare(kind(b))||a.name.localeCompare(b.name));
   content.innerHTML=heading+sorted.map(p=>'<h2 style="margin:24px 0 8px">'+e(p.name)+'</h2>'+GROUPS[kind(p)].map(([key,title])=>{
    const list=options.filter(o=>o.product_id===p.id&&o.group_key===key);if(!list.length)return '';

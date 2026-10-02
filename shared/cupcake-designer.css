@@ -96,3 +96,5 @@
 }
 @media (max-width:560px){.cd-chooser-grid:has(> :nth-child(3)){grid-template-columns:1fr}}
 .cd-page [data-dd-box][hidden],.cd-page [data-dd-bar][hidden],.cd-page [data-dd-3d][hidden]{display:none!important}
+.cd-chooser-grid:has(> :nth-child(4)){grid-template-columns:repeat(2,1fr)}
+@media (max-width:900px){body[data-customer-page="cakepop"] .customer-mobile-nav{display:none}body[data-customer-page="cakepop"] #customer-chat-toggle{display:none!important}}

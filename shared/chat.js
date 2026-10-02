@@ -34,21 +34,21 @@ export async function ensureCustomerChat({userId,orderId=null}){
 const DESIGN_KEYS=['frosting_color','border','accents','bow_color','message','lettering','lettering_color','topper','topper_text','layout','drip_color','font'];
 const siteIndex=new URL('../index.html',import.meta.url).href;
 const CUPCAKE_KEYS=['flavor','pattern','finishes','theme','theme_note'];
-const DONUT_KEYS=['flavors','pattern','glazes','finishes','sprinkles','sprinkle_colors','theme','theme_note','message','message_text','message_color'];
+const DONUT_KEYS=['style','flavors','pattern','glazes','finishes','sprinkles','sprinkle_colors','theme','theme_note','message','message_text','message_color'];
 const partOf=p=>p&&{style:p.style,colors:p.colors};
 function designLink(line){
   const kind=line.design?.designer,cupcake=kind==='cupcake',d={};
-  for(const key of cupcake?CUPCAKE_KEYS:kind==='donut'?DONUT_KEYS:DESIGN_KEYS)if(line.design?.[key]!=null)d[key]=line.design[key];
+  for(const key of cupcake?CUPCAKE_KEYS:kind==='donut'||kind==='cakepop'?DONUT_KEYS:DESIGN_KEYS)if(line.design?.[key]!=null)d[key]=line.design[key];
   if(cupcake){d.a=partOf(line.design.a);if(line.design.b)d.b=partOf(line.design.b);}
   const bytes=new TextEncoder().encode(JSON.stringify({v:line.variant_id,d}));
   const code=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  return siteIndex+(cupcake?'?cupcake=':kind==='donut'?'?donut=':'?design=')+code;
+  return siteIndex+(cupcake?'?cupcake=':kind==='donut'?'?donut=':kind==='cakepop'?'?cakepop=':'?design=')+code;
 }
 export function designCardHTML(m){
   if(m.message_type!=='design_card'||!Array.isArray(m.attachments))return '';
   const picture=(path,label)=>path?'<button type="button" class="design-card-pic" data-design-img="'+escapeHtml(path)+'" aria-label="Open '+label+' picture full size"><img alt="'+label+'" hidden><span class="skel" aria-hidden="true"></span><small>'+label+'</small></button>':'';
-  return '<div class="design-card">'+m.attachments.map(line=>'<section class="design-card-line"><div class="design-card-pics">'+picture(line.angle_path,['cupcake','donut'].includes(line.design?.designer)?'Box picture':'Angled view')+picture(line.top_path,'Top view')+'</div>'+
-    '<strong>'+escapeHtml(line.name)+(Number(line.qty)>1?' × '+Number(line.qty):'')+'</strong><p>'+escapeHtml(line.summary||'')+'</p><div class="design-card-foot"><b>'+money(line.unit_price)+(['cupcake','donut'].includes(line.design?.designer)?' per box':' per cake')+'</b><a href="'+escapeHtml(designLink(line))+'" target="_blank" rel="noopener">'+(['cupcake','donut'].includes(line.design?.designer)?'Open design ↗':'Open in 3D ↗')+'</a></div></section>').join('')+'</div>';
+  return '<div class="design-card">'+m.attachments.map(line=>'<section class="design-card-line"><div class="design-card-pics">'+picture(line.angle_path,['cupcake','donut','cakepop'].includes(line.design?.designer)?'Box picture':'Angled view')+picture(line.top_path,'Top view')+'</div>'+
+    '<strong>'+escapeHtml(line.name)+(Number(line.qty)>1?' × '+Number(line.qty):'')+'</strong><p>'+escapeHtml(line.summary||'')+'</p><div class="design-card-foot"><b>'+money(line.unit_price)+(['cupcake','donut','cakepop'].includes(line.design?.designer)?' per box':' per cake')+'</b><a href="'+escapeHtml(designLink(line))+'" target="_blank" rel="noopener">'+(['cupcake','donut','cakepop'].includes(line.design?.designer)?'Open design ↗':'Open in 3D ↗')+'</a></div></section>').join('')+'</div>';
 }
 const signedPictures=new Map();
 export function hydrateDesignImages(root){

@@ -112,6 +112,10 @@ const THEMES = {
   fairy: [(c) => mushroom(0, 0.05, 0.8, c.accent), (c) => butterfly(0, 0, 0.7, c.accent2, 0.15), (c) => [...mushroom(-0.25, 0.05, 0.5, c.accent2), ...butterfly(0.35, -0.15, 0.3, c.accent, 0.4)]],
   construction: [(c) => truck(0, 0.05, 0.85, '#F5C531'), (c) => cone(0, 0, 0.8), (c) => hammer(0, 0, 0.8), (c) => truck(0, 0.05, 0.85, '#F28C38')],
   baby: [(c) => [...balloon(0, 0.12, 0.75, '#9CCFF0'), ...cloud(0, -0.35, 0.6)], (c) => [...block(-0.28, 0.05, 0.75, '#F9E27D'), ...block(0.32, -0.12, 0.6, '#9CCFF0')], (c) => [...rainbow(0, -0.1, 0.9, ['#7FB8E6', '#BFDDF4', '#FFFFFF']), ...cloud(-0.45, -0.12, 0.5)]],
+  space: [(c) => [[circle(0, 0, 0.5), '#7FB8E6', 0], [ellipse(-0.12, 0.12, 0.22, 0.14, 0.5), '#3DB65A', 1], [ellipse(0.18, -0.15, 0.16, 0.1, -0.3), '#3DB65A', 1]],
+    (c) => [[ellipse(0, 0.05, 0.2, 0.5), '#FFFFFF', 0], [poly([[-0.2, -0.25], [-0.4, -0.5], [-0.15, -0.38]]), '#E0457B', 0], [poly([[0.2, -0.25], [0.4, -0.5], [0.15, -0.38]]), '#E0457B', 0], [circle(0, 0.15, 0.1), '#7FB8E6', 1], [poly([[-0.1, -0.45], [0.1, -0.45], [0, -0.72]]), '#F29A3A', 1]],
+    (c) => [[circle(0, 0, 0.55), '#C9CCD3', 0], [circle(-0.18, 0.15, 0.12), '#A9ADB6', 1], [circle(0.2, -0.12, 0.09), '#A9ADB6', 1], [circle(0.05, 0.28, 0.06), '#A9ADB6', 1]],
+    (c) => [[star(0, 0, 0.6, 0.27), '#F6D365', 0]]],
   bows: [(c) => bow(0, 0, 0.8, c.accent), (c) => [...candy(-0.15, 0.2, 0.6, c.accent2), ...candy(0.25, -0.25, 0.55, c.accent)], (c) => [[heart(0, 0.05, 0.85), c.accent, 0]]],
   custom: [(c) => [[star(0, 0, 0.6, 0.27), '#F6D365', 0]], (c) => [[heart(0, 0.05, 0.8), c.accent, 0]]]
 };
@@ -139,6 +143,7 @@ export function themePiece(theme, variant, glazeHex, scale) {
   const list = THEMES[theme]; if (!list) return null;
   return fondant(list[variant % list.length](accents(glazeHex)), scale);
 }
+export function starPiece(scale) { return fondant([[star(0, 0, 1, 0.45), '#D4AF37', 0]], scale); }
 export function plaquePiece(scale) { return fondant([[scallop(0, 0, 0.78, 16, 0.07), '#FFFFFF', 0]], scale); }
 
 // Fondant letters: a canvas decal (letters with a soft darker edge so they read as raised fondant).

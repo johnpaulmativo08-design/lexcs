@@ -175,7 +175,7 @@
       const tab = t.closest('[data-tab]'); if (tab) return setTab(tab.dataset.tab);
       if (t.closest('[data-see-all]')) { dialog.querySelector('.pd-reviews')?.classList.add('is-expanded'); t.closest('[data-see-all]').remove(); }
       if (t.closest('[data-chat]')) { closeDetail(); document.querySelector('#customer-chat-toggle')?.click(); }
-      if (t.closest('[data-design]')) { const kind = t.closest('[data-design]').dataset.design, id = t.closest('[data-design]').dataset.productId; closeDetail(); setTimeout(() => (kind === 'cupcake' ? window.LexcCupcake?.open({ productId: id }) : kind === 'donut' ? window.LexcDonut?.open({ productId: id }) : window.LexcBento?.open()), 200); }
+      if (t.closest('[data-design]')) { const kind = t.closest('[data-design]').dataset.design, id = t.closest('[data-design]').dataset.productId; closeDetail(); setTimeout(() => (kind === 'cupcake' ? window.LexcCupcake?.open({ productId: id }) : kind === 'donut' ? window.LexcDonut?.open({ productId: id }) : kind === 'cakepop' ? window.LexcCakePop?.open({ productId: id }) : window.LexcBento?.open()), 200); }
     });
     dialog.addEventListener('keydown', (event) => {
       if (event.target.closest('[role=tablist]') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
@@ -279,6 +279,7 @@
           <li>${icon('truck')}<span>Pickup or Delivery</span></li>
         </ul>
         ${window.LexcCupcake?.isDesignable(p.product_id) ? `<button type="button" class="pd-design" data-design="cupcake" data-product-id="${p.product_id}"><span aria-hidden="true" style="font-size:1.5rem">🧁</span><span><strong>Design your own</strong><span>Pick piping styles, colors and toppers, with a live box preview.</span></span></button>` : ''}
+        ${window.LexcCakePop?.isDesignable(p.product_id) ? `<button type="button" class="pd-design" data-design="cakepop" data-product-id="${p.product_id}"><span aria-hidden="true" style="font-size:1.5rem">🍭</span><span><strong>Design your own</strong><span>Round or donut pops: coatings, sprinkles, toppers and letters, in 3D.</span></span></button>` : ''}
         ${window.LexcDonut?.isDesignable(p.product_id) ? `<button type="button" class="pd-design" data-design="donut" data-product-id="${p.product_id}"><span aria-hidden="true" style="font-size:1.5rem">🍩</span><span><strong>Design your own</strong><span>Pick glazes, sprinkles, fondant toppers and letters, in 3D.</span></span></button>` : ''}
         ${window.LexcBento?.isDesignable(p.product_id) ? '<button type="button" class="pd-design" data-design="bento"><span aria-hidden="true" style="font-size:1.5rem">🎨</span><span><strong>Design your own</strong><span>Pick colors, decorations and a message, with a live 3D preview.</span></span></button>' : ''}
       </section>
