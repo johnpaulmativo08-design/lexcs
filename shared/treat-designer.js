@@ -228,7 +228,7 @@ function makeTreatDesigner(K) {
     const extra = pal.filter((c) => !known.has(c.code)); if (extra.length) groups.push(['More', extra]);
     return groups.filter(([, l]) => l.length).map(([name, list]) => `<p class="bd-swatch-group">${name}</p><div class="bd-swatches">${list.map((c) => {
       const i = chosen.indexOf(c.code), on = i >= 0;
-      return `<button type="button" class="bd-swatch${on ? ' is-on' : ''}" style="background:${c.hex}" data-dd-color="${kind}" data-value="${c.code}" aria-pressed="${on}" aria-label="${esc(c.label)}" title="${esc(c.label)}">${on && numbered ? `<i class="cd-num">${i + 1}</i>` : ''}</button>`;
+      return `<button type="button" class="bd-swatch${on ? ' is-on' : ''}${Number(c.price) > 0 ? ` has-price" data-price="+${money(c.price)}` : ''}" style="background:${c.hex}" data-dd-color="${kind}" data-value="${c.code}" aria-pressed="${on}" aria-label="${esc(c.label)}${Number(c.price) > 0 ? ', +' + money(c.price) : ''}" title="${esc(c.label)}${Number(c.price) > 0 ? ' +' + money(c.price) : ''}">${on && numbered ? `<i class="cd-num">${i + 1}</i>` : ''}</button>`;
     }).join('')}</div>`).join('');
   }
   const chosenChips = (codes) => `<div class="cd-chosen">${codes.map((c, i) => `<span class="cd-chip"><i style="background:${palette()[c]}"></i>${i + 1}. ${esc(opt('color', c)?.label)}</span>`).join('')}</div>`;
@@ -240,7 +240,7 @@ function makeTreatDesigner(K) {
         <div class="cd-presets">${PRESETS.filter((p) => products[p.box]).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
       </fieldset>
       ${K.styles ? `<fieldset class="bd-group"><legend>Pop</legend>
-        <div class="bd-cards" role="radiogroup">${(options().style || []).map((o) => `<button type="button" role="radio" class="bd-card" data-dd-set="style" data-value="${o.code}" aria-checked="${s.style === o.code}"><strong>${esc(o.label)}</strong><small>${K.styleNote[o.code] || ''} · same price</small></button>`).join('')}</div>
+        <div class="bd-cards" role="radiogroup">${(options().style || []).map((o) => `<button type="button" role="radio" class="bd-card" data-dd-set="style" data-value="${o.code}" aria-checked="${s.style === o.code}"><strong>${esc(o.label)}</strong><small>${K.styleNote[o.code] || ''} · ${Number(o.price) > 0 ? '+' + money(o.price) : (options().style || []).some((x) => Number(x.price) > 0) ? 'no extra' : 'same price'}</small></button>`).join('')}</div>
       </fieldset>` : ''}
       ${Object.keys(products).length < 2 ? '' : `<fieldset class="bd-group"><legend>Box</legend>
         <div class="bd-cards" role="radiogroup">${Object.keys(products).map((b) => `<button type="button" role="radio" class="bd-card" data-dd-box="${b}" aria-checked="${s.box === b}"><strong>${b === 'party' ? 'Party Box' : 'Themed Party Box'}</strong><small>${BOX_NOTE[b]}</small></button>`).join('')}</div>
@@ -249,7 +249,7 @@ function makeTreatDesigner(K) {
         <div class="bd-chips" role="radiogroup">${product().product_variants.filter((v) => v.is_active).map((v) => `<button type="button" role="radio" class="bd-chip" data-dd-variant="${v.id}" aria-checked="${s.variant_id === v.id}">${esc(v.label)} · ${money(v.price)}</button>`).join('')}</div>
       </fieldset>
       <fieldset class="bd-group"><legend>Flavor <small>Pick one, or mix up to 4${opt('flavor', 'mix') ? ' (' + plus(opt('flavor', 'mix')).slice(3) + ')' : ''}</small></legend>
-        <div class="bd-cards dd-flavors" role="group">${flavorsList().map((o) => `<button type="button" class="bd-card" data-dd-flavor="${o.code}" aria-pressed="${s.flavors.includes(o.code)}"><span class="dd-dough" style="background:${DOUGH[o.code] || '#d9a65a'}" aria-hidden="true"></span><strong>${esc(o.label)}</strong><small>${FLAVOR_NOTE[o.code] || ''}</small></button>`).join('')}</div>
+        <div class="bd-cards dd-flavors" role="group">${flavorsList().map((o) => `<button type="button" class="bd-card" data-dd-flavor="${o.code}" aria-pressed="${s.flavors.includes(o.code)}"><span class="dd-dough" style="background:${DOUGH[o.code] || '#d9a65a'}" aria-hidden="true"></span><strong>${esc(o.label)}</strong><small>${FLAVOR_NOTE[o.code] || ''}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
         ${s.flavors.length > 1 ? `<p class="bd-note">We spread ${s.flavors.map((f) => esc(opt('flavor', f)?.label)).join(', ')} across your box.</p>` : ''}
       </fieldset>`;
     if (step === 'glaze') {

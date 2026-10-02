@@ -262,7 +262,7 @@
       </div>
     </div>`;
   }
-  const swatchBtn = (k, code, c, on, n) => `<button type="button" class="bd-swatch${on ? ' is-on' : ''}" style="background:${c.hex}" data-cd-color="${k}" data-value="${code}" aria-pressed="${on}" aria-label="${esc(c.label)}${on ? ', color ' + n : ''}" title="${esc(c.label)}">${on && n ? `<i class="cd-num">${n}</i>` : ''}</button>`;
+  const swatchBtn = (k, code, c, on, n) => `<button type="button" class="bd-swatch${on ? ' is-on' : ''}${Number(c.price) > 0 ? ` has-price" data-price="+${money(c.price)}` : ''}" style="background:${c.hex}" data-cd-color="${k}" data-value="${code}" aria-pressed="${on}" aria-label="${esc(c.label)}${Number(c.price) > 0 ? ', +' + money(c.price) : ''}${on ? ', color ' + n : ''}" title="${esc(c.label)}${Number(c.price) > 0 ? ' +' + money(c.price) : ''}">${on && n ? `<i class="cd-num">${n}</i>` : ''}</button>`;
   function colorPicker(k) {
     const part = state[k], assorted = state.pattern === 'assorted' && k === 'a';
     const [lo, hi] = assorted ? [2, 16] : RULE[part.style];
@@ -314,7 +314,7 @@
         <div class="bd-chips" role="radiogroup">${product().product_variants.filter((v) => v.is_active).map((v) => `<button type="button" role="radio" class="bd-chip" data-cd-variant="${v.id}" aria-checked="${s.variant_id === v.id}">${esc(v.label)} · ${money(v.price)}</button>`).join('')}</div>
       </fieldset>
       <fieldset class="bd-group"><legend>Flavor <small>Same price</small></legend>
-        <div class="bd-cards" role="radiogroup">${(options().flavor || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="flavor" data-value="${o.code}" aria-checked="${s.flavor === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'chocolate' ? 'Dark cake, black liners' : 'Golden cake, white liners'}</small></button>`).join('')}</div>
+        <div class="bd-cards" role="radiogroup">${(options().flavor || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="flavor" data-value="${o.code}" aria-checked="${s.flavor === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'chocolate' ? 'Dark cake, black liners' : 'Golden cake, white liners'}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
       </fieldset>`;
     if (step === 'design') return `
       <fieldset class="bd-group"><legend>How is the box arranged?</legend>

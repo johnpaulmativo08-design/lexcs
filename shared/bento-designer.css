@@ -257,3 +257,7 @@ body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="
   .bd-check-item { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) { .bd-canvas-box { transition: none; } }
+
+/* A color with an extra price (set by Admin) carries a small "+₱2" tag. */
+.bd-swatch.has-price{position:relative}
+.bd-swatch.has-price::after{content:attr(data-price);position:absolute;right:-6px;bottom:-6px;padding:0 4px;border-radius:8px;background:#fff;border:1px solid #d6c3ef;color:#5c3d6e;font-size:10px;font-weight:700;line-height:15px;white-space:nowrap;pointer-events:none}

@@ -378,7 +378,7 @@
     </div>`;
   }
 
-  const swatch = (field, current, c) => `<button type="button" role="radio" class="bd-swatch" style="background:${c.hex}" data-bd-set="${field}" data-value="${c.code}" aria-checked="${c.code === current}" aria-label="${esc(c.label)}" title="${esc(c.label)}"></button>`;
+  const swatch = (field, current, c) => `<button type="button" role="radio" class="bd-swatch${Number(c.price) > 0 ? ` has-price" data-price="+${money(c.price)}` : ''}" style="background:${c.hex}" data-bd-set="${field}" data-value="${c.code}" aria-checked="${c.code === current}" aria-label="${esc(c.label)}${Number(c.price) > 0 ? ', +' + money(c.price) : ''}" title="${esc(c.label)}${Number(c.price) > 0 ? ' +' + money(c.price) : ''}"></button>`;
   // Popular colours first; the full 24 open with "More colors" (remembered per field while designing).
   const POPULAR = {
     frosting_color: ['white', 'blush', 'baby_pink', 'lavender', 'lilac', 'baby_blue', 'mint', 'butter'],
@@ -442,7 +442,7 @@
       <p class="bd-sheet-tip" data-bd-sheet-tip aria-live="polite">${fontTip()}</p>
       <div class="bd-font-list" role="radiogroup" aria-labelledby="bd-sheet-title">${list.map((o) => { const f = fontInfo(o.code);
         return `<button type="button" role="radio" class="bd-font-item" data-bd-font-pick="${esc(o.code)}" aria-checked="${o.code === state.font}" tabindex="${o.code === state.font ? 0 : -1}">
-          <span class="bd-font-sample" style="${fontStyle(f)}">${esc(fontSample())}</span><span class="bd-font-name">${esc(o.label)}${f.kind && f.kind !== o.label ? `<small>${esc(f.kind)}</small>` : ''}</span></button>`; }).join('') || '<p class="bd-note">No fonts in this style right now.</p>'}</div>
+          <span class="bd-font-sample" style="${fontStyle(f)}">${esc(fontSample())}</span><span class="bd-font-name">${esc(o.label)}${f.kind && f.kind !== o.label ? `<small>${esc(f.kind)}</small>` : ''}${Number(o.price) > 0 ? `<small>+${money(o.price)}</small>` : ''}</span></button>`; }).join('') || '<p class="bd-note">No fonts in this style right now.</p>'}</div>
       <div class="bd-sheet-foot"><button type="button" class="bd-primary" data-bd-sheet-done>Done</button></div>`;
   }
   function fontTip() {
@@ -536,7 +536,7 @@
       <fieldset class="bd-group"><legend>Flavor <small>Same size and weight</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Flavor">${product.product_variants.filter((v) => v.is_active).map((v) =>
           `<button type="button" role="radio" class="bd-card" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === s.variant_id}"><strong>${esc(v.label === 'Minimalist' ? 'Plain' : v.label)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>
-      <fieldset class="bd-group"><legend>Frosting color <small>24 colors · free</small></legend>${swatches('frosting_color', s.frosting_color, 'Frosting color')}</fieldset>`;
+      <fieldset class="bd-group"><legend>Frosting color <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', s.frosting_color, 'Frosting color')}</fieldset>`;
     if (step === 'decorate') {
       const count = s.accents.length;
       return `

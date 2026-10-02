@@ -3,8 +3,9 @@ import {db,rows,fail,loadingTable} from '../backend-ui.js?v=3';
 
 // Prices and availability of the bento, cupcake, donut and cake pop designers' options (public.design_options,
 // phases 32 and 36-38). Checkout prices designs on the server from this table, so a change applies to the next quote.
-// One product at a time (product buttons), jump buttons per group, steppers and on/off switches; changes are
-// collected and saved together from the bar at the bottom.
+// One product at a time (product buttons), sections that open and close (dropdown buttons), steppers and on/off
+// switches; changes are collected and saved together from the bar at the bottom. Every option can carry a price
+// (phase 41); "No …" choices stay free.
 const GROUPS={
  bento:[['border','Borders'],['accent','Decorations'],['message','Message'],['lettering','Lettering styles'],['topper','Toppers'],['font','Message fonts'],['color','Colors (frosting, lettering, ribbon, drip)']],
  cupcake:[['flavor','Flavors'],['style','Piping styles'],['pattern','Box arrangement'],['finish','Finishing touches'],['theme','Theme toppers'],['color','Frosting colors']],
@@ -12,11 +13,12 @@ const GROUPS={
  donut:[['flavor','Flavors'],['pattern','Glaze dip'],['finish','Finishes'],['sprinkle','Sprinkles'],['theme','Theme toppers'],['message','Fondant message'],['color','Glaze, sprinkle and letter colors']]};
 const UNIT={bento:'cake',cupcake:'box',donut:'box',cakepop:'box'};
 const EMOJI={bento:'🎂',cupcake:'🧁',donut:'🍩',cakepop:'🍭'};
-const FREE=new Set(['color','font','flavor']);
+// How the extra is charged, per group (default: once per cake or box when chosen).
+const HOW={color:'once for each color the customer uses',flavor:'for each flavor chosen (Mixed flavors: once, when a box has more than one)',font:'when the cake has a message'};
 const FILTERS=[['all','All'],['on','Offered'],['off','Hidden'],['paid','With extra charge']];
 const STORE='lexc_admin_design_product';
-const heading='<header class="module-heading"><div><h1>Designer options</h1><p>Extras charged for each choice in the bento, cupcake, donut and cake pop designers (per cake, or once per box). Turn an option off to hide it from customers.</p></div></header>';
-const priceLocked=o=>(FREE.has(o.group_key)&&o.code!=='mix')||o.code==='none'||(o.group_key==='lettering'&&o.code==='piped');
+const heading='<header class="module-heading"><div><h1>Designer options</h1><p>Set an extra price for any choice in the bento, cupcake, donut and cake pop designers (₱0 = free), and turn an option off to hide it from customers. Open a section with its button.</p></div></header>';
+const priceLocked=o=>o.code==='none';
 const activeLocked=o=>o.code==='none'||(o.group_key==='lettering'&&o.code==='piped')||(o.group_key==='font'&&o.code==='rounded');
 const peso=n=>'₱'+Number(n).toLocaleString('en-PH',{maximumFractionDigits:2});
 const remember=(k,v)=>{try{localStorage.setItem(k,v);}catch{}};
@@ -33,7 +35,8 @@ export async function renderDesignOptions(content){
   const sorted=[...products].sort((a,b)=>kind(a).localeCompare(kind(b))||a.name.localeCompare(b.name));
   const byId=new Map(options.map(o=>[o.id,o]));
   const edits=new Map();   // option id -> {price, is_active} that differ from the saved row
-  const view={product:sorted.some(p=>p.id===recall(STORE))?recall(STORE):sorted[0]?.id,filter:'all',query:''};
+  const view={product:sorted.some(p=>p.id===recall(STORE))?recall(STORE):sorted[0]?.id,filter:'all',query:'',open:new Set()};   // open: "productId:group" sections shown open
+  const isOpen=key=>view.open.has(view.product+':'+key)||view.filter!=='all'||view.query.trim()!=='';
 
   // A fresh root each render, so event listeners never pile up on the shared content element.
   const root=document.createElement('div');root.className='dopt';
@@ -53,7 +56,7 @@ export async function renderDesignOptions(content){
    const c=current(o),changed=edits.has(o.id),pl=priceLocked(o),al=activeLocked(o);
    return '<div class="dopt-row'+(changed?' is-changed':'')+(c.is_active?'':' is-off')+'" data-option="'+e(o.id)+'">'
     +'<div class="dopt-name">'+(o.hex?'<span class="dopt-swatch" aria-hidden="true" style="background:'+e(o.hex)+'"></span>':'')+'<span><strong>'+e(o.label)+'</strong>'+(changed?'<em class="dopt-flag">Unsaved</em>':'')+'</span></div>'
-    +'<div class="dopt-price">'+(pl?'<span class="dopt-free" title="This choice is always free">Always free</span>'
+    +'<div class="dopt-price">'+(pl?'<span class="dopt-free" title="Choosing nothing is always free">No charge</span>'
       :'<button type="button" class="dopt-step" data-step="-1" aria-label="₱1 less for '+e(o.label)+'"'+(c.price<=0?' disabled':'')+'>−</button>'
       +'<label class="sr-only" for="price-'+e(o.id)+'">Extra per '+unit+' for '+e(o.label)+'</label><span class="dopt-peso" aria-hidden="true">₱</span><input id="price-'+e(o.id)+'" type="number" min="0" max="10000" step="0.5" inputmode="decimal" value="'+c.price+'" data-price>'
       +'<button type="button" class="dopt-step" data-step="1" aria-label="₱1 more for '+e(o.label)+'">+</button>'
@@ -73,14 +76,17 @@ export async function renderDesignOptions(content){
     }).join('')+'</nav>'
     +'<div class="dopt-toolbar"><label class="dopt-search"><span class="sr-only">Find an option</span><input type="search" placeholder="Find an option…" value="'+e(view.query)+'" data-search></label>'
     +'<div class="dopt-filters" role="group" aria-label="Show">'+FILTERS.map(([v,l])=>'<button type="button" data-filter="'+v+'" aria-pressed="'+(view.filter===v)+'">'+l+'</button>').join('')+'</div></div>'
-    +'<div class="dopt-jump" aria-label="Jump to a group">'+groups.map(g=>'<button type="button" data-jump="'+e(g.key)+'">'+e(g.title.replace(/ \(.*\)$/,''))+' <small>'+g.list.filter(o=>current(o).is_active).length+'/'+g.list.length+'</small></button>').join('')+'</div>'
+    +'<div class="dopt-jump" aria-label="Jump to a section"><button type="button" class="dopt-expand" data-expand="'+(groups.every(g=>isOpen(g.key))?'close':'open')+'">'+(groups.every(g=>isOpen(g.key))?'▴ Close all':'▾ Open all')+'</button>'+groups.map(g=>'<button type="button" data-jump="'+e(g.key)+'">'+e(g.title.replace(/ \(.*\)$/,''))+' <small>'+g.list.filter(o=>current(o).is_active).length+'/'+g.list.length+'</small></button>').join('')+'</div>'
     +groups.map(g=>{
       const shown=g.list.filter(visible);if(!shown.length)return '';
-      const lockedAll=g.list.every(activeLocked);
-      return '<section class="panel dopt-group" id="dopt-'+e(g.key)+'" data-group="'+e(g.key)+'"><header class="dopt-group-head"><div><h2>'+e(g.title)+'</h2><p>'+g.list.filter(o=>current(o).is_active).length+' of '+g.list.length+' offered · extra charged once per '+unit+'</p></div>'
-       +(lockedAll?'':'<div class="dopt-group-actions"><button type="button" class="dopt-chip" data-all="on">Offer all</button><button type="button" class="dopt-chip" data-all="off">Hide all</button></div>')+'</header>'
-       +'<div class="dopt-head" aria-hidden="true"><span>Option</span><span>Extra per '+unit+'</span><span>Customers see it</span><span></span></div>'
-       +shown.map(o=>rowHtml(o,unit)).join('')+'</section>';
+      const lockedAll=g.list.every(activeLocked),open=isOpen(g.key),paid=g.list.filter(o=>current(o).price>0).length,changed=g.list.filter(o=>edits.has(o.id)).length;
+      return '<section class="panel dopt-group'+(open?' is-open':'')+'" id="dopt-'+e(g.key)+'" data-group="'+e(g.key)+'"><header class="dopt-group-head">'
+       +'<button type="button" class="dopt-toggle" data-section="'+e(g.key)+'" aria-expanded="'+open+'" aria-controls="dopt-body-'+e(g.key)+'"><span class="dopt-caret" aria-hidden="true">▾</span><span><span class="dopt-group-title">'+e(g.title)+'</span>'
+       +'<span class="dopt-group-sub">'+g.list.filter(o=>current(o).is_active).length+' of '+g.list.length+' offered · '+(paid?paid+' with an extra':'all free')+(changed?' · <b>'+changed+' unsaved</b>':'')+'</span></span></button>'
+       +(lockedAll||!open?'':'<div class="dopt-group-actions"><button type="button" class="dopt-chip" data-all="on">Offer all</button><button type="button" class="dopt-chip" data-all="off">Hide all</button></div>')+'</header>'
+       +(open?'<div id="dopt-body-'+e(g.key)+'"><p class="dopt-how">Extra charged '+(HOW[g.key]||'once per '+unit+' when chosen')+'.</p>'
+         +'<div class="dopt-head" aria-hidden="true"><span>Option</span><span>Extra price (₱)</span><span>Customers see it</span><span></span></div>'
+         +shown.map(o=>rowHtml(o,unit)).join('')+'</div>':'')+'</section>';
     }).join('')
     +(groups.some(g=>g.list.some(visible))?'':'<section class="panel"><p>No options match. <button type="button" class="dopt-chip" data-clear>Show everything</button></p></section>')
     +'<div class="dopt-bar" role="region" aria-label="Unsaved changes"'+(edits.size?'':' hidden')+'><span><strong>'+edits.size+'</strong> unsaved change'+(edits.size===1?'':'s')+'</span><span class="dopt-bar-status" role="status"></span><button type="button" class="button" data-discard>Undo all</button><button type="button" class="button primary" data-save-all>Save changes</button></div>';
@@ -127,7 +133,9 @@ export async function renderDesignOptions(content){
    if(t.dataset.product){view.product=t.dataset.product;remember(STORE,view.product);render();window.scrollTo({top:root.offsetTop-12});return;}
    if(t.dataset.filter){view.filter=t.dataset.filter;render();return;}
    if(t.hasAttribute('data-clear')){view.filter='all';view.query='';render();return;}
-   if(t.dataset.jump){root.querySelector('#dopt-'+CSS.escape(t.dataset.jump))?.scrollIntoView({behavior:'smooth',block:'start'});return;}
+   if(t.dataset.jump){view.open.add(view.product+':'+t.dataset.jump);render();root.querySelector('#dopt-'+CSS.escape(t.dataset.jump))?.scrollIntoView({behavior:'smooth',block:'start'});return;}
+   if(t.dataset.section){const id=view.product+':'+t.dataset.section;view.open.has(id)?view.open.delete(id):view.open.add(id);render();root.querySelector('[data-section="'+CSS.escape(t.dataset.section)+'"]')?.focus();return;}
+   if(t.dataset.expand){const keys=GROUPS[kind(sorted.find(x=>x.id===view.product))].map(([k])=>view.product+':'+k);keys.forEach(k=>t.dataset.expand==='open'?view.open.add(k):view.open.delete(k));render();return;}
    if(t.dataset.all){const key=t.closest('[data-group]').dataset.group;options.filter(x=>x.product_id===view.product&&x.group_key===key&&!activeLocked(x)).forEach(x=>setEdit(x,{is_active:t.dataset.all==='on'}));render();return;}
    if(t.hasAttribute('data-discard')){edits.clear();render();return;}
    if(t.hasAttribute('data-save-all')){saveAll();return;}
