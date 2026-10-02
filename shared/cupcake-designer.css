@@ -79,3 +79,20 @@
 /* Packing (after Add to cart): only the box and the finish panel show. */
 #page-cupcake.is-packing .bd-steps,#page-cupcake.is-packing .bd-foot,#page-cupcake.is-packing .bd-tools,#page-cupcake.is-packing [data-cd-bar]{display:none!important}
 #page-cupcake.is-packing .bd-panel{padding-bottom:0}
+
+/* Mini donut designer (shares the cupcake designer's look). */
+.dd-steps{grid-template-columns:repeat(5,1fr)}
+.dd-flavors{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dd-flavors .bd-card{grid-template-columns:28px 1fr;column-gap:10px;align-items:center}
+.dd-dough{grid-row:1/3;width:28px;height:28px;border-radius:50%;box-shadow:inset 0 0 0 5px rgba(255,255,255,.35),0 0 0 1px rgba(0,0,0,.08)}
+.dd-letters{display:flex;flex-wrap:wrap;gap:6px}
+.dd-letters span{min-width:38px;padding:6px 10px;border-radius:999px;background:var(--bd-soft);color:var(--bd-plum);font:800 .95rem 'Baloo 2','DM Sans',sans-serif;text-align:center}
+.cd-chooser-grid:has(> :nth-child(3)){grid-template-columns:repeat(3,1fr)}
+.cd-page.is-packing .bd-steps,.cd-page.is-packing .bd-foot,.cd-page.is-packing .bd-tools,.cd-page.is-packing .bd-stage-bar{display:none!important}
+@media (max-width:900px){
+  body[data-customer-page="donut"] .customer-mobile-nav{display:none}
+  body[data-customer-page="donut"] #customer-chat-toggle{display:none!important}
+  .dd-steps .bd-step{font-size:.72rem}
+}
+@media (max-width:560px){.cd-chooser-grid:has(> :nth-child(3)){grid-template-columns:1fr}}
+.cd-page [data-dd-box][hidden],.cd-page [data-dd-bar][hidden],.cd-page [data-dd-3d][hidden]{display:none!important}

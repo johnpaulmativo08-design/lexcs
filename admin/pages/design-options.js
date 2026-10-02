@@ -5,10 +5,11 @@ import {db,rows,fail,loadingTable} from '../backend-ui.js?v=3';
 // Checkout prices designs on the server from this table, so a change here applies to the next quote.
 const GROUPS={
  bento:[['border','Borders'],['accent','Decorations'],['message','Message'],['lettering','Lettering styles'],['topper','Toppers'],['font','Message fonts'],['color','Colors (frosting, lettering, ribbon, drip)']],
- cupcake:[['flavor','Flavors'],['style','Piping styles'],['pattern','Box arrangement'],['finish','Finishing touches'],['theme','Theme toppers'],['color','Frosting colors']]};
-const UNIT={bento:'cake',cupcake:'box'};
+ cupcake:[['flavor','Flavors'],['style','Piping styles'],['pattern','Box arrangement'],['finish','Finishing touches'],['theme','Theme toppers'],['color','Frosting colors']],
+ donut:[['flavor','Flavors'],['pattern','Glaze dip'],['finish','Finishes'],['sprinkle','Sprinkles'],['theme','Theme toppers'],['message','Fondant message'],['color','Glaze, sprinkle and letter colors']]};
+const UNIT={bento:'cake',cupcake:'box',donut:'box'};
 const FREE=new Set(['color','font','flavor']);
-const heading='<header class="module-heading"><div><h1>Designer options</h1><p>Extras charged for each choice in the bento and cupcake designers (per cake, or once per cupcake box). Turn an option off to hide it from customers.</p></div></header>';
+const heading='<header class="module-heading"><div><h1>Designer options</h1><p>Extras charged for each choice in the bento, cupcake and donut designers (per cake, or once per cupcake or donut box). Turn an option off to hide it from customers.</p></div></header>';
 
 export async function renderDesignOptions(content){
  content.innerHTML=heading+loadingTable(['Option','Extra per cake','Offered',''],8);
@@ -17,14 +18,14 @@ export async function renderDesignOptions(content){
   const ids=[...new Set(options.map(o=>o.product_id))];
   const products=ids.length?await rows(db.client.from('products').select('id,name,customization_config').in('id',ids).order('name')):[];
   if(!options.length){content.innerHTML=heading+'<section class="panel"><p>No designer options yet. Apply database phase 32 first.</p></section>';return;}
-  const kind=p=>p.customization_config?.designer==='cupcake'?'cupcake':'bento';
+  const kind=p=>['cupcake','donut'].includes(p.customization_config?.designer)?p.customization_config.designer:'bento';
   const sorted=[...products].sort((a,b)=>kind(a).localeCompare(kind(b))||a.name.localeCompare(b.name));
   content.innerHTML=heading+sorted.map(p=>'<h2 style="margin:24px 0 8px">'+e(p.name)+'</h2>'+GROUPS[kind(p)].map(([key,title])=>{
    const list=options.filter(o=>o.product_id===p.id&&o.group_key===key);if(!list.length)return '';
    const unit=UNIT[kind(p)];
    return '<section class="panel design-options"><h2 class="panel-title"><span>'+e(title)+'</span></h2><div class="table-wrap"><table class="data-table" style="min-width:560px;table-layout:fixed"><colgroup><col><col style="width:170px"><col style="width:120px"><col style="width:150px"></colgroup><thead><tr><th>Option</th><th>Extra per '+unit+' (₱)</th><th>Offered</th><th><span class="sr-only">Save</span></th></tr></thead><tbody>'
     +list.map(o=>'<tr data-option="'+e(o.id)+'"><td>'+(o.hex?'<span aria-hidden="true" style="display:inline-block;width:16px;height:16px;border-radius:50%;vertical-align:-3px;margin-right:8px;border:1px solid #d9cde3;background:'+e(o.hex)+'"></span>':'')+e(o.label)+'</td>'
-     +'<td><label class="sr-only" for="price-'+e(o.id)+'">Extra for '+e(o.label)+'</label><input id="price-'+e(o.id)+'" type="number" min="0" max="10000" step="0.5" inputmode="decimal" value="'+Number(o.price)+'" data-price style="width:110px"'+(FREE.has(key)||o.code==='none'||(key==='lettering'&&o.code==='piped')?' disabled title="Always free"':'')+'></td>'
+     +'<td><label class="sr-only" for="price-'+e(o.id)+'">Extra for '+e(o.label)+'</label><input id="price-'+e(o.id)+'" type="number" min="0" max="10000" step="0.5" inputmode="decimal" value="'+Number(o.price)+'" data-price style="width:110px"'+((FREE.has(key)&&o.code!=='mix')||o.code==='none'||(key==='lettering'&&o.code==='piped')?' disabled title="Always free"':'')+'></td>'
      +'<td><label><input type="checkbox" data-active '+(o.is_active?'checked':'')+(o.code==='none'||(key==='lettering'&&o.code==='piped')||(key==='font'&&o.code==='rounded')?' disabled title="Always offered"':'')+'> <span>'+(o.is_active?'Yes':'No')+'</span></label></td>'
      +'<td><button class="button" type="button" data-save disabled>Save</button> <span class="design-option-status" role="status"></span></td></tr>').join('')
     +'</tbody></table></div></section>';

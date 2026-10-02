@@ -5,12 +5,15 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { M, SURF, withSurface, shade, marbleTexture, linenTexture, fadeTexture } from './bento-scene.js?v=23';
+import { themePiece, plaquePiece, letterTexture } from './donut-parts.js?v=1';
 
 const TAU = Math.PI * 2;
 // Units: 1 = 5 cm. rb/rt: liner bottom/top radius, h: liner height, gap: spacing in the box insert.
 const SIZES = {
   mini: { rb: 0.3, rt: 0.4, h: 0.33, gap: 0.92 },
-  regular: { rb: 0.45, rt: 0.58, h: 0.52, gap: 1.32 }
+  regular: { rb: 0.45, rt: 0.58, h: 0.52, gap: 1.32 },
+  // Mini donuts: a shallow fluted paper cup each, standing on the box floor (no insert card).
+  donut: { rb: 0.4, rt: 0.46, h: 0.12, gap: 1.0, wall: 0.26, insert: false, ty: 0.14, lidH: 0.52, dr: 0.4 }
 };
 const CRUMB = { scale: [22, 22, 22], fine: 60, strength: 0.022, rough: 0.2 };   // baked cake top: open crumb
 const THEME_BG = { mermaid: '#9be3d6', butterfly: '#f9c8e0', unicorn: '#e8d9ff', dinosaur: '#c8ecb0', space: '#2b2f5e', safari: '#f3d9a4', custom: '#fff3c4' };
@@ -44,6 +47,23 @@ function loadModel() {
   return modelPromise;
 }
 let MODEL = null;
+// Mini donut model (assets/3d/donut.glb): donut_base (baked, outer radius 1, sitting on y = 0), glaze (the dip),
+// honey_drip, drizzle (a piped zigzag over the top) and donut_liner (fluted paper cup). All used from their origin.
+const DONUT_URL = new URL('../assets/3d/donut.glb?v=2', import.meta.url).href;
+let donutPromise = null, DONUT = null;
+function loadDonutModel() {
+  donutPromise ||= (async () => {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const gltf = await new GLTFLoader().loadAsync(DONUT_URL), parts = {};
+    gltf.scene.traverse((o) => { if (o.isMesh && !parts[o.name]) { const g = o.geometry.clone(); if (g.attributes.uv) g.deleteAttribute('uv'); parts[o.name] = g; } });
+    for (const need of ['donut_base', 'glaze']) if (!parts[need]) throw new Error('Donut model is missing "' + need + '"');
+    gltf.scene.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose()); } });
+    return parts;
+  })();
+  return donutPromise;
+}
+// Inside colour of each batter (seen at the sides under the glaze).
+const DONUT_FLAVOR = { vanilla: '#D9A65A', chocolate: '#4A2C22', ube: '#8A5AA8', strawberry: '#E3A0B2' };
 // Model -> this cupcake size: frosting keeps its shape (uniform scale) and sits on the liner rim.
 function onRim(geo, s, scale = 1) { const g = geo.clone(); g.translate(0, -RIM, 0); g.scale(s.rt * scale, s.rt * scale, s.rt * scale); g.translate(0, s.h, 0); return g; }
 // Colours from the UVs: several colours in one bag give stripes that turn along the rope.
@@ -206,7 +226,8 @@ function stickerTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
-export function createCupcakeScene(host, { reducedMotion = false } = {}) {
+export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcake' } = {}) {
+  const isDonut = kind === 'donut';
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power', preserveDrawingBuffer: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -246,6 +267,19 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     fondant: track(new THREE.MeshPhysicalMaterial({ color: '#fdfbf7', roughness: 0.6, sheen: 0.3, envMapIntensity: 0.3 })),
     board: track(withSurface(new THREE.MeshPhysicalMaterial({ color: '#fbfaf7', roughness: 0.85, envMapIntensity: 0.25 }), SURF.weave))
   };
+  // Donut materials (cached by colour).
+  const cacheBy = (map, key, make) => { if (!map.has(key)) map.set(key, track(make())); return map.get(key); };
+  const glazeMats = new Map(), baseMats = new Map(), letterMats = new Map();
+  const glazeMat = (hex) => cacheBy(glazeMats, hex, () => withSurface(new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.3, clearcoat: 0.55, clearcoatRoughness: 0.22, envMapIntensity: 0.45, side: THREE.DoubleSide }), SURF.glaze));
+  const donutBaseMat = (flavor) => cacheBy(baseMats, flavor, () => withSurface(new THREE.MeshPhysicalMaterial({ color: DONUT_FLAVOR[flavor] || DONUT_FLAVOR.vanilla, roughness: 0.92, envMapIntensity: 0.12 }), CRUMB));
+  const DMAT = {
+    fondant: track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.62, sheen: 0.35, sheenRoughness: 0.7, sheenColor: 0x555555, envMapIntensity: 0.3 })),
+    sprinkle: track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.25, clearcoat: 0.8, envMapIntensity: 0.6 })),
+    choco: track(new THREE.MeshPhysicalMaterial({ color: '#4A2A1C', roughness: 0.3, clearcoat: 0.6, envMapIntensity: 0.5 })),
+    white: track(new THREE.MeshPhysicalMaterial({ color: '#FBF6EF', roughness: 0.3, clearcoat: 0.6, envMapIntensity: 0.5 })),
+    honey: track(new THREE.MeshPhysicalMaterial({ color: '#F2B21E', roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 0.9, side: THREE.DoubleSide }))
+  };
+  const letterMat = (text, hex) => cacheBy(letterMats, text + '|' + hex, () => new THREE.MeshStandardMaterial({ map: track(letterTexture(text, hex)), transparent: true, alphaTest: 0.3, roughness: 0.6 }));
   const themeMats = new Map();
   // gltf: the Blender plaque's UVs follow the glTF convention (texture not flipped).
   const themeMat = (theme, icon, gltf = false) => {
@@ -262,7 +296,7 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
   let layout = null;   // { size, cols, rows, W, D, s, positions }
   function buildBox(sizeKey, cols, rows) {
     boxGroup.traverse((o) => { if (o.isMesh) o.geometry.dispose(); }); boxGroup.clear();
-    const s = SIZES[sizeKey], W = cols * s.gap + 0.22, D = rows * s.gap + 0.22, t = 0.025, wallH = s.h * 0.66;
+    const s = SIZES[sizeKey], W = cols * s.gap + 0.22, D = rows * s.gap + 0.22, t = 0.025, wallH = s.wall ?? s.h * 0.66;
     const add = (geo, x, y, z) => { const m = new THREE.Mesh(geo, MAT.board); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; boxGroup.add(m); };
     add(new THREE.BoxGeometry(W, t, D), 0, -t / 2, 0);
     add(new THREE.BoxGeometry(W, wallH, t), 0, wallH / 2, -D / 2); add(new THREE.BoxGeometry(W, wallH, t), 0, wallH / 2, D / 2);
@@ -270,6 +304,12 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     const positions = [];
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) positions.push(V((c - (cols - 1) / 2) * s.gap, 0, (r - (rows - 1) / 2) * s.gap));
     // The insert: a card with a round hole for each cupcake, part-way up the liners.
+    const finishBox = () => {
+      const span = Math.max(W, D) * 0.75 + 1;
+      Object.assign(key.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: 30 }); key.shadow.camera.updateProjectionMatrix();
+      layout = { size: sizeKey, cols, rows, W, D, s, positions };
+    };
+    if (s.insert === false) { finishBox(); return; }   // donuts stand on the box floor
     const shape = new THREE.Shape(); shape.moveTo(-W / 2 + t, -D / 2 + t); shape.lineTo(W / 2 - t, -D / 2 + t); shape.lineTo(W / 2 - t, D / 2 - t); shape.lineTo(-W / 2 + t, D / 2 - t); shape.closePath();
     const yIns = s.h * 0.42, rHole = (s.rb + (s.rt - s.rb) * 0.42) * 1.04;
     for (const p of positions) { const hole = new THREE.Path(); hole.absarc(p.x, -p.z, rHole, 0, TAU, true); shape.holes.push(hole); }
@@ -284,7 +324,15 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
   const linerGeos = {}, cakeGeos = {};
   // Liner and cake top: from the Blender model when loaded (stretched to this size's height), else built here.
   const fitBody = (geo, s) => { const g = geo.clone(); if (g.attributes.uv) g.deleteAttribute('uv'); g.scale(s.rt, s.h / RIM, s.rt); return track(g); };
-  const linerGeo = (k) => (linerGeos[k] ||= MODEL ? fitBody(MODEL.liner, SIZES[k]) : track(linerGeometry(SIZES[k])));
+  const linerGeo = (k) => {
+    if (linerGeos[k]) return linerGeos[k];
+    if (k === 'donut') {
+      const s = SIZES.donut;
+      if (DONUT?.donut_liner) { const g = DONUT.donut_liner.clone(); g.scale(s.rt / 1.06, s.rt / 1.06, s.rt / 1.06); return (linerGeos[k] = track(g)); }
+      return (linerGeos[k] = track(linerGeometry(s)));
+    }
+    return (linerGeos[k] = MODEL ? fitBody(MODEL.liner, SIZES[k]) : track(linerGeometry(SIZES[k])));
+  };
   const cakeGeo = (k) => { if (!cakeGeos[k] && MODEL) { const s = SIZES[k], g = onRim(MODEL.cake_top, s); if (g.attributes.uv) g.deleteAttribute('uv'); cakeGeos[k] = track(g); } if (!cakeGeos[k]) { const s = SIZES[k], g = new THREE.SphereGeometry(s.rt * 1.02, 48, 14, 0, TAU, 0, Math.PI / 2); g.scale(1, 0.32, 1); g.translate(0, s.h - 0.015, 0); cakeGeos[k] = track(g); } return cakeGeos[k]; };
   const templates = new Map();   // key -> { group, geos[] }
   const raycaster = new THREE.Raycaster(), down = V(0, -1, 0);
@@ -344,6 +392,81 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     }
     return { group, geos };
   }
+  // ---- one mini donut: liner, baked base, glaze dip, finishes, sprinkles, then fondant (topper / letters / plaque) ----
+  // cell: { flavor, glaze: hex, decor: { type: 'theme', theme, variant } | { type: 'letters', text } | { type: 'plaque', text } | null }
+  // box (the update spec): { finishes: [], sprinkles, sprinkleColors: [hex], messageColor: hex }
+  function donutGeo(name, s) {
+    const src = DONUT?.[name];
+    if (src) { const g = src.clone(); g.scale(s.dr, s.dr, s.dr); g.translate(0, 0.012, 0); return g; }
+    if (name === 'donut_base') { const g = new THREE.TorusGeometry(s.dr * 0.6, s.dr * 0.4, 20, 48); g.rotateX(Math.PI / 2); g.scale(1, 0.75, 1); g.translate(0, s.dr * 0.32, 0); g.deleteAttribute('uv'); return g; }
+    if (name === 'glaze') { const g = new THREE.TorusGeometry(s.dr * 0.6, s.dr * 0.42, 20, 48); g.rotateX(Math.PI / 2); g.scale(1, 0.62, 1); g.translate(0, s.dr * 0.38, 0); g.deleteAttribute('uv'); return g; }
+    return null;
+  }
+  function buildDonutTemplate(cell, box, variant) {
+    const s = SIZES.donut, rand = seeded(variant * 7919 + cell.glaze.length * 131 + (cell.decor?.variant || 0) * 17 + 5);
+    const geos = [], group = new THREE.Group();
+    const mesh = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; m.userData.shared = true; group.add(m); return m; };
+    mesh(linerGeo('donut'), MAT.liner.vanilla);
+    const base = donutGeo('donut_base', s); geos.push(base); mesh(base, donutBaseMat(cell.flavor));
+    const glaze = donutGeo('glaze', s); geos.push(glaze); mesh(glaze, glazeMat(cell.glaze));
+    glaze.computeBoundingBox(); const topY = glaze.boundingBox.max.y;
+    const fin = new Set(box.finishes);
+    for (const [code, part, mat] of [['choco_drizzle', 'drizzle', DMAT.choco], ['white_drizzle', 'drizzle', DMAT.white], ['honey_drip', 'honey_drip', DMAT.honey]]) {
+      if (!fin.has(code)) continue;
+      const g = donutGeo(part, s); if (g) { g.rotateY(rand() * TAU); geos.push(g); mesh(g, mat); }
+    }
+    // Points on top of the glaze (vertices facing up): sprinkles, gold dust and glitter land there.
+    const gp = glaze.attributes.position, gn = glaze.attributes.normal;
+    const topPoints = (count, minUp = 0.35, sector = null) => {
+      const out = [];
+      for (let tries = 0; out.length < count && tries < count * 40; tries++) {
+        const v = Math.floor(rand() * gp.count); if (gn.getY(v) < minUp) continue;
+        if (sector) { const a = Math.atan2(gp.getZ(v), gp.getX(v)); if (Math.abs(((a - sector[0] + Math.PI * 3) % TAU) - Math.PI) > sector[1]) continue; }
+        out.push({ p: V(gp.getX(v), gp.getY(v), gp.getZ(v)), n: V(gn.getX(v), gn.getY(v), gn.getZ(v)) });
+      }
+      return out;
+    };
+    const beads = (pts, r, colors) => {
+      if (!pts.length) return null;
+      const list = pts.map(({ p, n }, i) => {
+        const g = new THREE.SphereGeometry(r, 7, 5); g.deleteAttribute('uv');
+        g.translate(p.x + n.x * r * 0.5, p.y + n.y * r * 0.5, p.z + n.z * r * 0.5);
+        const c = new THREE.Color(colors[i % colors.length]), a = new Float32Array(g.attributes.position.count * 3);
+        for (let k = 0; k < a.length; k += 3) { a[k] = c.r; a[k + 1] = c.g; a[k + 2] = c.b; }
+        g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g;
+      });
+      const g = mergeGeometries(list); list.forEach((x) => x.dispose()); return g;
+    };
+    let sp = null;
+    if (box.sprinkles === 'white_pearls') sp = beads(topPoints(46), s.dr * 0.03, ['#FBFAF6', '#F2EFEA']);
+    else if (box.sprinkles === 'nonpareils') sp = beads(topPoints(110), s.dr * 0.022, box.sprinkleColors.length ? box.sprinkleColors : ['#FFFFFF']);
+    if (sp) { geos.push(sp); mesh(sp, DMAT.sprinkle, false); }
+    if (box.sprinkles === 'gold_pearls') { const g = beads(topPoints(30), s.dr * 0.032, ['#D4AF37']); if (g) { geos.push(g); mesh(g, MAT.gold, false); } }
+    const flakes = (pts, r, mat) => {
+      if (!pts.length) return;
+      const list = pts.map(({ p, n }) => { const f = new THREE.CircleGeometry(r * (0.6 + rand() * 0.8), 5); f.deleteAttribute('uv'); return placed(f, p.clone().addScaledVector(n, 0.003), [-Math.PI / 2 + (rand() - 0.5) * 0.9, rand() * TAU, (rand() - 0.5) * 0.9]); });
+      const g = mergeGeometries(list); list.forEach((x) => x.dispose()); geos.push(g); mesh(g, mat, false);
+    };
+    if (fin.has('gold_dust')) flakes(topPoints(160, 0.3, [rand() * TAU, 1.0]), s.dr * 0.02, MAT.gold);
+    if (fin.has('edible_glitter')) flakes(topPoints(150, 0.25), s.dr * 0.014, MAT.glitter);
+    // Fondant on top always faces the front of the box (marked like the cupcake plaques).
+    const front = (obj) => { const holder = new THREE.Group(); holder.add(obj); holder.position.y = topY; holder.userData.plaque = true; group.add(holder); };
+    const d = cell.decor;
+    if (d?.type === 'theme') {
+      const g = themePiece(d.theme, d.variant, cell.glaze, s.dr * 0.95);
+      if (g) { geos.push(g); const m = new THREE.Mesh(g, DMAT.fondant); m.castShadow = true; m.userData.shared = true; m.position.y = -0.012; front(m); }
+    } else if (d?.type === 'letters' || d?.type === 'plaque') {
+      const holder = new THREE.Group(); let lift = 0.004;
+      if (d.type === 'plaque') {
+        const g = plaquePiece(s.dr * 0.95); geos.push(g); g.computeBoundingBox(); lift = g.boundingBox.max.y - 0.006;
+        const m = new THREE.Mesh(g, DMAT.fondant); m.castShadow = true; m.userData.shared = true; m.position.y = -0.01; holder.add(m);
+      }
+      const w = s.dr * (d.type === 'plaque' ? 1.45 : 1.9), pg = new THREE.PlaneGeometry(w, w / 2); pg.rotateX(-Math.PI / 2); geos.push(pg);
+      const m = new THREE.Mesh(pg, letterMat(d.text, box.messageColor)); m.position.y = lift; m.userData.shared = true; holder.add(m);
+      front(holder);
+    }
+    return { group, geos };
+  }
   function dropTemplate(k) { const t = templates.get(k); if (!t) return; t.geos.forEach((g) => g.dispose()); templates.delete(k); }
 
   // Animation + camera ---------------------------------------------------------------------------------
@@ -381,7 +504,7 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
   function placeCamera(render = true) {
     const s = layout?.s || SIZES.mini, maxD = layout ? Math.max(layout.W, layout.D) * 3 + 4 : 20;
     view.pitch = Math.min(1.52, Math.max(0.14, view.pitch)); view.dist = Math.min(maxD, Math.max(s.rt * 3.2, view.dist));
-    const ty = s.h * 0.9;
+    const ty = s.ty ?? s.h * 0.9;
     camera.position.set(view.tx + Math.sin(view.yaw) * Math.cos(view.pitch) * view.dist, ty + Math.sin(view.pitch) * view.dist, view.tz + Math.cos(view.yaw) * Math.cos(view.pitch) * view.dist);
     camera.lookAt(view.tx, ty, view.tz); if (render) request();
   }
@@ -415,8 +538,8 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
   const cellKeys = [], cellObjs = [];
   let lastSpec = null;
   // When the Blender model arrives, rebuild every cupcake from it (the built-in shapes showed meanwhile).
-  loadModel().then((parts) => {
-    const first = !MODEL; MODEL = parts;
+  (isDonut ? loadDonutModel() : loadModel()).then((parts) => {
+    const first = isDonut ? !DONUT : !MODEL; if (isDonut) DONUT = parts; else MODEL = parts;
     if (!alive || !first && !lastSpec) return;
     for (const k of [...templates.keys()]) dropTemplate(k);
     for (const cache of [linerGeos, cakeGeos]) for (const k of Object.keys(cache)) { cache[k].dispose(); disposables.delete(cache[k]); delete cache[k]; }
@@ -435,9 +558,11 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
     }
     const finishes = [...spec.finishes].sort(), used = new Set();
     spec.cells.forEach((cell, i) => {
-      const variant = i % 2, k = JSON.stringify([spec.size, spec.flavor, cell.style, cell.colors, cell.sub || '', finishes, spec.theme, variant]);
+      const variant = i % 2;
+      const k = isDonut ? JSON.stringify([cell, finishes, spec.sprinkles, spec.sprinkleColors, spec.messageColor, variant])
+        : JSON.stringify([spec.size, spec.flavor, cell.style, cell.colors, cell.sub || '', finishes, spec.theme, variant]);
       used.add(k);
-      if (!templates.has(k)) templates.set(k, buildTemplate(cell, spec.size, spec.flavor, finishes, spec.theme, spec.themeIcon, variant));
+      if (!templates.has(k)) templates.set(k, isDonut ? buildDonutTemplate(cell, spec, variant) : buildTemplate(cell, spec.size, spec.flavor, finishes, spec.theme, spec.themeIcon, variant));
       if (cellKeys[i] === k && cellObjs[i]) return;
       const obj = templates.get(k).group.clone(), pos = layout.positions[i], rand = seeded(i * 97 + 3);
       obj.position.copy(pos); obj.rotation.y = rand() * TAU;
@@ -492,7 +617,7 @@ export function createCupcakeScene(host, { reducedMotion = false } = {}) {
   let packGroup = null, packing = null;
   function buildLid() {
     if (packGroup) { packGroup.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); world.remove(packGroup); }
-    const { W, D, s } = layout, Hc = s.h + s.rt * 1.65, wallH = s.h * 0.66;
+    const { W, D, s } = layout, Hc = s.lidH ?? s.h + s.rt * 1.65, wallH = s.wall ?? s.h * 0.66;
     // The lid covers the cupcakes: a clear top with four short skirts, hinged along the back edge of the box.
     const lid = new THREE.Group();
     const top = new THREE.Mesh(new THREE.BoxGeometry(W + 0.04, 0.012, D + 0.04), lidMat); top.position.set(0, Hc - wallH, D / 2); lid.add(top);

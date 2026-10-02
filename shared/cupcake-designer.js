@@ -383,7 +383,7 @@
     const host = root.querySelector('[data-cd-3d]');
     sceneLoading = (async () => {
       try {
-        const mod = await import('./cupcake-scene.js?v=6');
+        const mod = await import('./cupcake-scene.js?v=7');
         if (currentPage !== 'cupcake' || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion });
@@ -562,7 +562,7 @@
     isDesignable: (productId) => (typeof liveCatalog !== 'undefined' ? liveCatalog : []).some((p) => p.id === productId && p.customization_config?.designer === 'cupcake')
   });
 
-  // "Custom": choose what to design (bento cake or cupcakes).
+  // "Custom": choose what to design (bento cake, cupcakes or mini donuts).
   let chooser = null;
   window.LexcCustom = Object.freeze({
     choose() {
@@ -572,11 +572,12 @@
           <div class="cd-chooser-grid">
             <button type="button" data-pick="bento"><span aria-hidden="true">🎂</span><strong>Bento cake</strong><small>Colors, borders, decorations and your message, in 3D</small></button>
             <button type="button" data-pick="cupcake"><span aria-hidden="true">🧁</span><strong>Cupcakes</strong><small>Mini or 3oz · piping styles, palettes and theme toppers</small></button>
+            <button type="button" data-pick="donut"><span aria-hidden="true">🍩</span><strong>Mini donuts</strong><small>Glazes, sprinkles, fondant toppers and letters</small></button>
           </div>`;
         chooser.addEventListener('click', (e) => {
           if (e.target === chooser || e.target.closest('[data-close]')) return chooser.close();
           const pick = e.target.closest('[data-pick]')?.dataset.pick; if (!pick) return;
-          chooser.close(); if (pick === 'bento') window.LexcBento?.open(); else window.LexcCupcake.open();
+          chooser.close(); if (pick === 'bento') window.LexcBento?.open(); else if (pick === 'donut') window.LexcDonut?.open(); else window.LexcCupcake.open();
         });
         document.body.append(chooser);
       }

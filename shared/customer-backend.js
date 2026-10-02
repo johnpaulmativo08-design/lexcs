@@ -104,8 +104,9 @@ async function submitCheckout(){
     if (!product || product.status !== 'active' || !variant) throw new Error(item.name + ' is no longer available. Please update your cart.');
     let expected = Number(variant.price);
     const designer = item.customization?.designer;
-    if (designer === 'bento' || designer === 'cupcake') {
-      const quote = await LexcBackend.rpc(designer === 'bento' ? 'quote_bento_design' : 'quote_cupcake_design', { p_product_id: item.product_id, p_design: item.customization });
+    const quoteFn = { bento: 'quote_bento_design', cupcake: 'quote_cupcake_design', donut: 'quote_donut_design' }[designer];
+    if (quoteFn) {
+      const quote = await LexcBackend.rpc(quoteFn, { p_product_id: item.product_id, p_design: item.customization });
       expected += Number(quote.extra); item.base_price = Number(variant.price); item.extras = Number(quote.extra);
     }
     if (Number(item.price) !== expected) { item.price = expected; priceChanged = true; }
@@ -115,11 +116,11 @@ async function submitCheckout(){
     showToast('A product price has changed. Review the updated total before placing your order.');
     return;
   }
-  // Bento and cupcake designs: upload the preview picture privately so Admin can see exactly what was designed.
+  // Bento, cupcake and donut designs: upload the preview picture privately so Admin can see exactly what was designed.
   // The structured choices remain the record; the picture is a visual aid. Failure does not block checkout.
   const uploadDesign = async (dataUrl) => LexcBackend.upload('customer-references', currentUser.id + '/designs', new File([await (await fetch(dataUrl)).blob()], 'design.jpg', { type: 'image/jpeg' }));
   for (const item of selectedItems) {
-    if (!['bento', 'cupcake'].includes(item.customization?.designer)) continue;
+    if (!['bento', 'cupcake', 'donut'].includes(item.customization?.designer)) continue;
     try {
       if (item.preview && !item.reference_image_path) item.reference_image_path = await uploadDesign(item.preview);
       if (item.preview_top && !item.design_top_path) item.design_top_path = await uploadDesign(item.preview_top);

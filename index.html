@@ -689,7 +689,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <link rel="stylesheet" href="shared/fresh-feed.css?v=1">
 <link rel="stylesheet" href="shared/landing.css?v=7">
 <link rel="stylesheet" href="shared/bento-designer.css?v=14">
-<link rel="stylesheet" href="shared/cupcake-designer.css?v=4">
+<link rel="stylesheet" href="shared/cupcake-designer.css?v=6">
 <link rel="stylesheet" href="shared/selected-ui.css?v=2">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@700&family=Pacifico&family=Lobster&family=Satisfy&family=Parisienne&family=Montserrat:wght@800&family=Poppins:wght@700&family=Fredoka:wght@600&family=Baloo+2:wght@800&family=Caveat:wght@700&family=Cinzel:wght@700&family=Grenze+Gotisch:wght@700&family=UnifrakturMaguntia&display=swap">
@@ -1389,6 +1389,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 
 <div id="page-bento" class="page bd-page"></div>
 <div id="page-cupcake" class="page bd-page cd-page"></div>
+<div id="page-donut" class="page bd-page cd-page dd-page"></div>
 
 <div class="lightbox" id="lightbox">
   <div class="lightbox-content">
@@ -1979,7 +1980,7 @@ function renderCart() {
       <div class="cart-item-info">
         <div class="cart-item-name">${authEscape(c.name)}</div>
         <div class="cart-item-sub">${authEscape(c.sizeLabel)}</div>
-        ${c.customization?.designer === 'bento' ? `<button type="button" class="cart-item-edit" onclick="LexcBento.edit(${i})">Edit design</button>` : c.customization?.designer === 'cupcake' ? `<button type="button" class="cart-item-edit" onclick="LexcCupcake.edit(${i})">Edit design</button>` : ''}
+        ${c.customization?.designer === 'bento' ? `<button type="button" class="cart-item-edit" onclick="LexcBento.edit(${i})">Edit design</button>` : c.customization?.designer === 'cupcake' ? `<button type="button" class="cart-item-edit" onclick="LexcCupcake.edit(${i})">Edit design</button>` : c.customization?.designer === 'donut' ? `<button type="button" class="cart-item-edit" onclick="LexcDonut.edit(${i})">Edit design</button>` : ''}
         <div class="cart-qty-ctrl">
           <button class="qty-btn" type="button" aria-label="Decrease ${authEscape(c.name)} quantity" onclick="changeQty(${i},-1)">−</button>
           <span class="qty-num">${c.qty}</span>
@@ -2403,14 +2404,15 @@ document.getElementById('loginName').value = localStorage.getItem('lexc_login_hi
 document.getElementById('loginRemember').checked = Boolean(localStorage.getItem('lexc_login_hint'));
 </script>
 
-<script src="shared/customer-backend.js?v=18"></script>
-<script src="shared/product-detail.js?v=6"></script>
+<script src="shared/customer-backend.js?v=19"></script>
+<script src="shared/product-detail.js?v=7"></script>
 <script src="shared/fresh-feed.js?v=4"></script>
 <script src="shared/landing.js?v=2"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/bento-designer.js?v=22"></script>
-<script src="shared/cupcake-designer.js?v=7"></script>
+<script src="shared/cupcake-designer.js?v=8"></script>
+<script src="shared/donut-designer.js?v=1"></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=10';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=11';mountChatWidget();</script>
 </body>
 </html>
