@@ -383,7 +383,7 @@
     const host = root.querySelector('[data-cd-3d]');
     sceneLoading = (async () => {
       try {
-        const mod = await import('./cupcake-scene.js?v=14');
+        const mod = await import('./cupcake-scene.js?v=15');
         if (currentPage !== 'cupcake' || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion });
@@ -573,7 +573,7 @@
             <button type="button" data-pick="bento"><span aria-hidden="true">🎂</span><strong>Bento cake</strong><small>Colors, borders, decorations and your message, in 3D</small></button>
             <button type="button" data-pick="cupcake"><span aria-hidden="true">🧁</span><strong>Cupcakes</strong><small>Mini or 3oz · piping styles, palettes and theme toppers</small></button>
             <button type="button" data-pick="donut"><span aria-hidden="true">🍩</span><strong>Mini donuts</strong><small>Glazes, sprinkles, fondant toppers and letters</small></button>
-            <button type="button" data-pick="cakepop"><span aria-hidden="true">🍭</span><strong>Cake pops</strong><small>Round or donut pops, coatings, toppers, wrapped with a gold tie</small></button>
+            <button type="button" data-pick="cakepop"><span aria-hidden="true">🍭</span><strong>Cake pops</strong><small>Round or donut pops: coatings, sprinkles and fondant toppers</small></button>
           </div>`;
         chooser.addEventListener('click', (e) => {
           if (e.target === chooser || e.target.closest('[data-close]')) return chooser.close();

@@ -473,9 +473,8 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     }
     return { group, geos };
   }
-  // ---- one cake pop on a stick: round ball or upright mini donut, coating, finishes, sprinkles, fondant on the
-  // front, then the clear pouch with its gold twist tie (every pop is wrapped). Stands in the box's pop stand.
-  const bagMat = track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.11, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 1.3, side: THREE.DoubleSide, depthWrite: false }));
+  // ---- one cake pop on a stick: round ball or upright mini donut, coating, finishes, sprinkles and fondant on the
+  // front (unwrapped). Stands in the box's pop stand.
   const stickMat = track(new THREE.MeshPhysicalMaterial({ color: '#FBFAF6', roughness: 0.75, envMapIntensity: 0.2 }));
   function buildPopTemplate(cell, box, variant) {
     const s = SIZES.cakepop, rand = seeded(variant * 7919 + cell.glaze.length * 131 + (cell.decor?.variant || 0) * 17 + 9);
@@ -557,17 +556,6 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
       const m = new THREE.Mesh(pg, letterMat(d.text, box.messageColor)); m.userData.shared = true; group.add(m);
     }
     if (fin.has('gold_star')) { const g = starPiece(R * 0.42); onFront(g, front * 0.75, cy + R * 0.72); geos.push(g); mesh(g, MAT.gold); }
-    // The clear pouch, gathered under the pop and tied with a gold twist tie.
-    const tieY = cy - R - 0.22, top = cy + R + 0.16, wide = R * 1.28;
-    // A cello pouch: gathered at the tie, filling out around the pop, a soft closed top; flattened like a real bag.
-    const prof = [[0.02, tieY - 0.14], [0.04, tieY - 0.02], [0.05, tieY + 0.03], [wide * 0.5, cy - R * 0.95], [wide * 0.92, cy - R * 0.45], [wide * 1.04, cy + R * 0.15],
-      [wide * 1.0, cy + R * 0.7], [wide * 0.86, top - 0.04], [wide * 0.55, top + 0.02], [0.001, top + 0.035]].map(([x, y]) => new THREE.Vector2(x, y));
-    const bag = new THREE.LatheGeometry(new THREE.SplineCurve(prof).getPoints(40), 40); bag.scale(1, 1, round ? 0.8 : 0.55);
-    { const bp = bag.attributes.position; for (let i = 0; i < bp.count; i++) { const x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), k = 1 + 0.035 * Math.sin(y * 31 + Math.atan2(z, x) * 5); bp.setXYZ(i, x * k, y, z * k); } }
-    bag.computeVertexNormals(); bag.deleteAttribute('uv'); geos.push(bag);
-    const bm = mesh(bag, bagMat, false); bm.renderOrder = 2;
-    const tie = new THREE.TorusGeometry(0.05, 0.014, 8, 20); tie.rotateX(Math.PI / 2); tie.translate(0, tieY, 0); geos.push(tie); mesh(tie, MAT.gold);
-    for (const side of [-1, 1]) { const end = new THREE.CylinderGeometry(0.008, 0.008, 0.16, 6); end.rotateZ(side * 0.9); end.translate(side * 0.1, tieY - 0.03, 0.02); geos.push(end); mesh(end, MAT.gold); }
     return { group, geos };
   }
   function dropTemplate(k) { const t = templates.get(k); if (!t) return; t.geos.forEach((g) => g.dispose()); templates.delete(k); }

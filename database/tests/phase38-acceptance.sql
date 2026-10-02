@@ -19,14 +19,16 @@ select pg_temp.check((select status from public.products where slug = 'cake-pops
 
 set role anon; select pg_temp.who(null);
 -- 2. Pricing (₱3 per extra, once per box) -------------------------------------------------------------
-select pg_temp.check((pg_temp.q('{"designer":"cakepop","glazes":["pink"]}')->>'extra')::numeric = 0, 'plain round pop, white pearls, wrapped: free');
+select pg_temp.check((pg_temp.q('{"designer":"cakepop","glazes":["pink"]}')->>'extra')::numeric = 0, 'plain round pop with white pearls: free');
 select pg_temp.check((pg_temp.q('{"designer":"cakepop","style":"donut","glazes":["pink"]}')->>'extra')::numeric = 0, 'donut pops cost the same');
 select pg_temp.check((pg_temp.q('{"designer":"cakepop","pattern":"assorted","glazes":["pink","sky_blue","lavender"],"sprinkles":"nonpareils","sprinkle_colors":["hot_pink","purple","azure"]}')->>'extra')::numeric = 6,
   'the pastel sprinkle pops photo = assorted + nonpareils');
 select pg_temp.check((pg_temp.q('{"designer":"cakepop","style":"donut","flavors":["chocolate","vanilla"],"pattern":"alternate","glazes":["azure","lemon"],"finishes":["gold_star"],"sprinkles":"gold_pearls","theme":"custom","theme_note":"blue hedgehog and friends"}')->>'extra')::numeric = 15,
   'character donut pops = mix + alternate + star + gold pearls + own theme');
-select pg_temp.check(pg_temp.q('{"designer":"cakepop","pattern":"alternate","glazes":["sky_blue","pink"],"sprinkles":"nonpareils","sprinkle_colors":["white"],"theme":"baby","message":"letters","message_text":"Boy Girl"}')->'clean'->>'summary'
-  = 'Round cake pops · Chocolate · Sky blue / Pink coating, alternating · Coloured nonpareils (White) · Baby shower toppers · Fondant letters "Boy Girl" (White)', 'readable summary, coating not glaze');
+select pg_temp.check(pg_temp.q('{"designer":"cakepop","pattern":"alternate","glazes":["sky_blue","pink"],"sprinkles":"nonpareils","sprinkle_colors":["white"],"theme":"baby"}')->'clean'->>'summary'
+  = 'Round cake pops · Chocolate · Sky blue / Pink coating, alternating · Coloured nonpareils (White) · Baby shower toppers', 'readable summary, coating not glaze');
+select pg_temp.check(pg_temp.fails('{"designer":"cakepop","glazes":["pink"],"message":"letters","message_text":"Boy"}') like '22023%no%message%', 'cake pops have no message');
+select pg_temp.check((select count(*) from public.design_options d join public.products p on p.id = d.product_id where p.slug = 'cake-pops' and d.group_key = 'message') = 1, 'only "No message" is offered');
 select pg_temp.check(pg_temp.q('{"designer":"cakepop","style":"donut","glazes":["pink"]}')->'clean'->>'style_donut' = 'yes', 'recipe flag for the shape');
 
 -- 3. Rules ------------------------------------------------------------------------------------------------

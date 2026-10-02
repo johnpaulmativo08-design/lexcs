@@ -2,7 +2,7 @@
 -- Requires phases 32-37. Safe to run more than once.
 --
 -- Prices (owner): 25 pcs ₱450 (₱18 per pop); 12 pcs ₱220, 40 pcs ₱700, 60 pcs ₱1,050 estimated from it.
--- Every pop is wrapped in a clear pouch with a gold twist tie (included). Extras are ₱3 each, once per box.
+-- Pops are not wrapped, and have no message (no fondant letters or plaques). Extras are ₱3 each, once per box.
 --
 -- How LexC's makes them, as data the customer can choose:
 --   style          round (cake pop ball) | donut (mini donut pop) — same price
@@ -12,7 +12,6 @@
 --   finishes       0-3 of choco_drizzle | white_drizzle | gold_star | gold_dust | edible_glitter
 --   sprinkles      none | white_pearls (free) | nonpareils (+ 1-3 sprinkle_colors) | gold_pearls
 --   theme          none | baby | space | butterfly | garden | rainbow | bows | custom (+ theme_note, e.g. characters)
---   message        none | letters | plaque  + message_text, message_color
 
 -- 1. Category and product ---------------------------------------------------------------------------
 insert into public.categories (slug, name, sort_order) values ('cakepops', 'Cake Pops', 8)
@@ -20,7 +19,7 @@ on conflict (slug) do nothing;
 
 insert into public.products (slug, name, description, kind, status, image_path, image_alt, emoji, badge_label, sort_order, legacy_id, category_id,
                              gallery_image_paths, customization_config)
-select 'cake-pops', 'Cake Pops', 'Round cake pops or mini donut pops on sticks · each wrapped with a gold tie', 'standard', 'active',
+select 'cake-pops', 'Cake Pops', 'Round cake pops or mini donut pops on sticks · coated and decorated by hand', 'standard', 'active',
        'local:assets/products/cake-pops/main.webp', 'Pink, blue and purple cake pops with sprinkles, each wrapped in a clear bag with a gold tie',
        '🍭', 'New', 26, 26, (select id from public.categories where slug = 'cakepops'),
        array['local:assets/products/cake-pops/2.webp', 'local:assets/products/cake-pops/3.webp', 'local:assets/products/cake-pops/4.webp', 'local:assets/products/cake-pops/5.webp'],
@@ -48,7 +47,7 @@ cross join (values
   ('theme','none','No toppers',0,null,1), ('theme','baby','Baby shower',3,null,2), ('theme','space','Outer space',3,null,3),
   ('theme','butterfly','Butterflies & daisies',3,null,4), ('theme','garden','Flower garden',3,null,5), ('theme','rainbow','Rainbows & clouds',3,null,6),
   ('theme','bows','Bows & hearts',3,null,7), ('theme','custom','Your own theme',3,null,8),
-  ('message','none','No message',0,null,1), ('message','letters','Fondant letters',3,null,2), ('message','plaque','Name plaques',3,null,3),
+  ('message','none','No message',0,null,1),
   ('color','white','White',0,'#FFFFFF',1), ('color','ivory','Ivory',0,'#FFF8E7',2), ('color','cream','Cream',0,'#F6E7C8',3),
   ('color','butter','Butter yellow',0,'#F9E27D',4), ('color','lemon','Lemon',0,'#F4D03F',5), ('color','lime','Lime',0,'#DCE95A',6),
   ('color','peach','Peach',0,'#F9C8A8',7), ('color','coral','Coral',0,'#F08A74',8), ('color','blush','Blush',0,'#F7D6DA',9),
@@ -64,6 +63,12 @@ cross join (values
 where p.slug = 'cake-pops'
 on conflict (product_id, group_key, code) do nothing;
 
+-- No letters or plaques on cake pops (removes them if an earlier draft of this phase added them).
+delete from public.design_options where group_key = 'message' and code <> 'none'
+  and product_id = (select id from public.products where slug = 'cake-pops');
+update public.products set description = 'Round cake pops or mini donut pops on sticks · coated and decorated by hand'
+  where slug = 'cake-pops' and description like '%wrapped%';
+
 -- 3. Validation + pricing: the donut rules plus the pop shape ---------------------------------------------
 create or replace function private.cakepop_design(p_product public.products, custom jsonb)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
@@ -74,7 +79,8 @@ begin
   select * into style from public.design_options where product_id = p_product.id and group_key = 'style' and code = coalesce(custom->>'style', 'round') and is_active;
   if not found then raise exception 'Choose round cake pops or donut pops.' using errcode = '22023'; end if;
   if jsonb_array_length(coalesce(custom->'flavors', '["chocolate"]')) > 2 then raise exception 'Choose up to 2 flavors.' using errcode = '22023'; end if;
-  -- Same glaze / finish / sprinkle / topper / message rules as the donut designer, on this product's options.
+  -- Same coating / finish / sprinkle / topper rules as the donut designer, on this product's options (no message).
+  if coalesce(nullif(custom->>'message', ''), 'none') <> 'none' then raise exception 'Cake pops do not have a message.' using errcode = '22023'; end if;
   base := private.donut_design(p_product, jsonb_set(custom || jsonb_build_object('flavors', coalesce(custom->'flavors', '["chocolate"]')), '{designer}', '"donut"'));
   clean := (base->'clean') || jsonb_build_object('designer', 'cakepop', 'style', style.code, 'style_label', style.label, 'style_' || style.code, 'yes',
              'summary', style.label || ' · ' || replace(base->'clean'->>'summary', 'glaze', 'coating'));   -- pops are coated, not glazed

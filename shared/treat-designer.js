@@ -1,12 +1,12 @@
 // Treat designers (customer) for mini donuts and cake pops: the same decorating steps, set up per product by a
 // config. Donuts: Party Box and Themed Party Box (same donuts, same choices). Cake pops: round cake pops or mini
-// donut pops on sticks, wrapped in clear pouches with gold ties. Mirrors how LexC's decorates: flavour(s) ->
+// donut pops on sticks (no message step for pops). Mirrors how LexC's decorates: flavour(s) ->
 // glaze or coating (one colour, two alternating, or assorted) and finishes -> sprinkles and fondant theme toppers ->
 // fondant letters spelled across the box or name plaques. Realistic 3D box (cupcake-scene.js, donut/cakepop mode).
 // Options and prices come from public.design_options; the server re-validates and prices every design
 // (quote_donut_design / quote_cakepop_design / create_order). Adds to the existing cart; never creates an order.
 function makeTreatDesigner(K) {
-  const STEPS = [['box', 'Box'], ['glaze', K.coat], ['toppings', 'Toppings'], ['message', 'Message'], ['review', 'Review']];
+  const STEPS = [['box', 'Box'], ['glaze', K.coat], ['toppings', 'Toppings'], ['message', 'Message'], ['review', 'Review']].filter(([k]) => k !== 'message' || K.message !== false);
   const DRAFT_KEY = K.draftKey;
   const SLUGS = K.slugs;
   const BOX_NOTE = K.boxNote || {}, NOUN = K.noun, COAT = K.coat.toLowerCase();
@@ -90,7 +90,7 @@ function makeTreatDesigner(K) {
     if (state.sprinkles === 'nonpareils' && !state.sprinkle_colors.length) state.sprinkle_colors = ['white'];
     if (!opt('theme', state.theme)) state.theme = 'none';
     state.theme_note = String(state.theme_note || '').slice(0, 60);
-    if (!opt('message', state.message)) state.message = 'none';
+    if (K.message === false || !opt('message', state.message)) state.message = 'none';
     state.message_text = String(state.message_text || '').replace(LETTER_OK, '').slice(0, LETTER_MAX[state.message] || 40);
     if (!pal[state.message_color]) state.message_color = 'white';
   }
@@ -299,7 +299,7 @@ function makeTreatDesigner(K) {
         <li><span>Finishes</span><strong>${s.finishes.map((f) => esc(opt('finish', f)?.label)).join(', ') || 'None'}</strong></li>
         <li><span>Sprinkles</span><strong>${esc(opt('sprinkle', s.sprinkles)?.label)}${s.sprinkles === 'nonpareils' ? ' (' + labels(s.sprinkle_colors) + ')' : ''}</strong></li>
         <li><span>Toppers</span><strong>${esc(opt('theme', s.theme)?.label)}${s.theme_note && s.theme !== 'none' ? ': ' + esc(s.theme_note) : ''}</strong></li>
-        <li><span>Message</span><strong>${s.message === 'none' ? 'None' : esc(opt('message', s.message)?.label) + ' “' + esc(s.message_text) + '” · ' + esc(opt('color', s.message_color)?.label)}</strong></li>
+        ${K.message === false ? '' : `<li><span>Message</span><strong>${s.message === 'none' ? 'None' : esc(opt('message', s.message)?.label) + ' “' + esc(s.message_text) + '” · ' + esc(opt('color', s.message_color)?.label)}</strong></li>`}
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       ${quote.status === 'error' ? `<div class="bd-warning" role="alert">${esc(quote.message)}</div>` : ''}
@@ -332,7 +332,7 @@ function makeTreatDesigner(K) {
     const host = root.querySelector('[data-dd-3d]');
     sceneLoading = (async () => {
       try {
-        const [mod] = await Promise.all([import('./cupcake-scene.js?v=14'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
+        const [mod] = await Promise.all([import('./cupcake-scene.js?v=15'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
         if (currentPage !== K.page || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion, kind: K.sceneKind });
@@ -553,12 +553,12 @@ makeTreatDesigner({
   key: 'cp', page: 'cakepop', designer: 'cakepop', sceneKind: 'cakepop', quoteFn: 'quote_cakepop_design', global: 'LexcCakePop', param: 'cakepop',
   draftKey: 'lexc_cakepop_draft_v1', slugs: { pops: 'cake-pops' },
   title: 'Design your cake pops', shortTitle: 'Your cake pops', noun: 'cake pop', emoji: '🍭', coat: 'Coating', defaultFlavor: 'chocolate', maxFlavors: 2,
-  hint: 'Every pop is dipped, decorated and wrapped by hand.',
+  hint: 'Every pop is dipped and decorated by hand.', message: false,
   styles: true, styleNote: { round: 'A ball of cake on a stick', donut: 'A mini donut on a stick' },
   // One-tap looks from LexC's own cake pops.
   presets: [
     { key: 'pastel', name: 'Pastel sprinkles', box: 'pops', s: { pattern: 'assorted', glazes: ['pink', 'aqua', 'lavender'], sprinkles: 'nonpareils', sprinkle_colors: ['hot_pink', 'white', 'azure'] } },
-    { key: 'babyshower', name: 'Baby shower', box: 'pops', s: { pattern: 'alternate', glazes: ['sky_blue', 'pink'], sprinkles: 'nonpareils', sprinkle_colors: ['white', 'hot_pink'], theme: 'baby', message: 'letters', message_text: 'Boy Girl', message_color: 'white' } },
+    { key: 'babyshower', name: 'Baby shower', box: 'pops', s: { pattern: 'alternate', glazes: ['sky_blue', 'pink'], sprinkles: 'nonpareils', sprinkle_colors: ['white', 'hot_pink'], theme: 'baby' } },
     { key: 'heroes', name: 'Blue & yellow heroes', box: 'pops', s: { style: 'donut', pattern: 'alternate', glazes: ['azure', 'lemon'], finishes: ['gold_star'], sprinkles: 'gold_pearls', theme: 'custom', theme_note: 'Favourite game characters' } },
     { key: 'space', name: 'Outer space', box: 'pops', s: { style: 'donut', glazes: ['navy'], finishes: ['edible_glitter'], sprinkles: 'gold_pearls', theme: 'space' } },
     { key: 'kitty', name: 'Pink kitty', box: 'pops', s: { pattern: 'alternate', glazes: ['pink', 'white'], theme: 'custom', theme_note: 'Cute kitty and bunny faces' } }

@@ -17,8 +17,8 @@ function donutDetails(c){
  const rows=[...(c.designer==='cakepop'?[['Pop',c.style_label||c.style]]:[]),['Flavor',(c.flavor_labels||c.flavors||[]).join(' + ')],[c.designer==='cakepop'?'Coating':'Glaze',(c.pattern_label||c.pattern)+' — '+(c.glaze_labels||c.glazes||[]).join(', ')],
   ['Finishes',(c.finish_labels||c.finishes||[]).join(', ')||'None'],['Sprinkles',(c.sprinkles_label||c.sprinkles)+((c.sprinkle_color_labels||[]).length?' ('+c.sprinkle_color_labels.join(', ')+')':'')],
   ['Toppers',c.theme&&c.theme!=='none'?(c.theme_label||c.theme)+(c.theme_note?': '+c.theme_note:''):'None'],
-  ['Message',c.message&&c.message!=='none'?(c.message_label||c.message)+' "'+c.message_text+'" · '+(c.message_color_label||c.message_color):'None'],['Design extras',money(c.extras_per_item||0)+' per box']];
- return '<div style="margin:8px 0 4px;padding:10px 12px;border:1px solid #e5ddec;border-radius:10px;background:#fcf9fe"><strong>'+(c.designer==='cakepop'?'Cake pop design · wrapped, gold tie':'Donut design')+'</strong><dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0">'
+  ...(c.designer==='cakepop'?[]:[['Message',c.message&&c.message!=='none'?(c.message_label||c.message)+' "'+c.message_text+'" · '+(c.message_color_label||c.message_color):'None']]),['Design extras',money(c.extras_per_item||0)+' per box']];
+ return '<div style="margin:8px 0 4px;padding:10px 12px;border:1px solid #e5ddec;border-radius:10px;background:#fcf9fe"><strong>'+(c.designer==='cakepop'?'Cake pop design':'Donut design')+'</strong><dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0">'
   +rows.map(([k,v])=>'<dt style="color:#705c7c">'+e(k)+'</dt><dd style="margin:0">'+e(v)+'</dd>').join('')+'</dl></div>';
 }
 function designDetails(c){
