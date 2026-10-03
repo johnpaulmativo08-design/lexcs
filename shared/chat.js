@@ -91,24 +91,31 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
       db.client.from('profiles').select('id,full_name,phone').limit(admin?500:1).then(db.unwrap)
     ]);
     conversations=threadRows;orders=orderRows;orderItems=itemRows;products=productRows;payments=paymentRows;inboxMessages=messageRows;profiles=profileRows;
-    if(orderId&&!orders.some(o=>o.id===orderId)){
-      const target=await db.client.from('orders').select('id,order_number,customer_name,customer_id,status,payment_status,total_amount,deposit_due,amount_paid,fulfillment_method,receiving_start').eq('id',orderId).maybeSingle().then(db.unwrap);
-      if(target)orders.unshift(target);
+    // Conversations can belong to orders older than the latest ones loaded above: fetch those orders and
+    // their payments too, so every chat shows its order number, status and payment.
+    const missing=[...new Set([...conversations.map(c=>c.order_id),orderId].filter(id=>id&&!orders.some(o=>o.id===id)))];
+    if(missing.length){
+      const [more,morePayments]=await Promise.all([
+        db.client.from('orders').select('id,order_number,customer_name,customer_id,status,payment_status,total_amount,deposit_due,amount_paid,fulfillment_method,receiving_start').in('id',missing).then(db.unwrap),
+        db.client.from('order_payment_attempts').select('id,order_id,amount,status,transaction_reference,proof_storage_path,submitted_at,rejection_reason').in('order_id',missing).order('created_at',{ascending:false}).then(db.unwrap)]);
+      orders.push(...more);payments.push(...morePayments.filter(x=>!payments.some(y=>y.id===x.id)));
     }
     const startGeneral=!admin&&new URLSearchParams(location.search).has('new');
     if(startGeneral){history.replaceState(null,'',location.pathname);}
     if(!preserve||!selected||!conversations.some(c=>c.id===selected.id))selected=orderId?(conversations.find(c=>c.order_id===orderId)||null):startGeneral?(conversations.find(c=>!c.order_id)||null):(conversations.find(c=>!c.order_id)||conversations[0]||null);
-    if(selected?.order_id&&!orderItems.some(item=>item.order_id===selected.order_id)){
-      const selectedItems=await db.client.from('order_items').select('order_id,line_number,product_id,name_snapshot,variant_label_snapshot,quantity,line_total').eq('order_id',selected.order_id).order('line_number',{ascending:true}).then(db.unwrap);
-      orderItems.push(...selectedItems);
-    }
     if(selected)await loadMessages();else messages=[];
     draw();
     const input=root.querySelector('#chat-text');if(input)input.value=draft;
   };
   async function loadMessages(){
-    messages=await readChatThread(selected.id);
+    const thread=selected;
+    const [rows]=await Promise.all([readChatThread(thread.id),thread.order_id&&!orderItems.some(item=>item.order_id===thread.order_id)
+      ?db.client.from('order_items').select('order_id,line_number,product_id,name_snapshot,variant_label_snapshot,quantity,line_total').eq('order_id',thread.order_id).order('line_number',{ascending:true}).then(db.unwrap).then(items=>orderItems.push(...items))
+      :null]);
+    messages=rows;
     try{await markChatRead(messages,{admin});}catch(error){console.warn('Chat read state could not update:',error.message);}
+    const now=new Date().toISOString();
+    inboxMessages.forEach(m=>{if(m.conversation_id===thread.id&&!m.read_at&&(admin?m.sender_type==='customer':m.sender_type!=='customer'))m.read_at=now;});
   }
   function title(c){const o=orders.find(row=>row.id===c.order_id);return o?`Order #${o.order_number}`:admin?profiles.find(p=>p.id===c.customer_id)?.full_name||'General inquiry':'LexC Assistant';}
   function context(){
@@ -136,15 +143,21 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
       '<div class="chat-order-actions">'+
       (o.status==='cancelled'?'<span>This order is cancelled. Do not send a payment.</span>':o.payment_status==='verification_pending'?'<span>Admin is checking the actual transfer. Please do not pay again.</span>':balance===0?'<span>LexC verified your payment.</span>':'<a href="'+paymentURL+'">'+(paid?'View remaining payment':'Open payment form')+' →</a>')+'</div></section>';
   }
+  function sender(m){
+    if(m.sender_type==='system')return 'LexC Assistant';
+    if(admin){if(m.sender_type==='admin')return 'You · LexC staff';const o=orders.find(x=>x.id===selected?.order_id);return profiles.find(x=>x.id===selected?.customer_id)?.full_name||o?.customer_name||'Customer';}
+    return m.sender_type==='admin'?'LexC staff':'You';
+  }
   function messageCard(m){
     const p=payments.find(row=>row.id===m.payment_id);
     const eventClass=m.message_type!=='text'?' chat-event '+escapeHtml(m.message_type):'';
-    return '<article class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(m.sender_type==='system'?'LexC Assistant':m.sender_type==='admin'?'LexC staff':'You')+'</small><p>'+escapeHtml(m.body)+'</p>'+designCardHTML(m)+
+    return '<article class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(sender(m))+'</small><p>'+escapeHtml(m.body)+'</p>'+designCardHTML(m)+
       (p&&m.message_type==='payment_proof'?'<div class="chat-proof"><strong>Payment proof · '+money(p.amount)+'</strong><span>Reference: '+escapeHtml(p.transaction_reference||'—')+'</span><span>Current status: '+escapeHtml(p.status.replaceAll('_',' '))+'</span>'+(p.proof_storage_path?'<button type="button" data-proof="'+escapeHtml(p.id)+'">View receipt</button>':'')+'</div>':'')+
       '<time>'+escapeHtml(stamp(m.created_at))+'</time></div></article>';
   }
   function draw(){
-    const visible=conversations.filter(c=>{const o=orders.find(x=>x.id===c.order_id);const term=(title(c)+' '+(o?.customer_name||'')).toLowerCase();return term.includes(search)&&(filter==='all'||(filter==='orders'&&c.order_id)||(filter==='attention'&&c.state==='needs_admin'));});
+    const visible=conversations.filter(c=>{const o=orders.find(x=>x.id===c.order_id);const term=(title(c)+' '+(o?.customer_name||'')).toLowerCase();return term.includes(search.trim().toLowerCase())&&(filter==='all'||(filter==='orders'&&c.order_id)||(filter==='attention'&&c.state==='needs_admin'));});
+    const keep=snapshot();
     const unread=new Map();for(const m of inboxMessages){if(!m.read_at&&(admin?m.sender_type==='customer':m.sender_type!=='customer'))unread.set(m.conversation_id,(unread.get(m.conversation_id)||0)+1);}
     root.innerHTML='<div class="chat-workspace '+(selected&&!mobileListOpen?'has-thread':'')+'"><aside class="chat-inbox"><header><div><h1>'+(admin?'Customer conversations':'Messages')+'</h1><p>'+(admin?'Customer support and order conversations':'Chat with LexC’s Snacktime')+'</p></div>'+(admin?'':'<a class="chat-new-link" href="?new=1">New chat</a>')+'</header><label class="chat-search">Search conversations<input id="chat-search" type="search" value="'+escapeHtml(search)+'" placeholder="Order or customer"></label><div class="chat-filters"><button type="button" data-filter="all" '+(filter==='all'?'aria-pressed="true"':'')+'>All</button><button type="button" data-filter="orders" '+(filter==='orders'?'aria-pressed="true"':'')+'>Orders</button><button type="button" data-filter="attention" '+(filter==='attention'?'aria-pressed="true"':'')+'>Needs attention</button></div><div class="chat-rows">'+(visible.length?visible.map(c=>{const latest=inboxMessages.find(m=>m.conversation_id===c.id);return '<button type="button" class="chat-row '+(selected?.id===c.id?'selected':'')+'" data-thread="'+escapeHtml(c.id)+'"><strong>'+escapeHtml(title(c))+(unread.get(c.id)?'<b class="chat-unread">'+unread.get(c.id)+'</b>':'')+'</strong><span>'+escapeHtml(orders.find(o=>o.id===c.order_id)?.customer_name||(admin?'Customer':'General conversation'))+'</span><small>'+escapeHtml(latest?.body?.slice(0,65)||c.state.replaceAll('_',' '))+'</small></button>';}).join(''):'<p class="chat-empty">No conversations yet.</p>')+'</div></aside><section class="chat-thread">'+(selected?'<header><button type="button" id="chat-back" aria-label="Back to conversations">←</button><div><h2>'+escapeHtml(title(selected))+'</h2><span>'+escapeHtml(selected.state==='needs_admin'?'A LexC team member will reply':selected.state)+'</span></div><button type="button" id="chat-details">Details</button></header><div class="chat-stream">'+(messages.length?messages.map(messageCard).join(''):'<div class="chat-empty">Send a message to start this conversation.</div>')+'</div><form id="chat-compose"><label class="visually-hidden" for="chat-text">Message</label><textarea id="chat-text" name="body" maxlength="3000" rows="2" placeholder="Write a message…" required></textarea><button type="submit">Send</button></form>':admin?'<div class="chat-empty">Select a conversation.</div>':'<div class="chat-empty">No messages yet.<br><button type="button" id="chat-start">Start chatting with LexC’s Admin</button></div>')+'</section><aside class="chat-context">'+(selected?context():'<h2>Order context</h2><p>Select a conversation to see its linked order.</p>')+'</aside></div><p class="chat-error" role="alert" hidden></p>';
     const stream=root.querySelector('.chat-stream');
@@ -157,6 +170,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
       if(customerSubheading)customerSubheading.textContent=selected?.order_id?'Your order #'+(orders.find(o=>o.id===selected.order_id)?.order_number||'')+' · We’re here to help':'Typically replies in a few minutes';
     }
     hydrateDesignImages(root);
+    restore(keep);
     const contextPanel=root.querySelector('.chat-context');
     if(contextPanel&&selected){const close=document.createElement('button');close.type='button';close.className='chat-context-close';close.textContent='← Back to chat';close.addEventListener('click',()=>root.querySelector('.chat-workspace').classList.remove('show-context'));contextPanel.prepend(close);}
     root.querySelectorAll('[data-thread]').forEach(button=>{
@@ -165,17 +179,34 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
       const avatar=document.createElement('span');avatar.className='chat-row-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent=admin?person.trim().charAt(0).toUpperCase():'🧁';button.prepend(avatar);
       const state=document.createElement('em');state.className='chat-row-state'+(conversation?.state==='needs_admin'?' needs-attention':'');state.textContent=conversation?.state==='needs_admin'?'Needs reply':conversation?.order_id?'Order chat':'General';button.append(state);
     });
-    root.querySelectorAll('[data-thread]').forEach(button=>button.onclick=async()=>{selected=conversations.find(c=>c.id===button.dataset.thread);mobileListOpen=false;const stream=root.querySelector('.chat-stream');if(stream)stream.outerHTML=threadSkeleton();try{await loadMessages();draw();root.querySelector('.chat-stream')?.scrollTo(0,999999);}catch(error){showError('Conversation could not load. Please choose it again.');}});
+    root.querySelectorAll('[data-thread]').forEach(button=>button.onclick=async()=>{selected=conversations.find(c=>c.id===button.dataset.thread);mobileListOpen=false;const stream=root.querySelector('.chat-stream');if(stream)stream.outerHTML=threadSkeleton();try{await loadMessages();draw();const s=root.querySelector('.chat-stream');if(s)s.scrollTop=s.scrollHeight;}catch(error){showError('Conversation could not load. Please choose it again.');}});
     root.querySelector('#chat-back')?.addEventListener('click',()=>{mobileListOpen=true;root.querySelector('.chat-workspace').classList.remove('has-thread');});
     root.querySelector('#chat-details')?.addEventListener('click',()=>root.querySelector('.chat-workspace').classList.toggle('show-context'));
     root.querySelector('#chat-start')?.addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;try{if(orderId&&!orders.some(o=>o.id===orderId&&o.customer_id===user.id))throw new Error('This order is not available to your account.');selected=await ensureCustomerChat({userId:user.id,orderId});await refresh(false);}catch(error){showError(error.message);button.disabled=false;}});
     root.querySelectorAll('[data-quick-message]').forEach(button=>button.onclick=()=>{const input=root.querySelector('#chat-text');if(input){input.value=button.dataset.quickMessage;input.focus();}});
-    root.querySelector('#chat-search')?.addEventListener('input',e=>{search=e.target.value;draw();root.querySelector('#chat-search').focus();});
+    root.querySelector('#chat-search')?.addEventListener('input',e=>{search=e.target.value;draw();});
     root.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.filter;draw();});
     root.querySelector('#chat-compose')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button'),body=form.elements.body.value.trim();if(!body||button.disabled)return;button.disabled=true;try{await sendChatMessage({conversationId:selected.id,userId:user.id,admin,body});form.reset();await refresh();root.querySelector('.chat-stream')?.scrollTo(0,999999);}catch(error){showError(error.message);button.disabled=false;}});
     root.querySelector('#chat-text')?.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();event.currentTarget.form?.requestSubmit();}});
     root.querySelectorAll('[data-proof]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{const p=payments.find(x=>x.id===button.dataset.proof);const url=await db.privateImage('payment-proofs',p.proof_storage_path);window.open(url,'_blank','noopener');}catch(error){showError(error.message);}finally{button.disabled=false;}});
     root.querySelector('#chat-payment-review')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button'),p=payments.find(x=>x.order_id===selected.order_id&&x.status==='verification_pending');button.disabled=true;try{await db.rpc('review_order_payment',{target_payment:p.id,decision:form.elements.decision.value,review_reason:form.elements.reason.value.trim()});await refresh();}catch(error){form.querySelector('[role=alert]').textContent=error.message;button.disabled=false;}});
+  }
+  // What a redraw must not lose: the focused field and its cursor, the open details panel, the payment
+  // review being filled in, and whether the thread was scrolled to the newest message.
+  function snapshot(){
+    const active=root.contains(document.activeElement)?document.activeElement:null,stream=root.querySelector('.chat-stream'),review=root.querySelector('#chat-payment-review');
+    return {id:active?.id||null,start:active?.selectionStart??null,end:active?.selectionEnd??null,
+      context:root.querySelector('.chat-workspace')?.classList.contains('show-context')||false,
+      review:review?{decision:review.elements.decision.value,reason:review.elements.reason.value}:null,
+      atBottom:!stream||stream.scrollHeight-stream.scrollTop-stream.clientHeight<40,scroll:stream?.scrollTop??0,thread:selected?.id};
+  }
+  function restore(k){
+    if(k.context)root.querySelector('.chat-workspace')?.classList.add('show-context');
+    const review=root.querySelector('#chat-payment-review');
+    if(review&&k.review){review.elements.decision.value=k.review.decision;review.elements.reason.value=k.review.reason;}
+    const stream=root.querySelector('.chat-stream');
+    if(stream)stream.scrollTop=k.thread===selected?.id&&!k.atBottom?k.scroll:stream.scrollHeight;
+    if(k.id){const el=root.querySelector('#'+CSS.escape(k.id));if(el){el.focus({preventScroll:true});if(k.start!==null&&typeof el.setSelectionRange==='function'){try{el.setSelectionRange(k.start,k.end);}catch{}}}}
   }
   function showError(message){const target=root.querySelector('.chat-error');if(target){target.textContent=message;target.hidden=false;}}
   try{await refresh(false);}catch(error){root.innerHTML='<div class="chat-empty" role="alert">Chat could not load: '+escapeHtml(error.message)+' <button type="button" id="chat-retry">Try again</button></div>';root.querySelector('#chat-retry').onclick=()=>mountChat(root,{admin,orderId});return;}
