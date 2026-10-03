@@ -579,6 +579,9 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     if (reducedMotion || ms <= 0) { fn(1); request(); return null; }
     const a = { fn, start: performance.now() + delay, ms }; anims.add(a); loop(); return a;
   }
+  // Camera moves can be interrupted by the customer; the packing steps (kept) always run to the end, or the
+  // add-to-cart flow would wait forever on "Packing your …".
+  function stopCamera() { for (const a of [...anims]) if (!a.keep) anims.delete(a); }
   function loop() {
     if (loop.running) return; loop.running = true;
     const step = (now) => {
@@ -602,7 +605,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
   function setView(name, ms = 650) {
     viewName = name; const to = viewFor(name), from = { ...view };
     const dy = ((to.yaw - from.yaw) % TAU + TAU * 1.5) % TAU - Math.PI;
-    anims.clear();
+    stopCamera();
     viewAnim = animate((t) => { const k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; for (const p of ['pitch', 'dist', 'tx', 'tz']) view[p] = from[p] + (to[p] - from[p]) * k; view.yaw = from.yaw + dy * k; placeCamera(false); }, ms);
   }
   function placeCamera(render = true) {
@@ -613,7 +616,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     camera.lookAt(view.tx, ty, view.tz); if (render) request();
   }
   const el = renderer.domElement, pointers = new Map(); let pinchStart = null;
-  el.addEventListener('pointerdown', (e) => { anims.clear(); el.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: view.dist }; } });
+  el.addEventListener('pointerdown', (e) => { if (packing) return; stopCamera(); el.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: view.dist }; } });
   el.addEventListener('pointermove', (e) => {
     const p = pointers.get(e.pointerId); if (!p) return;
     if (pointers.size === 1) { view.yaw -= (e.clientX - p.x) * 0.008; view.pitch += (e.clientY - p.y) * 0.006; placeCamera(); }
@@ -622,7 +625,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
   });
   const up = (e) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinchStart = null; };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
-  el.addEventListener('wheel', (e) => { e.preventDefault(); anims.clear(); view.dist *= Math.exp(e.deltaY * 0.0012); placeCamera(); }, { passive: false });
+  el.addEventListener('wheel', (e) => { e.preventDefault(); if (packing) return; stopCamera(); view.dist *= Math.exp(e.deltaY * 0.0012); placeCamera(); }, { passive: false });
   el.addEventListener('keydown', (e) => {
     const k = { ArrowLeft: () => (view.yaw += 0.2), ArrowRight: () => (view.yaw -= 0.2), ArrowUp: () => (view.pitch += 0.12), ArrowDown: () => (view.pitch -= 0.12), '+': () => (view.dist *= 0.9), '=': () => (view.dist *= 0.9), '-': () => (view.dist *= 1.1) }[e.key];
     if (k) { e.preventDefault(); k(); placeCamera(); }
@@ -715,7 +718,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     packGroup = new THREE.Group(); packGroup.add(hinge, ribbon, bowPivot); packGroup.visible = false; world.add(packGroup);
     return { hinge, ribbon, bow, bowPivot };
   }
-  const tween = (fn, ms, delay = 0) => new Promise((done) => { const a = animate((t) => { fn(t); if (t >= 1) done(); }, ms, delay); if (!a) done(); });
+  const tween = (fn, ms, delay = 0) => new Promise((done) => { const a = animate((t) => { fn(t); if (t >= 1) done(); }, ms, delay); if (a) a.keep = true; else done(); });
   const OPEN = -1.95;
   function pack() {
     if (packing || !layout) return packing || Promise.resolve();

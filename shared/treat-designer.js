@@ -332,7 +332,7 @@ function makeTreatDesigner(K) {
     const host = root.querySelector('[data-dd-3d]');
     sceneLoading = (async () => {
       try {
-        const [mod] = await Promise.all([import('./cupcake-scene.js?v=17'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
+        const [mod] = await Promise.all([import('./cupcake-scene.js?v=18'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
         if (currentPage !== K.page || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion, kind: K.sceneKind });
@@ -451,7 +451,7 @@ function makeTreatDesigner(K) {
     body.innerHTML = `<div class="bd-packed" role="status"><span class="bd-packed-icon" aria-hidden="true">📦</span><h2>Packing your ${NOUN}s…</h2><p class="bd-note">${summary}</p></div>`;
     root.querySelector('[data-dd-view="angle"]')?.click();
     if (matchMedia('(max-width: 900px)').matches) root.querySelector('.bd-stage').scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
-    try { await scene.pack(); } catch (error) { console.info('Packing animation skipped:', error?.message || error); }
+    try { await Promise.race([scene.pack(), new Promise((done) => setTimeout(done, 6000))]); } catch (error) { console.info('Packing animation skipped:', error?.message || error); }
     if (!packed || currentPage !== K.page) return;
     body.innerHTML = `<div class="bd-packed" role="status"><span class="bd-packed-icon" aria-hidden="true">🎉</span>
       <h2>${wasEdit ? 'Your cart design was updated' : 'Boxed and added to your cart!'}</h2>

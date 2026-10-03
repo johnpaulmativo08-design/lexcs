@@ -790,7 +790,7 @@
     const body = root.querySelector('#bd-body');
     body.innerHTML = `<div class="bd-packed" role="status"><span class="bd-packed-icon" aria-hidden="true">📦</span><h2>Packing your cake…</h2><p class="bd-note">${summary}</p></div>`;
     if (matchMedia('(max-width: 900px)').matches) root.querySelector('.bd-stage').scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
-    if (scene && view3d) { try { await scene.pack(); } catch (error) { console.info('Packing animation skipped:', error?.message || error); } }
+    if (scene && view3d) { try { await Promise.race([scene.pack(), new Promise((done) => setTimeout(done, 6000))]); } catch (error) { console.info('Packing animation skipped:', error?.message || error); } }
     if (!packed || currentPage !== 'bento') return;
     body.innerHTML = `<div class="bd-packed" role="status"><span class="bd-packed-icon" aria-hidden="true">🎉</span>
       <h2>${wasEdit ? 'Your cart design was updated' : 'Packed and added to your cart!'}</h2>
