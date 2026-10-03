@@ -1,4 +1,4 @@
-import { renderDashboard } from './pages/dashboard.js?v=8';
+import { renderDashboard } from './pages/dashboard.js?v=9';
 import { renderProducts } from './pages/products.js?v=4';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=19';
 import { renderReports } from './pages/reports.js?v=5';

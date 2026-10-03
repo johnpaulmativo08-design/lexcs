@@ -361,3 +361,33 @@ main .data-table td{color:#142044;font-size:14px;font-weight:500}
 main .data-table td strong{color:#142044;font-weight:700}
 main .panel-title,main .panel h2,main .panel__head h2{font-family:'Plus Jakarta Sans',sans-serif;color:#142044;font-weight:700}
 @media (max-width:700px){main .module-heading h1,main .ops-heading h1,main .inventory-head h1{font-size:30px}}
+
+/* Dashboard: "Needs you now" action tiles, a Today strip, then queues (left) and stock/capacity/activity (right). */
+.dash-greeting{margin:4px 0 0!important;color:#777890!important;font-size:15px;font-weight:500}
+.dash-label{margin:0 0 10px;color:#142044;font-size:15px;font-weight:700;letter-spacing:.02em}
+.dash-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:26px}
+.dash-action{display:flex;align-items:center;gap:16px;padding:18px 18px 18px 20px;border:1px solid #e3dcee;border-radius:16px;background:#fff;color:#142044;font:inherit;text-align:left;cursor:pointer;box-shadow:0 1px 3px rgba(40,20,80,.04);transition:border-color .15s,box-shadow .15s,transform .15s}
+.dash-action:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(70,40,120,.10)}
+.dash-action-icon{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:14px;background:#eef8f3;color:#087c58}
+.dash-action-icon svg{width:24px;height:24px}
+.dash-action-body{display:flex;flex-direction:column;min-width:0;flex:1}
+.dash-action-title{font-size:14px;font-weight:700;color:#5f5674}
+.dash-action-body strong{font-size:32px;line-height:1.15;font-weight:800;color:#142044}
+.dash-action-body small{color:#777890;font-size:13px;font-weight:500}
+.dash-action-go{color:#9b8fb0}.dash-action-go svg{width:20px;height:20px}
+.dash-action.is-warning{border-color:#f1d29a;background:linear-gradient(#fff,#fffaf0)}
+.dash-action.is-warning .dash-action-icon{background:#fff1d6;color:#a0590b}
+.dash-action.is-danger{border-color:#f3b8c2;background:linear-gradient(#fff,#fff6f7)}
+.dash-action.is-danger .dash-action-icon{background:#ffe3e8;color:#c0263f}
+.dash-action.is-clear strong{color:#087c58}
+.dash-today{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:26px;min-height:0!important}
+.dash-stat{display:flex;flex-direction:column;gap:4px;padding:18px 22px;border-right:1px solid #ece6f4}
+.dash-stat:last-child{border-right:0}
+.dash-stat span{color:#5f5674;font-size:14px;font-weight:700}
+.dash-stat strong{color:#6f53bc;font-size:28px;font-weight:800;line-height:1.2}
+.dash-stat small{color:#777890;font-size:13px}
+.dash-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px;align-items:start}
+.dash-col{display:grid;gap:24px;min-width:0}
+@media(max-width:1100px){.dash-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.dash-actions{grid-template-columns:1fr}.dash-today{grid-template-columns:repeat(2,minmax(0,1fr))}.dash-stat:nth-child(2){border-right:0}.dash-stat:nth-child(-n+2){border-bottom:1px solid #ece6f4}}
+@media(max-width:480px){.dash-today{grid-template-columns:1fr}.dash-stat{border-right:0;border-bottom:1px solid #ece6f4}.dash-stat:last-child{border-bottom:0}}

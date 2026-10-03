@@ -31,6 +31,9 @@ export function summarizeDashboard({orders,stock,batches,movements,slots,payment
     expiring:stockedBatches.filter(b=>b.expires_on>=today&&b.expires_on<end),
     expired:stockedBatches.filter(b=>b.expires_on<today),attention,capacity,activity,
     pendingPayments:paymentAttempts.filter(p=>p.status==='verification_pending').length,
-    verifiedPaymentsCentavos:paymentAttempts.filter(p=>p.status==='paid').reduce((sum,p)=>sum+Math.round(Number(p.amount)*100),0)
+    verifiedPaymentsCentavos:paymentAttempts.filter(p=>p.status==='paid').reduce((sum,p)=>sum+Math.round(Number(p.amount)*100),0),
+    // today: money verified today, and the next pickup or delivery still to come
+    receivedTodayCentavos:paymentAttempts.filter(p=>p.status==='paid'&&p.verified_at&&dateKey(p.verified_at)===today).reduce((sum,p)=>sum+Math.round(Number(p.amount)*100),0),
+    nextHandoff:sorted(active.filter(o=>o.receiving_start&&Date.parse(o.receiving_end||o.receiving_start)>=now.getTime()&&o.status!=='pending'))[0]||null
   };
 }
