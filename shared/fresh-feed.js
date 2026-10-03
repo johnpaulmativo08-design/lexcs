@@ -182,20 +182,47 @@
   }
   // Reviews tab: approved reviews for customers; the owner sees every review and can show or hide it.
   const stars = (n) => `<span class="fresh-stars" role="img" aria-label="${n} out of 5 stars">${'★'.repeat(n)}<span>${'★'.repeat(5 - n)}</span></span>`;
+  // A review card names what was ordered (size, quantity, custom design); tapping it opens that product.
+  const DESIGNED = { bento: 'Custom bento design', cupcake: 'Custom cupcake design', donut: 'Custom donut design', cakepop: 'Custom cake pop design' };
+  const reviewDate = (iso) => new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(iso));
   function reviewHtml(r) {
-    const owner = state.owner, hidden = r.visibility === 'hidden';
-    return `<article class="fresh-review${owner && hidden ? ' is-hidden' : ''}" data-review="${esc(r.id)}">
-      <div class="fresh-review-top">${stars(Math.max(1, Math.min(5, Number(r.rating) || 0)))}${owner ? `<span class="fresh-owner-badge">${hidden ? 'Hidden from customers' : 'Shown on site'}</span>` : ''}</div>
+    const owner = state.owner, hidden = r.visibility === 'hidden', rating = Math.max(1, Math.min(5, Number(r.rating) || 0));
+    const items = Array.isArray(r.items) ? r.items : [];
+    const itemRow = (it) => {
+      const prod = catalogProduct(it.product_id);
+      const meta = [it.size, it.quantity > 1 ? `×${it.quantity}` : ''].filter(Boolean).join(' · ');
+      // product photo: the catalog image, or the storefront's photo for that menu item
+      const local = typeof products !== 'undefined' ? products.find((x) => x.product_id === it.product_id) : null;
+      const photo = productImage(prod) || (local && typeof PRODUCT_IMAGES !== 'undefined' ? PRODUCT_IMAGES[local.id] : '');
+      return `<button type="button" class="fresh-review-item" data-review-product="${esc(it.product_id || '')}"${prod ? '' : ' data-unavailable'}>
+          <span class="fresh-review-thumb">${photo ? `<img src="${esc(photo)}" alt="" loading="lazy">` : '<span class="fresh-linked-ph" aria-hidden="true">🧁</span>'}</span>
+          <span class="fresh-review-item-text"><strong>${esc(prod?.name || it.name)}</strong>${meta ? `<small>${esc(meta)}</small>` : ''}${it.designer ? `<em class="fresh-review-tag">${esc(DESIGNED[it.designer] || 'Custom design')}</em>` : ''}</span>
+          ${prod ? icon('arrow', 'ui-icon fresh-review-go') : ''}</button>`;
+    };
+    return `<article class="fresh-review${owner && hidden ? ' is-hidden' : ''}" data-review="${esc(r.id)}"${items[0]?.product_id ? ` data-review-first="${esc(items[0].product_id)}"` : ''}>
+      <div class="fresh-review-top">${stars(rating)}<b class="fresh-review-score">${rating.toFixed(1)}</b>${owner ? `<span class="fresh-owner-badge">${hidden ? 'Hidden from customers' : 'Shown on site'}</span>` : ''}</div>
       ${r.review_text ? `<p class="fresh-review-text">“${esc(r.review_text)}”</p>` : ''}
-      <div class="fresh-review-foot"><strong>${esc(r.public_display_name)}</strong><span>Verified order · ${esc(timeAgo(r.created_at))}</span></div>
+      ${items.length ? `<div class="fresh-review-items"><span class="fresh-review-label">Ordered</span>${items.slice(0, 2).map(itemRow).join('')}${items.length > 2 ? `<small class="fresh-review-more">+${items.length - 2} more item${items.length - 2 === 1 ? '' : 's'}</small>` : ''}</div>` : ''}
+      <div class="fresh-review-foot"><span class="fresh-review-avatar" aria-hidden="true">${esc((r.public_display_name || '?').trim().charAt(0).toUpperCase())}</span><span><strong>${esc(r.public_display_name)}</strong><small>${icon('check', 'ui-icon fresh-review-check')}Verified order · ${esc(reviewDate(r.created_at))}</small></span></div>
       ${owner ? `<button type="button" class="fresh-btn${hidden ? ' fresh-btn--primary' : ''}" data-review-toggle="${esc(r.id)}">${hidden ? 'Show on site' : 'Hide'}</button>` : ''}
     </article>`;
   }
+  function openReviewProduct(id) {
+    const prod = catalogProduct(id);
+    if (!prod) { showToast('This treat is not available to order right now.'); return; }
+    goToProduct(prod);
+  }
   async function loadReviews(token) {
     try {
-      const rows = state.owner
-        ? LexcBackend.unwrap(await client().from('reviews').select('id,rating,review_text,public_display_name,visibility,created_at').order('created_at', { ascending: false }))
-        : await LexcBackend.rpc('get_public_reviews', {});
+      // get_review_feed (phase 42) adds what was ordered; older databases fall back to the plain review list.
+      let rows;
+      try { rows = await LexcBackend.rpc('get_review_feed', { include_hidden: state.owner }); }
+      catch (error) {
+        if (!/get_review_feed|PGRST202|42883/i.test(`${error?.code} ${error?.message}`)) throw error;
+        rows = state.owner
+          ? LexcBackend.unwrap(await client().from('reviews').select('id,rating,review_text,public_display_name,visibility,created_at').order('created_at', { ascending: false }))
+          : await LexcBackend.rpc('get_public_reviews', {});
+      }
       if (token !== state.token) return;
       state.reviews = new Map((rows || []).map((r) => [r.id, r]));
       grid.innerHTML = '';
@@ -204,6 +231,12 @@
       grid.style.setProperty('--fresh-cols', columns());
       grid.querySelectorAll('.fresh-cell').forEach((cell) => { cell.dataset.sized = '1'; sizeCell(cell); cardObserver?.observe(cell.firstElementChild); });
       state.items = rows || []; state.done = true;
+      // product names, photos and links come from the menu; redraw once it has loaded
+      if (window.lexcCatalogState !== 'ready') whenCatalogReady(() => {
+        if (token !== state.token || state.kind !== 'reviews') return;
+        grid.querySelectorAll('[data-review]').forEach((card) => { const r = state.reviews.get(card.dataset.review); if (r) card.outerHTML = reviewHtml(r); });
+        grid.querySelectorAll('.fresh-cell').forEach(sizeCell);
+      });
     } catch (error) {
       if (token !== state.token) return;
       console.warn('Reviews could not load:', error);
@@ -334,6 +367,8 @@
     const product = t.closest('[data-product]'); if (product) { const post = state.byId.get(product.dataset.product); if (post?.product) goToProduct(post.product); return; }
     const menu = t.closest('[data-menu]'); if (menu) return openMenu(menu, state.byId.get(menu.dataset.menu));
     const reviewToggle = t.closest('[data-review-toggle]'); if (reviewToggle) return toggleReview(reviewToggle.dataset.reviewToggle, reviewToggle);
+    const reviewProduct = t.closest('[data-review-product]'); if (reviewProduct) return openReviewProduct(reviewProduct.dataset.reviewProduct);
+    const reviewCard = t.closest('[data-review-first]'); if (reviewCard && !t.closest('a,button')) return openReviewProduct(reviewCard.dataset.reviewFirst);
     const open = t.closest('[data-open]'); if (open) return openViewer(state.byId.get(open.dataset.open), open);
     if (t.closest('[data-retry]')) return load(!state.items.length);
     if (t.closest('[data-more]')) return load(false);
