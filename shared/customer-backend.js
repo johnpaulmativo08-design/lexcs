@@ -13,11 +13,11 @@ const slotLabel=s=>phTime(s.starts_at)+'–'+phTime(s.ends_at);
 const bookingDateLabel=value=>new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric'}).format(new Date(value+'T12:00:00+08:00'));
 async function loadStorefront(){
  window.lexcCatalogState='loading';
- renderShop();renderGallery();
+ renderShop();
  const packageContainer=document.querySelector('#page-packages .pkg-grid');
  if(packageContainer)packageContainer.innerHTML=Array.from({length:3},()=>'<div class="pkg-card pkg-card-skeleton" aria-hidden="true"><span class="skel skel-title"></span><span class="skel skel-line skel-line--short"></span><span class="skel skel-value"></span><span class="skel skel-button"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-line"></span></div>').join('');
  try{
-  const [catalog,categories,gallery,methods]=await Promise.all([LexcBackend.catalog(),LexcBackend.categories(),LexcBackend.gallery(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
+  const [catalog,categories,methods]=await Promise.all([LexcBackend.catalog(),LexcBackend.categories(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
   liveCatalog=catalog.filter(p=>p.status==='active');
   const methodRoot=document.getElementById('checkoutPaymentMethods');
   methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'" aria-pressed="false"><span class="co-option-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span><span>'+authEscape(m.display_name)+'</span></button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
@@ -27,7 +27,6 @@ async function loadStorefront(){
    sizes:p.product_variants.filter(v=>v.is_active).map(v=>({id:v.id,label:v.label,price:Number(v.price)}))
   })).filter(p=>p.sizes.length).map(p=>({...p,price:p.sizes[0].price})));
   for(const p of products){const db=liveCatalog.find(d=>d.id===p.product_id);if(db.image_path)PRODUCT_IMAGES[p.id]=LexcBackend.mediaURL(db.image_path);}
-  galleryItems.splice(0,galleryItems.length,...gallery.filter(g=>g.visibility==='visible').map(g=>({img:LexcBackend.mediaURL(g.image_path),label:g.label,desc:g.description,cat:g.category,size:g.display_size==='tall'?'tall':''})));
   const filters=document.getElementById('catFilters'),all=filters.querySelector('[data-cat=all]')?.outerHTML||'';
   filters.innerHTML=all+categories.filter(c=>c.is_active).map(c=>'<button class="filter-item" data-cat="'+authEscape(c.slug)+'">'+authEscape(c.name)+' <span>'+products.filter(p=>p.cat===c.slug).length+'</span></button>').join('');
   if (packageContainer) {
@@ -39,8 +38,8 @@ async function loadStorefront(){
   }
   window.lexcCatalogState='ready';
   document.dispatchEvent(new Event('lexc:catalog-ready'));
-  renderShop();updateCategoryCounts();renderCart();renderGallery();
- }catch(error){console.warn('Storefront could not load:',error);window.lexcCatalogState='error';renderShop();renderGallery();if(packageContainer)packageContainer.innerHTML='<div class="shop-no-results" role="alert"><strong>Packages could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>';document.getElementById('checkoutPaymentMethods').innerHTML='<p role="alert">Payment methods could not load. <button type="button" class="btn-outline" onclick="loadStorefront()">Try again</button></p>';}
+  renderShop();updateCategoryCounts();renderCart();
+ }catch(error){console.warn('Storefront could not load:',error);window.lexcCatalogState='error';renderShop();if(packageContainer)packageContainer.innerHTML='<div class="shop-no-results" role="alert"><strong>Packages could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>';document.getElementById('checkoutPaymentMethods').innerHTML='<p role="alert">Payment methods could not load. <button type="button" class="btn-outline" onclick="loadStorefront()">Try again</button></p>';}
 }
 function addPackageToCart(name){
  const p=liveCatalog.find(p=>p.kind==='package'&&p.name===name),v=p?.product_variants.find(v=>v.is_active);

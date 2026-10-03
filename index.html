@@ -495,35 +495,6 @@ input[type=range]{width:100%;accent-color:var(--plum);}
 .add-btn{width:30px;height:30px;background:var(--plum);color:white;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s,transform 0.15s;}
 .add-btn:hover{background:var(--dark);transform:scale(1.1);}
 
-#page-gallery .page-hero{background:transparent;padding-top:130px;position:relative;overflow:hidden;}
-#page-gallery .page-hero::before{content:'';position:absolute;top:-100px;right:-100px;width:500px;height:500px;background:var(--plum);border-radius:50%;opacity:0.18;filter:blur(80px);}
-#page-gallery .page-title{color:white;}
-#page-gallery .page-sub{color:rgba(255,255,255,0.5);}
-#page-gallery .breadcrumb a{color:rgba(255,255,255,0.4);}
-#page-gallery .breadcrumb a:hover{color:var(--lavender);}
-.gallery-filters{display:flex;gap:0.75rem;flex-wrap:wrap;padding:0 7vw;margin-bottom:2rem;}
-.gpill{padding:8px 20px;border-radius:100px;border:1.5px solid rgba(195,178,215,0.3);background:transparent;font-size:0.8rem;font-weight:600;color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
-.gpill:hover{border-color:var(--lavender);color:var(--lavender);}
-.gpill.active{background:var(--plum);border-color:var(--plum);color:white;}
-.gallery-masonry{columns:4 200px;column-gap:12px;padding:0 7vw 80px;}
-.gallery-item{break-inside:avoid;margin-bottom:12px;border-radius:16px;overflow:hidden;cursor:pointer;position:relative;background:linear-gradient(135deg,#2a1a35,#3a2040);display:block;transition:transform 0.3s;min-height:180px;}
-.gallery-item:hover{transform:scale(0.97);}
-.gallery-item:hover .gallery-overlay{opacity:1;}
-.gallery-emoji{font-size:4rem;padding:40px 20px;display:block;text-align:center;line-height:1;}
-.gallery-item.tall{min-height:300px;}
-.gallery-item.tall .gallery-emoji{padding:70px 20px;}
-.gallery-overlay{position:absolute;inset:0;background:rgba(92,61,110,0.7);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;}
-.gallery-overlay-icon{font-size:2rem;filter:brightness(0) invert(1);}
-.gallery-label{position:absolute;bottom:12px;left:14px;right:14px;font-size:0.75rem;font-weight:600;color:white;opacity:0;transition:opacity 0.3s;text-shadow:0 1px 4px rgba(0,0,0,0.4);}
-.gallery-item:hover .gallery-label{opacity:1;}
-.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s;}
-.lightbox.open{opacity:1;pointer-events:all;}
-.lightbox-content{background:#1a0f22;border-radius:20px;padding:50px;text-align:center;max-width:400px;position:relative;}
-.lightbox-emoji{font-size:8rem;margin-bottom:1rem;}
-.lightbox-name{font-family:'Playfair Display',serif;font-size:1.6rem;color:white;margin-bottom:0.5rem;}
-.lightbox-desc{font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:1.5rem;}
-.lightbox-close{position:absolute;top:16px;right:18px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.4rem;cursor:pointer;transition:color 0.2s;}
-.lightbox-close:hover{color:white;}
 .btn-shop-lb{display:inline-block;background:var(--plum);color:white;padding:12px 28px;border-radius:100px;font-size:0.82rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none;transition:background 0.2s;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;}
 .btn-shop-lb:hover{background:#7a4e96;}
 
@@ -538,7 +509,6 @@ input[type=range]{width:100%;accent-color:var(--plum);}
   .footer-grid{grid-template-columns:1fr 1fr;}
   .custom-banner{grid-template-columns:1fr;}
   .shop-wrapper{grid-template-columns:1fr;}.sidebar{position:static;}
-  .gallery-masonry{columns:2 150px;}
 }
 
 .auth-wrap{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;}
@@ -686,7 +656,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <link rel="stylesheet" href="shared/customer-flow.css?v=8">
 <link rel="stylesheet" href="shared/product-detail.css?v=3">
 <link rel="stylesheet" href="shared/chat-widget.css?v=4">
-<link rel="stylesheet" href="shared/fresh-feed.css?v=1">
+<link rel="stylesheet" href="shared/fresh-feed.css?v=2">
 <link rel="stylesheet" href="shared/landing.css?v=7">
 <link rel="stylesheet" href="shared/bento-designer.css?v=15">
 <link rel="stylesheet" href="shared/cupcake-designer.css?v=7">
@@ -728,7 +698,6 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
   <button type="button" onclick="window.LexcCustom ? LexcCustom.choose() : navigate('shop')">Custom</button>
   <button type="button" onclick="navigate('fresh')">Fresh from LexC’s</button>
   <button type="button" onclick="navigate('packages')">Packages</button>
-  <button type="button" onclick="navigate('gallery')">Gallery</button>
   <button type="button" onclick="navigate('home','about')">About</button>
   <button type="button" id="customerAccountAction" onclick="openCustomerAccount()">Log in / account</button>
 </nav>
@@ -1335,23 +1304,6 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
   <div class="footer-mini"><div class="footer-bottom"><span>© 2025 LexC's Snacktime. All rights reserved.</span><span>Baked with 💜 from scratch</span></div></div>
 </div>
 
-<div id="page-gallery" class="page" style="background:var(--dark);">
-  <div class="page-hero">
-    <div class="breadcrumb"><a onclick="navigate('home')">Home</a> › Gallery</div>
-    <h1 class="page-title">Sweet <em>Moments</em></h1>
-    <p class="page-sub">A look inside our bakeshop — themed creations, everyday treats, and special orders made with love.</p>
-  </div>
-  <div class="gallery-filters">
-    <button class="gpill active" data-filter="all">All</button>
-    <button class="gpill" data-filter="cupcakes">🧁 Cupcakes</button>
-    <button class="gpill" data-filter="cookies">🍪 Cookies</button>
-    <button class="gpill" data-filter="themed">🎨 Themed</button>
-    <button class="gpill" data-filter="packages">📦 Packages</button>
-  </div>
-  <div class="gallery-masonry" id="galleryGrid"></div>
-  <div class="footer-mini" style="background:#100a14;"><div class="footer-bottom"><span>© 2025 LexC's Snacktime. All rights reserved.</span><span>Baked with 💜</span></div></div>
-</div>
-
 <div id="page-fresh" class="page fresh-page">
   <div class="fresh-wrap">
     <header class="fresh-head">
@@ -1368,6 +1320,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
         <button type="button" class="fresh-tab" role="tab" id="fresh-tab-photos" data-kind="photos" aria-selected="false" aria-controls="freshFeed" tabindex="-1">Photos</button>
         <button type="button" class="fresh-tab" role="tab" id="fresh-tab-videos" data-kind="videos" aria-selected="false" aria-controls="freshFeed" tabindex="-1">Videos</button>
         <button type="button" class="fresh-tab" role="tab" id="fresh-tab-updates" data-kind="updates" aria-selected="false" aria-controls="freshFeed" tabindex="-1">Updates</button>
+        <button type="button" class="fresh-tab" role="tab" id="fresh-tab-reviews" data-kind="reviews" aria-selected="false" aria-controls="freshFeed" tabindex="-1">Reviews</button>
       </div>
       <div class="fresh-owner-modes" role="group" aria-label="Owner view" data-fresh-owner hidden>
         <button type="button" data-mode="live" aria-pressed="true">Live</button>
@@ -1390,16 +1343,6 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <div id="page-cupcake" class="page bd-page cd-page"></div>
 <div id="page-donut" class="page bd-page cd-page dd-page"></div>
 <div id="page-cakepop" class="page bd-page cd-page dd-page"></div>
-
-<div class="lightbox" id="lightbox">
-  <div class="lightbox-content">
-    <button class="lightbox-close" id="lbClose">✕</button>
-    <div class="lightbox-emoji" id="lbEmoji"></div>
-    <div class="lightbox-name" id="lbName"></div>
-    <div class="lightbox-desc" id="lbDesc"></div>
-    <button class="btn-shop-lb" onclick="navigate('shop');document.getElementById('lightbox').classList.remove('open');">Order This →</button>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1552,7 +1495,7 @@ function updateCustomerMobileNavigation() {
     else button.removeAttribute('aria-current');
   });
   const moreButton = document.getElementById('customerMoreButton');
-  if (['packages', 'gallery'].includes(active)) moreButton.setAttribute('aria-current', 'page');
+  if (['packages'].includes(active)) moreButton.setAttribute('aria-current', 'page');
   else moreButton.removeAttribute('aria-current');
   const account = document.getElementById('customerAccountAction');
   account.textContent = currentUser ? 'Log out · ' + (currentUser.name || currentUser.email) : 'Log in / account';
@@ -1571,6 +1514,7 @@ function toggleCustomerMoreMenu() {
   document.body.classList.toggle('customer-more-open', open);
 }
 function navigate(page, anchor) {
+  if (page === 'gallery') page = 'fresh';   // the gallery was folded into Updates (Fresh from LexC's)
   closeCustomerMoreMenu();
   if (page === 'checkout' && !currentUser) {
     checkoutAuthPending = true;
@@ -1587,11 +1531,7 @@ function navigate(page, anchor) {
   mainNav.style.display = 'flex';
 
   
-  if (page === 'gallery') {
-    mainNav.classList.add('dark-nav');
-  } else {
-    mainNav.classList.remove('dark-nav');
-  }
+  mainNav.classList.remove('dark-nav');
 
   
   const target = document.getElementById('page-' + page);
@@ -1610,7 +1550,6 @@ function navigate(page, anchor) {
   
   if (page === 'home') { initHome(); initFaq(); }
   if (page === 'shop') initShop();
-  if (page === 'gallery') initGallery();
   if (page === 'fresh') window.LexcFresh?.show();
   if (page === 'checkout') { renderCheckout(); }
   if (page === 'packages') {  }
@@ -2047,68 +1986,6 @@ function resetCarouselTimer() {
   startCarouselTimer();
 }
 
-const galleryItems = [
-  {img:'https://images.unsplash.com/photo-1607478900766-efe13248b125?w=400&h=600&fit=crop&auto=format',label:'Lavender Cupcakes',desc:'Custom lavender frosting, gold sprinkles',cat:'cupcakes',size:'tall'},
-  {img:'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400&h=400&fit=crop&auto=format',label:'Chunky Cookies',desc:'Double chocolate, loaded with chips',cat:'cookies',size:''},
-  {img:'https://images.unsplash.com/photo-1558636508-e0969431e749?w=400&h=400&fit=crop&auto=format',label:'Gender Reveal Box',desc:'Pink & blue themed, custom order',cat:'themed',size:''},
-  {img:'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&h=400&fit=crop&auto=format',label:'Fudge Brownies',desc:'Rich, dense, melt-in-your-mouth',cat:'cookies',size:''},
-  {img:'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=600&fit=crop&auto=format',label:'Birthday Themed Cake',desc:'Custom design for special occasions',cat:'themed',size:'tall'},
-  {img:'https://images.unsplash.com/photo-1551106652-a5bcf4b29ab6?w=400&h=400&fit=crop&auto=format',label:'Glazed Donut Pops',desc:'Classic glaze, assorted colors',cat:'cupcakes',size:''},
-  {img:'https://images.unsplash.com/photo-1621303837174-89787a7d4729?w=400&h=400&fit=crop&auto=format',label:'Party Package',desc:'12 assorted pastries, gift-wrapped',cat:'packages',size:''},
-  {img:'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&h=400&fit=crop&auto=format',label:'Ube Cupcakes',desc:'Filipino ube flavour with cream cheese frost',cat:'cupcakes',size:''},
-  {img:'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=400&h=600&fit=crop&auto=format',label:'Mango Cheesecake',desc:'No-bake, fresh mango, creamy base',cat:'themed',size:'tall'},
-  {img:'https://images.unsplash.com/photo-1549312166-78a8c44e1c5e?w=400&h=400&fit=crop&auto=format',label:'Gift Box Set',desc:'Cupcakes + brownies, ribbon-tied',cat:'packages',size:''},
-  {img:'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=400&fit=crop&auto=format',label:'Banana Loaf',desc:'Loaded variant with choco chips',cat:'cookies',size:''},
-  {img:'https://images.unsplash.com/photo-1488477304112-4944851de03d?w=400&h=400&fit=crop&auto=format',label:'Leche Flan Cups',desc:'Silky smooth, classic Filipino',cat:'themed',size:''},
-  {img:'https://images.unsplash.com/photo-1519869325930-281384150729?w=400&h=600&fit=crop&auto=format',label:'Rainbow Cupcakes',desc:'6 flavors, colorful frosting swirls',cat:'cupcakes',size:'tall'},
-  {img:'https://images.unsplash.com/photo-1558303701-28f8e64df76e?w=400&h=400&fit=crop&auto=format',label:'Cheesecake Slice',desc:'New York style, graham crust',cat:'themed',size:''},
-];
-
-let galleryFilter = 'all';
-let galleryInited = false;
-
-function initGallery() {
-  renderGallery();
-  if (!galleryInited) {
-    galleryInited = true;
-    document.querySelectorAll('.gpill').forEach(pill => {
-      pill.addEventListener('click', () => {
-        document.querySelectorAll('.gpill').forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
-        galleryFilter = pill.dataset.filter;
-        renderGallery();
-      });
-    });
-    document.getElementById('lbClose').addEventListener('click', () => document.getElementById('lightbox').classList.remove('open'));
-    document.getElementById('lightbox').addEventListener('click', e => {
-      if (e.target === document.getElementById('lightbox')) document.getElementById('lightbox').classList.remove('open');
-    });
-  }
-}
-
-function renderGallery() {
-  if (window.lexcCatalogState === 'loading') { document.getElementById('galleryGrid').innerHTML = Array.from({length:6},() => '<div class="gallery-item gallery-item-skeleton" aria-hidden="true"><span class="skel skel-image"></span></div>').join(''); return; }
-  if (window.lexcCatalogState === 'error') { document.getElementById('galleryGrid').innerHTML = '<div class="shop-no-results" role="alert"><strong>Gallery could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>'; return; }
-  const items = galleryFilter === 'all' ? galleryItems : galleryItems.filter(i => i.cat === galleryFilter);
-  document.getElementById('galleryGrid').innerHTML = items.map((item) => `
-    <div class="gallery-item ${item.size}" onclick="openLightbox(${galleryItems.indexOf(item)})">
-      <img src="${authEscape(item.img)}" alt="${authEscape(item.label)}" style="width:100%;height:100%;object-fit:cover;display:block;">
-      <div class="gallery-overlay"><span class="gallery-overlay-icon" style="filter:none;font-size:1.5rem;color:white;">🔍</span></div>
-      <div class="gallery-label">${authEscape(item.label)}</div>
-    </div>
-  `).join('') || '<p class="shop-no-results">No gallery photos match this view.</p>';
-}
-
-function openLightbox(idx) {
-  const item = galleryItems[idx];
-  const emojiEl = document.getElementById('lbEmoji');
-  emojiEl.innerHTML = `<img src="${authEscape(item.img)}" alt="${authEscape(item.label)}" style="width:180px;height:180px;object-fit:cover;border-radius:16px;margin-bottom:0;">`;
-  emojiEl.style.fontSize = 'unset';
-  document.getElementById('lbName').textContent = item.label;
-  document.getElementById('lbDesc').textContent = item.desc;
-  document.getElementById('lightbox').classList.add('open');
-}
-
 function initFaq() {
   document.querySelectorAll('.faq-question').forEach(btn => {
     if (btn._faqInited) return;
@@ -2399,9 +2276,9 @@ document.getElementById('loginName').value = localStorage.getItem('lexc_login_hi
 document.getElementById('loginRemember').checked = Boolean(localStorage.getItem('lexc_login_hint'));
 </script>
 
-<script src="shared/customer-backend.js?v=21"></script>
+<script src="shared/customer-backend.js?v=22"></script>
 <script src="shared/product-detail.js?v=10"></script>
-<script src="shared/fresh-feed.js?v=4"></script>
+<script src="shared/fresh-feed.js?v=7"></script>
 <script src="shared/landing.js?v=2"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/bento-designer.js?v=27"></script>

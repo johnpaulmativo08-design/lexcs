@@ -14,7 +14,8 @@
   const EMPTY = {
     all: ['Nothing fresh yet', 'New treats, kitchen moments and store updates will appear here soon.'],
     photos: ['No photos yet', 'Snack photos will show up here.'], videos: ['No videos yet', 'Short kitchen videos will show up here.'],
-    updates: ['No updates yet', 'Store news and announcements will show up here.']
+    updates: ['No updates yet', 'Store news and announcements will show up here.'],
+    reviews: ['No reviews yet', 'Customers can rate their completed orders from My Orders. Approved reviews appear here.']
   };
   const ICONS = {
     plus: '<path d="M12 5v14M5 12h14"/>', close: '<path d="M18 6 6 18M6 6l12 12"/>', back: '<path d="m15 18-6-6 6-6"/>',
@@ -179,21 +180,67 @@
     grid.style.setProperty('--fresh-cols', columns());
     grid.querySelectorAll('.fresh-cell:not([data-sized])').forEach((cell) => { cell.dataset.sized = '1'; sizeCell(cell); cardObserver?.observe(cell.firstElementChild); });
   }
+  // Reviews tab: approved reviews for customers; the owner sees every review and can show or hide it.
+  const stars = (n) => `<span class="fresh-stars" role="img" aria-label="${n} out of 5 stars">${'★'.repeat(n)}<span>${'★'.repeat(5 - n)}</span></span>`;
+  function reviewHtml(r) {
+    const owner = state.owner, hidden = r.visibility === 'hidden';
+    return `<article class="fresh-review${owner && hidden ? ' is-hidden' : ''}" data-review="${esc(r.id)}">
+      <div class="fresh-review-top">${stars(Math.max(1, Math.min(5, Number(r.rating) || 0)))}${owner ? `<span class="fresh-owner-badge">${hidden ? 'Hidden from customers' : 'Shown on site'}</span>` : ''}</div>
+      ${r.review_text ? `<p class="fresh-review-text">“${esc(r.review_text)}”</p>` : ''}
+      <div class="fresh-review-foot"><strong>${esc(r.public_display_name)}</strong><span>Verified order · ${esc(timeAgo(r.created_at))}</span></div>
+      ${owner ? `<button type="button" class="fresh-btn${hidden ? ' fresh-btn--primary' : ''}" data-review-toggle="${esc(r.id)}">${hidden ? 'Show on site' : 'Hide'}</button>` : ''}
+    </article>`;
+  }
+  async function loadReviews(token) {
+    try {
+      const rows = state.owner
+        ? LexcBackend.unwrap(await client().from('reviews').select('id,rating,review_text,public_display_name,visibility,created_at').order('created_at', { ascending: false }))
+        : await LexcBackend.rpc('get_public_reviews', {});
+      if (token !== state.token) return;
+      state.reviews = new Map((rows || []).map((r) => [r.id, r]));
+      grid.innerHTML = '';
+      const html = (rows || []).map((r) => `<div class="fresh-cell">${reviewHtml(r)}</div>`).join('');
+      grid.insertAdjacentHTML('beforeend', html);
+      grid.style.setProperty('--fresh-cols', columns());
+      grid.querySelectorAll('.fresh-cell').forEach((cell) => { cell.dataset.sized = '1'; sizeCell(cell); cardObserver?.observe(cell.firstElementChild); });
+      state.items = rows || []; state.done = true;
+    } catch (error) {
+      if (token !== state.token) return;
+      console.warn('Reviews could not load:', error);
+      grid.innerHTML = ''; state.error = true;
+    }
+    state.loading = false; state.loaded = true; renderStatus();
+  }
+  async function toggleReview(id, button) {
+    const r = state.reviews?.get(id); if (!r || !state.owner) return;
+    const next = r.visibility === 'visible' ? 'hidden' : 'visible';
+    button.disabled = true;
+    try {
+      const saved = LexcBackend.unwrap(await client().from('reviews').update({ visibility: next }).eq('id', id).select('id'));
+      if (!saved?.length) throw new Error('No review was updated.');
+      r.visibility = next;
+      const card = grid.querySelector(`[data-review="${CSS.escape(id)}"]`);
+      if (card) card.outerHTML = reviewHtml(r);
+      showToast(next === 'visible' ? 'Review is now shown on the site.' : 'Review hidden from customers.');
+    } catch (error) { console.warn('Review update failed:', error); showToast(friendlyError(error, 'Could not update the review. Try again.')); button.disabled = false; }
+  }
+
   function skeleton() {
     const heights = [260, 180, 320, 220, 280, 200, 240, 300];
     grid.style.setProperty('--fresh-cols', columns());
     grid.innerHTML = heights.slice(0, columns() * 2).map((h) => `<div class="fresh-cell" style="grid-row-end:span ${Math.ceil((h + 14) / 2)}"><span class="skel fresh-skel" style="height:${h}px" aria-hidden="true"></span></div>`).join('');
-    status.innerHTML = '<span class="fresh-sr" role="status">Loading posts…</span>';
+    status.innerHTML = `<span class="fresh-sr" role="status">${state.kind === 'reviews' ? 'Loading reviews…' : 'Loading posts…'}</span>`;
   }
 
   function renderStatus() {
     if (state.error) {
       const first = !state.items.length;
-      status.innerHTML = `<div role="alert"><strong>${first ? 'Posts could not load.' : 'More posts could not load.'}</strong><p>Check your connection and try again.</p></div><button type="button" class="fresh-btn" data-retry>Try again</button>`;
+      status.innerHTML = `<div role="alert"><strong>${state.kind === 'reviews' ? 'Reviews could not load.' : first ? 'Posts could not load.' : 'More posts could not load.'}</strong><p>Check your connection and try again.</p></div><button type="button" class="fresh-btn" data-retry>Try again</button>`;
       return;
     }
     if (!state.items.length && !state.loading) {
       let title, text, action;
+      if (state.kind === 'reviews') { [title, text] = EMPTY.reviews; status.innerHTML = `<strong>${title}</strong><p>${text}</p>`; return; }
       if (state.mode === 'drafts') [title, text] = ['No drafts', 'Posts you save as drafts wait here until you publish them.'];
       else if (state.mode === 'archived') [title, text] = ['Nothing archived', 'Archived posts are hidden from customers and kept here.'];
       else [title, text] = EMPTY[state.kind];
@@ -203,6 +250,7 @@
       status.innerHTML = `<strong>${title}</strong><p>${text}</p>${action || ''}`;
       return;
     }
+    if (state.kind === 'reviews') { status.innerHTML = ''; return; }
     status.innerHTML = state.done ? (state.items.length > PAGE_SIZE ? '<p>You’re all caught up.</p>' : '')
       : `<button type="button" class="fresh-btn" data-more${state.loading ? ' disabled' : ''}>${state.loading ? 'Loading…' : 'Load more posts'}</button>`;
   }
@@ -223,7 +271,9 @@
     if (reset) {
       Object.assign(state, { items: [], cursor: null, done: false, error: false, loading: true });
       state.byId.clear(); skeleton();
+      if (state.kind === 'reviews') return loadReviews(token);
     } else {
+      if (state.kind === 'reviews') return;
       if (state.loading || state.done) return;
       state.loading = true; state.error = false; renderStatus();
     }
@@ -260,6 +310,7 @@
     state.kind = kind;
     tabs.forEach((t) => { const on = t.dataset.kind === kind; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; if (on && focus) t.focus(); });
     grid.setAttribute('aria-labelledby', `fresh-tab-${kind}`);
+    page.classList.toggle('is-reviews', kind === 'reviews');
     load(true);
   }
   tabs.forEach((t) => {
@@ -282,6 +333,7 @@
     const t = e.target;
     const product = t.closest('[data-product]'); if (product) { const post = state.byId.get(product.dataset.product); if (post?.product) goToProduct(post.product); return; }
     const menu = t.closest('[data-menu]'); if (menu) return openMenu(menu, state.byId.get(menu.dataset.menu));
+    const reviewToggle = t.closest('[data-review-toggle]'); if (reviewToggle) return toggleReview(reviewToggle.dataset.reviewToggle, reviewToggle);
     const open = t.closest('[data-open]'); if (open) return openViewer(state.byId.get(open.dataset.open), open);
     if (t.closest('[data-retry]')) return load(!state.items.length);
     if (t.closest('[data-more]')) return load(false);

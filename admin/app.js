@@ -4,7 +4,6 @@ import { openInventoryNotifications, refreshInventoryNotificationBadge, renderIn
 import { renderReports } from './pages/reports.js?v=5';
 import { renderOrders } from './pages/orders.js?v=22';
 import { renderBookings } from './pages/bookings.js?v=10';
-import { renderGallery } from './pages/gallery.js?v=3';
 import { renderDesignOptions } from './pages/design-options.js?v=11';
 import { renderProfile } from './pages/profile.js?v=3';
 import { mountChat } from '../shared/chat.js?v=14';
@@ -14,12 +13,12 @@ import { icon } from './components.js?v=3';
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
   ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['bookings', 'Bookings'],
-    // Posts are written on the storefront's "Fresh from LexC's" page (owner composer), not inside Admin.
-    ['fresh-posts', 'Fresh posts ↗', '../index.html?fresh=1', 'gallery']]],
-  ['Analytics', [['reports', 'Reports'], ['gallery', 'Gallery']]],
+    // Posts and review moderation live on the storefront's Updates page ("Fresh from LexC's", owner view).
+    ['fresh-posts', 'Updates & reviews ↗', '../index.html?fresh=1', 'gallery']]],
+  ['Analytics', [['reports', 'Reports']]],
   ['Account', [['profile', 'Profile']]],
 ];
-const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Booking Schedule', reports: 'Reports', gallery: 'Gallery', profile: 'Profile' };
+const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Booking Schedule', reports: 'Reports', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
@@ -102,6 +101,7 @@ async function renderRoute() {
   mountChatWidget({admin:true});
   document.querySelector('#admin-dialog')?.close();
   const route = location.hash.slice(1) || 'dashboard';
+  if (route === 'gallery') { location.href = '../index.html?fresh=1'; return; }   // Gallery moved: reviews are on Updates
   const page = route.split('/')[0];
   const current = Object.hasOwn(titles, page) ? page : 'dashboard';
   document.body.classList.toggle('inventory-view', current === 'inventory');
@@ -125,7 +125,6 @@ async function renderRoute() {
   else if (current === 'reports') await renderReports(content, subpage);
   else if (current === 'orders') await renderOrders(content);
   else if (current === 'bookings') await renderBookings(content);
-  else if (current === 'gallery') await renderGallery(content);
   else if (current === 'designs') await renderDesignOptions(content);
   else if (current === 'profile') await renderProfile(content, subpage);
   await refreshInventoryNotificationBadge();

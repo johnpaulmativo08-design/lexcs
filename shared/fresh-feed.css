@@ -223,3 +223,17 @@
   .fresh-caption-input{font-size:1rem}
 }
 @media (prefers-reduced-motion:reduce){.fresh-progress-bar>span{transition:none}}
+
+/* Reviews tab: customer reviews as cards in the same masonry grid; owner can show or hide each one. */
+.fresh-page.is-reviews .fresh-owner-modes,.fresh-page.is-reviews .fresh-prompt{display:none!important}
+.fresh-review{display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid #eadff5;border-radius:16px;background:#fff;box-shadow:0 4px 16px rgba(92,61,110,.07)}
+.fresh-review.is-hidden{background:#faf8fc;border-style:dashed}
+.fresh-review.is-hidden .fresh-review-text,.fresh-review.is-hidden .fresh-stars{opacity:.55}
+.fresh-review-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.fresh-stars{color:#e0a100;font-size:1.15rem;letter-spacing:2px}
+.fresh-stars span{color:#e3dcee}
+.fresh-review-text{margin:0;color:#3a2840;font-size:.98rem;line-height:1.55}
+.fresh-review-foot{display:flex;flex-direction:column;gap:2px}
+.fresh-review-foot strong{color:#5c3d6e;font-size:.95rem}
+.fresh-review-foot span{color:#8a7898;font-size:.8rem}
+.fresh-review .fresh-btn{align-self:flex-start}
