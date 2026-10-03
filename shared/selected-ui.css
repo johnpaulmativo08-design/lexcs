@@ -84,3 +84,11 @@
   .bd-card[aria-checked="true"]::after, .co-option.selected::after, .cd-theme[aria-checked="true"]::after { animation: none; }
   .bd-card:active, .bd-chip:active, .cd-theme:active, .cd-preset:active, .co-option:active, .pd-option:active, .lp-chips button:active { transform: none; }
 }
+
+/* Checkout field checks: the requirement under each field, green when met, red when not. */
+.co-hint{margin:6px 2px 0;font-size:.8rem;line-height:1.4;color:#8a7898}
+.co-hint.is-good{color:#087c58;font-weight:600}
+.co-hint.is-bad{color:#c0263f;font-weight:600}
+.co-input.is-invalid{border-color:#e07a8b!important;background:#fff8f9}
+.co-input.is-invalid:focus{box-shadow:0 0 0 3px rgba(224,122,139,.2)}
+.co-input.is-valid{border-color:#8fcfb4!important}

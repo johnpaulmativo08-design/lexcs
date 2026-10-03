@@ -68,12 +68,12 @@ select pg_temp.check((select customization_summary like 'Bento Cake – Chocolat
 
 -- 3. Tampering is rejected -------------------------------------------------------------------------
 set role authenticated; select pg_temp.who('00000000-0000-0000-0000-00000000000c');
-select pg_temp.check(pg_temp.fails($$select public.create_order(jsonb_build_object('request_id', gen_random_uuid(), 'name', 'T', 'phone', '09171234567', 'fulfillment', 'pickup',
+select pg_temp.check(pg_temp.fails($$select public.create_order(jsonb_build_object('request_id', gen_random_uuid(), 'name', 'Test Customer', 'phone', '09171234567', 'fulfillment', 'pickup',
   'slot_id', (select v from t where k='slot'), 'payment_method', 'maribank', 'items', jsonb_build_array(jsonb_build_object('variant_id', (select v from t where k='other'), 'qty', 1,
   'customization', (select d from designs where k='simple')))))$$) like '%not available for this product%', 'design on a non-designable product rejected');
-select pg_temp.check(pg_temp.fails($$select public.create_order(jsonb_build_object('request_id', gen_random_uuid(), 'name', 'T', 'phone', '09171234567', 'fulfillment', 'pickup',
+select pg_temp.check(pg_temp.fails($$select public.create_order(jsonb_build_object('request_id', gen_random_uuid(), 'name', 'Test Customer', 'phone', '09171234567', 'fulfillment', 'pickup',
   'slot_id', (select v from t where k='slot'), 'payment_method', 'maribank', 'items', jsonb_build_array(jsonb_build_object('variant_id', (select v from t where k='plain'), 'qty', 1,
   'customization', '{"designer":"bento","frosting_color":"white","extras_per_item":0,"accents":["gold_leaf"],"price":1}'::jsonb))))->'items'->0->'customization'->>'extras_per_item'$$) is null, 'client-sent price fields ignored (server recomputes)');
 reset role;
-select pg_temp.check((select (customization->>'extras_per_item')::numeric = 3 from public.order_items where customization->'accents' ? 'gold_leaf' order by id desc limit 1), 'gold leaf charged ₱3 despite tampered payload');
+select pg_temp.check(exists (select 1 from public.order_items where customization->'accents' = '["gold_leaf"]'::jsonb and customization->>'frosting_color' = 'white' and (customization->>'extras_per_item')::numeric = 3), 'gold leaf charged ₱3 despite tampered payload');
 rollback;

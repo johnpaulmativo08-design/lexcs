@@ -82,8 +82,9 @@ async function submitCheckout(){
   if(!selectedItems.length)return showToast('Select at least one cart item to place an order.');
  const field=id=>document.getElementById(id).value.trim();
  const needField=(id,message)=>{const input=document.getElementById(id);input.focus();input.scrollIntoView({block:'center',behavior:'smooth'});showToast(message);};
- if(!field('coName'))return needField('coName','Enter your full name.');
- if(field('coContact').length<5||field('coContact').length>40)return needField('coContact','Enter a contact number, like 0917 123 4567.');
+ // name, mobile number, delivery address and notes: the same rules the database enforces (phase 43)
+ const problem=window.LexcCheckoutChecks?.firstProblem();
+ if(problem)return needField(problem.id,problem.message);
  if(!field('coDate')||!field('coTime'))return showToast('Choose a booking date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
   if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
