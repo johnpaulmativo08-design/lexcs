@@ -2078,6 +2078,7 @@ document.addEventListener('keydown',event=>{
 });
 
 async function renderDtCalendar() {
+  if (!Number.isInteger(dtYear) || !Number.isInteger(dtMonth)) { const now = new Date(); dtYear = now.getFullYear(); dtMonth = now.getMonth(); }
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
   document.getElementById('dtMonthLabel').textContent = `${MONTHS[dtMonth]} ${dtYear}`;
@@ -2092,9 +2093,13 @@ async function renderDtCalendar() {
   grid.setAttribute('aria-busy','true');
   grid.innerHTML = '<div class="dt-cal-skeleton" role="status" aria-label="Loading booking dates" style="grid-column:1/-1">'+Array.from({length:35},()=>'<span class="skel" aria-hidden="true"></span>').join('')+'</div>';
   try {
-    const availability = await LexcBackend.rpc('get_customer_booking_dates',{from_date:rangeStart,to_date:rangeEnd});
-    dtAvailability = new Map(availability.map(row => [row.booking_date,row]));
+    // one quiet retry: a dropped connection or a sign-in refresh at that moment should not stop the booking
+    const load = () => LexcBackend.rpc('get_customer_booking_dates',{from_date:rangeStart,to_date:rangeEnd});
+    let availability;
+    try { availability = await load(); } catch (first) { console.warn('Booking dates: retrying after', first?.message || first); await new Promise(done => setTimeout(done, 900)); availability = await load(); }
+    dtAvailability = new Map((availability || []).map(row => [row.booking_date,row]));
   } catch (error) {
+    console.warn('Booking dates could not load:', error?.code || '', error?.message || error, {from_date:rangeStart,to_date:rangeEnd});
     grid.setAttribute('aria-busy','false');
     grid.innerHTML = '<div class="dt-slot-summary" role="alert" style="grid-column:1/-1"><strong>Booking dates could not load</strong><p>Check your connection and try again.</p><button type="button" class="btn-outline" onclick="renderDtCalendar()">Try again</button></div>';
     return;
