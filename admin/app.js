@@ -1,6 +1,6 @@
 import { renderDashboard } from './pages/dashboard.js?v=8';
 import { renderProducts } from './pages/products.js?v=4';
-import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=18';
+import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=19';
 import { renderReports } from './pages/reports.js?v=5';
 import { renderOrders } from './pages/orders.js?v=22';
 import { renderBookings } from './pages/bookings.js?v=10';
@@ -61,6 +61,31 @@ document.addEventListener('keydown', event => {
   const first = items[0], last = items.at(-1);
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
+// Drop-down menus built on <details> (row actions, sort, date filter): one open at a time, close on an outside
+// click or Escape, and a row menu opens upward when the table has no room for it below.
+const POPOVERS = '.inventory-action-menu, .inventory-sort-menu, .stock-date-filter';
+document.addEventListener('toggle', event => {
+  const menu = event.target;
+  if (!(menu instanceof HTMLDetailsElement) || !menu.matches(POPOVERS) || !menu.open) return;
+  document.querySelectorAll(POPOVERS).forEach(other => { if (other !== menu && other.open) other.open = false; });
+  if (menu.matches('.inventory-action-menu')) {
+    menu.classList.remove('is-up');
+    const panel = menu.querySelector(':scope > div'), box = menu.closest('.table-wrap') || document.documentElement;
+    const room = Math.min(box.getBoundingClientRect().bottom, innerHeight) - menu.getBoundingClientRect().bottom;
+    if (panel && room < panel.offsetHeight + 12 && menu.getBoundingClientRect().top - box.getBoundingClientRect().top > panel.offsetHeight + 12) menu.classList.add('is-up');
+  }
+}, true);
+document.addEventListener('click', event => {
+  document.querySelectorAll(POPOVERS).forEach(menu => { if (menu.open && !menu.contains(event.target)) menu.open = false; });
+  // choosing a row action closes its menu (the action itself has already run by now)
+  const action = event.target.closest('.inventory-action-menu > div button');
+  if (action) action.closest('details').open = false;
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const open = [...document.querySelectorAll(POPOVERS)].find(menu => menu.open);
+  if (open) { open.open = false; open.querySelector('summary')?.focus(); }
 });
 navigation.querySelectorAll('a').forEach(link => link.setAttribute('aria-label', link.textContent));
 matchMedia('(max-width: 800px)').addEventListener('change', () => { document.body.classList.remove('collapsed'); closeNavigation(); });

@@ -1,7 +1,7 @@
 import { escapeHtml, empty, showDetails } from '../components.js?v=3';
 import { db, loadingTable, loadingList } from '../backend-ui.js?v=3';
 import { sectionTabs } from '../inventory-ui.js?v=1';
-import { renderMaterials } from './inventory-materials.js?v=3';
+import { renderMaterials } from './inventory-materials.js?v=4';
 import { renderHistory } from './inventory-history.js?v=1';
 import { renderRecipes } from './recipes.js?v=3';
 
@@ -301,11 +301,12 @@ async function renderBatches(content, subpage = '') {
   const state = {
     type: subpage === 'packaging' ? 'packaging' : 'ingredient', status: initialFilters[subpage] || '',
     category: '', expiry: '', sort: 'priority', search: '', dateFrom: '', dateTo: '',
-    page: 1, pageSize: 50, archive: subpage === 'history', snapshot: null
+    page: 1, pageSize: 50, archive: subpage === 'history', snapshot: null,
+    open: new Set()   // items whose batch list is shown
   };
   let searchTimer;
   const load = async () => {
-    content.innerHTML='<section class="inventory-page"><header class="inventory-head"><div><h1>Inventory</h1><p>Batches by stock-in date and expiry. Order deductions use the earliest-expiring batch first.</p></div></header>'+sectionTabs('batches')+batchTabs(state)+''+loadingTable(['Batch ID','Item Name','Category','In-stock','Unit','Expiry Date','Stock-in Date','Status','Action'],6)+'<section class="panel inventory-activity"><h2>Recent Stock Activity</h2>'+loadingList(4)+'</section></section>';
+    content.innerHTML='<section class="inventory-page"><header class="inventory-head"><div><h1>Inventory</h1><p>Batches by stock-in date and expiry. Order deductions use the earliest-expiring batch first.</p></div></header>'+sectionTabs('batches')+batchTabs(state)+''+loadingTable(['Item · Batch ID','Category','In-stock','Unit','Expiry Date','Stock-in Date','Status','Action'],6)+'<section class="panel inventory-activity"><h2>Recent Stock Activity</h2>'+loadingList(4)+'</section></section>';
     state.snapshot = await getInventorySnapshot(); render();
     refreshInventoryNotificationBadge().catch(error=>console.warn('Inventory badge:',error));
   };
@@ -327,10 +328,30 @@ async function renderBatches(content, subpage = '') {
   });
   const render = () => {
     const filtered = sortBatches(records(), state.sort);
-    const totalPages = Math.max(1, Math.ceil(filtered.length / state.pageSize));
+    // One row per item (in the order the sort puts its first batch), with its batches listed by batch ID inside.
+    const groups = [], byItem = new Map();
+    filtered.forEach((batch) => {
+      const key = String(batch.item_id || batch.item_name);
+      if (!byItem.has(key)) { const group = { key, name: batch.item_name, category: batch.category || typeLabel(batch.inventory_type), unit: batch.unit, batches: [] }; byItem.set(key, group); groups.push(group); }
+      byItem.get(key).batches.push(batch);
+    });
+    groups.forEach((group) => {
+      group.batches.sort((a, b) => String(a.batch_code).localeCompare(String(b.batch_code), undefined, { numeric: true }));
+      group.total = group.batches.reduce((sum, batch) => sum + Number(batch.remaining_quantity || 0), 0);
+      const live = group.batches.filter((batch) => Number(batch.remaining_quantity) > 0);
+      group.status = state.archive ? 'Expired' : !live.length ? 'Out of Stock' : live.map((batch) => batch.status).sort((a, b) => (priority[a] ?? 9) - (priority[b] ?? 9))[0];
+      group.expiry = live.map((batch) => batch.expires_on).filter(Boolean).sort()[0] || null;
+      group.stockIn = group.batches.map((batch) => batch.stock_in_date || String(batch.received_at || '').slice(0, 10)).filter(Boolean).sort().at(-1) || null;
+    });
+    const focusBatch = sessionStorage.getItem('lexc-inventory-focus-batch');
+    if (focusBatch) { const target = filtered.find((batch) => batch.id === focusBatch); if (target) state.open.add(String(target.item_id || target.item_name)); }
+    const totalPages = Math.max(1, Math.ceil(groups.length / state.pageSize));
+    if (focusBatch) { const at = groups.findIndex((group) => group.batches.some((batch) => batch.id === focusBatch)); if (at >= 0) state.page = Math.floor(at / state.pageSize) + 1; }
     state.page = Math.min(state.page, totalPages);
     const offset = (state.page - 1) * state.pageSize;
-    const entries = filtered.slice(offset, offset + state.pageSize);
+    const entries = groups.slice(offset, offset + state.pageSize);
+    const isOpen = (group) => state.open.has(group.key) || state.search.trim() !== '';
+    const allOpen = entries.length > 0 && entries.every(isOpen);
     const categories = [...new Set((state.snapshot?.batches || []).filter((batch) => state.archive ? batch.archived_at : !batch.archived_at && batch.inventory_type === state.type).map((batch) => batch.category).filter(Boolean))].sort();
     const rangeLabel = state.dateFrom || state.dateTo ? `${state.dateFrom ? formatDate(state.dateFrom) : 'Any'} – ${state.dateTo ? formatDate(state.dateTo) : 'Any'}` : 'All stock-in dates';
     content.innerHTML = `
@@ -349,9 +370,10 @@ async function renderBatches(content, subpage = '') {
               <div class="stock-date-fields"><span>Stock-in Date · ${escapeHtml(rangeLabel)}</span><label>From<input type="date" data-date-from value="${state.dateFrom}"></label><label>To<input type="date" data-date-to value="${state.dateTo}"></label><button class="text-button" type="button" data-clear-dates>Clear range</button></div>
             </div>
           </details>
+          <button type="button" class="button button--quiet inv-expand" data-expand-items="${allOpen ? 'close' : 'open'}" ${entries.length ? '' : 'disabled'}>${allOpen ? 'Close all items' : 'Open all items'}</button>
         </div>
-        <section class="panel inventory-table-panel"><div class="table-wrap"><table class="data-table inventory-table"><thead><tr><th>Batch ID</th><th>Item Name</th><th>Category</th><th>In-stock</th><th>Unit</th><th>Expiry Date</th><th>Stock-in Date</th><th>Status</th><th>Action</th></tr></thead><tbody>${entries.length ? entries.map((batch) => `<tr data-batch-row="${batch.id}"><td><code>${escapeHtml(batch.batch_code)}</code></td><td><strong>${escapeHtml(batch.item_name)}</strong></td><td>${escapeHtml(batch.category || typeLabel(batch.inventory_type))}</td><td>${quantity(batch.remaining_quantity)}</td><td>${escapeHtml(batch.unit)}</td><td>${formatDate(batch.expires_on)}</td><td>${formatDate(batch.stock_in_date || String(batch.received_at || '').slice(0, 10))}</td><td>${statusChip(batch.status)}</td><td><details class="inventory-action-menu"><summary>Adjust Stock ${icon('chevron')}</summary><div><button data-batch-action="${batch.id}" data-action="restock">${icon('plus')} Stock In</button>${batch.archived_at ? '' : `<button data-batch-action="${batch.id}" data-action="adjust">${icon('pencil')} Adjust Quantity</button><button data-batch-action="${batch.id}" data-action="waste">${icon('waste')} Record Waste</button>`}<button data-batch-action="${batch.id}" data-action="details">${icon('file')} View Batch Details</button><button data-batch-action="${batch.id}" data-action="history">${icon('clock')} View Batch History</button></div></details></td></tr>`).join('') : `<tr><td colspan="9">${empty(state.archive ? 'No archived batches' : 'No matching batches')}</td></tr>`}</tbody></table></div>
-          <footer class="inventory-table-footer"><span>Showing ${filtered.length ? offset + 1 : 0}–${Math.min(offset + state.pageSize, filtered.length)} of ${filtered.length} batches</span><div class="inventory-pagination"><label>Rows per page <select data-page-size><option value="10" ${state.pageSize === 10 ? 'selected' : ''}>10</option><option value="25" ${state.pageSize === 25 ? 'selected' : ''}>25</option><option value="50" ${state.pageSize === 50 ? 'selected' : ''}>50</option></select></label><button class="button button--quiet button--small" data-page-prev ${state.page <= 1 ? 'disabled' : ''} aria-label="Previous page">‹</button><span>Page ${state.page} of ${totalPages}</span><button class="button button--quiet button--small" data-page-next ${state.page >= totalPages ? 'disabled' : ''} aria-label="Next page">›</button></div></footer></section>
+        <section class="panel inventory-table-panel"><div class="table-wrap"><table class="data-table inventory-table inventory-grouped"><thead><tr><th>Item · Batch ID</th><th>Category</th><th>In-stock</th><th>Unit</th><th>Expiry Date</th><th>Stock-in Date</th><th>Status</th><th>Action</th></tr></thead><tbody>${entries.length ? entries.map((group) => `<tr class="inv-item-row${isOpen(group) ? ' is-open' : ''}"><td><button type="button" class="inv-item-toggle" data-item-toggle="${escapeAttr(group.key)}" aria-expanded="${isOpen(group)}"><span class="inv-caret" aria-hidden="true">${icon('chevron')}</span><strong>${escapeHtml(group.name)}</strong><span class="inv-count">${group.batches.length} batch${group.batches.length === 1 ? '' : 'es'}</span></button></td><td>${escapeHtml(group.category)}</td><td><strong>${quantity(group.total)}</strong></td><td>${escapeHtml(group.unit)}</td><td>${formatDate(group.expiry)}</td><td>${formatDate(group.stockIn)}</td><td>${statusChip(group.status)}</td><td><span class="inv-row-hint">${isOpen(group) ? '' : 'Open for batches'}</span></td></tr>${group.batches.map((batch, index) => `<tr class="inv-batch-row" data-batch-row="${batch.id}" data-of="${escapeAttr(group.key)}" ${isOpen(group) ? '' : 'hidden'}><td><span class="inv-batch-no">${index + 1}.</span><code>${escapeHtml(batch.batch_code)}</code></td><td>${escapeHtml(batch.category || typeLabel(batch.inventory_type))}</td><td>${quantity(batch.remaining_quantity)}</td><td>${escapeHtml(batch.unit)}</td><td>${formatDate(batch.expires_on)}</td><td>${formatDate(batch.stock_in_date || String(batch.received_at || '').slice(0, 10))}</td><td>${statusChip(batch.status)}</td><td><details class="inventory-action-menu"><summary>Adjust Stock ${icon('chevron')}</summary><div><button data-batch-action="${batch.id}" data-action="restock">${icon('plus')} Stock In</button>${batch.archived_at ? '' : `<button data-batch-action="${batch.id}" data-action="adjust">${icon('pencil')} Adjust Quantity</button><button data-batch-action="${batch.id}" data-action="waste">${icon('waste')} Record Waste</button>`}<button data-batch-action="${batch.id}" data-action="details">${icon('file')} View Batch Details</button><button data-batch-action="${batch.id}" data-action="history">${icon('clock')} View Batch History</button></div></details></td></tr>`).join('')}`).join('') : `<tr><td colspan="8">${empty(state.archive ? 'No archived batches' : 'No matching batches')}</td></tr>`}</tbody></table></div>
+          <footer class="inventory-table-footer"><span>Showing ${groups.length ? offset + 1 : 0}–${Math.min(offset + state.pageSize, groups.length)} of ${groups.length} item${groups.length === 1 ? '' : 's'} · ${filtered.length} batch${filtered.length === 1 ? '' : 'es'}</span><div class="inventory-pagination"><label>Rows per page <select data-page-size><option value="10" ${state.pageSize === 10 ? 'selected' : ''}>10</option><option value="25" ${state.pageSize === 25 ? 'selected' : ''}>25</option><option value="50" ${state.pageSize === 50 ? 'selected' : ''}>50</option></select></label><button class="button button--quiet button--small" data-page-prev ${state.page <= 1 ? 'disabled' : ''} aria-label="Previous page">‹</button><span>Page ${state.page} of ${totalPages}</span><button class="button button--quiet button--small" data-page-next ${state.page >= totalPages ? 'disabled' : ''} aria-label="Next page">›</button></div></footer></section>
         ${renderActivity(state.snapshot?.movements || [])}
       </section>`;
     bind();
@@ -376,6 +398,24 @@ async function renderBatches(content, subpage = '') {
     content.querySelector('[data-page-size]')?.addEventListener('change', (event) => { state.pageSize = Number(event.target.value); state.page = 1; render(); });
     content.querySelector('[data-page-prev]')?.addEventListener('click', () => { state.page = Math.max(1, state.page - 1); render(); });
     content.querySelector('[data-page-next]')?.addEventListener('click', () => { state.page += 1; render(); });
+    content.querySelectorAll('[data-item-toggle]').forEach((button) => button.addEventListener('click', () => {
+      const key = button.dataset.itemToggle, open = button.getAttribute('aria-expanded') !== 'true';
+      open ? state.open.add(key) : state.open.delete(key);
+      button.setAttribute('aria-expanded', String(open)); button.closest('tr').classList.toggle('is-open', open);
+      const hint = button.closest('tr').querySelector('.inv-row-hint'); if (hint) hint.textContent = open ? '' : 'Open for batches';
+      content.querySelectorAll('tr[data-of]').forEach((row) => { if (row.dataset.of === key) row.hidden = !open; });
+    }));
+    content.querySelector('[data-expand-items]')?.addEventListener('click', (event) => {
+      const open = event.currentTarget.dataset.expandItems === 'open';
+      content.querySelectorAll('[data-item-toggle]').forEach((button) => open ? state.open.add(button.dataset.itemToggle) : state.open.delete(button.dataset.itemToggle));
+      render();
+    });
+    const focusBatch = sessionStorage.getItem('lexc-inventory-focus-batch');
+    if (focusBatch) {
+      sessionStorage.removeItem('lexc-inventory-focus-batch');
+      const row = [...content.querySelectorAll('tr[data-batch-row]')].find((entry) => entry.dataset.batchRow === focusBatch);
+      if (row) { row.classList.add('is-focused'); row.scrollIntoView({ block: 'center' }); setTimeout(() => row.classList.remove('is-focused'), 2600); }
+    }
     content.querySelectorAll('button[data-batch-action]').forEach((button) => button.addEventListener('click', () => {
       const batch = (state.snapshot?.batches || []).find((entry) => entry.id === button.dataset.batchAction); const action = button.dataset.action;
       button.closest('details')?.removeAttribute('open');
