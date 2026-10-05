@@ -37,6 +37,7 @@ async function loadStorefront(){
     packageContainer.querySelectorAll('[data-package]').forEach(button => button.onclick = () => addPackageToCart(liveCatalog.find(p => p.id === button.dataset.package).name));
   }
   window.lexcCatalogState='ready';
+  syncShopBanners();
   document.dispatchEvent(new Event('lexc:catalog-ready'));
   renderShop();updateCategoryCounts();renderCart();
  }catch(error){console.warn('Storefront could not load:',error);window.lexcCatalogState='error';renderShop();if(packageContainer)packageContainer.innerHTML='<div class="shop-no-results" role="alert"><strong>Packages could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>';document.getElementById('checkoutPaymentMethods').innerHTML='<p role="alert">Payment methods could not load. <button type="button" class="btn-outline" onclick="loadStorefront()">Try again</button></p>';}
@@ -230,3 +231,14 @@ async function loadPublicReviews() {
 }
 loadStorefront();
 loadPublicReviews();
+
+// Menu banners: each slide names a catalog product (data-slug); its price and button follow the live menu.
+function syncShopBanners(){
+ document.querySelectorAll('#carouselTrack [data-slug]').forEach(slide=>{
+  const row=liveCatalog.find(p=>p.slug===slide.dataset.slug),local=row&&products.find(p=>p.product_id===row.id);
+  const prices=(row?.product_variants||[]).filter(v=>v.is_active).map(v=>Number(v.price));
+  const price=slide.querySelector('[data-banner-price]'),button=slide.querySelector('[data-banner-open]');
+  if(price)price.textContent=prices.length?'From ₱'+Math.min(...prices).toLocaleString('en-PH'):'';
+  if(button){button.hidden=!local;button.onclick=()=>local&&openProductDetails(local.id);}
+ });
+}
