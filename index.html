@@ -657,7 +657,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <link rel="stylesheet" href="shared/product-detail.css?v=3">
 <link rel="stylesheet" href="shared/chat-widget.css?v=4">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=4">
-<link rel="stylesheet" href="shared/landing.css?v=7">
+<link rel="stylesheet" href="shared/landing.css?v=13">
 <link rel="stylesheet" href="shared/bento-designer.css?v=15">
 <link rel="stylesheet" href="shared/cupcake-designer.css?v=7">
 <link rel="stylesheet" href="shared/selected-ui.css?v=3">
@@ -702,85 +702,158 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
   <button type="button" id="customerAccountAction" onclick="openCustomerAccount()">Log in / account</button>
 </nav>
 
-<div id="page-home" class="page lp">
+<div id="page-home" class="page lp ed">
 
-  <!-- Hero: photo composition of the real products; headline, copy and button are live HTML. -->
-  <section class="lp-hero" aria-labelledby="lp-hero-title">
-    <img class="lp-hero-img" src="assets/landing/hero.webp" srcset="assets/landing/hero-1100.webp 1100w, assets/landing/hero.webp 1659w" sizes="(max-width: 640px) 560px, min(100vw, 1240px)" width="1659" height="948" fetchpriority="high" decoding="async"
-      alt="A banana loaf with piped cream and walnuts, a box of pink and purple butterfly mini donuts, a bento cake with cartoon birthday toppers, and a yema cake topped with grated cheese, on a lavender table">
-    <div class="lp-hero-copy">
-      <p class="lp-eyebrow">Good food brighter days</p>
-      <h1 id="lp-hero-title">Your snack break, upgraded.</h1>
-      <p class="lp-hero-sub">Filipino-inspired sweets and snacks, made with care for everyday moments.</p>
-      <button type="button" class="lp-btn" onclick="navigate('shop')">Explore the menu <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  <!-- Hero: the real product table photo carries the section; one primary action. -->
+  <section class="ed-hero" aria-labelledby="lp-hero-title">
+    <picture class="ed-hero-media">
+      <source media="(max-width: 700px)" srcset="assets/landing/ed/hero-phone-640.webp 640w, assets/landing/ed/hero-phone-900.webp 900w" sizes="100vw">
+      <img src="assets/landing/hero.webp" srcset="assets/landing/hero-1100.webp 1100w, assets/landing/hero.webp 1659w" sizes="(max-width: 700px) 100vw, 78vw" width="1659" height="948" fetchpriority="high" decoding="async"
+        alt="A banana loaf with piped cream and walnuts, a box of pink and purple butterfly mini donuts, a bento cake with cartoon birthday toppers, and a yema cake topped with grated cheese, on a lavender table">
+    </picture>
+    <div class="ed-hero-copy">
+      <p class="ed-eyebrow ed-in" style="--d:0ms">Cakes · Treats · Sweeter moments</p>
+      <h1 id="lp-hero-title" class="ed-in" style="--d:80ms">Made for<br><em>sweet moments.</em></h1>
+      <p class="ed-lede ed-in" style="--d:120ms">Custom cakes, pastries and treats, baked from scratch for your occasion.</p>
+      <div class="ed-actions ed-in" style="--d:160ms">
+        <button type="button" class="ed-btn" onclick="navigate('shop')">Shop now <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <button type="button" class="ed-textlink" onclick="window.LexcCustom ? LexcCustom.choose() : navigate('shop')">Custom order <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
     </div>
   </section>
 
-  <!-- Featured treats: seven cards, filtered by the chips. Links resolve to real catalog products. -->
-  <section class="lp-section lp-cravings" aria-labelledby="lp-cravings-title">
-    <div class="lp-chips" role="group" aria-label="Filter treats">
-      <button type="button" data-lp-filter="all" aria-pressed="true">All treats</button>
-      <button type="button" data-lp-filter="cakes" aria-pressed="false">Cakes</button>
-      <button type="button" data-lp-filter="baked" aria-pressed="false">Baked treats</button>
-      <button type="button" data-lp-filter="party" aria-pressed="false">Party treats</button>
+  <!-- Product stage: the headline stays; one featured treat at a time cross-fades. -->
+  <section class="ed-section ed-stage" aria-labelledby="ed-stage-title">
+    <div class="ed-stage-copy" data-reveal>
+      <p class="ed-eyebrow">Our treats</p>
+      <h2 id="ed-stage-title" class="ed-title">A little sweetness<br>for every moment.</h2>
+      <p class="ed-body">From bento cakes to cupcakes, mini donuts and cake pops: there’s something for every celebration.</p>
+      <a class="ed-btn ed-btn--outline" href="?page=shop" data-lp-page="shop">Explore the menu <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <p class="lp-eyebrow">Our snack favorites</p>
-    <h2 id="lp-cravings-title" class="lp-title">Meet your next craving.</h2>
-    <p class="lp-sr" aria-live="polite" data-lp-status></p>
-    <div class="lp-grid" data-lp-grid>
-      <a class="lp-card" data-group="party" data-slug="product-1" href="?product=" data-lp-product>
-        <span class="lp-card-img"><img src="assets/landing/mini-donuts.webp" width="680" height="680" loading="lazy" decoding="async" alt="Pink and purple mini donuts with pearl sprinkles, butterflies and daisies in a white box"></span>
-        <span class="lp-card-foot"><span class="lp-card-name">Mini donuts</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
-      </a>
-      <a class="lp-card" data-group="baked" data-slug="product-18" href="?product=" data-lp-product>
-        <span class="lp-card-img"><img src="assets/landing/banana-loaf.webp" width="680" height="680" loading="lazy" decoding="async" alt="Banana loaf in a foil pan with piped cream and walnuts"></span>
-        <span class="lp-card-foot"><span class="lp-card-name">Banana loaf</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
-      </a>
-      <a class="lp-card" data-group="cakes" data-slug="product-8" href="?product=" data-lp-product>
-        <span class="lp-card-img"><img src="assets/landing/bento-cake.webp" width="680" height="680" loading="lazy" decoding="async" alt="White bento cake with cartoon birthday toppers and red icing" style="object-position:50% 40%"></span>
-        <span class="lp-card-foot"><span class="lp-card-name">Bento cake</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
-      </a>
-      <a class="lp-card" data-group="cakes" data-slug="product-4" href="?product=" data-lp-product>
-        <span class="lp-card-img"><img src="assets/landing/yema-cake.webp" width="680" height="466" loading="lazy" decoding="async" alt="Yema cakes with golden glaze and grated cheese in white square boxes"></span>
-        <span class="lp-card-foot"><span class="lp-card-name">Yema cake</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
-      </a>
-      <a class="lp-card" data-group="party" data-slug="cake-pops" href="?product=" data-lp-product>
-        <span class="lp-card-img"><img src="assets/landing/cake-pops.webp" width="680" height="680" loading="lazy" decoding="async" alt="Blue and yellow character cake pops on sticks in white stands" style="object-position:50% 62%"></span>
-        <span class="lp-card-foot"><span class="lp-card-name">Cake pops<small>Design your own</small></span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
-      </a>
-      <a class="lp-card" data-group="baked" data-slug="product-20" href="?product=" data-lp-product>
-        <span class="lp-card-img"><img src="assets/landing/brownies.webp" width="680" height="680" loading="lazy" decoding="async" alt="Dark square brownies topped with chopped nuts"></span>
-        <span class="lp-card-foot"><span class="lp-card-name">Brownies</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
-      </a>
-      <a class="lp-card" data-group="party" data-slug="product-6" href="?product=" data-lp-product>
-        <span class="lp-card-img"><img src="assets/landing/cupcakes.webp" width="680" height="680" loading="lazy" decoding="async" alt="Chocolate cupcakes with pink and white frosting roses and gold pearls"></span>
-        <span class="lp-card-foot"><span class="lp-card-name">Cupcakes</span><span class="lp-arrow" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
-      </a>
+    <div class="ed-stage-show" data-ed-stage role="region" aria-roledescription="carousel" aria-label="Featured treats">
+      <div class="ed-stage-frame">
+        <a class="ed-stage-item is-active" data-slug="product-8" data-name="Bento cake" data-note="Your message, your colors" href="?product=" data-lp-product>
+          <img src="assets/landing/ed/stage-bento-900.webp" srcset="assets/landing/ed/stage-bento-540.webp 540w, assets/landing/ed/stage-bento-900.webp 900w" sizes="(max-width: 700px) 86vw, 480px" width="900" height="900" decoding="async" alt="A pink bento cake with piped shell borders, pearl sprinkles and a fondant name">
+        </a>
+        <a class="ed-stage-item" data-slug="product-6" data-name="3oz cupcakes" data-note="Piped buttercream roses" href="?product=" data-lp-product aria-hidden="true" tabindex="-1">
+          <img src="assets/landing/ed/stage-cupcake-900.webp" srcset="assets/landing/ed/stage-cupcake-540.webp 540w, assets/landing/ed/stage-cupcake-900.webp 900w" sizes="(max-width: 700px) 86vw, 480px" width="900" height="900" loading="lazy" decoding="async" alt="Chocolate cupcakes piped with pink and white buttercream roses and gold pearls">
+        </a>
+        <a class="ed-stage-item" data-slug="product-2" data-name="Mini donuts" data-note="Party box" href="?product=" data-lp-product aria-hidden="true" tabindex="-1">
+          <img src="assets/landing/ed/stage-donuts-900.webp" srcset="assets/landing/ed/stage-donuts-540.webp 540w, assets/landing/ed/stage-donuts-900.webp 900w" sizes="(max-width: 700px) 86vw, 480px" width="900" height="900" loading="lazy" decoding="async" alt="Pink and purple mini donuts with fondant butterflies and daisies in a white box">
+        </a>
+        <a class="ed-stage-item" data-slug="cake-pops" data-name="Cake pops" data-note="Design your own" href="?product=" data-lp-product aria-hidden="true" tabindex="-1">
+          <img src="assets/landing/ed/stage-pops-900.webp" srcset="assets/landing/ed/stage-pops-540.webp 540w, assets/landing/ed/stage-pops-900.webp 900w" sizes="(max-width: 700px) 86vw, 480px" width="900" height="900" loading="lazy" decoding="async" alt="Pastel cake pops with sprinkles held up on sticks">
+        </a>
+        <a class="ed-stage-item" data-slug="product-5" data-name="Mini cupcakes" data-note="Bite-sized, in every color" href="?product=" data-lp-product aria-hidden="true" tabindex="-1">
+          <img src="assets/landing/ed/stage-minicup-900.webp" srcset="assets/landing/ed/stage-minicup-540.webp 540w, assets/landing/ed/stage-minicup-900.webp 900w" sizes="(max-width: 700px) 86vw, 480px" width="900" height="900" loading="lazy" decoding="async" alt="Mini cupcakes piped as colorful buttercream flowers in a white box">
+        </a>
+        <a class="ed-stage-item" data-slug="product-7" data-name="Cupcake bouquet" data-note="A bouquet you can eat" href="?product=" data-lp-product aria-hidden="true" tabindex="-1">
+          <img src="assets/landing/ed/stage-bouquet-900.webp" srcset="assets/landing/ed/stage-bouquet-540.webp 540w, assets/landing/ed/stage-bouquet-900.webp 900w" sizes="(max-width: 700px) 86vw, 480px" width="900" height="900" loading="lazy" decoding="async" alt="A cupcake bouquet of purple and lavender buttercream flowers wrapped in paper">
+        </a>
+      </div>
+      <div class="ed-stage-meta">
+        <p class="ed-stage-label" aria-live="polite"><strong data-ed-name>Bento cake</strong><span data-ed-note>Your message, your colors</span></p>
+        <div class="ed-stage-nav">
+          <button type="button" class="ed-round" data-ed-step="-1" aria-label="Previous treat"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <div class="ed-stage-thumbs">
+          <button type="button" class="ed-stage-thumb" data-ed-go="0" aria-pressed="true" aria-label="Show Bento cake"><img src="assets/landing/ed/stage-bento-540.webp" width="540" height="540" loading="lazy" decoding="async" alt=""></button>
+          <button type="button" class="ed-stage-thumb" data-ed-go="1" aria-pressed="false" aria-label="Show 3oz cupcakes"><img src="assets/landing/ed/stage-cupcake-540.webp" width="540" height="540" loading="lazy" decoding="async" alt=""></button>
+          <button type="button" class="ed-stage-thumb" data-ed-go="2" aria-pressed="false" aria-label="Show Mini donuts"><img src="assets/landing/ed/stage-donuts-540.webp" width="540" height="540" loading="lazy" decoding="async" alt=""></button>
+          <button type="button" class="ed-stage-thumb" data-ed-go="3" aria-pressed="false" aria-label="Show Cake pops"><img src="assets/landing/ed/stage-pops-540.webp" width="540" height="540" loading="lazy" decoding="async" alt=""></button>
+          <button type="button" class="ed-stage-thumb" data-ed-go="4" aria-pressed="false" aria-label="Show Mini cupcakes"><img src="assets/landing/ed/stage-minicup-540.webp" width="540" height="540" loading="lazy" decoding="async" alt=""></button>
+          <button type="button" class="ed-stage-thumb" data-ed-go="5" aria-pressed="false" aria-label="Show Cupcake bouquet"><img src="assets/landing/ed/stage-bouquet-540.webp" width="540" height="540" loading="lazy" decoding="async" alt=""></button>
+          </div>
+          <button type="button" class="ed-round" data-ed-step="1" aria-label="Next treat"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
     </div>
-    <p class="lp-empty" data-lp-empty hidden>No treats in this group right now. <button type="button" class="lp-link" data-lp-filter="all">Show all treats</button></p>
   </section>
 
-  <!-- Store updates: the latest published posts from the Fresh feed (drafts never appear here). -->
-  <section class="lp-section lp-fresh" aria-labelledby="lp-fresh-title" data-lp-fresh hidden>
-    <div class="lp-fresh-head">
-      <div><p class="lp-eyebrow">From our kitchen to yours</p><h2 id="lp-fresh-title" class="lp-title">Fresh from LexC’s.</h2></div>
-      <a class="lp-pill" href="?fresh=1" data-lp-page="fresh">View all updates <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  <!-- Editorial two-up: occasions, photos lead. -->
+  <section class="ed-section ed-two" aria-labelledby="ed-two-title">
+    <div class="ed-two-head" data-reveal>
+      <h2 id="ed-two-title" class="ed-title">Better when<br>you share.</h2>
+      <p class="ed-body">Made for the people you celebrate with.</p>
     </div>
-    <div class="lp-fresh-list" data-lp-fresh-list></div>
+    <div class="ed-two-grid" data-reveal-group>
+      <a class="ed-two-item" data-slug="product-8" data-name="Bento cake" href="?product=" data-lp-product>
+        <span class="ed-frame"><img src="assets/landing/ed/two-birthday-1000.webp" srcset="assets/landing/ed/two-birthday-600.webp 600w, assets/landing/ed/two-birthday-1000.webp 1000w" sizes="(max-width: 700px) 92vw, 46vw" width="1000" height="1250" loading="lazy" decoding="async" alt="A bento cake with a Happy Birthday topper, a toy car and tire decorations"></span>
+        <span class="ed-two-cap"><strong>For birthdays</strong><span>Bento cakes with your own message <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
+      </a>
+      <a class="ed-two-item" data-slug="product-2" data-name="Mini donuts party box" href="?product=" data-lp-product>
+        <span class="ed-frame"><img src="assets/landing/ed/two-sharing-1000.webp" srcset="assets/landing/ed/two-sharing-600.webp 600w, assets/landing/ed/two-sharing-1000.webp 1000w" sizes="(max-width: 700px) 92vw, 46vw" width="1000" height="1250" loading="lazy" decoding="async" alt="White boxes of mini donuts tied with lavender satin ribbons"></span>
+        <span class="ed-two-cap"><strong>For sharing</strong><span>Party boxes, tied with a ribbon <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
+      </a>
+    </div>
   </section>
 
-  <section class="lp-section lp-about" id="about" aria-labelledby="lp-about-title">
-    <div class="lp-about-text">
-      <p class="lp-eyebrow">Our story</p>
-      <h2 id="lp-about-title" class="lp-title">Baked just for you.</h2>
-      <p>A homemade pastry bakeshop where every treat is baked from scratch in small batches, inspired by simple designs and comforting flavors. Each pastry is thoughtfully made with care, creativity, and a personal touch.</p>
-      <p>From classic brownies to themed birthday cupcakes, everything we make is baked with a whole lot of love.</p>
-      <button type="button" class="lp-btn lp-btn--ghost" onclick="window.LexcCustom ? LexcCustom.choose() : navigate('shop')">Design your own cake or cupcakes</button>
+  <!-- Photo mosaic: one large tile, two wide, two small (CSS grid). -->
+  <section class="ed-section ed-mosaic" aria-labelledby="ed-mosaic-title">
+    <div class="ed-mosaic-head" data-reveal>
+      <p class="ed-eyebrow">From our kitchen</p>
+      <h2 id="ed-mosaic-title" class="ed-title">Something for<br>every table.</h2>
     </div>
-    <img class="lp-about-img" src="assets/landing/about.webp" width="680" height="680" loading="lazy" decoding="async" alt="A LexC’s cupcake bouquet with purple and lavender buttercream flowers">
+    <div class="ed-mosaic-grid" data-reveal-group>
+      <a class="ed-tile ed-tile--big" data-slug="product-8" data-name="Celebration cakes" href="?product=" data-lp-product>
+        <img src="assets/landing/ed/mosaic-cake-1100.webp" srcset="assets/landing/ed/mosaic-cake-700.webp 700w, assets/landing/ed/mosaic-cake-1100.webp 1100w" sizes="(max-width: 700px) 92vw, 50vw" width="1100" height="1100" loading="lazy" decoding="async" alt="A white buttercream cake with gold flecks and a piped top border">
+        <span class="ed-tile-cap">Celebration cakes <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="ed-tile ed-tile--wide" data-slug="product-20" data-name="Brownies" href="?product=" data-lp-product>
+        <img src="assets/landing/ed/mosaic-brownies-900.webp" srcset="assets/landing/ed/mosaic-brownies-560.webp 560w, assets/landing/ed/mosaic-brownies-900.webp 900w" sizes="(max-width: 700px) 46vw, 25vw" width="900" height="675" loading="lazy" decoding="async" alt="Fudgy brownies topped with chopped nuts in paper cases">
+        <span class="ed-tile-cap">Brownies <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="ed-tile ed-tile--small" data-slug="product-18" data-name="Banana loaf" href="?product=" data-lp-product>
+        <img src="assets/landing/ed/mosaic-loaf-700.webp" srcset="assets/landing/ed/mosaic-loaf-440.webp 440w, assets/landing/ed/mosaic-loaf-700.webp 700w" sizes="(max-width: 700px) 46vw, 25vw" width="700" height="700" loading="lazy" decoding="async" alt="Banana loaves loaded with chocolate chips and nuts in foil pans">
+        <span class="ed-tile-cap">Banana loaf <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="ed-tile ed-tile--small" data-slug="product-3" data-name="Themed mini donuts" href="?product=" data-lp-product>
+        <img src="assets/landing/ed/mosaic-donuts-700.webp" srcset="assets/landing/ed/mosaic-donuts-440.webp 440w, assets/landing/ed/mosaic-donuts-700.webp 700w" sizes="(max-width: 700px) 46vw, 25vw" width="700" height="700" loading="lazy" decoding="async" alt="Themed mini donuts with kitty faces, rainbows and number toppers">
+        <span class="ed-tile-cap">Themed mini donuts <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
   </section>
 
-  <section class="lp-section home-faq" aria-labelledby="lp-faq-title">
+  <!-- Quiet story (the About link scrolls here). -->
+  <section class="ed-section ed-story" id="about" aria-labelledby="lp-about-title">
+    <div class="ed-story-media" data-reveal><img src="assets/landing/ed/story-560.webp" srcset="assets/landing/ed/story-560.webp 560w" sizes="(max-width: 700px) 92vw, 40vw" width="560" height="700" loading="lazy" decoding="async" alt="A LexC’s cupcake bouquet with purple and lavender buttercream flowers"></div>
+    <div class="ed-story-copy" data-reveal>
+      <p class="ed-eyebrow">Our story</p>
+      <h2 id="lp-about-title" class="ed-title">Made slowly.<br><em>Enjoyed sweetly.</em></h2>
+      <p class="ed-body">A homemade pastry bakeshop where every treat is baked from scratch in small batches, inspired by simple designs and comforting flavors.</p>
+      <p class="ed-body">From classic brownies to themed birthday cupcakes, everything we make is baked with a whole lot of love.</p>
+    </div>
+  </section>
+
+  <!-- The one dark section: custom orders. -->
+  <section class="ed-dark" aria-labelledby="ed-dark-title">
+    <div class="ed-dark-inner">
+      <div class="ed-dark-copy" data-reveal>
+        <p class="ed-eyebrow">Custom orders</p>
+        <h2 id="ed-dark-title" class="ed-title">Made by hand.<br><em>Made for you.</em></h2>
+        <p class="ed-body">Choose the colors, toppers and message, and see your bento cake, cupcakes, mini donuts or cake pops in 3D before you order.</p>
+        <ol class="ed-steps">
+          <li><span>01</span>Share your idea</li>
+          <li><span>02</span>Design it in 3D</li>
+          <li><span>03</span>We bake it fresh</li>
+        </ol>
+        <button type="button" class="ed-btn ed-btn--light" onclick="window.LexcCustom ? LexcCustom.choose() : navigate('shop')">Create a custom order <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+      <div class="ed-dark-media" data-reveal><img src="assets/landing/ed/custom-1000.webp" srcset="assets/landing/ed/custom-620.webp 620w, assets/landing/ed/custom-1000.webp 1000w" sizes="(max-width: 700px) 92vw, 44vw" width="1000" height="1000" loading="lazy" decoding="async" alt="A bento cake piped with the message Best wishes for your future, with flowers and leaves"></div>
+    </div>
+  </section>
+
+  <!-- Recent creations: real photos from the Updates feed (product photos fill in if there are few). -->
+  <section class="ed-section ed-gallery" aria-labelledby="lp-fresh-title" data-lp-fresh>
+    <div class="ed-gallery-head" data-reveal>
+      <div><p class="ed-eyebrow">A look at our</p><h2 id="lp-fresh-title" class="ed-title">Recent creations.</h2><p class="ed-body">Real orders. Real celebrations.</p></div>
+      <a class="ed-textlink" href="?fresh=1" data-lp-page="fresh">See all updates <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+    <div class="ed-gallery-grid" data-lp-fresh-list aria-busy="true">
+      <span class="ed-g ed-skel" aria-hidden="true"></span><span class="ed-g ed-skel" aria-hidden="true"></span><span class="ed-g ed-skel" aria-hidden="true"></span><span class="ed-g ed-skel" aria-hidden="true"></span><span class="ed-g ed-skel" aria-hidden="true"></span><span class="ed-g ed-skel" aria-hidden="true"></span>
+    </div>
+  </section>
+
+  <section class="ed-section home-faq" data-reveal aria-labelledby="lp-faq-title">
     <h2 id="lp-faq-title" class="lp-title lp-title--sm">Questions, answered.</h2>
     <div class="faq-list">
       <div class="faq-item">
@@ -816,6 +889,14 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
         <div class="faq-answer">We can accommodate some requests — please message us directly to discuss allergy or dietary concerns before ordering.</div>
       </div>
     </div>
+  </section>
+
+  <!-- Final call to action -->
+  <section class="ed-cta" aria-labelledby="ed-cta-title" data-reveal>
+    <p class="ed-eyebrow">Let’s make your next</p>
+    <h2 id="ed-cta-title" class="ed-title">Moment sweeter.</h2>
+    <p class="ed-body">Tell us what you’re celebrating.</p>
+    <button type="button" class="ed-btn" onclick="navigate('shop')">Start an order <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
   </section>
 
   <div class="lp-footer" role="contentinfo">
@@ -2286,7 +2367,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/customer-backend.js?v=23"></script>
 <script src="shared/product-detail.js?v=10"></script>
 <script src="shared/fresh-feed.js?v=10"></script>
-<script src="shared/landing.js?v=2"></script>
+<script src="shared/landing.js?v=4"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/bento-designer.js?v=28"></script>
 <script src="shared/cupcake-designer.js?v=21"></script>
