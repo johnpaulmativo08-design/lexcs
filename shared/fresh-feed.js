@@ -15,7 +15,7 @@
     all: ['Nothing fresh yet', 'New treats, kitchen moments and store updates will appear here soon.'],
     photos: ['No photos yet', 'Snack photos will show up here.'], videos: ['No videos yet', 'Short kitchen videos will show up here.'],
     updates: ['No updates yet', 'Store news and announcements will show up here.'],
-    reviews: ['No reviews yet', 'Customers can rate their completed orders from My Orders. Approved reviews appear here.']
+    reviews: ['No reviews yet', 'Customers can rate their orders from My Orders once they are fully paid. Approved reviews appear here.']
   };
   const ICONS = {
     plus: '<path d="M12 5v14M5 12h14"/>', close: '<path d="M18 6 6 18M6 6l12 12"/>', back: '<path d="m15 18-6-6 6-6"/>',
@@ -199,13 +199,35 @@
           <span class="fresh-review-item-text"><strong>${esc(prod?.name || it.name)}</strong>${meta ? `<small>${esc(meta)}</small>` : ''}${it.designer ? `<em class="fresh-review-tag">${esc(DESIGNED[it.designer] || 'Custom design')}</em>` : ''}</span>
           ${prod ? icon('arrow', 'ui-icon fresh-review-go') : ''}</button>`;
     };
-    return `<article class="fresh-review${owner && hidden ? ' is-hidden' : ''}" data-review="${esc(r.id)}"${items[0]?.product_id ? ` data-review-first="${esc(items[0].product_id)}"` : ''}>
-      <div class="fresh-review-top">${stars(rating)}<b class="fresh-review-score">${rating.toFixed(1)}</b>${owner ? `<span class="fresh-owner-badge">${hidden ? 'Hidden from customers' : 'Shown on site'}</span>` : ''}</div>
-      ${r.review_text ? `<p class="fresh-review-text">“${esc(r.review_text)}”</p>` : ''}
-      ${items.length ? `<div class="fresh-review-items"><span class="fresh-review-label">Ordered</span>${items.slice(0, 2).map(itemRow).join('')}${items.length > 2 ? `<small class="fresh-review-more">+${items.length - 2} more item${items.length - 2 === 1 ? '' : 's'}</small>` : ''}</div>` : ''}
-      <div class="fresh-review-foot"><span class="fresh-review-avatar" aria-hidden="true">${esc((r.public_display_name || '?').trim().charAt(0).toUpperCase())}</span><span><strong>${esc(r.public_display_name)}</strong><small>${icon('check', 'ui-icon fresh-review-check')}Verified order · ${esc(reviewDate(r.created_at))}</small></span></div>
-      ${owner ? `<button type="button" class="fresh-btn${hidden ? ' fresh-btn--primary' : ''}" data-review-toggle="${esc(r.id)}">${hidden ? 'Show on site' : 'Hide'}</button>` : ''}
+    const name = (r.public_display_name || 'Customer').trim();
+    const long = (r.review_text || '').length > 220;
+    return `<article class="fresh-review${owner && hidden ? ' is-hidden' : ''}${r.image_path ? ' has-photo' : ''}" data-review="${esc(r.id)}"${items[0]?.product_id ? ` data-review-first="${esc(items[0].product_id)}"` : ''}>
+      <header class="fresh-review-head">
+        <span class="fresh-review-avatar" aria-hidden="true">${esc(name.charAt(0).toUpperCase())}</span>
+        <span class="fresh-review-who"><strong>${esc(name)}</strong><small>${icon('check', 'ui-icon fresh-review-check')}Verified order · ${esc(reviewDate(r.created_at))}</small></span>
+      </header>
+      ${r.image_path ? `<button type="button" class="fresh-review-photo" data-review-photo="${esc(r.image_path)}" aria-label="Open ${esc(name)}'s photo"><span class="skel" aria-hidden="true"></span><img alt="Photo from ${esc(name)}'s order" hidden></button>` : ''}
+      <div class="fresh-review-stars">${stars(rating)}<b>${rating.toFixed(1)}</b></div>
+      ${r.review_text ? `<blockquote class="fresh-review-quote${long ? ' is-clamped' : ''}"><p>${esc(r.review_text)}</p></blockquote>${long ? '<button type="button" class="fresh-review-more-btn" data-review-more>Read more</button>' : ''}` : ''}
+      ${items.length ? `<div class="fresh-review-items"><span class="fresh-review-label">What they ordered</span>${items.slice(0, 2).map(itemRow).join('')}${items.length > 2 ? `<small class="fresh-review-more">+${items.length - 2} more item${items.length - 2 === 1 ? '' : 's'}</small>` : ''}</div>` : ''}
+      ${owner ? `<footer class="fresh-review-owner"><span class="fresh-owner-badge">${hidden ? 'Hidden from customers' : 'Shown on site'}</span><button type="button" class="fresh-btn${hidden ? ' fresh-btn--primary' : ''}" data-review-toggle="${esc(r.id)}">${hidden ? 'Show on site' : 'Hide'}</button></footer>` : ''}
     </article>`;
+  }
+  async function hydrateReviewPhotos() {
+    const buttons = [...grid.querySelectorAll('[data-review-photo]')].filter((b) => !b.querySelector('img').getAttribute('src'));
+    if (!buttons.length) return;
+    try {
+      const { data, error } = await client().storage.from('review-images').createSignedUrls([...new Set(buttons.map((b) => b.dataset.reviewPhoto))], 3600);
+      if (error) throw error;
+      const urls = new Map((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
+      buttons.forEach((button) => {
+        const url = urls.get(button.dataset.reviewPhoto), img = button.querySelector('img');
+        if (!url) { button.remove(); return; }
+        img.onload = () => { img.hidden = false; button.querySelector('.skel')?.remove(); const cell = button.closest('.fresh-cell'); if (cell) sizeCell(cell); };
+        img.onerror = () => button.remove();
+        img.src = url;
+      });
+    } catch (error) { console.info('Review photos unavailable:', error?.message || error); buttons.forEach((b) => b.remove()); }
   }
   function openReviewProduct(id) {
     const prod = catalogProduct(id);
@@ -231,10 +253,12 @@
       grid.style.setProperty('--fresh-cols', columns());
       grid.querySelectorAll('.fresh-cell').forEach((cell) => { cell.dataset.sized = '1'; sizeCell(cell); cardObserver?.observe(cell.firstElementChild); });
       state.items = rows || []; state.done = true;
+      hydrateReviewPhotos();
       // product names, photos and links come from the menu; redraw once it has loaded
       if (window.lexcCatalogState !== 'ready') whenCatalogReady(() => {
         if (token !== state.token || state.kind !== 'reviews') return;
         grid.querySelectorAll('[data-review]').forEach((card) => { const r = state.reviews.get(card.dataset.review); if (r) card.outerHTML = reviewHtml(r); });
+        hydrateReviewPhotos();
         grid.querySelectorAll('.fresh-cell').forEach(sizeCell);
       });
     } catch (error) {
@@ -366,6 +390,10 @@
     const t = e.target;
     const product = t.closest('[data-product]'); if (product) { const post = state.byId.get(product.dataset.product); if (post?.product) goToProduct(post.product); return; }
     const menu = t.closest('[data-menu]'); if (menu) return openMenu(menu, state.byId.get(menu.dataset.menu));
+    const more = t.closest('[data-review-more]');
+    if (more) { const quote = more.previousElementSibling; const open = quote.classList.toggle('is-open'); more.textContent = open ? 'Show less' : 'Read more'; const cell = more.closest('.fresh-cell'); if (cell) sizeCell(cell); return; }
+    const photo = t.closest('[data-review-photo]');
+    if (photo) { const src = photo.querySelector('img')?.getAttribute('src'); if (src) window.open(src, '_blank', 'noopener'); return; }
     const reviewToggle = t.closest('[data-review-toggle]'); if (reviewToggle) return toggleReview(reviewToggle.dataset.reviewToggle, reviewToggle);
     const reviewProduct = t.closest('[data-review-product]'); if (reviewProduct) return openReviewProduct(reviewProduct.dataset.reviewProduct);
     const reviewCard = t.closest('[data-review-first]'); if (reviewCard && !t.closest('a,button')) return openReviewProduct(reviewCard.dataset.reviewFirst);

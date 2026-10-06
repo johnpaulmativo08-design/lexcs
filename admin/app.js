@@ -1,9 +1,9 @@
-import { renderDashboard } from './pages/dashboard.js?v=9';
+import { renderDashboard } from './pages/dashboard.js?v=10';
 import { renderProducts } from './pages/products.js?v=4';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=19';
 import { renderReports } from './pages/reports.js?v=7';
 import { renderOrders } from './pages/orders.js?v=24';
-import { renderBookings } from './pages/bookings.js?v=10';
+import { renderBookings } from './pages/bookings.js?v=11';
 import { renderDesignOptions } from './pages/design-options.js?v=11';
 import { renderProfile } from './pages/profile.js?v=3';
 import { mountChat } from '../shared/chat.js?v=20';
@@ -12,13 +12,13 @@ import { icon } from './components.js?v=3';
 
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
-  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['bookings', 'Bookings'],
+  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['bookings', 'Reservations'],
     // Posts and review moderation live on the storefront's Updates page ("Fresh from LexC's", owner view).
     ['fresh-posts', 'Updates & reviews ↗', '../index.html?fresh=1', 'gallery']]],
   ['Analytics', [['reports', 'Reports']]],
   ['Account', [['profile', 'Profile']]],
 ];
-const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Booking Schedule', reports: 'Reports', profile: 'Profile' };
+const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', reports: 'Reports', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 

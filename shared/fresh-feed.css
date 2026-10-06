@@ -261,3 +261,28 @@
 .fresh-review-foot small{display:flex;align-items:center;gap:4px;color:#8a7898;font-size:.8rem}
 .fresh-review-avatar{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#d6c3ef;color:#5c3d6e;font-weight:800}
 .fresh-review-check{width:13px;height:13px;color:#087c58}
+
+/* Review post card (Updates → Reviews) */
+.fresh-review{gap:12px!important;padding:16px!important;border-radius:18px!important;border-color:#ece3f6!important;box-shadow:0 6px 22px rgba(70,40,110,.07)!important}
+.fresh-review-head{display:flex;align-items:center;gap:10px;min-width:0}
+.fresh-review-head .fresh-review-avatar{width:40px;height:40px;background:linear-gradient(135deg,#e9dcfb,#f8d9e8);color:#5a3a8f;font-size:1rem;box-shadow:0 0 0 2px #fff,0 0 0 3px #eadff7}
+.fresh-review-who{display:grid;min-width:0;flex:1}
+.fresh-review-who strong{color:#2f2142;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fresh-review-who small{display:flex;align-items:center;gap:4px;color:#8a7898;font-size:.76rem}
+.fresh-review-rating{flex:none;padding:5px 10px;border-radius:999px;background:#fff6df;color:#8a5a00;font-size:.8rem;font-weight:800;white-space:nowrap}
+.fresh-review-photo{position:relative;display:block;width:100%;aspect-ratio:4/3;padding:0;border:0;border-radius:14px;overflow:hidden;background:#f3edf9;cursor:zoom-in}
+.fresh-review-photo img{width:100%;height:100%;object-fit:cover;display:block;animation:mo-fade-in .25s ease both}
+.fresh-review-photo .skel{position:absolute;inset:0;border-radius:0}
+.fresh-review .fresh-stars{font-size:1.05rem;letter-spacing:2px;color:#f2b632}
+.fresh-review .fresh-stars span{color:#e6dcef}
+.fresh-review-quote{position:relative;margin:0;padding:2px 0 0 22px;color:#3a2840;font-size:.97rem;line-height:1.6}
+.fresh-review-quote::before{content:'“';position:absolute;left:0;top:-10px;font:700 2.4rem/1 'Playfair Display',Georgia,serif;color:#cdb6ef}
+.fresh-review-quote p{margin:0;white-space:pre-line;overflow-wrap:anywhere}
+.fresh-review-quote.is-clamped:not(.is-open) p{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.fresh-review-more-btn{align-self:flex-start;margin:-6px 0 0 22px;padding:0;border:0;background:none;color:#6a45b8;font:700 .82rem inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.fresh-review-items{background:#faf7fd!important;border:1px solid #f0e8f8}
+.fresh-review-owner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:10px;border-top:1px dashed #e6dcf2}
+.fresh-review-owner .fresh-btn{align-self:auto}
+.fresh-review.has-photo .fresh-review-quote{font-size:.94rem}
+.fresh-review-stars{display:flex;align-items:center;gap:8px}
+.fresh-review-stars b{color:#5c3d6e;font-size:.9rem}
