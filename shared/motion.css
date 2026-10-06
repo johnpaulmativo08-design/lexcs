@@ -118,18 +118,6 @@ details[open]>:not(summary){animation:mo-slide-down var(--motion-base) var(--eas
 .mo-msg-in{animation:mo-msg-in 220ms var(--ease-enter) both}
 @keyframes mo-msg-in{from{opacity:0;translate:0 6px}}
 
-/* ---- My Orders timeline ---- */
-.order-steps{position:relative;display:grid;grid-template-columns:repeat(5,1fr);margin:10px 0 4px;padding:0;list-style:none;font-size:.66rem;color:#8a7d99}
-.order-steps-wrap{position:relative}
-.order-steps-wrap::before,.order-steps__fill{content:'';position:absolute;top:17px;left:10%;right:10%;height:2px;border-radius:2px;background:#e8e0f2}
-.order-steps__fill{z-index:1;background:var(--mo-violet);transform-origin:left;transform:scaleX(var(--p,0))}
-.order-steps li{position:relative;display:grid;justify-items:center;gap:4px;text-align:center}
-.order-steps li::before{content:'';position:relative;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #d9cdea;box-sizing:border-box;z-index:2}
-.order-steps li.is-done::before{background:var(--mo-violet);border-color:var(--mo-violet)}
-.order-steps li.is-current{color:#4b2f84;font-weight:700}
-.order-steps li.is-current::before{border-color:var(--mo-violet);box-shadow:0 0 0 3px #e7dcf8}
-.order-steps li.mo-step-new::before{animation:mo-pop 320ms var(--ease-standard) both}
-
 /* ---- Success moments (payment submitted, order received, payment verified) ---- */
 .mo-success{position:relative;display:grid;justify-items:center;text-align:center;gap:6px}
 .mo-check{position:relative;width:84px;height:84px;margin:4px auto 6px}
@@ -152,7 +140,6 @@ details[open]>:not(summary){animation:mo-slide-down var(--motion-base) var(--eas
   .mo-check .mo-tick{stroke-dashoffset:0;animation:none}
   .mo-check .mo-ring,.mo-sparkle,.mo-rise,.mo-rise-1,.mo-rise-2,.mo-msg-in,.pd-grid .pd-card.mo-enter,.page.mo-page-enter,.page.mo-page-enter>*:first-child{animation:none!important}
   .mo-sparkle{display:none}
-  .order-steps__fill{transition:none}
 }
 
 /* My Orders: payment pill beside the order status */
