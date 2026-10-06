@@ -44,7 +44,24 @@ function designLink(line){
   const code=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   return siteIndex+(cupcake?'?cupcake=':kind==='donut'?'?donut=':kind==='cakepop'?'?cakepop=':'?design=')+code;
 }
+// The order summary the database posts into an order's chat when the customer orders (phase 47).
+const phWhen=(value,options)=>new Date(value).toLocaleString('en-PH',{timeZone:'Asia/Manila',...options});
+function orderSummaryHTML(s){
+  const row=(label,value,strong)=>'<div class="order-card-row'+(strong?' is-total':'')+'"><span>'+label+'</span>'+(strong?'<strong>':'<b>')+value+(strong?'</strong>':'</b>')+'</div>';
+  const items=(s.items||[]).map(i=>'<li><div><strong>'+escapeHtml(i.name)+'</strong><span>'+escapeHtml(i.option||'')+(Number(i.qty)>1?' × '+Number(i.qty):'')+'</span>'+(i.details?'<small>'+escapeHtml(i.details)+'</small>':'')+'</div><b>'+money(i.total)+'</b></li>').join('');
+  const delivery=s.fulfillment==='lalamove';
+  const fee=!delivery?'':s.delivery_fee_status==='quoted'?money(s.delivery_fee):'LexC’s will set it';
+  const day=s.receiving_start?phWhen(s.receiving_start,{weekday:'short',month:'short',day:'numeric',year:'numeric'}):'';
+  const hours=s.receiving_start&&s.receiving_end?phWhen(s.receiving_start,{hour:'numeric',minute:'2-digit'})+' – '+phWhen(s.receiving_end,{hour:'numeric',minute:'2-digit'}):'';
+  return '<div class="order-card"><div class="order-card-head"><strong>Order #'+escapeHtml(s.order_number)+'</strong>'+(s.ordered_at?'<span>Ordered '+escapeHtml(phWhen(s.ordered_at,{dateStyle:'medium',timeStyle:'short'}))+'</span>':'')+'</div>'+
+    '<ul class="order-card-items">'+items+'</ul>'+
+    '<div class="order-card-sums">'+row('Items',money(s.items_subtotal))+(Number(s.customization_total)>0?row('Design options',money(s.customization_total)):'')+(delivery?row('Delivery fee',fee):'')+
+    row('Total',s.total===null||s.total===undefined?'After the delivery fee':money(s.total),true)+(s.deposit_due!==null&&s.deposit_due!==undefined&&Number(s.deposit_rate)<1?row('Downpayment ('+Math.round(Number(s.deposit_rate)*100)+'%)',money(s.deposit_due)):'')+'</div>'+
+    '<div class="order-card-meta"><p><span>'+(delivery?'Delivery (Lalamove)':'Pickup')+'</span>'+escapeHtml([day,hours].filter(Boolean).join(' · '))+'</p>'+
+    '<p><span>Contact</span>'+escapeHtml([s.name,s.phone].filter(Boolean).join(' · '))+'</p>'+(delivery&&s.address?'<p><span>Address</span>'+escapeHtml(s.address)+'</p>':'')+(s.notes?'<p><span>Notes</span>'+escapeHtml(s.notes)+'</p>':'')+'</div></div>';
+}
 export function designCardHTML(m){
+  if(m.message_type==='order_summary'&&m.attachments&&typeof m.attachments==='object')return orderSummaryHTML(m.attachments);
   if(m.message_type!=='design_card'||!Array.isArray(m.attachments))return '';
   const picture=(path,label)=>path?'<button type="button" class="design-card-pic" data-design-img="'+escapeHtml(path)+'" aria-label="Open '+label+' picture full size"><img alt="'+label+'" hidden><span class="skel" aria-hidden="true"></span><small>'+label+'</small></button>':'';
   return '<div class="design-card">'+m.attachments.map(line=>'<section class="design-card-line"><div class="design-card-pics">'+picture(line.angle_path,['cupcake','donut','cakepop'].includes(line.design?.designer)?'Box picture':'Angled view')+picture(line.top_path,'Top view')+'</div>'+
