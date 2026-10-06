@@ -64,7 +64,7 @@ reset role;
 set local session_replication_role = replica;
 delete from public.order_payment_attempts where order_id = (select v::uuid from t where k = 'order');
 update public.orders set status = 'pending', amount_paid = 0, payment_status = 'unpaid', fulfillment_method = 'lalamove',
-  delivery_fee_status = 'unquoted', delivery_fee = null, total_amount = null, deposit_due = null
+  address = coalesce(nullif(btrim(address), ''), 'Test delivery address, Quezon City'), delivery_fee_status = 'unquoted', delivery_fee = null, total_amount = null, deposit_due = null
   where id = (select v::uuid from t where k = 'order');
 set local session_replication_role = origin;
 do $$ begin
