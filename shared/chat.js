@@ -139,6 +139,10 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     inboxMessages.forEach(m=>{if(m.conversation_id===thread.id&&!m.read_at&&(admin?m.sender_type==='customer':m.sender_type!=='customer'))m.read_at=now;});
   }
   function title(c){const o=orders.find(row=>row.id===c.order_id);return o?`Order #${o.order_number}`:admin?profiles.find(p=>p.id===c.customer_id)?.full_name||'General inquiry':'LexC Assistant';}
+  // the Details panel closes with its × button, the Esc key, or a click anywhere outside it
+  function closeDetails(){root.querySelector('.chat-workspace')?.classList.remove('show-context');}
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&root.querySelector('.chat-workspace.show-context'))closeDetails();});
+  root.addEventListener('click',event=>{if(root.querySelector('.chat-workspace.show-context')&&!event.target.closest('.chat-context'))closeDetails();});
   function context(){
     const o=orders.find(row=>row.id===selected?.order_id);
     if(!o){const p=profiles.find(row=>row.id===selected?.customer_id);return '<h2>Conversation details</h2>'+(admin?'<p>Customer: '+escapeHtml(p?.full_name||'Customer')+'</p><p>Phone: '+escapeHtml(p?.phone||'Not provided')+'</p>':'<p>Ask about products, custom orders, pickup, or delivery. A LexC team member can join this conversation.</p>');}
@@ -193,7 +197,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     hydrateDesignImages(root);
     restore(keep);
     const contextPanel=root.querySelector('.chat-context');
-    if(contextPanel&&selected){const close=document.createElement('button');close.type='button';close.className='chat-context-close';close.textContent='← Back to chat';close.addEventListener('click',()=>root.querySelector('.chat-workspace').classList.remove('show-context'));contextPanel.prepend(close);}
+    if(contextPanel&&selected){const close=document.createElement('button');close.type='button';close.className='chat-context-close';close.setAttribute('aria-label','Close details');close.innerHTML='<span aria-hidden="true">×</span>';close.addEventListener('click',closeDetails);contextPanel.prepend(close);}
     root.querySelectorAll('[data-thread]').forEach(button=>{
       const conversation=conversations.find(c=>c.id===button.dataset.thread);
       const person=profiles.find(p=>p.id===conversation?.customer_id)?.full_name||orders.find(o=>o.id===conversation?.order_id)?.customer_name||'Customer';
@@ -202,7 +206,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     });
     root.querySelectorAll('[data-thread]').forEach(button=>button.onclick=async()=>{selected=conversations.find(c=>c.id===button.dataset.thread);mobileListOpen=false;const stream=root.querySelector('.chat-stream');if(stream)stream.outerHTML=threadSkeleton();try{await loadMessages();draw();const s=root.querySelector('.chat-stream');if(s)s.scrollTop=s.scrollHeight;}catch(error){showError('Conversation could not load. Please choose it again.');}});
     root.querySelector('#chat-back')?.addEventListener('click',()=>{mobileListOpen=true;root.querySelector('.chat-workspace').classList.remove('has-thread');});
-    root.querySelector('#chat-details')?.addEventListener('click',()=>root.querySelector('.chat-workspace').classList.toggle('show-context'));
+    root.querySelector('#chat-details')?.addEventListener('click',event=>{event.stopPropagation();root.querySelector('.chat-workspace').classList.toggle('show-context');});
     root.querySelector('#chat-start')?.addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;try{if(orderId&&!orders.some(o=>o.id===orderId&&o.customer_id===user.id))throw new Error('This order is not available to your account.');selected=await ensureCustomerChat({userId:user.id,orderId});await refresh(false);}catch(error){showError(error.message);button.disabled=false;}});
     root.querySelectorAll('[data-quick-message]').forEach(button=>button.onclick=()=>{const input=root.querySelector('#chat-text');if(input){input.value=button.dataset.quickMessage;input.focus();}});
     root.querySelector('#chat-search')?.addEventListener('input',e=>{search=e.target.value;draw();});
