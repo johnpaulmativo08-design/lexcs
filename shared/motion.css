@@ -154,3 +154,12 @@ details[open]>:not(summary){animation:mo-slide-down var(--motion-base) var(--eas
   .mo-sparkle{display:none}
   .order-steps__fill{transition:none}
 }
+
+/* My Orders: payment pill beside the order status */
+.customer-order-pills{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.customer-pay-pill{border-radius:999px;padding:6px 11px;font-size:.7rem;font-weight:800;white-space:nowrap;background:#f1ecf7;color:#5b3d8a;animation:mo-scale-in var(--motion-fast,180ms) var(--ease-standard,ease) both}
+.customer-pay-pill.is-paid{background:#e4f5ec;color:#17663d}
+.customer-pay-pill.is-part{background:#eef6ff;color:#1f5a92}
+.customer-pay-pill.is-review{background:#fff2db;color:#865313}
+.customer-pay-pill.is-issue{background:#fdecef;color:#a3324b}
+.customer-review-cta{border-color:#e0b64a!important;color:#7a5410!important;background:#fffaf0!important}
