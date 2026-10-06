@@ -157,3 +157,18 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .order-card-link{display:block;margin-top:2px;padding:8px;border:1px solid #9f7ce1;border-radius:9px;background:#fff;color:#563b91;font-weight:700;font-size:11.5px;text-align:center;text-decoration:none}
 .order-card-link:hover{background:#f6f1ff}
 .order-card-link:focus-visible{outline:2px solid #9272db;outline-offset:2px}
+
+/* Admin: confirm or reject a payment proof right on its chat card */
+.chat-proof-review{display:grid;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid #eee6f6}
+.chat-proof-hint{margin:0;padding:8px 10px;border-radius:9px;background:#fff8e8;color:#7a5410;font-size:.78rem;line-height:1.4}
+.chat-proof-review label{font-size:.76rem;font-weight:700;color:#3a2160}
+.chat-proof-review input{width:100%;box-sizing:border-box;min-height:42px;padding:9px 11px;border:1.5px solid #ded3ec;border-radius:10px;font:inherit;font-size:.86rem}
+.chat-proof-review input:focus{outline:none;border-color:#8a63d2;box-shadow:0 0 0 3px #ece3fb}
+.chat-proof-actions{display:flex;gap:8px;flex-wrap:wrap}
+.chat-proof-actions button{flex:1;min-height:42px;min-width:120px;border-radius:10px;font-weight:700;font-size:.85rem;cursor:pointer}
+.chat-proof-actions .is-confirm{border:0!important;background:#1f8a5b!important;color:#fff!important}
+.chat-proof-actions .is-confirm:hover:not(:disabled){background:#187049!important}
+.chat-proof-actions .is-reject{border:1.5px solid #e6b9c4!important;background:#fff!important;color:#a3324b!important}
+.chat-proof-actions button:disabled{opacity:.6;cursor:progress}
+.chat-proof-error{margin:0;color:#a3324b;font-size:.8rem}
+.chat-proof-error:empty{display:none}

@@ -150,6 +150,31 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
   function closeDetails(){root.querySelector('.chat-workspace')?.classList.remove('show-context');}
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&root.querySelector('.chat-workspace.show-context'))closeDetails();});
   root.addEventListener('click',event=>{if(root.querySelector('.chat-workspace.show-context')&&!event.target.closest('.chat-context'))closeDetails();});
+  // Admin can confirm or reject a payment proof right on its chat card, on every screen size.
+  const reviewDrafts=new Map();
+  function proofReview(p){
+    if(!admin||p.status!=='verification_pending')return '';
+    const id='pay-reason-'+p.id;
+    return '<form class="chat-proof-review" data-pay-review="'+escapeHtml(p.id)+'"><p class="chat-proof-hint">Check that '+money(p.amount)+' actually arrived in the bank or wallet before confirming.</p><label for="'+id+'">Bank confirmation or reason</label><input id="'+id+'" name="reason" maxlength="1000" autocomplete="off" placeholder="e.g. Received 2:04 PM, ref 34688789" value="'+escapeHtml(reviewDrafts.get(p.id)||'')+'"><div class="chat-proof-actions"><button type="submit" class="is-confirm" data-decision="paid">✓ Confirm payment</button><button type="submit" class="is-reject" data-decision="rejected">Reject</button></div><p class="chat-proof-error" role="alert"></p></form>';
+  }
+  // the chat can be mounted into the same element again (admin routes), so replace any earlier listeners
+  if(root._payReviewInput)root.removeEventListener('input',root._payReviewInput);
+  if(root._payReviewSubmit)root.removeEventListener('submit',root._payReviewSubmit);
+  root._payReviewInput=event=>{const form=event.target.closest('[data-pay-review]');if(form)reviewDrafts.set(form.dataset.payReview,event.target.value);};
+  root.addEventListener('input',root._payReviewInput);
+  root._payReviewSubmit=async event=>{
+    const form=event.target.closest('[data-pay-review]');if(!form)return;
+    event.preventDefault();
+    const decision=event.submitter?.dataset.decision||'paid',reason=form.elements.reason.value.trim(),p=payments.find(x=>x.id===form.dataset.payReview),alert=form.querySelector('[role=alert]');
+    if(!reason){alert.textContent=decision==='paid'?'Write how you confirmed it (for example the time it arrived).':'Write the reason so the customer knows what to fix.';form.elements.reason.focus();return;}
+    if(!p)return;
+    if(!confirm(decision==='paid'?'Mark '+money(p.amount)+' as received? This updates the order payment.':'Reject this proof? The customer will be asked to send a new one.'))return;
+    form.querySelectorAll('button').forEach(b=>b.disabled=true);
+    const button=event.submitter;if(button)button.textContent=decision==='paid'?'Confirming…':'Rejecting…';
+    try{await db.rpc('review_order_payment',{target_payment:p.id,decision,review_reason:reason});reviewDrafts.delete(p.id);await refresh();}
+    catch(error){alert.textContent=error.message;form.querySelectorAll('button').forEach(b=>b.disabled=false);if(button)button.textContent=decision==='paid'?'✓ Confirm payment':'Reject';}
+  };
+  root.addEventListener('submit',root._payReviewSubmit);
   function context(){
     const o=orders.find(row=>row.id===selected?.order_id);
     if(!o){const p=profiles.find(row=>row.id===selected?.customer_id);return '<h2>Conversation details</h2>'+(admin?'<p>Customer: '+escapeHtml(p?.full_name||'Customer')+'</p><p>Phone: '+escapeHtml(p?.phone||'Not provided')+'</p>':'<p>Ask about products, custom orders, pickup, or delivery. A LexC team member can join this conversation.</p>');}
@@ -184,7 +209,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const p=payments.find(row=>row.id===m.payment_id);
     const eventClass=m.message_type!=='text'?' chat-event '+escapeHtml(m.message_type):'';
     return '<article data-mid="'+escapeHtml(m.id)+'" class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(sender(m))+'</small><p>'+escapeHtml(m.body)+'</p>'+designCardHTML(m)+
-      (p&&m.message_type==='payment_proof'?'<div class="chat-proof"><strong>Payment proof · '+money(p.amount)+'</strong><span>Reference: '+escapeHtml(p.transaction_reference||'—')+'</span><span>Current status: '+escapeHtml(p.status.replaceAll('_',' '))+'</span>'+(p.proof_storage_path?'<button type="button" data-proof="'+escapeHtml(p.id)+'">View receipt</button>':'')+'</div>':'')+
+      (p&&m.message_type==='payment_proof'?'<div class="chat-proof"><strong>Payment proof · '+money(p.amount)+'</strong><span>Reference: '+escapeHtml(p.transaction_reference||'—')+'</span><span>Current status: '+escapeHtml(p.status.replaceAll('_',' '))+'</span>'+(p.proof_storage_path?'<button type="button" data-proof="'+escapeHtml(p.id)+'">View receipt</button>':'')+proofReview(p)+'</div>':'')+
       '<time>'+escapeHtml(stamp(m.created_at))+'</time></div></article>';
   }
   function draw(){
