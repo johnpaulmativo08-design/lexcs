@@ -153,3 +153,7 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .chat-workspace.show-context .chat-context-payment{margin-top:10px;padding:10px 12px}
 .chat-workspace.show-context .chat-context-link{margin-top:10px;padding:8px}
 @media(max-width:650px){.chat-workspace.show-context .chat-context{width:calc(100% - 16px)}}
+
+.order-card-link{display:block;margin-top:2px;padding:8px;border:1px solid #9f7ce1;border-radius:9px;background:#fff;color:#563b91;font-weight:700;font-size:11.5px;text-align:center;text-decoration:none}
+.order-card-link:hover{background:#f6f1ff}
+.order-card-link:focus-visible{outline:2px solid #9272db;outline-offset:2px}

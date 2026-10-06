@@ -63,3 +63,7 @@
 .order-card-meta span{color:#7a6e86;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .lcw-message.system>div:has(.order-card){width:85%;text-align:left}
 @media(prefers-reduced-motion:reduce){.order-card-toggle{transition:none}}
+
+.order-card-link{display:block;margin-top:2px;padding:8px;border:1px solid #9f7ce1;border-radius:9px;background:#fff;color:#563b91;font-weight:700;font-size:11.5px;text-align:center;text-decoration:none}
+.order-card-link:hover{background:#f6f1ff}
+.order-card-link:focus-visible{outline:2px solid #9272db;outline-offset:2px}
