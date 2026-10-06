@@ -70,7 +70,7 @@ function render(){
   const dueValue=due===null?active?.status==='verification_pending'?'Under review':awaitingConfirmation()?'After LexC’s confirms':'To be confirmed':due===0?'No payment due':money(due);
   const pageTitle=document.querySelector('main>h1');
   pageTitle.textContent=due!==null&&due>0&&order.status!=='cancelled'&&active?.status!=='verification_pending'?'Pay '+money(due):'Order payment';
-  const orderStrip='<section class="payment-strip" aria-label="Current order payment"><div class="strip-order"><small>ORDER #'+e(order.order_number)+'</small><span class="status '+e(status)+'">'+e(statusName[status]||status)+'</span></div><div class="strip-amount"><small>'+e(dueLabel)+'</small><strong>'+e(dueValue)+'</strong></div><a href="'+e(ordersURL)+'">My Orders <span aria-hidden="true">→</span></a><a href="../chat/?order='+encodeURIComponent(order.id)+'">Chat about this order</a></section>';
+  const orderStrip='<section class="payment-strip" aria-label="Current order payment"><div class="strip-order"><small>ORDER #'+e(order.order_number)+'</small><span class="status '+e(status)+'">'+e(awaitingConfirmation()&&status==='unpaid'?'Awaiting confirmation':statusName[status]||status)+'</span></div><div class="strip-amount"><small>'+e(dueLabel)+'</small><strong>'+e(dueValue)+'</strong></div><a href="'+e(ordersURL)+'">My Orders <span aria-hidden="true">→</span></a><a href="../chat/?order='+encodeURIComponent(order.id)+'">Chat about this order</a></section>';
   const orderSummary='<details class="card order-card"><summary><span>Order details & balance</span><span aria-hidden="true">⌄</span></summary><div class="order-detail-body"><p class="order-meta">'+e(when(order.created_at))+' · '+e(order.fulfillment_method==='pickup'?'Pickup':'Delivery')+'</p>'+ 
     order.order_items.map(item=>'<div class="summary-row"><span>'+e(item.name_snapshot)+' · '+e(item.variant_label_snapshot)+' ×'+item.quantity+'</span><strong>'+money(item.line_total)+'</strong></div>').join('')+
     '<div class="summary-row"><span>Order total</span><strong>'+(order.total_amount===null?'Pending delivery quote':money(order.total_amount))+'</strong></div>'+
@@ -107,6 +107,11 @@ function render(){
   root.querySelector('#state-refresh')?.addEventListener('click',()=>load());
   root.querySelector('#start-payment')?.addEventListener('click',startPayment);
   root.querySelector('#change-payment')?.addEventListener('click',()=>{changing=true;say('');render();});
+  // the heading and the amount strip follow the downpayment / full choice
+  root.querySelectorAll('[name=plan]').forEach(input=>input.addEventListener('change',()=>{
+    const amount=input.value==='full'?Number(order.total_amount):Number(order.deposit_due);
+    pageTitle.textContent='Pay '+money(amount);root.querySelector('.strip-amount strong').textContent=money(amount);
+  }));
   root.querySelector('#keep-payment')?.addEventListener('click',()=>{changing=false;render();});
   root.querySelector('#proof-form')?.addEventListener('submit',submitPayment);
   const proofForm=root.querySelector('#proof-form');
