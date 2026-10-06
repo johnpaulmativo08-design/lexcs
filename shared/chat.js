@@ -46,6 +46,9 @@ function designLink(line){
 }
 // The order summary the database posts into an order's chat when the customer orders (phase 47).
 const phWhen=(value,options)=>new Date(value).toLocaleString('en-PH',{timeZone:'Asia/Manila',...options});
+// The card starts closed; remember which ones the reader opened so a chat refresh does not close them again.
+const openOrderCards=new Set();
+document.addEventListener('toggle',event=>{const card=event.target;if(!card.matches?.('details.order-card'))return;card.open?openOrderCards.add(card.dataset.order):openOrderCards.delete(card.dataset.order);},true);
 function orderSummaryHTML(s){
   const row=(label,value,strong)=>'<div class="order-card-row'+(strong?' is-total':'')+'"><span>'+label+'</span>'+(strong?'<strong>':'<b>')+value+(strong?'</strong>':'</b>')+'</div>';
   const items=(s.items||[]).map(i=>'<li><div><strong>'+escapeHtml(i.name)+'</strong><span>'+escapeHtml(i.option||'')+(Number(i.qty)>1?' × '+Number(i.qty):'')+'</span>'+(i.details?'<small>'+escapeHtml(i.details)+'</small>':'')+'</div><b>'+money(i.total)+'</b></li>').join('');
@@ -53,12 +56,13 @@ function orderSummaryHTML(s){
   const fee=!delivery?'':s.delivery_fee_status==='quoted'?money(s.delivery_fee):'LexC’s will set it';
   const day=s.receiving_start?phWhen(s.receiving_start,{weekday:'short',month:'short',day:'numeric',year:'numeric'}):'';
   const hours=s.receiving_start&&s.receiving_end?phWhen(s.receiving_start,{hour:'numeric',minute:'2-digit'})+' – '+phWhen(s.receiving_end,{hour:'numeric',minute:'2-digit'}):'';
-  return '<div class="order-card"><div class="order-card-head"><strong>Order #'+escapeHtml(s.order_number)+'</strong>'+(s.ordered_at?'<span>Ordered '+escapeHtml(phWhen(s.ordered_at,{dateStyle:'medium',timeStyle:'short'}))+'</span>':'')+'</div>'+
+  const count=(s.items||[]).reduce((sum,i)=>sum+Number(i.qty||0),0),key=String(s.order_number);
+  return '<details class="order-card" data-order="'+escapeHtml(key)+'"'+(openOrderCards.has(key)?' open':'')+'><summary><span class="order-card-head"><strong>Order #'+escapeHtml(s.order_number)+'</strong><small>'+count+' item'+(count===1?'':'s')+(s.ordered_at?' · '+escapeHtml(phWhen(s.ordered_at,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})):'')+'</small></span><b>'+(s.total===null||s.total===undefined?'Total after delivery fee':money(s.total))+'</b><span class="order-card-toggle" aria-hidden="true"></span></summary><div class="order-card-body">'+
     '<ul class="order-card-items">'+items+'</ul>'+
     '<div class="order-card-sums">'+row('Items',money(s.items_subtotal))+(Number(s.customization_total)>0?row('Design options',money(s.customization_total)):'')+(delivery?row('Delivery fee',fee):'')+
     row('Total',s.total===null||s.total===undefined?'After the delivery fee':money(s.total),true)+(s.deposit_due!==null&&s.deposit_due!==undefined&&Number(s.deposit_rate)<1?row('Downpayment ('+Math.round(Number(s.deposit_rate)*100)+'%)',money(s.deposit_due)):'')+'</div>'+
     '<div class="order-card-meta"><p><span>'+(delivery?'Delivery (Lalamove)':'Pickup')+'</span>'+escapeHtml([day,hours].filter(Boolean).join(' · '))+'</p>'+
-    '<p><span>Contact</span>'+escapeHtml([s.name,s.phone].filter(Boolean).join(' · '))+'</p>'+(delivery&&s.address?'<p><span>Address</span>'+escapeHtml(s.address)+'</p>':'')+(s.notes?'<p><span>Notes</span>'+escapeHtml(s.notes)+'</p>':'')+'</div></div>';
+    '<p><span>Contact</span>'+escapeHtml([s.name,s.phone].filter(Boolean).join(' · '))+'</p>'+(delivery&&s.address?'<p><span>Address</span>'+escapeHtml(s.address)+'</p>':'')+(s.notes?'<p><span>Notes</span>'+escapeHtml(s.notes)+'</p>':'')+'</div></div></details>';
 }
 export function designCardHTML(m){
   if(m.message_type==='order_summary'&&m.attachments&&typeof m.attachments==='object')return orderSummaryHTML(m.attachments);
