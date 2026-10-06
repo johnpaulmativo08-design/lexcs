@@ -1,11 +1,10 @@
-# Publishes the site to GitHub Pages on every push to main (or by hand from the Actions tab).
-# Used instead of "Deploy from a branch" because that route kept timing out on 2026-10-06.
+# Backup publisher for GitHub Pages, run by hand: Actions tab -> "Publish site" -> Run workflow.
+# Normal publishing is Settings -> Pages -> "Deploy from a branch" (main). If that gets stuck again
+# (it timed out for hours on 2026-10-06), switch Pages Source to "GitHub Actions" and run this.
 # The site is plain HTML/CSS/JS, so it is uploaded as-is (no Jekyll build).
 name: Publish site
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
