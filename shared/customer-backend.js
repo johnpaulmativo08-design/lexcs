@@ -198,23 +198,93 @@ function openOrderFromReturnLink(){
  const url=new URL(location.href);url.searchParams.delete('order');history.replaceState(null,'',url);
  showMyOrders(target);
 }
+// Review sheet: tap a star rating, write a few words, optionally add a photo. Saved reviews wait for LexC's approval.
+const REVIEW_WORDS = ['', 'Not good', 'Could be better', 'Good', 'Great', 'Loved it!'];
 function showReviewForm(orderId) {
+  const card = document.querySelector('[data-order-id="'+CSS.escape(orderId)+'"]');
+  const orderNumber = card?.querySelector('.customer-order-number')?.textContent.trim() || 'Your order';
+  const productName = card?.querySelector('.customer-order-product')?.textContent.trim() || '';
+  const firstName = productName.replace(/\s\+\d+ more$/, '');
+  const local = typeof products !== 'undefined' ? products.find(p => p.name === firstName) : null;
+  const thumb = local && typeof PRODUCT_IMAGES !== 'undefined' ? PRODUCT_IMAGES[local.id] : '';
+  const star = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.83 5.73 6.32.92-4.57 4.46 1.08 6.3L12 17.24l-5.66 2.97 1.08-6.3L2.85 9.45l6.32-.92z"/></svg>';
   const dialog = document.createElement('dialog');
-  dialog.style.cssText = 'max-width:520px;width:90%;padding:24px;border:0;border-radius:18px;background:var(--cream)';
-  dialog.innerHTML = '<form><h2>Review your order</h2><label class="co-label">Public display name<input class="co-input" name="display_name" maxlength="100" required value="'+authEscape(currentUser.name||'Customer')+'"></label><label class="co-label">Rating<select class="co-input" name="rating"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label><label class="co-label">Review<textarea class="co-textarea" name="text" maxlength="3000" required></textarea></label><label class="co-label">Optional photo<input name="image" type="file" accept="image/jpeg,image/png,image/webp"></label><p role="alert"></p><button class="btn-primary" type="submit">Submit for review</button><button type="button" data-close>Cancel</button></form>';
+  dialog.className = 'rv-dialog';
+  dialog.setAttribute('aria-labelledby', 'rv-title');
+  dialog.innerHTML = '<form class="rv-form" novalidate>'+
+    '<header class="rv-head"><div><h2 id="rv-title">Rate your treats</h2><p>Your review helps other customers choose.</p></div><button type="button" class="rv-close" data-close aria-label="Close">×</button></header>'+
+    '<div class="rv-body">'+
+      '<div class="rv-order">'+(thumb?'<img src="'+authEscape(thumb)+'" alt="">':'<span class="rv-order-ph" aria-hidden="true">🧁</span>')+'<span><strong>'+authEscape(productName||'Your treats')+'</strong><small>'+authEscape(orderNumber)+'</small></span></div>'+
+      '<fieldset class="rv-stars"><legend>How was it?</legend><div class="rv-star-row" role="radiogroup" aria-label="Rating">'+
+        [1,2,3,4,5].map(n=>'<label class="rv-star" data-star="'+n+'"><input type="radio" name="rating" value="'+n+'" aria-label="'+n+' star'+(n>1?'s':'')+' – '+REVIEW_WORDS[n]+'">'+star+'</label>').join('')+
+      '</div><p class="rv-star-word" aria-live="polite">Tap a star</p></fieldset>'+
+      '<label class="rv-field"><span>Your review</span><textarea name="text" maxlength="3000" rows="4" placeholder="How was the taste, the design and the packaging?"></textarea><small class="rv-count">0 / 3000</small></label>'+
+      '<div class="rv-field"><span>Photo <em>(optional)</em></span><input type="file" name="image" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="rv-photo-add" data-photo-add><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span><strong>Add a photo</strong><small>JPG, PNG or WEBP · up to 5 MB</small></span></button><div class="rv-photo-preview" hidden></div></div>'+
+      '<label class="rv-field"><span>Show my name as</span><input name="display_name" maxlength="100" autocomplete="nickname" value="'+authEscape(currentUser.name||'Customer')+'"><small>Shown publicly with your review.</small></label>'+
+      '<p class="rv-note">Reviews appear on the site after LexC’s approves them.</p>'+
+      '<p class="rv-error" role="alert" hidden></p>'+
+    '</div>'+
+    '<footer class="rv-foot"><button type="button" class="rv-cancel" data-close>Cancel</button><button type="submit" class="rv-submit" disabled>Submit review</button></footer>'+
+  '</form>';
   document.body.append(dialog); dialog.showModal();
-  dialog.querySelector('[data-close]').onclick = () => { dialog.close(); dialog.remove(); };
-  dialog.querySelector('form').onsubmit = async event => {
+  const form = dialog.querySelector('form'), submit = form.querySelector('.rv-submit'), word = form.querySelector('.rv-star-word');
+  const text = form.elements.text, file = form.elements.image, error = form.querySelector('.rv-error');
+  const close = () => { dialog.close(); };
+  dialog.addEventListener('close', () => dialog.remove(), { once: true });
+  dialog.querySelectorAll('[data-close]').forEach(b => b.onclick = close);
+  dialog.addEventListener('click', event => { if (event.target === dialog && !text.value.trim() && !form.elements.rating.value) close(); });
+  // stars: hover previews on desktop, the chosen value stays lit
+  const paint = n => form.querySelectorAll('.rv-star').forEach(s => s.classList.toggle('is-on', Number(s.dataset.star) <= n));
+  const chosen = () => Number(form.elements.rating.value || 0);
+  form.querySelector('.rv-star-row').addEventListener('pointerover', e => { const s = e.target.closest('.rv-star'); if (s && e.pointerType === 'mouse') { paint(Number(s.dataset.star)); word.textContent = REVIEW_WORDS[s.dataset.star]; } });
+  form.querySelector('.rv-star-row').addEventListener('pointerleave', () => { paint(chosen()); word.textContent = chosen() ? REVIEW_WORDS[chosen()] : 'Tap a star'; });
+  const ready = () => { submit.disabled = !chosen() || text.value.trim().length < 3; };
+  form.addEventListener('change', e => { if (e.target.name === 'rating') { paint(chosen()); word.textContent = REVIEW_WORDS[chosen()]; const s = form.querySelector('.rv-star[data-star="'+chosen()+'"]'); s?.classList.remove('is-pop'); void s?.offsetWidth; s?.classList.add('is-pop'); } ready(); });
+  text.addEventListener('input', () => { form.querySelector('.rv-count').textContent = text.value.length + ' / 3000'; ready(); });
+  // photo: preview with Replace / Remove; nothing is uploaded until Submit
+  const preview = form.querySelector('.rv-photo-preview'), add = form.querySelector('[data-photo-add]');
+  let previewURL = null;
+  const showPhoto = () => {
+    if (previewURL) { URL.revokeObjectURL(previewURL); previewURL = null; }
+    const f = file.files[0];
+    error.hidden = true;
+    if (f && (!['image/jpeg','image/png','image/webp'].includes(f.type) || f.size > 5242880)) { file.value = ''; error.textContent = 'Choose a JPG, PNG or WEBP photo up to 5 MB.'; error.hidden = false; }
+    if (!file.files[0]) { preview.hidden = true; preview.innerHTML = ''; add.hidden = false; return; }
+    previewURL = URL.createObjectURL(file.files[0]);
+    preview.innerHTML = '<img src="'+previewURL+'" alt="Your photo"><span>'+authEscape(file.files[0].name)+'</span><button type="button" data-photo-replace>Replace</button><button type="button" data-photo-remove>Remove</button>';
+    preview.hidden = false; add.hidden = true;
+    preview.querySelector('[data-photo-replace]').onclick = () => file.click();
+    preview.querySelector('[data-photo-remove]').onclick = () => { file.value = ''; showPhoto(); };
+  };
+  add.onclick = () => file.click();
+  file.addEventListener('change', showPhoto);
+  // editing: show what the customer wrote before (if the database lets them read it)
+  LexcBackend.client.from('reviews').select('rating,review_text,public_display_name').eq('order_id', orderId).maybeSingle().then(({ data }) => {
+    if (!data || !dialog.isConnected || chosen() || text.value) return;
+    dialog.querySelector('#rv-title').textContent = 'Edit your review';
+    const r = form.querySelector('input[name=rating][value="'+data.rating+'"]'); if (r) r.checked = true;
+    paint(chosen()); word.textContent = REVIEW_WORDS[chosen()] || 'Tap a star';
+    text.value = data.review_text || ''; form.querySelector('.rv-count').textContent = text.value.length + ' / 3000';
+    if (data.public_display_name) form.elements.display_name.value = data.public_display_name;
+    submit.textContent = 'Update review'; ready();
+  }, () => {});
+  form.onsubmit = async event => {
     event.preventDefault();
-    const form = event.currentTarget, button = form.querySelector('[type=submit]');
-    button.disabled = true;
+    if (submit.disabled) return;
+    error.hidden = true;
+    const label = submit.textContent;
+    submit.disabled = true; submit.textContent = 'Submitting review…';
     try {
-      const file = form.elements.image.files[0];
-      const image_path = file ? await LexcBackend.upload('review-images',currentUser.id+'/'+orderId,file) : null;
-      await LexcBackend.rpc('submit_review',{payload:{order_id:orderId,display_name:form.elements.display_name.value,rating:Number(form.elements.rating.value),text:form.elements.text.value,image_path}});
-      dialog.close(); dialog.remove(); showToast('Review saved. It will appear publicly after approval.');
-    } catch(error) { form.querySelector('[role=alert]').textContent = error.message; }
-    finally { button.disabled = false; }
+      const f = file.files[0];
+      const image_path = f ? await LexcBackend.upload('review-images', currentUser.id+'/'+orderId, f) : null;
+      await LexcBackend.rpc('submit_review', { payload: { order_id: orderId, display_name: form.elements.display_name.value.trim() || 'Customer', rating: chosen(), text: text.value.trim(), image_path } });
+      form.innerHTML = '<div class="rv-done mo-success"><div class="mo-check" aria-hidden="true"><svg viewBox="0 0 84 84"><circle class="mo-ring" cx="42" cy="42" r="38"/><path class="mo-tick" d="M26 43l11 11 21-22"/></svg></div><h2 class="mo-rise-1">Thank you!</h2><p class="mo-rise-1">Your '+chosen()+'-star review is saved. It will appear on the site after LexC’s approves it.</p><button type="button" class="rv-submit mo-rise" data-close>Done</button></div>';
+      form.querySelector('[data-close]').onclick = close;
+    } catch (problem) {
+      error.textContent = problem?.message || 'Your review could not be saved. Please try again.'; error.hidden = false;
+      error.classList.remove('mo-nudge'); void error.offsetWidth; error.classList.add('mo-nudge');
+      submit.disabled = false; submit.textContent = label;
+    }
   };
 }
 async function loadPublicReviews() {
