@@ -183,7 +183,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
   function messageCard(m){
     const p=payments.find(row=>row.id===m.payment_id);
     const eventClass=m.message_type!=='text'?' chat-event '+escapeHtml(m.message_type):'';
-    return '<article class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(sender(m))+'</small><p>'+escapeHtml(m.body)+'</p>'+designCardHTML(m)+
+    return '<article data-mid="'+escapeHtml(m.id)+'" class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(sender(m))+'</small><p>'+escapeHtml(m.body)+'</p>'+designCardHTML(m)+
       (p&&m.message_type==='payment_proof'?'<div class="chat-proof"><strong>Payment proof · '+money(p.amount)+'</strong><span>Reference: '+escapeHtml(p.transaction_reference||'—')+'</span><span>Current status: '+escapeHtml(p.status.replaceAll('_',' '))+'</span>'+(p.proof_storage_path?'<button type="button" data-proof="'+escapeHtml(p.id)+'">View receipt</button>':'')+'</div>':'')+
       '<time>'+escapeHtml(stamp(m.created_at))+'</time></div></article>';
   }

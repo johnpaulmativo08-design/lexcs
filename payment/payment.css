@@ -296,3 +296,21 @@ nav[aria-label="Breadcrumb"] a:hover{text-decoration:underline;text-underline-of
 .state-card .note{color:#8a4b12;font-weight:600}
 @media(max-width:520px){.plan-list{grid-template-columns:1fr}.plan-choice b{font-size:1.1rem}}
 @media(prefers-reduced-motion:reduce){.plan-choice{transition:none}}
+
+/* Motion moments (with shared/motion.css) */
+.mo-success h2{margin:4px 0 0}
+.receipt-card{display:grid;gap:2px;justify-items:center;min-width:220px;margin:10px auto 4px;padding:14px 22px;border:1px solid #e3d8f3;border-radius:14px;background:linear-gradient(180deg,#fff,#faf7fe);box-shadow:0 8px 22px rgba(70,40,110,.08)}
+.receipt-card small{color:#7b6d90;font-size:.7rem;font-weight:700;letter-spacing:.08em}
+.receipt-card strong{font-size:1.6rem;color:#3d2670}
+.receipt-card span{color:#5d5170;font-size:.86rem}
+.mo-success .state-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:6px}
+.verified-flash{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:11px 14px;border:1px solid #bfe3cd;border-radius:12px;background:#f3fbf6;color:#1d5e3e;font-size:.9rem;animation:mo-slide-up 320ms var(--ease-enter,ease) both}
+.verified-flash .mo-ring{fill:#e4f6eb;stroke:#1f8a5b}.verified-flash .mo-tick{stroke:#1f8a5b}
+.selected-proof.is-error{color:#b3344e}
+.proof-preview{display:grid!important;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:12px;margin-top:8px;padding:8px;border:1px solid #ddd0ef;border-radius:12px;background:#faf7fe;animation:mo-scale-in 260ms var(--ease-enter,ease) both}
+.proof-preview img{width:56px;height:56px;object-fit:cover;border-radius:9px;display:block}
+.proof-preview-name{display:grid;min-width:0}
+.proof-preview-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.86rem}
+.proof-preview-name small{color:#6d6278}
+.proof-preview-actions{display:flex;gap:12px}
+@media(max-width:520px){.proof-preview{grid-template-columns:48px minmax(0,1fr)}.proof-preview img{width:48px;height:48px}.proof-preview-actions{grid-column:1/-1;justify-content:flex-end}}

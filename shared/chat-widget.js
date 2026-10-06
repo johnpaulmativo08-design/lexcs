@@ -1,4 +1,4 @@
-import {readChatThread,markChatRead,sendChatMessage,ensureCustomerChat,subscribeChatChanges,designCardHTML,hydrateDesignImages} from './chat.js?v=19';
+import {readChatThread,markChatRead,sendChatMessage,ensureCustomerChat,subscribeChatChanges,designCardHTML,hydrateDesignImages} from './chat.js?v=20';
 
 const db=window.LexcBackend;
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -46,7 +46,7 @@ export async function mountChatWidget({admin=false}={}){
     badge();draw();
   }
   function capture(){root.querySelectorAll('[data-compose]').forEach(form=>{drafts.set(form.dataset.compose,form.elements.body.value);});root.querySelectorAll('[data-stream]').forEach(stream=>{scrollPositions.set(stream.dataset.stream,stream.scrollHeight-stream.clientHeight-stream.scrollTop<24?null:stream.scrollTop);});}
-  function messageView(id){if(!threads.has(id))return messageSkeleton();const rows=threads.get(id)||[];return rows.length?rows.map(m=>`<div class="lcw-message ${esc(m.sender_type)} ${m.sender_type===(admin?'admin':'customer')?'mine':''}"><div>${esc(m.body)}${designCardHTML(m)}<time>${time(m.created_at)}</time></div></div>`).join(''):'<p class="lcw-empty">No messages yet. Send a message to start the conversation.</p>';}
+  function messageView(id){if(!threads.has(id))return messageSkeleton();const rows=threads.get(id)||[];return rows.length?rows.map(m=>`<div data-mid="${esc(m.id)}" class="lcw-message ${esc(m.sender_type)} ${m.sender_type===(admin?'admin':'customer')?'mine':''}"><div>${esc(m.body)}${designCardHTML(m)}<time>${time(m.created_at)}</time></div></div>`).join(''):'<p class="lcw-empty">No messages yet. Send a message to start the conversation.</p>';}
   function composer(id){return `<form class="lcw-compose" data-compose="${esc(id)}"><label class="lcw-sr" for="lcw-text-${esc(id)}">Message</label><textarea id="lcw-text-${esc(id)}" name="body" rows="1" maxlength="3000" placeholder="${admin?'Reply to customer…':'Message LexC’s Admin…'}" required>${esc(drafts.get(id)||'')}</textarea><button type="submit" aria-label="Send message" ${sending.has(id)?'disabled':''}>➤</button></form>`;}
   function threadView(id,{popup=false}={}){
     const c=conversation(id),o=order(c),mini=minimized.has(id);

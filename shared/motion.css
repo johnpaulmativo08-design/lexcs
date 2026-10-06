@@ -1,0 +1,156 @@
+/* LexC's Snacktime — one motion language for the customer side.
+   Motion answers: what did I touch, what changed, did it work, what happens next.
+   Loaded last on the storefront, chat and payment pages; it only adds feedback and never changes layout logic.
+   Individual `scale` / `translate` properties are used for feedback so they never fight an element's own `transform`. */
+:root{
+  --motion-instant:120ms;   /* press, toggle, chip, quantity */
+  --motion-fast:180ms;      /* dropdowns, hovers, menus */
+  --motion-base:240ms;      /* cards, small drawers, tabs */
+  --motion-slow:380ms;      /* product detail, cart drawer, sections */
+  --motion-celebrate:720ms; /* payment submitted, order received */
+  --ease-standard:cubic-bezier(.22,1,.36,1);
+  --ease-enter:cubic-bezier(.16,1,.3,1);
+  --ease-exit:cubic-bezier(.4,0,1,1);
+  --mo-violet:#6d4bc3;--mo-lavender:#f1eafb;--mo-ink:#2a1d3d;--mo-success:#1f8a5b;--mo-error:#c2415a;--mo-warning:#a35d0b;
+}
+
+/* ---- Keyframes (shared) ---- */
+@keyframes mo-fade-in{from{opacity:0}}
+@keyframes mo-slide-up{from{opacity:0;translate:0 12px}}
+@keyframes mo-slide-down{from{opacity:0;translate:0 -4px;scale:.98}}
+@keyframes mo-scale-in{from{opacity:0;scale:.96}}
+@keyframes mo-pop{0%{scale:.8;opacity:0}60%{scale:1.06;opacity:1}100%{scale:1}}
+@keyframes mo-bump{0%{scale:1}45%{scale:1.15}100%{scale:1}}
+@keyframes mo-nudge{0%,100%{translate:0}30%{translate:-3px}65%{translate:3px}}
+@keyframes mo-spin{to{rotate:360deg}}
+@keyframes mo-draw{to{stroke-dashoffset:0}}
+@keyframes mo-ring{from{scale:.6;opacity:0}to{scale:1;opacity:1}}
+@keyframes mo-sparkle{0%{opacity:0;scale:.4;translate:0 0}35%{opacity:1}100%{opacity:0;scale:1;translate:var(--dx) var(--dy)}}
+@keyframes mo-sheet-up{from{opacity:0;translate:0 16px}}
+
+/* ---- Buttons: physical press, gentle hover ---- */
+:where(button,.btn-primary,.btn-outline,.button,a.btn-primary,a.btn-outline,[role=button],.filter-item,.co-option,.pd-option){
+  transition:scale var(--motion-instant) var(--ease-standard),translate var(--motion-fast) var(--ease-standard),background-color var(--motion-fast) ease,border-color var(--motion-fast) ease,color var(--motion-fast) ease,box-shadow var(--motion-fast) ease,opacity var(--motion-fast) ease}
+:where(button,.btn-primary,.btn-outline,.button,[role=button],.filter-item,.co-option,.pd-option):active:not(:disabled):not([aria-disabled=true]){scale:.98}
+@media(hover:hover){
+  :where(.btn-primary,.co-submit-btn,.auth-btn,.pd-buy__add):hover:not(:disabled){translate:0 -1px}
+}
+
+/* Primary action in progress: spinner + label, same width, no double submit (added by motion.js) */
+.mo-busy{position:relative;cursor:progress!important;opacity:.92}
+.mo-busy::before{content:'';display:inline-block;width:1em;height:1em;margin-right:.5em;vertical-align:-.15em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:mo-spin .7s linear infinite}
+.mo-done{background:var(--mo-success)!important;border-color:var(--mo-success)!important;color:#fff!important}
+
+/* ---- Toasts ---- */
+#toast.toast{display:none!important}
+.mo-toasts{position:fixed;z-index:2147483000;right:24px;bottom:24px;display:grid;gap:8px;justify-items:end;pointer-events:none;max-width:min(420px,calc(100vw - 32px))}
+.mo-toast{display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 12px 10px 14px;border-radius:14px;background:#2b1d40;color:#fff;font:600 .84rem/1.35 'DM Sans',system-ui,sans-serif;box-shadow:0 10px 28px rgba(40,20,60,.28);pointer-events:auto;animation:mo-slide-up var(--motion-base) var(--ease-enter) both}
+.mo-toast.is-leaving{animation:none;opacity:0;translate:0 8px;transition:opacity var(--motion-fast) var(--ease-exit),translate var(--motion-fast) var(--ease-exit)}
+.mo-toast__icon{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.14);font-size:.75rem}
+.mo-toast--success .mo-toast__icon{background:#2fa36f}
+.mo-toast--error .mo-toast__icon{background:#d55470}
+.mo-toast--warning .mo-toast__icon{background:#d18a24}
+.mo-toast__text{flex:1;min-width:0}
+.mo-toast__action{flex:none;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:6px 12px;font:700 .78rem 'DM Sans',sans-serif;cursor:pointer}
+.mo-toast__action:hover{background:rgba(255,255,255,.18)}
+@media(max-width:860px){.mo-toasts{left:16px;right:16px;bottom:calc(92px + env(safe-area-inset-bottom));justify-items:center;max-width:none}}
+body[data-customer-page=checkout] .mo-toasts{bottom:calc(110px + env(safe-area-inset-bottom))}
+
+/* ---- Cart: drawer, badge, items, totals ---- */
+.cart-drawer{transition:transform var(--motion-slow) var(--ease-enter)!important}
+.cart-drawer:not(.open){transition-duration:260ms!important;transition-timing-function:var(--ease-exit)!important}
+.cart-overlay{transition:opacity var(--motion-base) ease!important}
+.mo-bump{animation:mo-bump 320ms var(--ease-standard)}
+.mo-roll{display:inline-block}
+.cart-item.is-removing{pointer-events:none}
+.cart-empty,.customer-orders-state,.shop-no-results,.lcw-empty,.chat-empty{animation:mo-scale-in var(--motion-slow) var(--ease-enter) both}
+.mo-fly{position:fixed;z-index:2147482000;width:46px;height:46px;border-radius:50%;background:#efe7fa center/cover no-repeat;box-shadow:0 8px 22px rgba(60,30,90,.3);pointer-events:none}
+
+/* ---- Product cards and detail ---- */
+@media(hover:hover){
+  .pd-card:hover{transform:translateY(-2px)!important}
+  .pd-card:hover .pd-card__media img{transform:scale(1.025)!important}
+}
+.pd-card:active{scale:.99}
+.pd-card__media:active img{scale:.98;transition:scale var(--motion-instant) var(--ease-standard)}
+.pd-hero img{transition:opacity 200ms ease,transform 280ms var(--ease-standard)!important}
+.pd-hero img.is-switching{opacity:0!important;transform:scale(.98)}
+.pd-option{position:relative}
+.pd-option.is-active::after{content:'';position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--mo-violet) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat;box-shadow:0 0 0 2px #fff;animation:mo-pop var(--motion-fast) var(--ease-standard) both}
+.pd-fav[aria-pressed=true] .pd-icon,.pd-round--fav[aria-pressed=true] .pd-icon,.pd-buy__fav[aria-pressed=true] .pd-icon{animation:mo-bump 260ms var(--ease-standard)!important}
+.pd-grid .pd-card.mo-enter{animation:mo-slide-up var(--motion-base) var(--ease-enter) both;animation-delay:var(--mo-delay,0ms)}
+.fade-up{transition:opacity 520ms var(--ease-enter),transform 520ms var(--ease-enter)!important;transform:translateY(18px)}
+.fade-up.visible{transform:none}
+
+/* ---- Pages, menus, dropdowns, dialogs, accordions ---- */
+.page.mo-page-enter{animation:mo-fade-in 300ms var(--ease-enter) both}
+.page.mo-page-enter>*:first-child{animation:mo-slide-up 340ms var(--ease-enter) both}
+.shop-search-recent:not([hidden]){animation:mo-slide-down var(--motion-fast) var(--ease-standard) both;transform-origin:top}
+.customer-more-backdrop:not([hidden]){animation:mo-fade-in var(--motion-base) ease both}
+.customer-more-menu:not([hidden]){animation:mo-sheet-up 260ms var(--ease-enter) both}
+.customer-more-menu:not([hidden])>*{animation:mo-slide-up 260ms var(--ease-enter) both}
+.customer-more-menu:not([hidden])>*:nth-child(2){animation-delay:30ms}.customer-more-menu:not([hidden])>*:nth-child(3){animation-delay:60ms}
+.customer-more-menu:not([hidden])>*:nth-child(4){animation-delay:90ms}.customer-more-menu:not([hidden])>*:nth-child(n+5){animation-delay:120ms}
+.customer-mobile-nav button>span{transition:background-color var(--motion-fast) ease,color var(--motion-fast) ease}
+.customer-mobile-nav button[aria-current="page"] .ui-icon{animation:mo-scale-in var(--motion-fast) var(--ease-standard)}
+.nav-links a::after{transition:width var(--motion-base) var(--ease-standard)!important}
+dialog[open]:not(.pd-dialog){animation:mo-modal-in 260ms var(--ease-enter) both}
+dialog[open]:not(.pd-dialog)::backdrop{animation:mo-fade-in var(--motion-base) ease both}
+@keyframes mo-modal-in{from{opacity:0;scale:.97;translate:0 8px}}
+.dt-modal-overlay.open{animation:mo-fade-in var(--motion-base) ease both}
+.dt-modal-overlay.open>*{animation:mo-modal-in 280ms var(--ease-enter) both}
+details[open]>:not(summary){animation:mo-slide-down var(--motion-base) var(--ease-standard) both}
+
+/* ---- Forms ---- */
+:where(input,select,textarea){transition:border-color 150ms ease,box-shadow 150ms ease,background-color 150ms ease}
+.mo-nudge{animation:mo-nudge 260ms ease-in-out 1}
+.auth-error.show,.co-hint.is-bad{animation:mo-fade-in var(--motion-fast) ease both}
+.mo-pass-wrap{position:relative;display:block}
+.mo-pass-wrap input{padding-right:46px!important}
+.mo-pass-toggle{position:absolute;right:6px;top:50%;translate:0 -50%;width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:#6b5a85;cursor:pointer}
+.mo-pass-toggle:hover{background:#f3edfb}
+.mo-pass-toggle svg{width:19px;height:19px;transition:opacity var(--motion-fast) ease,scale var(--motion-fast) var(--ease-standard)}
+.mo-pass-toggle .mo-eye-off{position:absolute;opacity:0;scale:.8}
+.mo-pass-toggle[aria-pressed=true] .mo-eye{opacity:0;scale:.8}
+.mo-pass-toggle[aria-pressed=true] .mo-eye-off{opacity:1;scale:1}
+
+/* ---- Chat ---- */
+.mo-msg-in{animation:mo-msg-in 220ms var(--ease-enter) both}
+@keyframes mo-msg-in{from{opacity:0;translate:0 6px}}
+
+/* ---- My Orders timeline ---- */
+.order-steps{position:relative;display:grid;grid-template-columns:repeat(5,1fr);margin:10px 0 4px;padding:0;list-style:none;font-size:.66rem;color:#8a7d99}
+.order-steps-wrap{position:relative}
+.order-steps-wrap::before,.order-steps__fill{content:'';position:absolute;top:17px;left:10%;right:10%;height:2px;border-radius:2px;background:#e8e0f2}
+.order-steps__fill{z-index:1;background:var(--mo-violet);transform-origin:left;transform:scaleX(var(--p,0))}
+.order-steps li{position:relative;display:grid;justify-items:center;gap:4px;text-align:center}
+.order-steps li::before{content:'';position:relative;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #d9cdea;box-sizing:border-box;z-index:2}
+.order-steps li.is-done::before{background:var(--mo-violet);border-color:var(--mo-violet)}
+.order-steps li.is-current{color:#4b2f84;font-weight:700}
+.order-steps li.is-current::before{border-color:var(--mo-violet);box-shadow:0 0 0 3px #e7dcf8}
+.order-steps li.mo-step-new::before{animation:mo-pop 320ms var(--ease-standard) both}
+
+/* ---- Success moments (payment submitted, order received, payment verified) ---- */
+.mo-success{position:relative;display:grid;justify-items:center;text-align:center;gap:6px}
+.mo-check{position:relative;width:84px;height:84px;margin:4px auto 6px}
+.mo-check svg{width:100%;height:100%;overflow:visible}
+.mo-check .mo-ring{fill:#f3edfc;stroke:var(--mo-violet);stroke-width:3;transform-origin:center;transform-box:fill-box;animation:mo-ring 360ms 150ms var(--ease-enter) both}
+.mo-check .mo-tick{fill:none;stroke:var(--mo-violet);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:mo-draw 300ms 330ms var(--ease-standard) forwards}
+.mo-check--small{width:26px;height:26px;margin:0}
+.mo-check--small .mo-ring{stroke-width:2.4}
+.mo-check--small .mo-tick{stroke-width:3.4;animation-delay:120ms}
+.mo-check--small .mo-ring{animation-delay:0ms}
+.mo-sparkle{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:var(--c,#d8c3f5);opacity:0;animation:mo-sparkle 700ms 380ms var(--ease-enter) both}
+.mo-rise{animation:mo-slide-up 420ms 450ms var(--ease-enter) both}
+.mo-rise-1{animation:mo-slide-up 380ms 120ms var(--ease-enter) both}
+.mo-rise-2{animation:mo-slide-up 380ms 260ms var(--ease-enter) both}
+
+/* ---- Reduced motion: keep every state change, drop movement ---- */
+@media (prefers-reduced-motion: reduce){
+  :where(button,.btn-primary,.btn-outline,.button,[role=button],.filter-item,.co-option,.pd-option):active:not(:disabled){scale:1}
+  .mo-busy::before{animation:none;border-right-color:currentColor;opacity:.5}
+  .mo-check .mo-tick{stroke-dashoffset:0;animation:none}
+  .mo-check .mo-ring,.mo-sparkle,.mo-rise,.mo-rise-1,.mo-rise-2,.mo-msg-in,.pd-grid .pd-card.mo-enter,.page.mo-page-enter,.page.mo-page-enter>*:first-child{animation:none!important}
+  .mo-sparkle{display:none}
+  .order-steps__fill{transition:none}
+}
