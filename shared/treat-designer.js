@@ -14,7 +14,7 @@ function makeTreatDesigner(K) {
   const THEME_ICON = { none: '—', space: '🪐', butterfly: '🦋', garden: '🌼', bees: '🐝', rainbow: '🌈', fairy: '🍄', construction: '🚧', baby: '🍼', bows: '🎀', custom: '✨' };
   const PATTERN_NOTE = { same: `Every ${NOUN} the same ${COAT}`, alternate: `Two ${COAT}s in a checkerboard`, assorted: `We spread your ${COAT}s across the box` };
   const SPRINKLE_NOTE = { none: `Just the ${COAT}`, white_pearls: 'Tiny white sugar pearls', nonpareils: 'Pick 1–3 colours', gold_pearls: 'Shiny gold pearls' };
-  const MESSAGE_NOTE = { none: 'Toppers only', letters: `Spelled across the box, 1–3 letters per ${NOUN}`, plaque: 'A name or number on round plaques' };
+  const MESSAGE_NOTE = { none: 'Toppers only', letters: `1–5 letters on each ${NOUN}, you choose which`, plaque: 'A name or number on round plaques' };
   const COLOR_GROUPS = [
     ['Pastels', ['white', 'ivory', 'cream', 'butter', 'peach', 'blush', 'baby_pink', 'lavender', 'lilac', 'baby_blue', 'mint', 'aqua']],
     ['Brights', ['lemon', 'orange', 'lime', 'coral', 'pink', 'hot_pink', 'red', 'purple', 'periwinkle', 'sky_blue', 'azure', 'leaf_green', 'sage']],
@@ -39,12 +39,16 @@ function makeTreatDesigner(K) {
   function blank(box = 'party') {
     const p = products[box];
     return { box, variant_id: p?.product_variants.filter((v) => v.is_active)[0]?.id, qty: 1, flavors: [K.defaultFlavor], pattern: 'same', glazes: ['pink'], ...(K.styles ? { style: 'round' } : {}),
-      finishes: [], sprinkles: 'white_pearls', sprinkle_colors: [], theme: 'none', theme_note: '', message: 'none', message_text: '', message_color: 'white' };
+      finishes: [], sprinkles: 'white_pearls', sprinkle_colors: [], theme: 'none', theme_note: '', message: 'none', message_text: '', message_pieces: [], message_color: 'white' };
   }
   const design = () => ({ designer: K.designer, ...(K.styles ? { style: state.style } : {}), flavors: [...state.flavors], pattern: state.pattern, glazes: [...state.glazes], finishes: [...state.finishes],
     sprinkles: state.sprinkles, ...(state.sprinkles === 'nonpareils' ? { sprinkle_colors: [...state.sprinkle_colors] } : {}),
     theme: state.theme, ...(state.theme !== 'none' && state.theme_note.trim() ? { theme_note: state.theme_note.trim() } : {}),
-    message: state.message, ...(state.message !== 'none' ? { message_text: state.message_text.trim(), message_color: state.message_color } : {}) });
+    message: state.message, ...(state.message === 'letters' ? { message_pieces: LexcLetterPieces.fit(state.message_pieces, countOf(variant()?.label)), message_text: piecesText(), message_color: state.message_color }
+      : state.message !== 'none' ? { message_text: state.message_text.trim(), message_color: state.message_color } : {}) });
+  // which donut the customer is typing letters for (not part of the design)
+  let pieceAt = 0;
+  const piecesText = () => (state.message_pieces || []).filter(Boolean).join(' · ');
 
   // ---- data ---------------------------------------------------------------------------------------
   async function loadAll() {
@@ -56,18 +60,6 @@ function makeTreatDesigner(K) {
     const rows = LexcBackend.unwrap(await LexcBackend.client.from('design_options').select('product_id,group_key,code,label,price,hex,sort_order').in('product_id', ids).order('sort_order'));
     optionsBy = {};
     for (const [box, p] of Object.entries(products)) { const o = {}; rows.filter((r) => r.product_id === p.id).forEach((r) => (o[r.group_key] ||= []).push(r)); optionsBy[box] = o; }
-  }
-
-  // ---- letters: how the message is split across donuts (like "A · BA · BY · B · OY") --------------------
-  function chunks(text) {
-    const out = [];
-    for (const w of String(text).trim().split(/\s+/).filter(Boolean)) {
-      if (w.length <= 2) { out.push(w); continue; }
-      if (w.length === 3) { out.push(w.slice(0, 1), w.slice(1)); continue; }
-      const first = w.length % 2 ? 3 : 2; out.push(w.slice(0, first));
-      for (let i = first; i < w.length; i += 2) out.push(w.slice(i, i + 2));
-    }
-    return out;
   }
 
   // ---- state, history, draft -----------------------------------------------------------------------
@@ -91,7 +83,12 @@ function makeTreatDesigner(K) {
     if (!opt('theme', state.theme)) state.theme = 'none';
     state.theme_note = String(state.theme_note || '').slice(0, 60);
     if (K.message === false || !opt('message', state.message)) state.message = 'none';
-    state.message_text = String(state.message_text || '').replace(LETTER_OK, '').slice(0, LETTER_MAX[state.message] || 40);
+    if (state.message === 'letters') {
+      // older designs spelled one sentence across the box: keep it as per-donut letters
+      if (!LexcLetterPieces.filled(state.message_pieces) && String(state.message_text || '').trim()) state.message_pieces = LexcLetterPieces.fromSentence(state.message_text);
+      state.message_pieces = LexcLetterPieces.fit(state.message_pieces, countOf(variant()?.label));
+      pieceAt = Math.min(pieceAt, state.message_pieces.length - 1);
+    } else state.message_text = String(state.message_text || '').replace(LETTER_OK, '').slice(0, LETTER_MAX[state.message] || 40);
     if (!pal[state.message_color]) state.message_color = 'white';
   }
   function commit(mutator, { soft = false } = {}) {
@@ -130,9 +127,8 @@ function makeTreatDesigner(K) {
   function cellsFor() {
     const pal = palette(), hex = (c) => pal[c] || '#ffffff', count = countOf(variant()?.label), [cols, rows] = grid(count), out = [];
     const decor = new Array(count).fill(null);
-    if (state.message === 'letters' && state.message_text.trim()) {
-      const parts = chunks(state.message_text), start = parts.length <= count - cols ? cols : 0;
-      parts.slice(0, count - start).forEach((t, k) => { decor[start + k] = { type: 'letters', text: t }; });
+    if (state.message === 'letters') {
+      (state.message_pieces || []).slice(0, count).forEach((t, k) => { if (t) decor[k] = { type: 'letters', text: t }; });
     } else if (state.message === 'plaque' && state.message_text.trim()) {
       const n = Math.max(1, Math.min(5, Math.round(count / 10)));
       for (let k = 0; k < n; k++) decor[Math.floor(((k + 0.5) * count) / n)] = { type: 'plaque', text: state.message_text.trim() };
@@ -276,17 +272,18 @@ function makeTreatDesigner(K) {
           <input id="${K.key}-theme-note" class="bd-input" maxlength="60" data-dd-input="theme_note" value="${esc(s.theme_note)}" placeholder="${s.theme === 'custom' ? 'e.g. a kitty with a pink bow' : 'e.g. favourite colours'}">` : ''}
       </fieldset>`;
     if (step === 'message') {
-      const parts = s.message === 'letters' ? chunks(s.message_text) : [], count = countOf(variant()?.label);
+      const count = countOf(variant()?.label);
       return `
       <fieldset class="bd-group"><legend>Fondant message</legend>
         <div class="bd-cards cd-patterns" role="radiogroup">${(options().message || []).map((o) => `<button type="button" role="radio" class="bd-card" data-dd-set="message" data-value="${o.code}" aria-checked="${s.message === o.code}"><strong>${esc(o.label)}</strong><small>${MESSAGE_NOTE[o.code] || ''}${plus(o)}</small></button>`).join('')}</div>
       </fieldset>
-      ${s.message !== 'none' ? `<fieldset class="bd-group"><legend>${s.message === 'letters' ? 'Your words' : 'Name or number'} <small>${(s.message_text || '').length}/${LETTER_MAX[s.message]}</small></legend>
-        <input class="bd-input" maxlength="${LETTER_MAX[s.message]}" data-dd-input="message_text" value="${esc(s.message_text)}" placeholder="${s.message === 'letters' ? 'e.g. happy birthday' : 'e.g. YANA or 2'}" autocomplete="off">
-        ${s.message === 'letters' && parts.length ? `<p class="bd-note" style="margin-top:10px">Spelled across ${parts.length} ${NOUN}${parts.length > 1 ? 's' : ''}:</p><div class="dd-letters">${parts.map((p) => `<span>${esc(p)}</span>`).join('')}</div>${parts.length > count ? `<p class="cd-tip">That is more donuts than this box has (${count}). Shorten it or pick a bigger box.</p>` : ''}` : ''}
-        ${s.message === 'plaque' ? '<p class="bd-note" style="margin-top:10px">We put it on a few round fondant plaques spread across the box.</p>' : ''}
-      </fieldset>
-      <fieldset class="bd-group"><legend>Letter color</legend>${swatches('message', [s.message_color], false)}</fieldset>` : ''}`;
+      ${s.message === 'letters' ? `<fieldset class="bd-group"><legend>Letters on each ${NOUN} <small>1–5 per ${NOUN}</small></legend>
+        ${LexcLetterPieces.markup({ pieces: s.message_pieces, count, at: pieceAt, noun: NOUN, id: K.key + '-lp' })}
+      </fieldset>` : s.message !== 'none' ? `<fieldset class="bd-group"><legend>Name or number <small>${(s.message_text || '').length}/${LETTER_MAX[s.message]}</small></legend>
+        <input class="bd-input" maxlength="${LETTER_MAX[s.message]}" data-dd-input="message_text" value="${esc(s.message_text)}" placeholder="e.g. YANA or 2" autocomplete="off">
+        <p class="bd-note" style="margin-top:10px">We put it on a few round fondant plaques spread across the box.</p>
+      </fieldset>` : ''}
+      ${s.message !== 'none' ? `<fieldset class="bd-group"><legend>Letter color</legend>${swatches('message', [s.message_color], false)}</fieldset>` : ''}`;
     }
     const v = variant(), ex = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : [];
     const labels = (codes) => codes.map((c) => esc(opt('color', c)?.label)).join(', ');
@@ -299,7 +296,7 @@ function makeTreatDesigner(K) {
         <li><span>Finishes</span><strong>${s.finishes.map((f) => esc(opt('finish', f)?.label)).join(', ') || 'None'}</strong></li>
         <li><span>Sprinkles</span><strong>${esc(opt('sprinkle', s.sprinkles)?.label)}${s.sprinkles === 'nonpareils' ? ' (' + labels(s.sprinkle_colors) + ')' : ''}</strong></li>
         <li><span>Toppers</span><strong>${esc(opt('theme', s.theme)?.label)}${s.theme_note && s.theme !== 'none' ? ': ' + esc(s.theme_note) : ''}</strong></li>
-        ${K.message === false ? '' : `<li><span>Message</span><strong>${s.message === 'none' ? 'None' : esc(opt('message', s.message)?.label) + ' “' + esc(s.message_text) + '” · ' + esc(opt('color', s.message_color)?.label)}</strong></li>`}
+        ${K.message === false ? '' : `<li><span>Message</span><strong>${s.message === 'none' ? 'None' : esc(opt('message', s.message)?.label) + ' “' + esc(s.message === 'letters' ? piecesText() : s.message_text) + '” · ' + esc(opt('color', s.message_color)?.label)}</strong></li>`}
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       ${quote.status === 'error' ? `<div class="bd-warning" role="alert">${esc(quote.message)}</div>` : ''}
@@ -332,7 +329,7 @@ function makeTreatDesigner(K) {
     const host = root.querySelector('[data-dd-3d]');
     sceneLoading = (async () => {
       try {
-        const [mod] = await Promise.all([import('./cupcake-scene.js?v=18'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
+        const [mod] = await Promise.all([import('./cupcake-scene.js?v=19'), document.fonts?.load('800 60px "Baloo 2"').catch(() => null)]);
         if (currentPage !== K.page || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion, kind: K.sceneKind });
@@ -417,6 +414,16 @@ function makeTreatDesigner(K) {
       if ('ddPrev' in d) { const i = STEPS.findIndex(([k]) => k === step); return goStep(STEPS[Math.max(0, i - 1)][0]); }
       if ('ddNext' in d) { const i = STEPS.findIndex(([k]) => k === step); return i < STEPS.length - 1 ? goStep(STEPS[i + 1][0]) : addToCart(); }
     });
+    // letters per donut (shared picker): typing updates the box shortly after; fill/clear are undoable steps
+    let lettersTimer = 0;
+    LexcLetterPieces.bind(root, {
+      pieces: () => state.message_pieces, count: () => countOf(variant()?.label), at: () => pieceAt,
+      setAt: (i) => { pieceAt = i; renderBody(); },
+      set: (pieces, { render }) => {
+        if (render) return commit((st) => { st.message_pieces = pieces; });
+        state.message_pieces = pieces; saveDraft(); scheduleQuote(); clearTimeout(lettersTimer); lettersTimer = setTimeout(renderPreview, 300);
+      }
+    });
     let typing = 0;
     root.addEventListener('input', (e) => {
       const key = e.target.dataset.ddInput; if (!key) return;
@@ -435,6 +442,10 @@ function makeTreatDesigner(K) {
 
   // ---- cart -------------------------------------------------------------------------------------------------
   async function addToCart() {
+    if (state.message === 'letters' && !LexcLetterPieces.filled(state.message_pieces)) {
+      if (step !== 'message') goStep('message');
+      return showToast(`Add letters to at least one ${NOUN}, or choose no message.`);
+    }
     if (quote.status !== 'ok') return;
     const v = variant(), d = design(), p = product();
     const item = { id: K.designer + '-' + crypto.randomUUID(), product_id: p.id, variant_id: v.id, name: p.name, emoji: K.emoji,
@@ -482,7 +493,7 @@ function makeTreatDesigner(K) {
     packed = false; root.classList.remove('is-packing'); scene?.unpack();
     const boxOf = (variantId) => Object.entries(products).find(([, p]) => p.product_variants.some((v) => v.id === variantId))?.[0];
     const fromDesign = (d) => ({ ...(K.styles ? { style: d.style || 'round' } : {}), flavors: d.flavors, pattern: d.pattern, glazes: d.glazes, finishes: d.finishes || [], sprinkles: d.sprinkles, sprinkle_colors: d.sprinkle_colors || [],
-      theme: d.theme, theme_note: d.theme_note || '', message: d.message || 'none', message_text: d.message_text || '', message_color: d.message_color || 'white' });
+      theme: d.theme, theme_note: d.theme_note || '', message: d.message || 'none', message_text: d.message_text || '', message_pieces: d.message_pieces || [], message_color: d.message_color || 'white' });
     if (fromCart !== null && cart[fromCart]?.customization?.designer === K.designer) {
       const c = cart[fromCart], b = boxOf(c.variant_id) || 'party'; editIndex = fromCart;
       state = { ...blank(b), ...fromDesign(c.customization), box: b, variant_id: c.variant_id, qty: c.qty }; step = 'review';

@@ -10,6 +10,19 @@
     leaves: ['decorate', 'Decorations', 'Piped leaves'], sprinkles: ['decorate', 'Decorations', 'Sprinkles'], gold_leaf: ['decorate', 'Decorations', 'Gold leaf'],
     message: ['message', null, 'Message'], topper: ['decorate', 'Topper', 'Topper']
   };
+  // Bento message: up to 20 words (customization_config.message_max_words). Words are counted after trimming, so
+  // extra spaces never count. A generous character cap only protects the cake layout and the database.
+  const MESSAGE_CHAR_CAP = 160;
+  const wordCount = (text) => (String(text || '').trim().match(/\S+/g) || []).length;
+  const messageWords = () => Number(cfg().message_max_words || 20);
+  const overWordsText = (words, max) => `Keep the message within ${max} words — remove ${words - max} word${words - max === 1 ? '' : 's'}. Your text is kept so you can edit it.`;
+  function syncWordCounter() {
+    const words = wordCount(state.message), max = messageWords(), over = words > max;
+    const count = root.querySelector('[data-bd-count]'); if (count) count.textContent = `${words} / ${max} words`;
+    root.querySelector('[data-bd-counter]')?.classList.toggle('is-over', over);
+    root.querySelector('#bd-message')?.setAttribute('aria-invalid', String(over));
+    const box = root.querySelector('#bd-msg-error'); if (box) { box.hidden = !over; box.textContent = over ? overWordsText(words, max) : ''; }
+  }
   const SUGGESTIONS = ['Happy Birthday', 'Congratulations', 'Happy Anniversary', 'Best wishes', 'I love you'];
   const DRAFT_KEY = 'lexc_bento_draft_v1';
   // One-tap starting points, based on LexC's own bento photos. Everything stays editable.
@@ -555,12 +568,13 @@
       </fieldset>`;
     }
     if (step === 'message') {
-      const maxLen = Number(cfg().message_max || 42), maxLines = Number(cfg().message_max_lines || 3);
+      const maxLines = Number(cfg().message_max_lines || 3), words = wordCount(s.message), maxWords = messageWords();
       const msgOpt = opt('message', 'custom_message');
       return `
       <label class="bd-label" for="bd-message">Message on the cake <small>${msgOpt ? '+' + money(msgOpt.price) + ' · ' : ''}optional</small></label>
-      <textarea id="bd-message" class="bd-textarea" rows="3" maxlength="${maxLen}" data-bd-text="message" aria-describedby="bd-msg-help" placeholder="Happy Birthday Mika">${esc(s.message)}</textarea>
-      <div class="bd-counter" id="bd-msg-help"><span>Up to ${maxLines} lines — press Enter for a new line.</span><span data-bd-count>${s.message.length} / ${maxLen}</span></div>
+      <textarea id="bd-message" class="bd-textarea" rows="3" maxlength="${MESSAGE_CHAR_CAP}" data-bd-text="message" aria-describedby="bd-msg-help bd-msg-error" aria-invalid="${words > maxWords}" placeholder="Happy Birthday Mika">${esc(s.message)}</textarea>
+      <div class="bd-counter${words > maxWords ? ' is-over' : ''}" id="bd-msg-help" data-bd-counter><span>Up to ${maxWords} words on ${maxLines} lines — press Enter for a new line.</span><span data-bd-count>${words} / ${maxWords} words</span></div>
+      <p class="bd-msg-error" id="bd-msg-error" role="alert" ${words > maxWords ? '' : 'hidden'}>${words > maxWords ? overWordsText(words, maxWords) : ''}</p>
       <div class="bd-chips" style="margin-bottom:18px" aria-label="Message suggestions">${SUGGESTIONS.map((t) => `<button type="button" class="bd-chip" data-bd-suggest="${esc(t)}">${esc(t)}</button>`).join('')}</div>
       <fieldset class="bd-group" ${s.message.trim() ? '' : 'disabled'}><legend>Lettering <small>${s.message.trim() ? '' : 'Write a message first'}</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Lettering style">${(options.lettering || []).map((o) => `<button type="button" role="radio" class="bd-card" data-bd-set="lettering" data-value="${o.code}" aria-checked="${s.lettering === o.code}" ${s.message.trim() ? '' : 'disabled'}><strong>${esc(o.label)}</strong><span>${Number(o.price) > 0 ? '+' + money(o.price) : 'Included'}</span></button>`).join('')}</div></fieldset>
@@ -605,7 +619,7 @@
   function refreshBodyState() {
     const active = document.activeElement, key = active?.dataset?.bdText || (active?.dataset?.value ? active.dataset.bdSet || active.dataset.bdToggle : null);
     const value = active?.dataset?.value, caret = active?.selectionStart;
-    if (active?.dataset?.bdText) { root.querySelector('[data-bd-count]') && (root.querySelector('[data-bd-count]').textContent = `${state.message.length} / ${Number(cfg().message_max || 42)}`); if (step !== 'message' || !refreshNeededForMessage()) return; }
+    if (active?.dataset?.bdText) { syncWordCounter(); if (step !== 'message' || !refreshNeededForMessage()) return; }
     renderBody();
     const sel = key ? (value ? `[data-value="${CSS.escape(value)}"][data-bd-set="${key}"],[data-value="${CSS.escape(value)}"][data-bd-toggle="${key}"]` : `[data-bd-text="${key}"]`) : null;
     const target = sel && root.querySelector(sel);
@@ -770,6 +784,12 @@
     fill();
   }
   async function addToCart() {
+    // the message is limited by words (not characters); the database checks the same rule when pricing
+    if (wordCount(state.message) > messageWords()) {
+      if (step !== 'message') goStep('message');
+      syncWordCounter(); const box = root.querySelector('#bd-message'); box?.focus();
+      return;
+    }
     if (quote.status !== 'ok') return;
     const v = variant(); const d = design();
     const item = {

@@ -4,12 +4,16 @@ import {renderOrderPayments} from './payments.js?v=4';
 import {orderInventorySection,mountOrderInventory,showShortageFromError} from './order-inventory.js?v=2';
 
 // Bento designs (phase 32) are shown as a readable bake sheet; older custom items keep the raw details.
+// Letters typed per cupcake / per mini donut (phase 50): "1: LOVE · 3: MOM" (pieces left empty get no letters).
+const piecesText=(c,noun)=>(c.message_pieces||[]).map((p,i)=>p?(i+1)+': '+p:'').filter(Boolean).join(' · ')+((c.message_pieces||[]).length?' (by '+noun+' position in the box)':'');
 function cupcakeDetails(c){
  const part=p=>p?(p.style_label||p.style)+' — '+(p.color_labels||p.colors||[]).join(', '):'';
  const rows=[['Size',c.size==='regular'?'3oz cupcakes':'Mini cupcakes'],['Flavor',c.flavor_label||c.flavor],['Arrangement',c.pattern_label||c.pattern],
   [c.pattern==='alternate'?'Design A':c.pattern==='assorted'?'Palette':'Design',part(c.a)]];
  if(c.b)rows.push(['Design B',part(c.b)]);
- rows.push(['Finishing',(c.finishes||[]).map(f=>String(f).replace(/_/g,' ')).join(', ')||'None'],['Theme',c.theme&&c.theme!=='none'?(c.theme_label||c.theme)+(c.theme_note?': '+c.theme_note:''):'None'],['Design extras',money(c.extras_per_item||0)+' per box']);
+ rows.push(['Finishing',(c.finishes||[]).map(f=>String(f).replace(/_/g,' ')).join(', ')||'None'],['Theme',c.theme&&c.theme!=='none'?(c.theme_label||c.theme)+(c.theme_note?': '+c.theme_note:''):'None']);
+ if(c.message==='letters')rows.push(['Fondant letters',piecesText(c,'cupcake')+' · '+(c.message_color_label||c.message_color)]);
+ rows.push(['Design extras',money(c.extras_per_item||0)+' per box']);
  return '<div style="margin:8px 0 4px;padding:10px 12px;border:1px solid #e5ddec;border-radius:10px;background:#fcf9fe"><strong>Cupcake design</strong><dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0">'
   +rows.map(([k,v])=>'<dt style="color:#705c7c">'+e(k)+'</dt><dd style="margin:0">'+e(v)+'</dd>').join('')+'</dl></div>';
 }
@@ -17,7 +21,7 @@ function donutDetails(c){
  const rows=[...(c.designer==='cakepop'?[['Pop',c.style_label||c.style]]:[]),['Flavor',(c.flavor_labels||c.flavors||[]).join(' + ')],[c.designer==='cakepop'?'Coating':'Glaze',(c.pattern_label||c.pattern)+' — '+(c.glaze_labels||c.glazes||[]).join(', ')],
   ['Finishes',(c.finish_labels||c.finishes||[]).join(', ')||'None'],['Sprinkles',(c.sprinkles_label||c.sprinkles)+((c.sprinkle_color_labels||[]).length?' ('+c.sprinkle_color_labels.join(', ')+')':'')],
   ['Toppers',c.theme&&c.theme!=='none'?(c.theme_label||c.theme)+(c.theme_note?': '+c.theme_note:''):'None'],
-  ...(c.designer==='cakepop'?[]:[['Message',c.message&&c.message!=='none'?(c.message_label||c.message)+' "'+c.message_text+'" · '+(c.message_color_label||c.message_color):'None']]),['Design extras',money(c.extras_per_item||0)+' per box']];
+  ...(c.designer==='cakepop'?[]:[['Message',c.message&&c.message!=='none'?(c.message_label||c.message)+' '+(c.message_pieces?piecesText(c,'donut'):'"'+c.message_text+'"')+' · '+(c.message_color_label||c.message_color):'None']]),['Design extras',money(c.extras_per_item||0)+' per box']];
  return '<div style="margin:8px 0 4px;padding:10px 12px;border:1px solid #e5ddec;border-radius:10px;background:#fcf9fe"><strong>'+(c.designer==='cakepop'?'Cake pop design':'Donut design')+'</strong><dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0">'
   +rows.map(([k,v])=>'<dt style="color:#705c7c">'+e(k)+'</dt><dd style="margin:0">'+e(v)+'</dd>').join('')+'</dl></div>';
 }

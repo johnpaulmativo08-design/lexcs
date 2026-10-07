@@ -1,9 +1,9 @@
 import { escapeHtml, empty, showDetails } from '../components.js?v=3';
 import { db, loadingTable, loadingList } from '../backend-ui.js?v=3';
-import { sectionTabs } from '../inventory-ui.js?v=1';
-import { renderMaterials } from './inventory-materials.js?v=4';
+import { sectionTabs } from '../inventory-ui.js?v=2';
+import { renderMaterials } from './inventory-materials.js?v=5';
 import { renderHistory } from './inventory-history.js?v=1';
-import { renderRecipes } from './recipes.js?v=3';
+import { renderRecipes } from './recipes.js?v=4';
 
 const priority = { 'Out of Stock': 0, 'Low Stock': 1, 'Expiring Soon': 2, 'In Stock': 3, Expired: 4 };
 const activeStatuses = ['Out of Stock', 'Low Stock', 'Expiring Soon', 'In Stock'];

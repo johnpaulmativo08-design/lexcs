@@ -4,8 +4,8 @@ import { db } from '../backend-ui.js?v=3';
 import {
   attr, icon, qty, dateTime, dateOnly, stockStatus, movementBadge, delta, sectionTabs, pageHead,
   skeletonSummary, skeletonRows, skeletonPanel, errorState, emptyState, openDrawer, toast, requestId
-} from '../inventory-ui.js?v=1';
-import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=19';
+} from '../inventory-ui.js?v=2';
+import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=20';
 
 // Show conversions the natural way round: "1 pcs = 225 g" instead of "1 g = 0.004444 pcs".
 const perStockUnit = (factor) => Number((1 / Number(factor)).toPrecision(5));
@@ -146,16 +146,16 @@ export async function openItemDrawer(itemId, { onChange } = {}) {
         const usable = detail.batches.filter((batch) => Number(batch.remaining_quantity) > 0);
         target.innerHTML = `
           <h3 class="stock-subhead">Active batches</h3>
-          ${usable.length ? `<ul class="stock-batches">${usable.map((b) => `<li><span><code>${e(b.batch_code)}</code><small>Stock-in ${dateOnly(b.stock_in_date)} · ${b.expires_on ? `expires ${dateOnly(b.expires_on)}` : 'no expiry'}</small></span><strong>${qty(b.remaining_quantity, b.unit)}</strong></li>`).join('')}</ul>` : emptyState('No active batches', 'Add stock to create a batch.')}
+          ${usable.length ? `<ul class="stock-batches">${usable.map((b) => `<li><span><code>${e(b.batch_code)}</code><small>Stock-in ${dateOnly(b.stock_in_date)} · ${b.expires_on ? `expires ${dateOnly(b.expires_on)}` : 'no expiry'}</small></span><span class="stock-batch-end"><strong>${qty(b.remaining_quantity, b.unit)}</strong><button class="stock-icon-button stock-batch-edit" type="button" data-edit-batch="${attr(b.batch_id)}" aria-label="Edit batch ${attr(b.batch_code)}" title="Edit batch">${icon('edit')}</button></span></li>`).join('')}</ul>` : emptyState('No active batches', 'Add stock to create a batch.')}
           <h3 class="stock-subhead">Recent activity</h3>${activityList(detail.movements.slice(0, 5))}
           <h3 class="stock-subhead">Used in recipes</h3>
-          ${detail.recipes.length ? `<ul class="stock-chips">${detail.recipes.map((r) => `<li><a href="#inventory/recipes" data-recipe-link="${attr(r.id)}">${e(r.name)} · v${r.version}</a> <small>${e(r.status)}</small></li>`).join('')}</ul>` : '<p class="stock-quiet">Not used in any recipe yet.</p>'}
+          ${detail.recipes.length ? `<ul class="stock-chips">${detail.recipes.map((r) => `<li>${r.product_id ? `<a href="#products/edit/${attr(r.product_id)}">${e(r.name)} · v${r.version}</a>` : `<span>${e(r.name)} · v${r.version}</span>`} <small>${e(r.status)}</small></li>`).join('')}</ul><p class="stock-quiet">Recipes are edited in Products → Edit product → Recipe.</p>` : '<p class="stock-quiet">Not used in any recipe yet. Add it to a product recipe in Products.</p>'}
           ${detail.conversions.length ? `<h3 class="stock-subhead">Unit conversions</h3><ul class="stock-batches">${detail.conversions.map((c) => `<li><span>${e(conversionText(c, item.unit))}<small>${e(c.note || '')}</small></span>${c.is_verified ? '<span class="status-chip status-chip--success">Verified</span>' : '<span class="status-chip status-chip--warning">Needs verification</span>'}</li>`).join('')}</ul>` : ''}`;
       } else {
         target.innerHTML = activityList(moves) + `<a class="button stock-full-history" href="#inventory/movements" data-full-history>${icon('history')} View full history</a>`;
       }
+      target.querySelectorAll('[data-edit-batch]').forEach((button) => { button.onclick = () => batchForm(detail.batches.find((b) => b.batch_id === button.dataset.editBatch), item, async () => { await load(); await onChange?.(); }); });
       target.querySelector('[data-full-history]')?.addEventListener('click', () => sessionStorage.setItem('lexc-history-item', itemId));
-      target.querySelectorAll('[data-recipe-link]').forEach((link) => link.addEventListener('click', () => sessionStorage.setItem('lexc-open-recipe', link.dataset.recipeLink)));
       target.querySelectorAll('a[href^="#"]').forEach((link) => link.addEventListener('click', () => drawer.close()));
     };
     body.querySelectorAll('[data-tab]').forEach((tab) => { tab.onclick = () => showTab(tab.dataset.tab); });
@@ -211,6 +211,61 @@ function adjustForm(item, onSuccess) {
       await db.rpc('adjust_inventory_item', { payload: { item_id: item.id, direction: form.elements.direction.value, kind: form.elements.kind.value, quantity: amount, unit: form.elements.unit.value, note, request_id: requestId() } });
       dialog.close(); toast('Stock adjustment recorded.'); await onSuccess(); refreshInventoryNotificationBadge();
     } catch (error) { errorBox.textContent = error.message || 'Could not save the adjustment.'; errorBox.hidden = false; submit.disabled = false; submit.textContent = 'Save adjustment'; }
+  });
+}
+
+// Correct a batch that was entered wrongly. A quantity change becomes one "Batch correction" adjustment
+// movement for the difference (database: correct_inventory_batch), so stock, batch and history stay in step.
+function batchForm(batch, item, onSuccess) {
+  if (!batch) return;
+  const used = Number(batch.quantity_received) - Number(batch.remaining_quantity);
+  const dialog = showDetails(`Edit batch ${batch.batch_code}`, `
+    <form class="inventory-form stock-form stock-batch-form" data-batch novalidate>
+      <div class="inventory-readonly"><span>Batch ID</span><strong>${e(batch.batch_code)}</strong><small>${qty(batch.remaining_quantity, item.unit)} left${used > 0 ? ` · ${qty(used, item.unit)} already used` : ''}</small></div>
+      <div class="form-grid">
+        <label class="form-field"><span>Quantity received (${e(item.unit)})</span><input name="quantity_received" type="number" min="0" step="any" inputmode="decimal" value="${attr(Number(batch.quantity_received))}"></label>
+        <label class="form-field"><span>Purchase price (₱, optional)</span><input name="purchase_price" type="number" min="0" step="any" inputmode="decimal" value="${attr(batch.purchase_price ?? '')}" placeholder="Not recorded"></label>
+        <label class="form-field"><span>Stock-in date</span><input name="stock_in_date" type="date" value="${attr(batch.stock_in_date || '')}" max="${attr(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }))}"></label>
+        <label class="form-field"><span>Expiry date</span><input name="expires_on" type="date" value="${attr(batch.expires_on || '')}"><small class="stock-quiet">Leave empty for no expiry.</small></label>
+      </div>
+      <p class="stock-batch-diff" data-diff hidden></p>
+      <label class="form-field"><span>Reason for the correction <em>*</em></span><textarea name="reason" rows="2" maxlength="300" placeholder="e.g. Supplier receipt says 6 kg, not 5 kg"></textarea></label>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button class="button button--quiet" type="button" data-close>Cancel</button><button class="button button--primary" type="submit">Save correction</button></div>
+    </form>`);
+  dialog.querySelector('.dialog-footer')?.remove();
+  const form = dialog.querySelector('[data-batch]'), errorBox = form.querySelector('[role=alert]'), diffBox = form.querySelector('[data-diff]');
+  const showDiff = () => {
+    const next = Number(form.elements.quantity_received.value), diff = Math.round((next - Number(batch.quantity_received)) * 1000) / 1000;
+    diffBox.hidden = !(form.elements.quantity_received.value !== '' && diff !== 0);
+    if (!diffBox.hidden) diffBox.innerHTML = `${icon('history')} Recorded as a correction: ${qty(batch.quantity_received, item.unit)} → ${qty(next, item.unit)} (<strong>${diff > 0 ? '+' : ''}${qty(diff, item.unit)}</strong>). Stock left becomes ${qty(Number(batch.remaining_quantity) + diff, item.unit)}.`;
+    diffBox.classList.toggle('is-bad', Number(batch.remaining_quantity) + diff < 0);
+  };
+  form.elements.quantity_received.addEventListener('input', showDiff);
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const f = form.elements, problems = [], today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    form.querySelectorAll('[aria-invalid]').forEach((n) => n.removeAttribute('aria-invalid'));
+    const bad = (input, message) => { input.setAttribute('aria-invalid', 'true'); problems.push(message); };
+    const amount = f.quantity_received.value === '' ? NaN : Number(f.quantity_received.value);
+    if (!(amount >= 0)) bad(f.quantity_received, 'Enter the quantity received (0 or more).');
+    else if (Number(batch.remaining_quantity) + amount - Number(batch.quantity_received) < 0) bad(f.quantity_received, `Cannot go below what was already used (${qty(used, item.unit)}).`);
+    if (f.purchase_price.value !== '' && !(Number(f.purchase_price.value) >= 0)) bad(f.purchase_price, 'The purchase price cannot be negative.');
+    if (!f.stock_in_date.value) bad(f.stock_in_date, 'Choose the stock-in date.');
+    else if (f.stock_in_date.value > today) bad(f.stock_in_date, 'The stock-in date cannot be in the future.');
+    if (f.expires_on.value && f.stock_in_date.value && f.expires_on.value < f.stock_in_date.value) bad(f.expires_on, 'The expiry date cannot be before the stock-in date.');
+    if (f.reason.value.trim().length < 3) bad(f.reason, 'Write why you are correcting this batch.');
+    const changed = amount !== Number(batch.quantity_received) || f.stock_in_date.value !== (batch.stock_in_date || '') || f.expires_on.value !== (batch.expires_on || '') || (f.purchase_price.value === '' ? null : Number(f.purchase_price.value)) !== (batch.purchase_price == null ? null : Number(batch.purchase_price));
+    if (!problems.length && !changed) problems.push('Nothing changed yet.');
+    if (problems.length) { errorBox.innerHTML = problems.map(e).join('<br>'); errorBox.hidden = false; form.querySelector('[aria-invalid]')?.focus(); return; }
+    errorBox.hidden = true;
+    const submit = form.querySelector('[type=submit]'); submit.disabled = true; submit.textContent = 'Saving correction…';
+    try {
+      const result = await db.rpc('correct_inventory_batch', { payload: { batch_id: batch.batch_id, quantity_received: amount, stock_in_date: f.stock_in_date.value, expires_on: f.expires_on.value, purchase_price: f.purchase_price.value, reason: f.reason.value.trim(), request_id: requestId() } });
+      dialog.close();
+      toast(Number(result?.difference) ? `Batch corrected · ${Number(result.difference) > 0 ? '+' : ''}${qty(result.difference, item.unit)} recorded in history.` : 'Batch details corrected.');
+      await onSuccess(); refreshInventoryNotificationBadge();
+    } catch (error) { errorBox.textContent = error.message || 'Could not save the correction.'; errorBox.hidden = false; submit.disabled = false; submit.textContent = 'Save correction'; }
   });
 }
 

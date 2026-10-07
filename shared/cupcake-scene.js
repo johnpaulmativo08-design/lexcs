@@ -407,6 +407,19 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
         plaque.position.set(hit.p.x, hit.p.y + R * 0.2, hit.p.z + R * 0.06); plaque.rotation.set(1.0, 0, 0, 'YXZ'); plaque.castShadow = true; plaque.userData.shared = true; plaque.userData.plaque = true; group.add(plaque);
       }
     }
+    // Fondant letters (1–5) on a scalloped fondant disc, tilted to face the front like the theme toppers.
+    if (spec.letters) {
+      const withTheme = theme && theme !== 'none', at = withTheme ? [0.3, -0.12] : spec.style === 'luxe' ? [-0.3, 0] : [0, 0.05];
+      const hit = surfacePoint(frostMesh, at[0] * R, at[1] * R);
+      if (hit) {
+        const holder = new THREE.Group(), size = R * (withTheme ? 0.34 : 0.42);
+        const g = plaquePiece(size); geos.push(g); g.computeBoundingBox(); const lift = g.boundingBox.max.y + 0.0015;
+        const disc = new THREE.Mesh(g, MAT.fondant); disc.castShadow = true; disc.userData.shared = true; holder.add(disc);
+        const pg = new THREE.PlaneGeometry(size * 1.5, size * 0.75); pg.rotateX(-Math.PI / 2); geos.push(pg);
+        const word = new THREE.Mesh(pg, letterMat(spec.letters, spec.letterColor || '#ffffff')); word.position.y = lift; word.userData.shared = true; holder.add(word);
+        holder.position.set(hit.p.x, hit.p.y + R * 0.16, hit.p.z + R * 0.05); holder.rotation.set(0.95, 0, 0, 'YXZ'); holder.userData.plaque = true; group.add(holder);
+      }
+    }
     return { group, geos };
   }
   // ---- one mini donut: liner, baked base, glaze dip, finishes, sprinkles, then fondant (topper / letters / plaque) ----
@@ -667,7 +680,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     spec.cells.forEach((cell, i) => {
       const variant = i % 2;
       const k = isDonut ? JSON.stringify([cell, finishes, spec.sprinkles, spec.sprinkleColors, spec.messageColor, spec.style || '', variant])
-        : JSON.stringify([spec.size, spec.flavor, cell.style, cell.colors, cell.sub || '', finishes, spec.theme, variant]);
+        : JSON.stringify([spec.size, spec.flavor, cell.style, cell.colors, cell.sub || '', finishes, spec.theme, variant, cell.letters || '', cell.letterColor || '']);
       used.add(k);
       if (!templates.has(k)) templates.set(k, isPop ? buildPopTemplate(cell, spec, variant) : isDonut ? buildDonutTemplate(cell, spec, variant) : buildTemplate(cell, spec.size, spec.flavor, finishes, spec.theme, spec.themeIcon, variant));
       if (cellKeys[i] === k && cellObjs[i]) return;

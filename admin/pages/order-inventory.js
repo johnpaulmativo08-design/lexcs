@@ -1,7 +1,7 @@
 // "Inventory consumption" section inside the Admin order details dialog.
 import { escapeHtml as e } from '../components.js?v=3';
 import { db } from '../backend-ui.js?v=3';
-import { attr, icon, qty, dateTime, movementBadge, delta, shortagePanel, skeletonPanel, requestId, toast, parseShortage } from '../inventory-ui.js?v=1';
+import { attr, icon, qty, dateTime, movementBadge, delta, shortagePanel, skeletonPanel, requestId, toast, parseShortage } from '../inventory-ui.js?v=2';
 
 const STATE_LABEL = {
   deducted: ['Deducted', 'success', 'Materials were deducted automatically.'],

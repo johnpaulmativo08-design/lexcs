@@ -91,7 +91,7 @@ export function icon(name) {
 }
 
 export function sectionTabs(active) {
-  const tabs = [['materials', '#inventory', 'Materials'], ['movements', '#inventory/movements', 'History'], ['recipes', '#inventory/recipes', 'Recipes'], ['batches', '#inventory/batches', 'Batches']];
+  const tabs = [['materials', '#inventory', 'Materials'], ['movements', '#inventory/movements', 'History'], ['recipes', '#inventory/recipes', 'Conversions'], ['batches', '#inventory/batches', 'Batches']];
   return `<nav class="inventory-tabs stock-tabs" aria-label="Inventory sections">${tabs.map(([key, href, label]) => `<a href="${href}" class="${key === active ? 'is-active' : ''}" ${key === active ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
 }
 

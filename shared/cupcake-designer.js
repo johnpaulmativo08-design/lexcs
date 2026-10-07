@@ -47,12 +47,15 @@
   function blank(size = 'mini') {
     const p = products[size];
     return { size, variant_id: p?.product_variants.filter((v) => v.is_active)[0]?.id, qty: 1, flavor: 'chocolate', pattern: 'same',
-      a: { style: 'rosette', colors: ['baby_pink'] }, b: { style: 'rosette', colors: ['white'] }, finishes: ['gold_pearls'], theme: 'none', theme_note: '' };
+      a: { style: 'rosette', colors: ['baby_pink'] }, b: { style: 'rosette', colors: ['white'] }, finishes: ['gold_pearls'], theme: 'none', theme_note: '', message: 'none', message_pieces: [], message_color: 'white' };
   }
   const design = () => ({ designer: 'cupcake', flavor: state.flavor, pattern: state.pattern,
     a: { style: state.a.style, colors: [...state.a.colors] },
     ...(state.pattern === 'alternate' ? { b: { style: state.b.style, colors: [...state.b.colors] } } : {}),
-    finishes: [...state.finishes], theme: state.theme, ...(state.theme !== 'none' && state.theme_note.trim() ? { theme_note: state.theme_note.trim() } : {}) });
+    finishes: [...state.finishes], theme: state.theme, ...(state.theme !== 'none' && state.theme_note.trim() ? { theme_note: state.theme_note.trim() } : {}),
+    ...(state.message === 'letters' ? { message: 'letters', message_pieces: LexcLetterPieces.fit(state.message_pieces, countOf(variant()?.label)), message_color: state.message_color } : {}) });
+  // which cupcake the customer is typing letters for (not part of the design)
+  let pieceAt = 0;
 
   // ---- data ---------------------------------------------------------------------------------------
   async function loadAll() {
@@ -88,6 +91,11 @@
     if (state.finishes.includes('gold_pearls') && state.finishes.includes('silver_pearls')) state.finishes = state.finishes.filter((f) => f !== 'silver_pearls');
     if (!opt('theme', state.theme)) state.theme = 'none';
     state.theme_note = String(state.theme_note || '').slice(0, 60);
+    // fondant letters: 1–5 per cupcake, one entry per cupcake in the box
+    if (!opt('message', state.message)) state.message = 'none';
+    state.message_pieces = LexcLetterPieces.fit(state.message_pieces, countOf(variant()?.label));
+    pieceAt = Math.min(pieceAt, state.message_pieces.length - 1);
+    if (!pal[state.message_color]) state.message_color = 'white';
   }
   function commit(mutator, { soft = false } = {}) {
     const before = snap(); mutator(state); normalise();
@@ -331,7 +339,11 @@
         <div class="cd-themes" role="radiogroup">${(options().theme || []).map((o) => `<button type="button" role="radio" class="cd-theme" data-cd-set="theme" data-value="${o.code}" aria-checked="${s.theme === o.code}"><span aria-hidden="true">${THEME_ICON[o.code] || '✨'}</span><strong>${esc(o.label)}</strong>${Number(o.price) ? `<small>+${money(o.price)}</small>` : '<small>free</small>'}</button>`).join('')}</div>
         ${s.theme !== 'none' ? `<label class="bd-label" for="cd-theme-note" style="margin-top:12px">${s.theme === 'custom' ? 'Your theme' : 'Anything to add?'} <small>${s.theme === 'custom' ? 'Required · ' : 'Optional · '}up to 60 characters</small></label>
           <input id="cd-theme-note" class="bd-input" maxlength="60" data-cd-note-input value="${esc(s.theme_note)}" placeholder="${s.theme === 'custom' ? 'e.g. Sonic and friends' : 'e.g. favorite colors, a name'}">` : ''}
-      </fieldset>`;
+      </fieldset>
+      ${(options().message || []).length > 1 ? `<fieldset class="bd-group"><legend>Fondant letters <small>1–5 letters per cupcake</small></legend>
+        <div class="bd-cards cd-patterns" role="radiogroup">${(options().message || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="message" data-value="${o.code}" aria-checked="${s.message === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'letters' ? 'A word or name on each cupcake you choose' : 'No letters'}${Number(o.price) ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
+        ${s.message === 'letters' ? LexcLetterPieces.markup({ pieces: s.message_pieces, count: countOf(variant()?.label), at: pieceAt, noun: 'cupcake', id: 'cd-lp' }) + `<p class="bd-label" style="margin-top:14px">Letter color</p><div class="bd-swatches">${(options().color || []).map((c) => `<button type="button" class="bd-swatch${s.message_color === c.code ? ' is-on' : ''}" style="background:${c.hex}" data-cd-set="message_color" data-value="${c.code}" aria-pressed="${s.message_color === c.code}" aria-label="${esc(c.label)}" title="${esc(c.label)}"></button>`).join('')}</div>` : ''}
+      </fieldset>` : ''}`;
     const v = variant(), ex = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : [];
     const partText = (p) => `${esc(opt('style', p.style)?.label)} — ${p.colors.map((c) => esc(opt('color', c)?.label)).join(', ')}`;
     return `
@@ -343,6 +355,7 @@
         ${s.pattern === 'alternate' ? `<li><span>Design B</span><strong>${partText(s.b)}</strong></li>` : ''}
         <li><span>Finishing</span><strong>${s.finishes.map((f) => esc(opt('finish', f)?.label)).join(', ') || 'None'}</strong></li>
         <li><span>Theme</span><strong>${esc(opt('theme', s.theme)?.label)}${s.theme_note && s.theme !== 'none' ? ': ' + esc(s.theme_note) : ''}</strong></li>
+        ${s.message === 'letters' ? `<li><span>Letters</span><strong>${esc(s.message_pieces.filter(Boolean).join(' · '))} · ${esc(opt('color', s.message_color)?.label)}</strong></li>` : ''}
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       ${quote.status === 'error' ? `<div class="bd-warning" role="alert">${esc(quote.message)}</div>` : ''}
@@ -374,7 +387,7 @@
   }
   function sceneSpec() {
     const pal = palette(), hex = (code) => pal[code] || '#ffffff', count = countOf(variant()?.label), [cols, rows] = grid(count), cells = [];
-    for (let i = 0, r = 0; r < rows; r++) for (let c = 0; c < cols && i < count; c++, i++) { const sp = specFor(i, r, c); cells.push({ style: sp.style, colors: sp.colors.map(hex), sub: sp.style === 'floral' ? sp.sub : '' }); }
+    for (let i = 0, r = 0; r < rows; r++) for (let c = 0; c < cols && i < count; c++, i++) { const sp = specFor(i, r, c); cells.push({ style: sp.style, colors: sp.colors.map(hex), sub: sp.style === 'floral' ? sp.sub : '', ...(state.message === 'letters' && state.message_pieces[i] ? { letters: state.message_pieces[i], letterColor: hex(state.message_color) } : {}) }); }
     return { size: state.size, cols, rows, flavor: state.flavor, finishes: state.finishes, theme: state.theme, themeIcon: THEME_ICON[state.theme], cells };
   }
   // The realistic 3D box (three.js) loads on demand; without WebGL the flat picture stays.
@@ -383,7 +396,7 @@
     const host = root.querySelector('[data-cd-3d]');
     sceneLoading = (async () => {
       try {
-        const mod = await import('./cupcake-scene.js?v=18');
+        const mod = await import('./cupcake-scene.js?v=19');
         if (currentPage !== 'cupcake' || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion });
@@ -444,6 +457,16 @@
     showToast(`Started from “${p.name}”${switched ? ` on ${p.size === 'mini' ? 'mini' : '3oz'} cupcakes` : ''} — change anything you like.`);
   }
   function bind() {
+    // letters per cupcake (shared picker): typing updates the box shortly after; fill/clear are undoable steps
+    let lettersTimer = 0;
+    LexcLetterPieces.bind(root, {
+      pieces: () => state.message_pieces, count: () => countOf(variant()?.label), at: () => pieceAt,
+      setAt: (i) => { pieceAt = i; renderBody(); },
+      set: (pieces, { render }) => {
+        if (render) return commit((st) => { st.message_pieces = pieces; });
+        state.message_pieces = pieces; saveDraft(); scheduleQuote(); clearTimeout(lettersTimer); lettersTimer = setTimeout(renderPreview, 300);
+      }
+    });
     root.addEventListener('click', (e) => {
       const t = e.target.closest('button'); if (!t || t.disabled) return;
       const d = t.dataset;
@@ -482,6 +505,10 @@
 
   // ---- cart -------------------------------------------------------------------------------------------------
   async function addToCart() {
+    if (state.message === 'letters' && !LexcLetterPieces.filled(state.message_pieces)) {
+      if (step !== 'finish') goStep('finish');
+      return showToast('Add letters to at least one cupcake, or choose No letters.');
+    }
     if (quote.status !== 'ok') return;
     const v = variant(), d = design(), p = product();
     const item = { id: 'cupcake-' + crypto.randomUUID(), product_id: p.id, variant_id: v.id, name: p.name, emoji: '🧁',
