@@ -473,3 +473,11 @@ main .panel-title,main .panel h2,main .panel__head h2{font-family:'Plus Jakarta 
 @media (max-width:900px){.rep-masonry{column-count:1}.rep-mchart{height:230px}.rep-money-head>strong{font-size:20px}}
 @media (max-width:520px){.rep-mchart{padding-left:6px;padding-right:12px}.rep-slot-label{font-size:10.5px}.rep-money-head{padding:14px 16px 2px}}
 @media (prefers-reduced-motion:reduce){.rep-slot::before,.rep-slot-bar{transition:none}}
+
+/* Admin → Updates & reviews: the storefront Updates module in admin view */
+.updates-heading{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.updates-frame{position:relative;padding:0;overflow:hidden;min-height:0!important}
+.updates-frame iframe{display:block;width:100%;height:calc(100dvh - 210px);min-height:560px;border:0;background:#fff;opacity:0;transition:opacity .2s ease}
+.updates-frame iframe.is-ready{opacity:1}
+.updates-loading{position:absolute;inset:0;display:grid;align-content:start;gap:12px;padding:24px}
+@media (max-width:760px){.updates-frame iframe{height:calc(100dvh - 170px);min-height:480px}}

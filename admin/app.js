@@ -8,17 +8,18 @@ import { renderDesignOptions } from './pages/design-options.js?v=11';
 import { renderProfile } from './pages/profile.js?v=3';
 import { mountChat } from '../shared/chat.js?v=23';
 import { mountChatWidget } from '../shared/chat-widget.js?v=21';
+import { renderUpdates } from './pages/updates.js?v=2';
 import { icon } from './components.js?v=3';
 
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
   ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['bookings', 'Reservations'],
-    // Posts and review moderation live on the storefront's Updates page ("Fresh from LexC's", owner view).
-    ['fresh-posts', 'Updates & reviews ↗', '../index.html?fresh=1', 'gallery']]],
+    // Posts and review moderation: the storefront's Updates module, shown inside Admin (pages/updates.js).
+    ['updates', 'Updates & reviews', null, 'gallery']]],
   ['Analytics', [['reports', 'Reports']]],
   ['Account', [['profile', 'Profile']]],
 ];
-const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', reports: 'Reports', profile: 'Profile' };
+const titles = { dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
@@ -101,7 +102,7 @@ async function renderRoute() {
   mountChatWidget({admin:true});
   document.querySelector('#admin-dialog')?.close();
   const route = location.hash.slice(1) || 'dashboard';
-  if (route === 'gallery') { location.href = '../index.html?fresh=1'; return; }   // Gallery moved: reviews are on Updates
+  if (route === 'gallery' || route === 'fresh-posts') { location.hash = '#updates'; return; }   // older links: posts and reviews live in Updates
   const page = route.split('/')[0];
   const current = Object.hasOwn(titles, page) ? page : 'dashboard';
   document.body.classList.toggle('inventory-view', current === 'inventory');
@@ -126,6 +127,7 @@ async function renderRoute() {
   else if (current === 'orders') await renderOrders(content);
   else if (current === 'bookings') await renderBookings(content);
   else if (current === 'designs') await renderDesignOptions(content);
+  else if (current === 'updates') renderUpdates(content);
   else if (current === 'profile') await renderProfile(content, subpage);
   await refreshInventoryNotificationBadge();
 }

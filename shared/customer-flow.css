@@ -368,3 +368,11 @@
 @keyframes rv-sheet{from{transform:translateY(40px);opacity:0}}
 @media(prefers-reduced-motion:reduce){.rv-star.is-pop svg,.rv-dialog[open]{animation:none}}
 .rv-photo-add[hidden]{display:none}
+
+/* Admin view of the Updates page (index.html?fresh=1&embed=admin inside Admin → Updates & reviews) */
+html.admin-embed #mainNav,html.admin-embed .customer-mobile-nav,html.admin-embed .customer-more-menu,html.admin-embed .customer-more-backdrop,
+html.admin-embed #customer-chat-toggle,html.admin-embed #customer-chat-ui{display:none!important}
+html.admin-embed body{padding-bottom:0!important}
+html.admin-embed .fresh-wrap{padding-top:20px!important}
+html.admin-embed .fresh-bar.is-stuck{top:0!important}
+html.admin-embed{--fresh-top:0px}
