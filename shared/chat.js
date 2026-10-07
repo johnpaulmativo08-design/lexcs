@@ -1,3 +1,4 @@
+import {ask} from './ask.js?v=1';
 const db=window.LexcBackend;
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const money=value=>'₱'+Number(value||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -168,9 +169,9 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const decision=event.submitter?.dataset.decision||'paid',reason=form.elements.reason.value.trim(),p=payments.find(x=>x.id===form.dataset.payReview),alert=form.querySelector('[role=alert]');
     if(!reason){alert.textContent=decision==='paid'?'Write how you confirmed it (for example the time it arrived).':'Write the reason so the customer knows what to fix.';form.elements.reason.focus();return;}
     if(!p)return;
-    if(!confirm(decision==='paid'?'Mark '+money(p.amount)+' as received? This updates the order payment.':'Reject this proof? The customer will be asked to send a new one.'))return;
-    form.querySelectorAll('button').forEach(b=>b.disabled=true);
-    const button=event.submitter;if(button)button.textContent=decision==='paid'?'Confirming…':'Rejecting…';
+    const button=event.submitter;
+    if(!await ask(decision==='paid'?'Mark '+money(p.amount)+' as received for this order? Only confirm after checking the money arrived.':'The customer will be asked to send a new payment proof.',{title:decision==='paid'?'Confirm payment?':'Reject this proof?',confirm:decision==='paid'?'Confirm payment':'Reject proof',tone:decision==='paid'?'success':'danger'}))return;
+    form.querySelectorAll('button').forEach(b=>b.disabled=true);if(button)button.textContent=decision==='paid'?'Confirming…':'Rejecting…';
     try{await db.rpc('review_order_payment',{target_payment:p.id,decision,review_reason:reason});reviewDrafts.delete(p.id);await refresh();}
     catch(error){alert.textContent=error.message;form.querySelectorAll('button').forEach(b=>b.disabled=false);if(button)button.textContent=decision==='paid'?'✓ Confirm payment':'Reject';}
   };

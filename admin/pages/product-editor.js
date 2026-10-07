@@ -5,6 +5,7 @@
 import { db } from '../backend-ui.js?v=3';
 import { escapeHtml as e } from '../components.js?v=3';
 import { attr, icon, qty, openDrawer, toast, emptyState } from '../inventory-ui.js?v=2';
+import { ask } from '../../shared/ask.js?v=1';
 import { UNITS, GROUPS, BASES, BASIS_SHORT, recipeForProduct, conversionState, previewRequirements, conditionText, lineKey } from '../recipe-model.js?v=1';
 
 const money = (n) => '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -286,11 +287,11 @@ export function openProductEditor({ product, categories, packages, catalog, imag
       return;
     }
     if (t.closest('[data-stop]')) {
-      if (!confirm(`Stop automatic deduction for ${product?.name || 'this product'}? Orders will then be listed for manual material review.`)) return;
-      const b = t.closest('[data-stop]'); b.disabled = true;
-      db.rpc('set_recipe_status', { target_recipe: state.recipe.id, next_status: 'archived' })
+      const b = t.closest('[data-stop]');
+      ask(`Orders for ${product?.name || 'this product'} will no longer take ingredients from Inventory automatically; they will be listed for you to record materials by hand. The recipe is kept in history.`, { title: 'Stop automatic deduction?', confirm: 'Stop deduction', tone: 'danger' })
+        .then((ok) => { if (!ok) return; b.disabled = true; return db.rpc('set_recipe_status', { target_recipe: state.recipe.id, next_status: 'archived' })
         .then(async () => { toast('Automatic deduction stopped. The recipe is archived and kept in history.'); await reloadCatalog(); state.recipe = null; state.draft = null; state.recipeDirty = false; drawRecipe(); onSaved?.({ keepOpen: true }); })
-        .catch((error) => { b.disabled = false; showError([error.message]); });
+        .catch((error) => { b.disabled = false; showError([error.message]); }); });
     }
   });
   const readSettings = () => {

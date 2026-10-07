@@ -2,7 +2,8 @@ import {escapeHtml as e,icon,toolbar} from '../components.js?v=3';
 import {db,rows,field,form,fail,loadingCards} from '../backend-ui.js?v=3';
 import {storefrontData} from '../data.js';
 import {recipeForProduct,flaggedLines} from '../recipe-model.js?v=1';
-import {openProductEditor} from './product-editor.js?v=2';
+import {openProductEditor} from './product-editor.js?v=3';
+import {ask} from '../../shared/ask.js?v=1';
 const money=n=>'₱'+Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:2});
 // Recipe status on each card: products without an active recipe are not deducted from inventory automatically.
 function recipeBadge(recipe,catalogOk){
@@ -51,7 +52,7 @@ export async function renderProducts(content,subpage=''){
    if(event.target.closest('[data-show-missing]')){content.querySelector('#recipe-filter').value='none';draw();return;}
    const b=event.target.closest('[data-edit],[data-archive]');if(!b)return;const p=products.find(p=>p.id===(b.dataset.edit||b.dataset.archive));
    if(b.dataset.edit)edit(p);
-   else{if(p.status==='active'&&!confirm('Archive '+p.name+'? It will be hidden from the shop.'))return;try{await rows(db.client.from('products').update({status:p.status==='active'?'archived':'active'}).eq('id',p.id));await renderProducts(content,subpage);}catch(error){fail(content,error);}}
+   else{if(p.status==='active'&&!await ask('“'+p.name+'” will be hidden from the shop. You can bring it back any time: choose “archived” in the status filter, then Restore.',{title:'Archive this product?',confirm:'Archive',tone:'danger'}))return;try{await rows(db.client.from('products').update({status:p.status==='active'?'archived':'active'}).eq('id',p.id));await renderProducts(content,subpage);}catch(error){fail(content,error);}}
   };
   content.querySelector('.search').oninput=draw;content.querySelector('#category').onchange=draw;content.querySelector('#status').onchange=draw;content.querySelector('#recipe-filter').onchange=draw;draw();
   if(editing)edit(editing);
