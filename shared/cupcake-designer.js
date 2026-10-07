@@ -312,14 +312,14 @@
   function bodyMarkup() {
     const s = state;
     if (step === 'box') return `
-      <fieldset class="bd-group"><legend>Start from one of our boxes <small>Optional · all editable</small></legend>
-        <div class="cd-presets">${PRESETS.filter((p) => products[p.size]).map((p) => `<button type="button" class="cd-preset" data-cd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${p.size === 'mini' ? 'Mini' : '3oz'}</small></button>`).join('')}</div>
-      </fieldset>
       <fieldset class="bd-group"><legend>Cupcake size</legend>
         <div class="bd-cards" role="radiogroup">${Object.keys(products).map((size) => `<button type="button" role="radio" class="bd-card" data-cd-size="${size}" aria-checked="${s.size === size}"><strong>${size === 'mini' ? 'Mini cupcakes' : '3oz cupcakes'}</strong><small>${size === 'mini' ? 'Bite-size · rosette, two-tone, rainbow' : 'Full size · all styles incl. luxe & floral'}</small></button>`).join('')}</div>
       </fieldset>
       <fieldset class="bd-group"><legend>Box size</legend>
         <div class="bd-chips" role="radiogroup">${product().product_variants.filter((v) => v.is_active).map((v) => `<button type="button" role="radio" class="bd-chip" data-cd-variant="${v.id}" aria-checked="${s.variant_id === v.id}">${esc(v.label)} · ${money(v.price)}</button>`).join('')}</div>
+      </fieldset>
+      <fieldset class="bd-group"><legend>Start from one of our boxes <small>Optional · all editable</small></legend>
+        <div class="cd-presets">${PRESETS.filter((p) => products[p.size]).map((p) => `<button type="button" class="cd-preset" data-cd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${p.size === 'mini' ? 'Mini' : '3oz'}</small></button>`).join('')}</div>
       </fieldset>
       <fieldset class="bd-group"><legend>Flavor <small>Same price</small></legend>
         <div class="bd-cards" role="radiogroup">${(options().flavor || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="flavor" data-value="${o.code}" aria-checked="${s.flavor === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'chocolate' ? 'Dark cake, black liners' : 'Golden cake, white liners'}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>

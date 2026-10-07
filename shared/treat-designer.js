@@ -232,9 +232,6 @@ function makeTreatDesigner(K) {
   function bodyMarkup() {
     const s = state;
     if (step === 'box') return `
-      <fieldset class="bd-group"><legend>Start from one of our boxes <small>Optional · all editable</small></legend>
-        <div class="cd-presets">${PRESETS.filter((p) => products[p.box]).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
-      </fieldset>
       ${K.styles ? `<fieldset class="bd-group"><legend>Pop</legend>
         <div class="bd-cards" role="radiogroup">${(options().style || []).map((o) => `<button type="button" role="radio" class="bd-card" data-dd-set="style" data-value="${o.code}" aria-checked="${s.style === o.code}"><strong>${esc(o.label)}</strong><small>${K.styleNote[o.code] || ''} · ${Number(o.price) > 0 ? '+' + money(o.price) : (options().style || []).some((x) => Number(x.price) > 0) ? 'no extra' : 'same price'}</small></button>`).join('')}</div>
       </fieldset>` : ''}
@@ -243,6 +240,9 @@ function makeTreatDesigner(K) {
       </fieldset>`}
       <fieldset class="bd-group"><legend>Box size</legend>
         <div class="bd-chips" role="radiogroup">${product().product_variants.filter((v) => v.is_active).map((v) => `<button type="button" role="radio" class="bd-chip" data-dd-variant="${v.id}" aria-checked="${s.variant_id === v.id}">${esc(v.label)} · ${money(v.price)}</button>`).join('')}</div>
+      </fieldset>
+      <fieldset class="bd-group"><legend>Start from one of our boxes <small>Optional · all editable</small></legend>
+        <div class="cd-presets">${PRESETS.filter((p) => products[p.box]).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
       </fieldset>
       <fieldset class="bd-group"><legend>Flavor <small>Pick one, or mix up to 4${opt('flavor', 'mix') ? ' (' + plus(opt('flavor', 'mix')).slice(3) + ')' : ''}</small></legend>
         <div class="bd-cards dd-flavors" role="group">${flavorsList().map((o) => `<button type="button" class="bd-card" data-dd-flavor="${o.code}" aria-pressed="${s.flavors.includes(o.code)}"><span class="dd-dough" style="background:${DOUGH[o.code] || '#d9a65a'}" aria-hidden="true"></span><strong>${esc(o.label)}</strong><small>${FLAVOR_NOTE[o.code] || ''}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
