@@ -27,6 +27,9 @@ insert into t select 'b_item', item_id::text from public.inventory_batches where
 insert into t select 'item_avail', private.item_available(pg_temp.v('b_item')::uuid)::text;
 insert into t select 'moves', count(*)::text from public.inventory_movements where batch_id = pg_temp.v('batch')::uuid;
 insert into t values ('req1', gen_random_uuid()::text);
+-- a batch that has been partly used (stock left is below what was received)
+insert into t select 'used_batch', batch_id::text from public.inventory_batch_stock
+  where archived_at is null and remaining_quantity > 0 and remaining_quantity < quantity_received order by remaining_quantity limit 1;
 set local role authenticated;
 select pg_temp.ok(pg_temp.err(format('select public.correct_inventory_batch(%L)', jsonb_build_object('batch_id', pg_temp.v('batch'),
   'quantity_received', pg_temp.v('b_recv')::numeric + 1, 'reason', 'Supplier receipt says one more', 'request_id', pg_temp.v('req1'))::text)) = 'ok', 'raising a batch quantity by 1 is accepted');
@@ -42,10 +45,8 @@ set local role authenticated;
 select pg_temp.ok(pg_temp.err(format('select public.correct_inventory_batch(%L)', jsonb_build_object('batch_id', pg_temp.v('batch'),
   'quantity_received', pg_temp.v('b_recv')::numeric + 1, 'reason', 'Supplier receipt says one more', 'request_id', pg_temp.v('req1'))::text)) = 'ok'
   and (select count(*) from public.inventory_movements where batch_id = pg_temp.v('batch')::uuid) = pg_temp.v('moves')::int + 1, 'repeating the same request does not record it twice');
-select pg_temp.ok(pg_temp.err(format('select public.correct_inventory_batch(%L)', jsonb_build_object('batch_id', pg_temp.v('batch'),
-  'quantity_received', 0, 'reason', 'test', 'request_id', gen_random_uuid())::text)) like 'ERR%already been used%'
-  or (select quantity_received from public.inventory_batches where id = pg_temp.v('batch')::uuid) = (select remaining_quantity from public.inventory_batch_stock where batch_id = pg_temp.v('batch')::uuid),
-  'it cannot go below what the batch has already used');
+select pg_temp.ok(pg_temp.v('used_batch') is null or pg_temp.err(format('select public.correct_inventory_batch(%L)', jsonb_build_object('batch_id', pg_temp.v('used_batch'),
+  'quantity_received', 0, 'reason', 'test', 'request_id', gen_random_uuid())::text)) like 'ERR%already been used%', 'a partly used batch cannot be lowered below what it has already used');
 select pg_temp.ok(pg_temp.err(format('select public.correct_inventory_batch(%L)', jsonb_build_object('batch_id', pg_temp.v('batch'),
   'stock_in_date', '2026-01-10', 'expires_on', '2025-12-01', 'reason', 'test', 'request_id', gen_random_uuid())::text)) like 'ERR%cannot be before the stock-in date%', 'expiry before stock-in is rejected');
 select pg_temp.ok(pg_temp.err(format('select public.correct_inventory_batch(%L)', jsonb_build_object('batch_id', pg_temp.v('batch'),
