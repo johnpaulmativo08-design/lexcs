@@ -25,10 +25,50 @@ function periodRange(choice,from,to){
 }
 const within=(value,[a,b])=>{if(!value)return false;const k=dateKey(value);return k>=a&&k<=b;};
 const change=(now,before)=>{if(!before&&!now)return '<span class="rep-delta">No change</span>';if(!before)return '<span class="rep-delta is-up">New this period</span>';const pct=Math.round((now-before)/before*100);return '<span class="rep-delta '+(pct>0?'is-up':pct<0?'is-down':'')+'">'+(pct>0?'▲ ':pct<0?'▼ ':'')+Math.abs(pct)+'% vs previous period</span>';};
-const bars=(rows,format=v=>v)=>{const max=Math.max(1,...rows.map(r=>r[1]));return '<div class="rep-bars">'+rows.map(([label,value,extra])=>'<div class="rep-bar-row"><span class="rep-bar-label">'+e(label)+'</span><span class="rep-bar-track"><span style="width:'+Math.max(2,Math.round(value/max*100))+'%"></span></span><span class="rep-bar-value">'+e(format(value))+(extra?' <small>'+e(extra)+'</small>':'')+'</span></div>').join('')+'</div>';};
+const bars=(rows,format=v=>v)=>{const max=Math.max(1,...rows.map(r=>r[1]));return '<div class="rep-bars">'+rows.map(([label,value,extra])=>'<div class="rep-bar-row"><span class="rep-bar-label">'+e(label)+'</span><span class="rep-bar-track"><span style="width:'+(value>0?Math.max(2,Math.round(value/max*100)):0)+'%"></span></span><span class="rep-bar-value">'+e(format(value))+(extra?' <small>'+e(extra)+'</small>':'')+'</span></div>').join('')+'</div>';};
 const card=(title,body,extra='')=>'<section class="panel rep-card"><header class="rep-card-head"><h2>'+e(title)+'</h2>'+extra+'</header>'+body+'</section>';
 const none=text=>'<p class="rep-empty">'+e(text)+'</p>';
 
+// ---- Money received chart: peso Y-axis with round steps, one evenly spaced slot per day (or week), zero days kept
+// at zero height, horizontal date labels (thinned when crowded) and a hover / tap tooltip.
+const niceStep=max=>{const raw=max/4,pow=10**Math.floor(Math.log10(raw)),n=raw/pow;return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*pow;};
+const peso2=v=>'₱'+Number(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const shortPeso=v=>v>=1000?'₱'+(v/1000).toLocaleString('en-PH',{maximumFractionDigits:1})+'k':'₱'+v.toLocaleString('en-PH');
+function moneyChart(days,weekly){
+ const peak=Math.max(...days.map(d=>d.centavos))/100,step=niceStep(Math.max(peak,1)),top=step*Math.ceil(Math.max(peak,1)/step),ticks=[];
+ for(let v=0;v<=top+1e-9;v+=step)ticks.push(v);
+ const every=Math.max(1,Math.ceil(days.length/(weekly?7:10)));
+ const label=k=>new Date(k+'T12:00:00+08:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',timeZone:'Asia/Manila'});
+ const full=k=>(weekly?'Week of ':'')+new Date(k+'T12:00:00+08:00').toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric',timeZone:'Asia/Manila'});
+ return '<div class="rep-mchart" data-mchart style="--rows:'+(ticks.length-1)+'">'+
+  '<div class="rep-mchart-y" aria-hidden="true">'+ticks.slice().reverse().map(v=>'<span>'+shortPeso(v)+'</span>').join('')+'</div>'+
+  '<div class="rep-mchart-plot"><div class="rep-mchart-grid" aria-hidden="true">'+ticks.map(()=>'<i></i>').join('')+'</div>'+
+  '<div class="rep-mchart-bars" style="--n:'+days.length+'">'+days.map((d,i)=>{const amount=d.centavos/100;
+   return '<button type="button" class="rep-slot" data-tip-date="'+e(full(d.key))+'" data-tip-amount="'+e(peso2(amount))+'" data-tip-count="'+d.count+'" aria-label="'+e(full(d.key)+': '+peso2(amount)+(d.count?', '+d.count+' payment'+(d.count===1?'':'s'):''))+'">'+
+    '<span class="rep-slot-bar" style="height:'+(amount?Math.max(1.5,amount/top*100):0)+'%"></span>'+
+    '<span class="rep-slot-label'+(i%every===0?'':' is-hidden')+'">'+e(label(d.key))+'</span></button>';}).join('')+'</div>'+
+  '<div class="rep-tip" role="status" hidden></div></div></div>';
+}
+function bindMoneyChart(root){
+ const chart=root.querySelector('[data-mchart]');if(!chart)return;
+ const tip=chart.querySelector('.rep-tip'),plot=chart.querySelector('.rep-mchart-plot');let pinned=null;
+ // show as many date labels as fit (about 48px each); every bar keeps its slot and its tooltip
+ const labels=[...chart.querySelectorAll('.rep-slot-label')];
+ const thin=()=>{const fit=Math.max(2,Math.floor(plot.clientWidth/48)),every=Math.max(1,Math.ceil(labels.length/fit));labels.forEach((l,i)=>l.classList.toggle('is-hidden',i%every!==0));};
+ thin();if('ResizeObserver' in window)new ResizeObserver(thin).observe(plot);
+ const show=slot=>{const n=Number(slot.dataset.tipCount);tip.innerHTML='<small>'+e(slot.dataset.tipDate)+'</small><span>Money received</span><strong>'+e(slot.dataset.tipAmount)+'</strong>'+(n?'<small>'+n+' payment'+(n===1?'':'s')+'</small>':'');tip.hidden=false;
+  const pr=plot.getBoundingClientRect(),sr=slot.getBoundingClientRect(),bar=slot.querySelector('.rep-slot-bar').getBoundingClientRect();
+  const x=Math.min(Math.max(sr.left+sr.width/2-pr.left,tip.offsetWidth/2),pr.width-tip.offsetWidth/2);
+  tip.style.left=x+'px';tip.style.top=Math.max(0,(bar.height?bar.top:sr.bottom-24)-pr.top-tip.offsetHeight-8)+'px';
+  chart.querySelectorAll('.rep-slot.is-on').forEach(b=>b.classList.remove('is-on'));slot.classList.add('is-on');};
+ const hide=()=>{if(pinned)return;tip.hidden=true;chart.querySelectorAll('.rep-slot.is-on').forEach(b=>b.classList.remove('is-on'));};
+ chart.querySelectorAll('.rep-slot').forEach(slot=>{
+  slot.addEventListener('pointerenter',ev=>{if(ev.pointerType==='mouse'&&!pinned)show(slot);});
+  slot.addEventListener('pointerleave',ev=>{if(ev.pointerType==='mouse')hide();});
+  slot.addEventListener('focus',()=>show(slot));slot.addEventListener('blur',()=>{pinned=null;hide();});
+  slot.addEventListener('click',()=>{pinned=pinned===slot?null:slot;if(pinned)show(slot);else hide();});
+ });
+}
 export async function renderReports(content,subpage){
  const head=(text)=>'<header class="module-heading"><div><h1>Reports</h1><p>'+e(text)+'</p></div></header>';
  const tabs=active=>'<nav class="rep-tabs" aria-label="Report views"><a href="#reports"'+(active==='overview'?' aria-current="page"':'')+'>Overview</a><a href="#reports/transactions"'+(active==='transactions'?' aria-current="page"':'')+'>Orders</a><a href="#reports/payments"'+(active==='payments'?' aria-current="page"':'')+'>Payments</a><a href="#reports/revenue"'+(active==='revenue'?' aria-current="page"':'')+'>Revenue by month</a></nav>';
@@ -77,9 +117,9 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
   // sales chart: per day, or per week for long periods
   const weekly=span>45,buckets=new Map();
   for(let d=0;d<span;d+=weekly?7:1)buckets.set(addDays(range[0],d),0);
-  cur.paid.forEach(p=>{const k=dateKey(p.verified_at),i=daysBetween(range[0],k),start=addDays(range[0],weekly?i-i%7:i);buckets.set(start,(buckets.get(start)||0)+Math.round(Number(p.amount)*100));});
-  const peak=Math.max(1,...buckets.values());
-  const chart='<div class="rep-chart" role="img" aria-label="Money received per '+(weekly?'week':'day')+'">'+[...buckets].map(([k,c])=>'<div class="rep-col" title="'+e(phDate(k+'T12:00:00+08:00')+' · '+peso(c/100))+'"><span class="rep-col-bar" style="height:'+(c?Math.max(3,Math.round(c/peak*100)):0)+'%"></span><span class="rep-col-label">'+e(new Date(k+'T12:00:00+08:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'}))+'</span></div>').join('')+'</div>';
+  const counts=new Map();
+  cur.paid.forEach(p=>{const k=dateKey(p.verified_at),i=daysBetween(range[0],k),start=addDays(range[0],weekly?i-i%7:i);buckets.set(start,(buckets.get(start)||0)+Math.round(Number(p.amount)*100));counts.set(start,(counts.get(start)||0)+1);});
+  const chart=moneyChart([...buckets].map(([k,c])=>({key:k,centavos:c,count:counts.get(k)||0})),weekly);
   // best sellers (by product and size)
   const items=cur.orders.flatMap(o=>o.order_items||[]);
   const seller=new Map();items.forEach(i=>{const k=i.name_snapshot+(i.variant_label_snapshot?' · '+i.variant_label_snapshot:'');const s=seller.get(k)||{qty:0,sales:0};s.qty+=Number(i.quantity);s.sales+=Number(i.line_total);seller.set(k,s);});
@@ -115,15 +155,16 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
    (state.choice==='custom'?'<label>From <input type="date" data-from value="'+e(range[0])+'"></label><label>To <input type="date" data-to value="'+e(range[1])+'"></label>':'')+
    '<span class="rep-range">'+e(phDate(range[0]+'T12:00:00+08:00'))+' – '+e(phDate(range[1]+'T12:00:00+08:00'))+'</span></div>'+
    '<div class="rep-kpis">'+kpi('Sales received',peso(received),change(received,receivedBefore),'Verified payments')+kpi('Orders',String(cur.orders.length),change(cur.orders.length,old.orders.length),'Not cancelled')+kpi('Average order',peso(avg),change(avg,avgBefore),'Order value ÷ orders')+kpi('Design add-ons',peso(addOns),change(addOns,addOnsBefore),'Extras from the designers')+kpi('Balances owed',peso(owed),'<span class="rep-delta">Right now</span>','Unpaid parts of open orders')+'</div>'+
-   card('Money received per '+(weekly?'week':'day'),received?chart:none('No verified payments in this period.'))+
-   '<div class="rep-grid">'+
+   '<section class="panel rep-card rep-money"><header class="rep-money-head"><div><h2>Money received</h2><p>Verified payments collected '+(weekly?'per week ':'per day ')+'during this period</p></div><strong>'+e(peso2(received))+'</strong></header>'+(received?chart:none('No verified payments in this period.'))+'</section>'+
+   '<div class="rep-masonry">'+
     card('Best sellers',best.length?bars(best.map(([n,s])=>[n,s.sales,s.qty+' sold']),peso):none('No orders in this period.'))+
     card('Custom designs',designed.length?'<p class="rep-note">'+designed.length+' of '+items.length+' order lines were designed ('+Math.round(designed.length/Math.max(1,items.length)*100)+'%)</p>'+bars([...byDesigner].map(([k,v])=>[designerName[k]||k,v]),v=>v+' ordered')+'<h3 class="rep-sub">Most-picked choices</h3>'+(picks.size?bars([...picks].sort((a,b)=>b[1]-a[1]).slice(0,8),v=>v+'×'):none('No choices recorded.')):none('No designed orders in this period.'))+
-    card('Busy days',cur.orders.length?bars(WEEKDAYS.map((d,i)=>[d,weekday[i]]),v=>v+' orders')+'<p class="rep-note">Pickup '+pickup+' · Delivery '+delivery+'</p>':none('No orders in this period.'))+
     card('Payments by method',byMethodSum.size?bars([...byMethodSum],peso):none('No verified payments in this period.'))+
+    card('Busy days',cur.orders.length?bars(WEEKDAYS.map((d,i)=>[d,weekday[i]]),v=>v+' orders')+'<p class="rep-note">Pickup '+pickup+' · Delivery '+delivery+'</p>':none('No orders in this period.'))+
     card('Late balances',late.length?'<p class="rep-note">Unpaid more than 3 hours after pickup or delivery (the ₱50 late-fee rule).</p><div class="rep-list">'+late.slice(0,8).map(o=>'<a class="rep-list-row" href="#orders/detail/'+encodeURIComponent(o.id)+'"><span><strong>#'+e(o.order_number)+' · '+e(o.customer_name)+'</strong><small>Due '+e(phDate(o.receiving_end))+'</small></span><strong>'+peso(Number(o.total_amount)-Number(o.amount_paid))+'</strong></a>').join('')+'</div>':none('No late balances. 🎉'))+
     card('Ingredients',(usedTop.length?'<h3 class="rep-sub">Most used</h3>'+bars(usedTop.map(([n,q,u])=>[n,q,u]),v=>v.toLocaleString('en-PH')):none('No ingredient use recorded in this period.'))+'<p class="rep-note">Waste and expired stock: <strong>'+peso(wasteValue)+'</strong>'+(wasteUnpriced?' (+'+wasteUnpriced+' without a purchase price)':'')+'</p>')+
    '</div>';
+  bindMoneyChart(content);
   content.querySelectorAll('[data-period]').forEach(b=>b.onclick=()=>{state.choice=b.dataset.period;save();draw();});
   content.querySelector('[data-from]')?.addEventListener('change',ev=>{state.from=ev.target.value;save();draw();});
   content.querySelector('[data-to]')?.addEventListener('change',ev=>{state.to=ev.target.value;save();draw();});

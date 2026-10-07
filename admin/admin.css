@@ -438,3 +438,38 @@ main .panel-title,main .panel h2,main .panel__head h2{font-family:'Plus Jakarta 
 @media(max-width:1250px){.rep-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:900px){.rep-grid{grid-template-columns:1fr}.rep-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{.rep-tabs,.rep-period-buttons,#csv-report,#print-report{display:none!important}}
+
+/* ---- Reports overview: money received chart (peso axis, even slots, tooltip) ---- */
+.rep-money{padding-bottom:12px}
+.rep-money-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 20px 4px}
+.rep-money-head h2{margin:0;font-size:18px;color:#142044}
+.rep-money-head p{margin:2px 0 0;color:#777890;font-size:13.5px}
+.rep-money-head>strong{color:#142044;font-size:24px;font-weight:800;line-height:1.1;white-space:nowrap}
+.rep-mchart{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;height:clamp(220px,26vw,280px);padding:10px 20px 6px 12px}
+.rep-mchart-y{display:flex;flex-direction:column;justify-content:space-between;padding-bottom:26px;color:#8a8aa0;font-size:11.5px;font-variant-numeric:tabular-nums;text-align:right}
+.rep-mchart-y span{line-height:0}
+.rep-mchart-plot{position:relative;min-width:0}
+.rep-mchart-grid{position:absolute;inset:0 0 26px;display:flex;flex-direction:column-reverse;justify-content:space-between;pointer-events:none}
+.rep-mchart-grid i{display:block;height:0;border-top:1px dashed #ece6f4}
+.rep-mchart-grid i:first-child{border-top:1px solid #d9d0e8}
+.rep-mchart-bars{position:absolute;inset:0;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));align-items:stretch}
+.rep-slot{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0;height:100%;padding:0 0 26px;border:0;background:none;cursor:pointer;font:inherit}
+.rep-slot::before{content:'';position:absolute;inset:0 2px 26px;border-radius:6px;background:transparent;transition:background .15s ease}
+.rep-slot:hover::before,.rep-slot.is-on::before{background:#f6f2fd}
+.rep-slot:focus-visible{outline:2px solid #8f6be0;outline-offset:-2px;border-radius:6px}
+.rep-slot-bar{position:relative;width:min(70%,30px);min-width:4px;border-radius:5px 5px 1px 1px;background:#8a6fd1;transition:background .15s ease}
+.rep-slot:hover .rep-slot-bar,.rep-slot.is-on .rep-slot-bar{background:#6033dd}
+.rep-slot-label{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);color:#777890;font-size:11.5px;white-space:nowrap}
+.rep-slot-label.is-hidden{visibility:hidden}
+.rep-tip{position:absolute;z-index:3;display:grid;gap:1px;min-width:132px;padding:8px 11px;border:1px solid #e3dcee;border-radius:10px;background:#fff;box-shadow:0 8px 22px rgba(45,32,95,.14);transform:translateX(-50%);pointer-events:none;font-size:12.5px;color:#5f5674}
+.rep-tip strong{color:#142044;font-size:16px}
+.rep-tip small{color:#777890;font-size:11.5px}
+/* ---- Reports overview: report cards in two balanced columns, natural heights (no stretching) ---- */
+.rep-masonry{column-count:2;column-gap:18px;margin-top:18px}
+.rep-masonry>.rep-card{display:block;break-inside:avoid;margin:0 0 18px;width:100%}
+.rep-masonry>.rep-card:last-child{margin-bottom:0}
+.rep-card{border-radius:14px}
+.rep-card-head{padding:16px 20px 6px}
+@media (max-width:900px){.rep-masonry{column-count:1}.rep-mchart{height:230px}.rep-money-head>strong{font-size:20px}}
+@media (max-width:520px){.rep-mchart{padding-left:6px;padding-right:12px}.rep-slot-label{font-size:10.5px}.rep-money-head{padding:14px 16px 2px}}
+@media (prefers-reduced-motion:reduce){.rep-slot::before,.rep-slot-bar{transition:none}}

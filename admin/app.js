@@ -1,7 +1,7 @@
 import { renderDashboard } from './pages/dashboard.js?v=10';
 import { renderProducts } from './pages/products.js?v=8';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=20';
-import { renderReports } from './pages/reports.js?v=7';
+import { renderReports } from './pages/reports.js?v=11';
 import { renderOrders } from './pages/orders.js?v=25';
 import { renderBookings } from './pages/bookings.js?v=11';
 import { renderDesignOptions } from './pages/design-options.js?v=11';
