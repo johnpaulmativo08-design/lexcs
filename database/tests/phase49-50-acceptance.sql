@@ -71,7 +71,7 @@ set local role authenticated;
 select pg_temp.ok(pg_temp.err(format('select public.save_product(%L)', jsonb_build_object('id', pg_temp.v('prod'), 'name', 'Acceptance Test Brownies', 'description', '',
   'category_id', null, 'kind', 'standard', 'slug', 'product-' || pg_temp.v('prod'), 'image_path', null, 'package_contents', null,
   'variants', jsonb_build_array(jsonb_build_object('id', pg_temp.v('v6'), 'code', 'option-6', 'label', '6 pcs', 'price', 150, 'is_active', true, 'sort_order', 0),
-                                jsonb_build_object('id', pg_temp.v('v12'), 'code', 'option-12', 'label', '12 pcs', 'price', 280, 'is_active', true, 'sort_order', 1))))::text)) = 'ok',
+                                jsonb_build_object('id', pg_temp.v('v12'), 'code', 'option-12', 'label', '12 pcs', 'price', 280, 'is_active', true, 'sort_order', 1)))::text)) = 'ok',
   'Add Product with two sizes saves');
 -- recipe: one batch makes 6 pieces; material 1 = 0.1% of its stock per batch, material 2 = 0.001 per piece
 insert into t select 'q1', round(least(pg_temp.v('m1_avail')::numeric / 1000, 5), 3)::text;
@@ -80,7 +80,7 @@ select pg_temp.ok(pg_temp.err(format('select public.save_recipe(%L)', jsonb_buil
   'variant_units', jsonb_build_array(jsonb_build_object('variant_id', pg_temp.v('v6'), 'units', 6), jsonb_build_object('variant_id', pg_temp.v('v12'), 'units', 12)),
   'lines', jsonb_build_array(
     jsonb_build_object('item_id', pg_temp.v('m1'), 'quantity', pg_temp.v('q1')::numeric, 'unit', pg_temp.v('m1_unit'), 'basis', 'per_batch', 'line_group', 'ingredient'),
-    jsonb_build_object('item_id', pg_temp.v('m2'), 'quantity', 0.001, 'unit', pg_temp.v('m2_unit'), 'basis', 'per_unit', 'line_group', 'ingredient'))))::text)) = 'ok',
+    jsonb_build_object('item_id', pg_temp.v('m2'), 'quantity', 0.001, 'unit', pg_temp.v('m2_unit'), 'basis', 'per_unit', 'line_group', 'ingredient')))::text)) = 'ok',
   'the recipe saves and activates for the new product');
 reset role;
 select pg_temp.ok((select count(*) from public.product_recipes where product_id = pg_temp.v('prod')::uuid and status = 'active') = 1, 'the product has exactly one active recipe');
