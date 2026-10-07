@@ -273,7 +273,7 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
   };
   // Donut materials (cached by colour).
   const cacheBy = (map, key, make) => { if (!map.has(key)) map.set(key, track(make())); return map.get(key); };
-  const glazeMats = new Map(), baseMats = new Map(), letterMats = new Map();
+  const glazeMats = new Map(), baseMats = new Map(), letterMats = new Map(), discMats = new Map();
   const glazeMat = (hex) => cacheBy(glazeMats, hex, () => withSurface(new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.3, clearcoat: 0.55, clearcoatRoughness: 0.22, envMapIntensity: 0.45, side: THREE.DoubleSide }), SURF.glaze));
   const donutBaseMat = (flavor) => cacheBy(baseMats, flavor, () => withSurface(new THREE.MeshPhysicalMaterial({ color: DONUT_FLAVOR[flavor] || DONUT_FLAVOR.vanilla, roughness: 0.92, envMapIntensity: 0.12 }), CRUMB));
   const DMAT = {
@@ -409,12 +409,19 @@ export function createCupcakeScene(host, { reducedMotion = false, kind = 'cupcak
     }
     // Fondant letters (1–5) on a scalloped fondant disc, tilted to face the front like the theme toppers.
     if (spec.letters) {
-      const withTheme = theme && theme !== 'none', at = withTheme ? [0.3, -0.12] : spec.style === 'luxe' ? [-0.3, 0] : [0, 0.05];
-      const hit = surfacePoint(frostMesh, at[0] * R, at[1] * R);
-      if (hit) {
+      // The swirl peaks narrowly in the middle, so try a few spots on the top and fall back to the highest point.
+      const withTheme = theme && theme !== 'none';
+      const spots = withTheme ? [[0.3, -0.12], [0.32, 0.05], [0.2, -0.25]] : spec.style === 'luxe' ? [[-0.3, 0], [-0.2, 0.15]] : [[0.12, 0.1], [0, 0.22], [0.18, -0.08], [-0.15, 0.12]];
+      let hit = null;
+      for (const [x, z] of spots) { hit = surfacePoint(frostMesh, x * R, z * R); if (hit) break; }
+      if (!hit) { frostMesh.geometry.computeBoundingBox(); hit = { p: V(0, frostMesh.geometry.boundingBox.max.y * 0.92, R * 0.1) }; }
+      {
         const holder = new THREE.Group(), size = R * (withTheme ? 0.34 : 0.42);
         const g = plaquePiece(size); geos.push(g); g.computeBoundingBox(); const lift = g.boundingBox.max.y + 0.0015;
-        const disc = new THREE.Mesh(g, MAT.fondant); disc.castShadow = true; disc.userData.shared = true; holder.add(disc);
+        // light letters sit on a soft lavender disc so they stay readable; other colours on white fondant
+        const light = new THREE.Color(spec.letterColor || '#ffffff').getHSL({}).l > 0.78;
+        const discMat = light ? cacheBy(discMats, 'lavender', () => { const m = MAT.fondant.clone(); m.color.set('#dccdf2'); return m; }) : MAT.fondant;
+        const disc = new THREE.Mesh(g, discMat); disc.castShadow = true; disc.userData.shared = true; holder.add(disc);
         const pg = new THREE.PlaneGeometry(size * 1.5, size * 0.75); pg.rotateX(-Math.PI / 2); geos.push(pg);
         const word = new THREE.Mesh(pg, letterMat(spec.letters, spec.letterColor || '#ffffff')); word.position.y = lift; word.userData.shared = true; holder.add(word);
         holder.position.set(hit.p.x, hit.p.y + R * 0.16, hit.p.z + R * 0.05); holder.rotation.set(0.95, 0, 0, 'YXZ'); holder.userData.plaque = true; group.add(holder);

@@ -32,23 +32,23 @@
   function markup({ pieces, count, at = 0, noun = 'piece', id = 'lp' }) {
     const list = fit(pieces, count), here = Math.min(Math.max(0, at), count - 1), text = list[here] || '', n = filled(list);
     const Noun = noun.charAt(0).toUpperCase() + noun.slice(1);
-    return `<div class="lp" data-lp>
-      <p class="lp-hint">Tap a ${esc(noun)}, then type <strong>1–5 letters</strong> for it. ${esc(Noun)}s left empty get no letters.</p>
-      <div class="lp-grid" role="group" aria-label="${esc(Noun)}s in the box">${list.map((p, i) => `<button type="button" class="lp-chip${i === here ? ' is-active' : ''}${p ? ' has-text' : ''}" data-lp-at="${i}" aria-pressed="${i === here}" aria-label="${esc(Noun)} ${i + 1}${p ? ': ' + esc(p) : ', no letters'}"><small>${i + 1}</small><b>${p ? esc(p) : '+'}</b></button>`).join('')}</div>
-      <div class="lp-editor">
-        <label class="lp-label" for="${id}-input">${esc(Noun)} ${here + 1} letters</label>
-        <div class="lp-row">
-          <button type="button" class="lp-step" data-lp-prev aria-label="Previous ${esc(noun)}" ${here === 0 ? 'disabled' : ''}>‹</button>
-          <input id="${id}-input" class="bd-input lp-input" data-lp-input value="${esc(text)}" maxlength="${MAX}" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. LOVE" aria-describedby="${id}-count">
-          <button type="button" class="lp-step" data-lp-next aria-label="Next ${esc(noun)}" ${here >= count - 1 ? 'disabled' : ''}>›</button>
+    return `<div class="pcl" data-lp>
+      <p class="pcl-hint">Tap a ${esc(noun)}, then type <strong>1–5 letters</strong> for it. ${esc(Noun)}s left empty get no letters.</p>
+      <div class="pcl-grid" role="group" aria-label="${esc(Noun)}s in the box">${list.map((p, i) => `<button type="button" class="pcl-chip${i === here ? ' is-active' : ''}${p ? ' has-text' : ''}" data-lp-at="${i}" aria-pressed="${i === here}" aria-label="${esc(Noun)} ${i + 1}${p ? ': ' + esc(p) : ', no letters'}"><small>${i + 1}</small><b>${p ? esc(p) : '+'}</b></button>`).join('')}</div>
+      <div class="pcl-editor">
+        <label class="pcl-label" for="${id}-input">${esc(Noun)} ${here + 1} letters</label>
+        <div class="pcl-row">
+          <button type="button" class="pcl-step" data-lp-prev aria-label="Previous ${esc(noun)}" ${here === 0 ? 'disabled' : ''}>‹</button>
+          <input id="${id}-input" class="bd-input pcl-input" data-lp-input value="${esc(text)}" maxlength="${MAX}" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. LOVE" aria-describedby="${id}-count">
+          <button type="button" class="pcl-step" data-lp-next aria-label="Next ${esc(noun)}" ${here >= count - 1 ? 'disabled' : ''}>›</button>
         </div>
-        <div class="lp-meta"><span id="${id}-count" data-lp-count>${text.length} / ${MAX} letters</span><span data-lp-filled>${n} of ${count} ${esc(noun)}s have letters</span>${text ? '<button type="button" class="lp-clear" data-lp-clear>Clear</button>' : ''}</div>
+        <div class="pcl-meta"><span id="${id}-count" data-lp-count>${text.length} / ${MAX} letters</span><span data-lp-filled>${n} of ${count} ${esc(noun)}s have letters</span>${text ? '<button type="button" class="pcl-clear" data-lp-clear>Clear</button>' : ''}</div>
       </div>
-      <details class="lp-fill"><summary>Fill several ${esc(noun)}s at once</summary>
-        <div class="lp-row"><input class="bd-input" data-lp-fill-text placeholder="e.g. HAPPY 7TH BDAY" autocomplete="off" aria-label="Words to spread across the ${esc(noun)}s"><button type="button" class="bd-chip" data-lp-fill>Fill from ${esc(noun)} ${here + 1}</button></div>
-        <p class="lp-note">Each word goes on the next ${esc(noun)}; longer words continue on the one after (5 letters each).</p>
+      <details class="pcl-fill"><summary>Fill several ${esc(noun)}s at once</summary>
+        <div class="pcl-row"><input class="bd-input" data-lp-fill-text placeholder="e.g. HAPPY 7TH BDAY" autocomplete="off" aria-label="Words to spread across the ${esc(noun)}s"><button type="button" class="bd-chip" data-lp-fill>Fill from ${esc(noun)} ${here + 1}</button></div>
+        <p class="pcl-note">Each word goes on the next ${esc(noun)}; longer words continue on the one after (5 letters each).</p>
       </details>
-      <p class="lp-error" role="alert" ${n ? 'hidden' : ''}>${n ? '' : `Add letters to at least one ${esc(noun)}, or choose no letters.`}</p>
+      <p class="pcl-error" role="alert" ${n ? 'hidden' : ''}>${n ? '' : `Add letters to at least one ${esc(noun)}, or choose no letters.`}</p>
     </div>`;
   }
 
@@ -80,7 +80,7 @@
       if (chip) { chip.classList.toggle('has-text', !!value); chip.querySelector('b').textContent = value || '+'; }
       const c = root.querySelector('[data-lp-count]'); if (c) c.textContent = `${value.length} / ${MAX} letters`;
       const n = filled(p), f = root.querySelector('[data-lp-filled]'); if (f) f.textContent = f.textContent.replace(/^\d+/, String(n));
-      const err = root.querySelector('.lp-error'); if (err) err.hidden = n > 0;
+      const err = root.querySelector('.pcl-error'); if (err) err.hidden = n > 0;
     });
     root.addEventListener('keydown', (event) => {
       if (!event.target.matches('[data-lp-input]') || event.key !== 'Enter') return;

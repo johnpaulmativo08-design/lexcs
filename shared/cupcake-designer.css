@@ -99,28 +99,28 @@
 .cd-chooser-grid:has(> :nth-child(4)){grid-template-columns:repeat(2,1fr)}
 @media (max-width:900px){body[data-customer-page="cakepop"] .customer-mobile-nav{display:none}body[data-customer-page="cakepop"] #customer-chat-toggle{display:none!important}}
 
-/* Fondant letters per cupcake / per mini donut (shared/letter-pieces.js) */
-.lp{display:grid;gap:10px;margin-top:12px}
-.lp-hint{margin:0;color:var(--bd-muted,#6d6278);font-size:.82rem;line-height:1.45}
-.lp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px;max-height:208px;overflow:auto;padding:2px}
-.lp-chip{display:grid;place-items:center;gap:0;min-height:48px;padding:4px 2px;border:1.5px solid #e2d8ee;border-radius:12px;background:#fff;color:#4b3a6b;cursor:pointer;font:inherit;line-height:1.1}
-.lp-chip small{font-size:.62rem;color:#9a8db0}
-.lp-chip b{font-size:.78rem;font-weight:800;letter-spacing:.02em;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.lp-chip:not(.has-text) b{color:#c2b5d8;font-weight:600}
-.lp-chip.has-text{background:#f6f1fd;border-color:#cdb9ef}
-.lp-chip.is-active{border-color:#6d4bc3;box-shadow:0 0 0 2px #e6dcfa;background:#fff}
-.lp-chip:focus-visible{outline:2px solid #6d4bc3;outline-offset:2px}
-.lp-editor{display:grid;gap:6px;padding:10px;border:1px solid #e9e1f4;border-radius:14px;background:#fbf9fe}
-.lp-label{font-size:.82rem;font-weight:700;color:#3a2160}
-.lp-row{display:flex;gap:6px;align-items:center}
-.lp-row .bd-input{flex:1;min-width:0;margin:0}
-.lp-input{text-transform:uppercase;font-weight:800;letter-spacing:.12em;text-align:center;font-size:1.05rem}
-.lp-step{flex:none;width:42px;height:44px;border:1.5px solid #e2d8ee;border-radius:12px;background:#fff;color:#5a3a99;font-size:1.3rem;cursor:pointer}
-.lp-step:disabled{opacity:.35;cursor:default}
-.lp-meta{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;color:var(--bd-muted,#6d6278);font-size:.76rem}
-.lp-clear{margin-left:auto;border:0;background:none;color:#a3324b;font:600 .76rem inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-.lp-fill>summary{cursor:pointer;color:#5a3a99;font-weight:700;font-size:.82rem}
-.lp-fill[open]>*:not(summary){margin-top:8px}
-.lp-note{margin:4px 0 0;color:var(--bd-muted,#6d6278);font-size:.74rem}
-.lp-error{margin:0;padding:8px 10px;border-radius:9px;background:#fdf0f2;color:#a73345;font-size:.8rem}
-.lp-error[hidden]{display:none}
+/* Fondant letters per cupcake / per mini donut (shared/letter-pieces.js) — "pcl" = piece letters (".lp" is the landing page) */
+.pcl{display:grid;gap:10px;margin-top:12px}
+.pcl-hint{margin:0;color:var(--bd-muted,#6d6278);font-size:.82rem;line-height:1.45}
+.pcl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px;max-height:208px;overflow:auto;padding:2px}
+.pcl-chip{display:grid;place-items:center;gap:0;min-height:48px;padding:4px 2px;border:1.5px solid #e2d8ee;border-radius:12px;background:#fff;color:#4b3a6b;cursor:pointer;font:inherit;line-height:1.1}
+.pcl-chip small{font-size:.62rem;color:#9a8db0}
+.pcl-chip b{font-size:.78rem;font-weight:800;letter-spacing:.02em;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.pcl-chip:not(.has-text) b{color:#c2b5d8;font-weight:600}
+.pcl-chip.has-text{background:#f6f1fd;border-color:#cdb9ef}
+.pcl-chip.is-active{border-color:#6d4bc3;box-shadow:0 0 0 2px #e6dcfa;background:#fff}
+.pcl-chip:focus-visible{outline:2px solid #6d4bc3;outline-offset:2px}
+.pcl-editor{display:grid;gap:6px;padding:10px;border:1px solid #e9e1f4;border-radius:14px;background:#fbf9fe}
+.pcl-label{font-size:.82rem;font-weight:700;color:#3a2160}
+.pcl-row{display:flex;gap:6px;align-items:center}
+.pcl-row .bd-input{flex:1;min-width:0;margin:0}
+.pcl-input{text-transform:uppercase;font-weight:800;letter-spacing:.12em;text-align:center;font-size:1.05rem}
+.pcl-step{flex:none;width:42px;height:44px;border:1.5px solid #e2d8ee;border-radius:12px;background:#fff;color:#5a3a99;font-size:1.3rem;cursor:pointer}
+.pcl-step:disabled{opacity:.35;cursor:default}
+.pcl-meta{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;color:var(--bd-muted,#6d6278);font-size:.76rem}
+.pcl-clear{margin-left:auto;border:0;background:none;color:#a3324b;font:600 .76rem inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.pcl-fill>summary{cursor:pointer;color:#5a3a99;font-weight:700;font-size:.82rem}
+.pcl-fill[open]>*:not(summary){margin-top:8px}
+.pcl-note{margin:4px 0 0;color:var(--bd-muted,#6d6278);font-size:.74rem}
+.pcl-error{margin:0;padding:8px 10px;border-radius:9px;background:#fdf0f2;color:#a73345;font-size:.8rem}
+.pcl-error[hidden]{display:none}

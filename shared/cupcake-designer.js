@@ -47,7 +47,7 @@
   function blank(size = 'mini') {
     const p = products[size];
     return { size, variant_id: p?.product_variants.filter((v) => v.is_active)[0]?.id, qty: 1, flavor: 'chocolate', pattern: 'same',
-      a: { style: 'rosette', colors: ['baby_pink'] }, b: { style: 'rosette', colors: ['white'] }, finishes: ['gold_pearls'], theme: 'none', theme_note: '', message: 'none', message_pieces: [], message_color: 'white' };
+      a: { style: 'rosette', colors: ['baby_pink'] }, b: { style: 'rosette', colors: ['white'] }, finishes: ['gold_pearls'], theme: 'none', theme_note: '', message: 'none', message_pieces: [], message_color: 'purple' };
   }
   const design = () => ({ designer: 'cupcake', flavor: state.flavor, pattern: state.pattern,
     a: { style: state.a.style, colors: [...state.a.colors] },
@@ -95,7 +95,7 @@
     if (!opt('message', state.message)) state.message = 'none';
     state.message_pieces = LexcLetterPieces.fit(state.message_pieces, countOf(variant()?.label));
     pieceAt = Math.min(pieceAt, state.message_pieces.length - 1);
-    if (!pal[state.message_color]) state.message_color = 'white';
+    if (!pal[state.message_color]) state.message_color = pal.purple ? 'purple' : 'white';
   }
   function commit(mutator, { soft = false } = {}) {
     const before = snap(); mutator(state); normalise();
@@ -396,7 +396,7 @@
     const host = root.querySelector('[data-cd-3d]');
     sceneLoading = (async () => {
       try {
-        const mod = await import('./cupcake-scene.js?v=19');
+        const mod = await import('./cupcake-scene.js?v=21');
         if (currentPage !== 'cupcake' || scene) return;
         host.hidden = false;
         scene = mod.createCupcakeScene(host, { reducedMotion });

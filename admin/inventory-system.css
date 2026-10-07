@@ -272,7 +272,7 @@
 /* Batch Edit (Inventory → material → Active batches) */
 .stock-batch-end{display:flex;align-items:center;gap:8px}
 .stock-batch-edit{width:32px;height:32px}
-.stock-batch-diff{display:flex;align-items:flex-start;gap:8px;margin:0;padding:10px 12px;border-radius:10px;background:#f4effc;color:#3b2a66;font-size:14px;line-height:1.45}
+.stock-batch-diff{display:block;margin:0;padding:10px 12px;border-radius:10px;background:#f4effc;color:#3b2a66;font-size:14px;line-height:1.45}
 .stock-batch-diff.is-bad{background:#fdecef;color:#a3324b}
-.stock-batch-diff .ui-icon,.stock-batch-diff svg{flex:none;width:16px;height:16px;margin-top:2px}
+.stock-batch-diff .ui-icon,.stock-batch-diff svg{display:inline-block;width:16px;height:16px;margin:0 6px -3px 0;vertical-align:baseline}
 .stock-batch-form [aria-invalid=true]{border-color:#d4566f!important;background:#fff8f9}
