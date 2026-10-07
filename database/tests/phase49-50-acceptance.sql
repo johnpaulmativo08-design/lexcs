@@ -14,7 +14,7 @@ create or replace function pg_temp.v(key text) returns text language sql as $$ s
 grant execute on all functions in schema pg_temp to authenticated;
 
 -- act as an Admin
-insert into t select 'admin', id::text from public.profiles where role = 'admin' order by created_at limit 1;
+insert into t select 'admin', ur.user_id::text from public.user_roles ur join public.profiles p on p.id = ur.user_id where ur.role = 'admin' order by p.created_at limit 1;
 select set_config('request.jwt.claim.sub', pg_temp.v('admin'), true),
        set_config('request.jwt.claims', json_build_object('sub', pg_temp.v('admin'), 'role', 'authenticated')::text, true);
 
