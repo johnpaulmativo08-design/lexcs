@@ -6,8 +6,8 @@ import { renderOrders } from './pages/orders.js?v=25';
 import { renderBookings } from './pages/bookings.js?v=11';
 import { renderDesignOptions } from './pages/design-options.js?v=11';
 import { renderProfile } from './pages/profile.js?v=3';
-import { mountChat } from '../shared/chat.js?v=23';
-import { mountChatWidget } from '../shared/chat-widget.js?v=21';
+import { mountChat } from '../shared/chat.js?v=24';
+import { mountChatWidget } from '../shared/chat-widget.js?v=22';
 import { renderUpdates } from './pages/updates.js?v=2';
 import { icon } from './components.js?v=3';
 

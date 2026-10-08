@@ -170,7 +170,7 @@ async function cancelMyOrder(orderId,orderNumber){
   const paymentLabel=value=>({unpaid:'Awaiting Payment',verification_pending:'Verification Pending',rejected:'Rejected',partially_paid:'Downpayment Paid',paid:'Fully Paid',failed:'Payment Failed',refunded:'Refunded'}[value]||String(value||'Unpaid').replaceAll('_',' '));
   const moneyValue=value=>value===null||value===undefined?'Pending delivery quote':'₱'+Number(value).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
   // Payment shown next to the order status; reviews open once the order is fully paid (phase 48).
-  const payPill=o=>{if(o.status==='cancelled')return '';const p={paid:['is-paid','✓ Paid'],partially_paid:['is-part','Downpayment paid'],verification_pending:['is-review','Payment under review'],rejected:['is-issue','Payment issue']}[o.payment_status];return p?'<span class="customer-pay-pill '+p[0]+'">'+p[1]+'</span>':'';};
+  const payPill=o=>{if(o.status==='cancelled')return '';if(o.status==='pending'&&o.price_review?.status==='awaiting')return '<span class="customer-pay-pill is-review">New price to accept</span>';const p={paid:['is-paid','✓ Paid'],partially_paid:['is-part','Downpayment paid'],verification_pending:['is-review','Payment under review'],rejected:['is-issue','Payment issue']}[o.payment_status];return p?'<span class="customer-pay-pill '+p[0]+'">'+p[1]+'</span>':'';};
   const canReview=o=>o.status!=='cancelled'&&(o.status==='completed'||o.payment_status==='paid');
   container.innerHTML=visibleOrders.length?visibleOrders.map(o=>{
    const b=bookingByOrder.get(o.id),p=paymentByOrder.get(o.id);

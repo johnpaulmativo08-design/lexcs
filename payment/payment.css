@@ -314,3 +314,10 @@ nav[aria-label="Breadcrumb"] a:hover{text-decoration:underline;text-underline-of
 .proof-preview-name small{color:#6d6278}
 .proof-preview-actions{display:flex;gap:12px}
 @media(max-width:520px){.proof-preview{grid-template-columns:48px minmax(0,1fr)}.proof-preview img{width:48px;height:48px}.proof-preview-actions{grid-column:1/-1;justify-content:flex-end}}
+
+/* additional price waiting for the customer (phase 51) */
+.price-review-card .price-reason{color:#4a3f5c}
+.price-review-card .price-lines{display:grid;grid-template-columns:1fr auto;gap:6px 16px;width:100%;max-width:360px;margin:0}
+.price-review-card .price-lines dt{color:#7c6d91}.price-review-card .price-lines dd{margin:0;text-align:right;font-weight:700}
+.price-review-card .price-lines dt:last-of-type,.price-review-card .price-lines dd:last-of-type{padding-top:6px;border-top:1px solid #eee6f7;color:#502982;font-weight:800}
+.price-review-card .state-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}

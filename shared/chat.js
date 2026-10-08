@@ -4,6 +4,7 @@ const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;'
 const money=value=>'₱'+Number(value||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const stamp=value=>new Date(value).toLocaleString('en-PH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Manila'});
 const short=value=>String(value||'').slice(0,8);
+const ORDER_COLS='id,order_number,customer_name,customer_id,status,payment_status,total_amount,deposit_due,amount_paid,fulfillment_method,receiving_start,delivery_fee,price_review,extra_charge';
 
 // Shared operations for the full chat page and its compact Messenger presentation.
 // Both surfaces read and write the same Supabase conversations and messages.
@@ -72,7 +73,27 @@ function orderSummaryHTML(s,orderId){
     '<div class="order-card-meta"><p><span>'+(delivery?'Delivery (Lalamove)':'Pickup')+'</span>'+escapeHtml([day,hours].filter(Boolean).join(' · '))+'</p>'+
     '<p><span>Contact</span>'+escapeHtml([s.name,s.phone].filter(Boolean).join(' · '))+'</p>'+(delivery&&s.address?'<p><span>Address</span>'+escapeHtml(s.address)+'</p>':'')+(s.notes?'<p><span>Notes</span>'+escapeHtml(s.notes)+'</p>':'')+'</div>'+orderLink(orderId)+'</div></details>';
 }
+// ---- Additional price card (phase 51): LexC's added a charge for custom work; the customer accepts or declines it.
+const isAdminView=()=>/\/admin\//.test(location.pathname);
+function priceReviewHTML(r,orderId){
+  const status=r.status||'awaiting',label={awaiting:'Waiting for your answer',accepted:'Accepted',declined:'Declined',replaced:'Replaced by a newer price'}[status]||status;
+  const adminLabel={awaiting:'Waiting for the customer'}[status];
+  const total=r.new_total===null||r.new_total===undefined?'After the delivery fee':money(r.new_total);
+  return '<section class="price-card is-'+escapeHtml(status)+'" data-price-order="'+escapeHtml(orderId||'')+'"><header><strong>Additional price</strong><span>'+escapeHtml(isAdminView()&&adminLabel?adminLabel:label)+'</span></header>'+
+    '<p class="price-card-reason">'+escapeHtml(r.reason||'')+'</p><dl>'+(r.old_total!==null&&r.old_total!==undefined?'<dt>Previous total</dt><dd>'+money(r.old_total)+'</dd>':'')+'<dt>Additional</dt><dd>+ '+money(r.amount)+'</dd><dt>New total</dt><dd>'+total+'</dd></dl>'+
+    (status==='awaiting'&&!isAdminView()&&orderId?'<div class="price-card-actions"><button type="button" class="is-accept" data-extra-answer="accept">Accept new price</button><button type="button" class="is-decline" data-extra-answer="decline">Decline</button></div><p class="price-card-error" role="alert"></p>':'')+'</section>';
+}
+// one listener for every place the card appears (chat page, chat bubble)
+document.addEventListener('click',async event=>{
+  const button=event.target.closest?.('[data-extra-answer]');if(!button)return;
+  const card=button.closest('[data-price-order]'),accept=button.dataset.extraAnswer==='accept',alert=card.querySelector('[role=alert]');
+  if(!await ask(accept?'The additional price is added to your order total. After that you can pay the downpayment or the full amount.':'Your order stays at its current price. LexC’s will reply here about what happens next.',{title:accept?'Accept the new price?':'Decline the additional price?',confirm:accept?'Accept':'Decline',tone:accept?'success':'danger'}))return;
+  card.querySelectorAll('button').forEach(b=>b.disabled=true);button.textContent=accept?'Accepting…':'Declining…';
+  try{await db.rpc('respond_order_extra',{target_order:card.dataset.priceOrder,accept});alert.textContent='';}
+  catch(error){alert.textContent=error.message;card.querySelectorAll('button').forEach(b=>b.disabled=false);button.textContent=accept?'Accept new price':'Decline';}
+});
 export function designCardHTML(m){
+  if(m.message_type==='price_review'&&m.attachments&&typeof m.attachments==='object')return priceReviewHTML(m.attachments,m.order_id);
   if(m.message_type==='order_summary'&&m.attachments&&typeof m.attachments==='object')return orderSummaryHTML(m.attachments,m.order_id);
   if(m.message_type!=='design_card'||!Array.isArray(m.attachments))return '';
   const picture=(path,label)=>path?'<button type="button" class="design-card-pic" data-design-img="'+escapeHtml(path)+'" aria-label="Open '+label+' picture full size"><img alt="'+label+'" hidden><span class="skel" aria-hidden="true"></span><small>'+label+'</small></button>':'';
@@ -112,7 +133,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const draft=root.querySelector('#chat-text')?.value||'';
     const [threadRows,orderRows,itemRows,productRows,paymentRows,messageRows,profileRows]=await Promise.all([
       db.client.from('chat_conversations').select('*').order('updated_at',{ascending:false}).limit(150).then(db.unwrap),
-      db.client.from('orders').select('id,order_number,customer_name,customer_id,status,payment_status,total_amount,deposit_due,amount_paid,fulfillment_method,receiving_start').order('created_at',{ascending:false}).limit(admin?150:50).then(db.unwrap),
+      db.client.from('orders').select(ORDER_COLS).order('created_at',{ascending:false}).limit(admin?150:50).then(db.unwrap),
       db.client.from('order_items').select('order_id,line_number,product_id,name_snapshot,variant_label_snapshot,quantity,line_total').order('line_number',{ascending:true}).limit(admin?500:200).then(db.unwrap),
       db.client.from('products').select('id,image_path').limit(150).then(db.unwrap),
       db.client.from('order_payment_attempts').select('id,order_id,amount,status,transaction_reference,proof_storage_path,submitted_at,rejection_reason').order('created_at',{ascending:false}).limit(admin?150:50).then(db.unwrap),
@@ -125,7 +146,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const missing=[...new Set([...conversations.map(c=>c.order_id),orderId].filter(id=>id&&!orders.some(o=>o.id===id)))];
     if(missing.length){
       const [more,morePayments]=await Promise.all([
-        db.client.from('orders').select('id,order_number,customer_name,customer_id,status,payment_status,total_amount,deposit_due,amount_paid,fulfillment_method,receiving_start').in('id',missing).then(db.unwrap),
+        db.client.from('orders').select(ORDER_COLS).in('id',missing).then(db.unwrap),
         db.client.from('order_payment_attempts').select('id,order_id,amount,status,transaction_reference,proof_storage_path,submitted_at,rejection_reason').in('order_id',missing).order('created_at',{ascending:false}).then(db.unwrap)]);
       orders.push(...more);payments.push(...morePayments.filter(x=>!payments.some(y=>y.id===x.id)));
     }
@@ -176,6 +197,46 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     catch(error){alert.textContent=error.message;form.querySelectorAll('button').forEach(b=>b.disabled=false);if(button)button.textContent=decision==='paid'?'✓ Confirm payment':'Reject';}
   };
   root.addEventListener('submit',root._payReviewSubmit);
+  // Admin: a pending order can be confirmed, given an additional price for custom work, or cancelled from its chat.
+  let extraOpen=false;const extraDraft={amount:'',reason:''};
+  function orderActions(){
+    if(!admin||!selected?.order_id)return '';
+    const o=orders.find(row=>row.id===selected.order_id);
+    if(!o||o.status!=='pending')return '';
+    const r=o.price_review,waiting=r?.status==='awaiting',paying=Number(o.amount_paid||0)>0||payments.some(p=>p.order_id===o.id&&['awaiting_payment','verification_pending'].includes(p.status));
+    const note=waiting?'Waiting for the customer to accept + '+money(r.amount)+'.':r?.status==='declined'?'The customer declined + '+money(r.amount)+'. Confirm at the current price, add a different amount, or cancel.':o.total_amount===null?'Set the Lalamove delivery fee in Orders before confirming.':'Total '+money(o.total_amount)+'. Payment opens for the customer once you confirm.';
+    return '<section class="chat-order-actions-bar" aria-label="Order actions"><p>'+escapeHtml(note)+'</p><div class="chat-order-buttons">'+
+      '<button type="button" class="is-confirm" data-order-act="confirm"'+(waiting||o.total_amount===null?' disabled':'')+'>✓ Confirm order</button>'+
+      (paying?'':'<button type="button" class="is-extra" data-order-act="extra" aria-expanded="'+extraOpen+'">+ Additional price</button>')+
+      '<button type="button" class="is-cancel" data-order-act="cancel">Cancel order</button></div>'+
+      (extraOpen&&!paying?'<form class="chat-extra-form" id="chat-extra-form"><div class="chat-extra-fields"><label for="chat-extra-amount">Amount (₱)<input id="chat-extra-amount" name="amount" type="number" inputmode="decimal" min="1" max="100000" step="0.01" required value="'+escapeHtml(extraDraft.amount)+'" placeholder="e.g. 150"></label><label for="chat-extra-reason">Reason the customer will see<textarea id="chat-extra-reason" name="reason" rows="2" minlength="3" maxlength="300" required placeholder="e.g. Hand-piped portrait topper takes about two extra hours">'+escapeHtml(extraDraft.reason)+'</textarea></label></div><div class="chat-proof-actions"><button type="submit" class="is-confirm">Send to customer</button><button type="button" class="is-reject" data-order-act="extra-close">Close</button></div></form>':'')+
+      '<p class="chat-proof-error" role="alert"></p></section>';
+  }
+  if(root._extraInput)root.removeEventListener('input',root._extraInput);
+  root._extraInput=event=>{if(event.target.closest('#chat-extra-form'))extraDraft[event.target.name]=event.target.value;};
+  root.addEventListener('input',root._extraInput);
+  function bindOrderActions(){
+    const bar=root.querySelector('.chat-order-actions-bar');if(!bar)return;
+    const o=orders.find(row=>row.id===selected.order_id),alert=bar.querySelector('[role=alert]');
+    const busy=(button,text)=>{bar.querySelectorAll('button').forEach(b=>b.disabled=true);if(button)button.textContent=text;};
+    const fail=error=>{alert.textContent=error.message;draw();const again=root.querySelector('.chat-order-actions-bar [role=alert]');if(again)again.textContent=error.message;};
+    bar.querySelectorAll('[data-order-act]').forEach(button=>button.onclick=async()=>{
+      const act=button.dataset.orderAct;
+      if(act==='extra'||act==='extra-close'){extraOpen=act==='extra'?!extraOpen:false;draw();if(extraOpen)root.querySelector('#chat-extra-amount')?.focus();return;}
+      const confirm=act==='confirm';
+      if(!await ask(confirm?'The customer can pay the downpayment or the full '+money(o.total_amount)+' right after this.':'The customer is told the order is cancelled. This cannot be undone.',{title:confirm?'Confirm Order #'+o.order_number+'?':'Cancel Order #'+o.order_number+'?',confirm:confirm?'Confirm order':'Cancel order',cancel:confirm?'Not yet':'Keep order',tone:confirm?'success':'danger'}))return;
+      busy(button,confirm?'Confirming…':'Cancelling…');
+      try{await db.rpc('set_order_status',{order_id:o.id,next_status:confirm?'confirmed':'cancelled'});await refresh();}catch(error){fail(error);}
+    });
+    bar.querySelector('#chat-extra-form')?.addEventListener('submit',async event=>{
+      event.preventDefault();const form=event.currentTarget,amount=Number(form.elements.amount.value),reason=form.elements.reason.value.trim();
+      if(!(amount>=1&&amount<=100000)){alert.textContent='Enter an amount between ₱1 and ₱100,000.';form.elements.amount.focus();return;}
+      if(reason.length<3){alert.textContent='Tell the customer why, in a few words.';form.elements.reason.focus();return;}
+      if(!await ask('Order #'+o.order_number+' goes up by '+money(amount)+(o.total_amount===null?'':' to '+money(Number(o.total_amount)+amount))+'. The customer accepts or declines it in this chat before paying.',{title:'Send the additional price?',confirm:'Send to customer'}))return;
+      busy(event.submitter,'Sending…');
+      try{await db.rpc('propose_order_extra',{target_order:o.id,amount,reason});extraOpen=false;extraDraft.amount='';extraDraft.reason='';await refresh();}catch(error){fail(error);}
+    });
+  }
   function context(){
     const o=orders.find(row=>row.id===selected?.order_id);
     if(!o){const p=profiles.find(row=>row.id===selected?.customer_id);return '<h2>Conversation details</h2>'+(admin?'<p>Customer: '+escapeHtml(p?.full_name||'Customer')+'</p><p>Phone: '+escapeHtml(p?.phone||'Not provided')+'</p>':'<p>Ask about products, custom orders, pickup, or delivery. A LexC team member can join this conversation.</p>');}
@@ -217,7 +278,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const visible=conversations.filter(c=>{const o=orders.find(x=>x.id===c.order_id);const term=(title(c)+' '+(o?.customer_name||'')).toLowerCase();return term.includes(search.trim().toLowerCase())&&(filter==='all'||(filter==='orders'&&c.order_id)||(filter==='attention'&&c.state==='needs_admin'));});
     const keep=snapshot();
     const unread=new Map();for(const m of inboxMessages){if(!m.read_at&&(admin?m.sender_type==='customer':m.sender_type!=='customer'))unread.set(m.conversation_id,(unread.get(m.conversation_id)||0)+1);}
-    root.innerHTML='<div class="chat-workspace '+(selected&&!mobileListOpen?'has-thread':'')+'"><aside class="chat-inbox"><header><div><h1>'+(admin?'Customer conversations':'Messages')+'</h1><p>'+(admin?'Customer support and order conversations':'Chat with LexC’s Snacktime')+'</p></div>'+(admin?'':'<a class="chat-new-link" href="?new=1">New chat</a>')+'</header><label class="chat-search">Search conversations<input id="chat-search" type="search" value="'+escapeHtml(search)+'" placeholder="Order or customer"></label><div class="chat-filters"><button type="button" data-filter="all" '+(filter==='all'?'aria-pressed="true"':'')+'>All</button><button type="button" data-filter="orders" '+(filter==='orders'?'aria-pressed="true"':'')+'>Orders</button><button type="button" data-filter="attention" '+(filter==='attention'?'aria-pressed="true"':'')+'>Needs attention</button></div><div class="chat-rows">'+(visible.length?visible.map(c=>{const latest=inboxMessages.find(m=>m.conversation_id===c.id);return '<button type="button" class="chat-row '+(selected?.id===c.id?'selected':'')+'" data-thread="'+escapeHtml(c.id)+'"><strong>'+escapeHtml(title(c))+(unread.get(c.id)?'<b class="chat-unread">'+unread.get(c.id)+'</b>':'')+'</strong><span>'+escapeHtml(orders.find(o=>o.id===c.order_id)?.customer_name||(admin?'Customer':'General conversation'))+'</span><small>'+escapeHtml(latest?.body?.slice(0,65)||c.state.replaceAll('_',' '))+'</small></button>';}).join(''):'<p class="chat-empty">No conversations yet.</p>')+'</div></aside><section class="chat-thread">'+(selected?'<header><button type="button" id="chat-back" aria-label="Back to conversations">←</button><div><h2>'+escapeHtml(title(selected))+'</h2><span>'+escapeHtml(selected.state==='needs_admin'?'A LexC team member will reply':selected.state)+'</span></div></header><div class="chat-stream">'+(messages.length?messages.map(messageCard).join(''):'<div class="chat-empty">Send a message to start this conversation.</div>')+'</div><form id="chat-compose"><label class="visually-hidden" for="chat-text">Message</label><textarea id="chat-text" name="body" maxlength="3000" rows="2" placeholder="Write a message…" required></textarea><button type="submit">Send</button></form>':admin?'<div class="chat-empty">Select a conversation.</div>':'<div class="chat-empty">No messages yet.<br><button type="button" id="chat-start">Start chatting with LexC’s Admin</button></div>')+'</section><aside class="chat-context">'+(selected?context():'<h2>Order context</h2><p>Select a conversation to see its linked order.</p>')+'</aside></div><p class="chat-error" role="alert" hidden></p>';
+    root.innerHTML='<div class="chat-workspace '+(selected&&!mobileListOpen?'has-thread':'')+'"><aside class="chat-inbox"><header><div><h1>'+(admin?'Customer conversations':'Messages')+'</h1><p>'+(admin?'Customer support and order conversations':'Chat with LexC’s Snacktime')+'</p></div>'+(admin?'':'<a class="chat-new-link" href="?new=1">New chat</a>')+'</header><label class="chat-search">Search conversations<input id="chat-search" type="search" value="'+escapeHtml(search)+'" placeholder="Order or customer"></label><div class="chat-filters"><button type="button" data-filter="all" '+(filter==='all'?'aria-pressed="true"':'')+'>All</button><button type="button" data-filter="orders" '+(filter==='orders'?'aria-pressed="true"':'')+'>Orders</button><button type="button" data-filter="attention" '+(filter==='attention'?'aria-pressed="true"':'')+'>Needs attention</button></div><div class="chat-rows">'+(visible.length?visible.map(c=>{const latest=inboxMessages.find(m=>m.conversation_id===c.id);return '<button type="button" class="chat-row '+(selected?.id===c.id?'selected':'')+'" data-thread="'+escapeHtml(c.id)+'"><strong>'+escapeHtml(title(c))+(unread.get(c.id)?'<b class="chat-unread">'+unread.get(c.id)+'</b>':'')+'</strong><span>'+escapeHtml(orders.find(o=>o.id===c.order_id)?.customer_name||(admin?'Customer':'General conversation'))+'</span><small>'+escapeHtml(latest?.body?.slice(0,65)||c.state.replaceAll('_',' '))+'</small></button>';}).join(''):'<p class="chat-empty">No conversations yet.</p>')+'</div></aside><section class="chat-thread">'+(selected?'<header><button type="button" id="chat-back" aria-label="Back to conversations">←</button><div><h2>'+escapeHtml(title(selected))+'</h2><span>'+escapeHtml(selected.state==='needs_admin'?'A LexC team member will reply':selected.state)+'</span></div></header>'+orderActions()+'<div class="chat-stream">'+(messages.length?messages.map(messageCard).join(''):'<div class="chat-empty">Send a message to start this conversation.</div>')+'</div><form id="chat-compose"><label class="visually-hidden" for="chat-text">Message</label><textarea id="chat-text" name="body" maxlength="3000" rows="2" placeholder="Write a message…" required></textarea><button type="submit">Send</button></form>':admin?'<div class="chat-empty">Select a conversation.</div>':'<div class="chat-empty">No messages yet.<br><button type="button" id="chat-start">Start chatting with LexC’s Admin</button></div>')+'</section><aside class="chat-context">'+(selected?context():'<h2>Order context</h2><p>Select a conversation to see its linked order.</p>')+'</aside></div><p class="chat-error" role="alert" hidden></p>';
     const stream=root.querySelector('.chat-stream');
     if(stream&&!admin){
       if(selected?.order_id)stream.insertAdjacentHTML('afterbegin',customerOrderCard());
@@ -229,6 +290,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     }
     hydrateDesignImages(root);
     restore(keep);
+    bindOrderActions();
     const contextPanel=root.querySelector('.chat-context');
     if(contextPanel&&selected){const close=document.createElement('button');close.type='button';close.className='chat-context-close';close.setAttribute('aria-label','Close details');close.innerHTML='<span aria-hidden="true">×</span>';close.addEventListener('click',closeDetails);contextPanel.prepend(close);}
     root.querySelectorAll('[data-thread]').forEach(button=>{

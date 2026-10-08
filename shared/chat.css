@@ -172,3 +172,38 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .chat-proof-actions button:disabled{opacity:.6;cursor:progress}
 .chat-proof-error{margin:0;color:#a3324b;font-size:.8rem}
 .chat-proof-error:empty{display:none}
+
+/* ---- Additional price (phase 51): the card in the chat and admin's order actions above the thread ---- */
+.price-card{margin-top:8px;padding:12px 13px;border:1px solid #e3d6f5;border-radius:12px;background:#fff;color:#241a38;white-space:normal;text-align:left;font-size:12.5px;line-height:1.45}
+.price-card header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.price-card header strong{font-size:13.5px;color:#3a2160}
+.price-card header span{padding:2px 8px;border-radius:999px;background:#f4eefc;color:#5b3a99;font-size:11px;font-weight:700;white-space:nowrap}
+.price-card.is-accepted header span{background:#e6f5ed;color:#1f7a50}
+.price-card.is-declined header span,.price-card.is-replaced header span{background:#f6eef0;color:#8e3b4f}
+.price-card.is-replaced{opacity:.7}
+.price-card-reason{margin:0 0 8px;color:#4a3f5c}
+.price-card dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:0}
+.price-card dt{color:#7c6d91}.price-card dd{margin:0;text-align:right;font-weight:700}
+.price-card dt:last-of-type,.price-card dd:last-of-type{padding-top:6px;border-top:1px solid #eee6f7;color:#502982;font-weight:800}
+.price-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.price-card-actions button{flex:1;min-width:120px;min-height:42px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer}
+.price-card-actions .is-accept{border:0;background:#1f8a5b;color:#fff}
+.price-card-actions .is-decline{border:1.5px solid #e6b9c4;background:#fff;color:#a3324b}
+.price-card-actions button:disabled{opacity:.6;cursor:progress}
+.price-card-error{margin:6px 0 0;color:#a3324b;font-size:12px}.price-card-error:empty{display:none}
+.chat-order-actions-bar{display:grid;gap:8px;padding:10px 16px;border-bottom:1px solid #eee6f6;background:#fbf8ff}
+.chat-order-actions-bar>p{margin:0;color:#5b4f70;font-size:.8rem}
+.chat-order-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.chat-order-buttons button{flex:1 1 130px;min-height:40px;border-radius:10px;font:inherit;font-size:.84rem;font-weight:700;cursor:pointer}
+.chat-order-buttons .is-confirm{border:0;background:#1f8a5b;color:#fff}
+.chat-order-buttons .is-extra{border:1.5px solid #cdb9f0;background:#fff;color:#5a32b8}
+.chat-order-buttons .is-extra[aria-expanded=true]{background:#f1eafd}
+.chat-order-buttons .is-cancel{border:1.5px solid #e6b9c4;background:#fff;color:#a3324b}
+.chat-order-buttons button:disabled{opacity:.5;cursor:not-allowed}
+.chat-extra-form{display:grid;gap:8px}
+.chat-extra-fields{display:grid;grid-template-columns:minmax(110px,160px) 1fr;gap:8px}
+.chat-extra-fields label{display:grid;gap:4px;font-size:.76rem;font-weight:700;color:#3a2160}
+.chat-extra-fields input,.chat-extra-fields textarea{width:100%;box-sizing:border-box;min-height:42px;padding:9px 11px;border:1.5px solid #ded3ec;border-radius:10px;font:inherit;font-size:.86rem;font-weight:400;resize:vertical}
+.chat-extra-fields input:focus,.chat-extra-fields textarea:focus{outline:none;border-color:#8a63d2;box-shadow:0 0 0 3px #ece3fb}
+.chat-order-actions-bar .chat-proof-error:empty{display:none}
+@media(max-width:560px){.chat-extra-fields{grid-template-columns:1fr}.chat-order-actions-bar{padding:10px 12px}}
