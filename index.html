@@ -882,7 +882,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
       </div>
       <div class="faq-item">
         <button class="faq-question">What payment methods do you accept? <span class="faq-chevron">▾</span></button>
-        <div class="faq-answer">Online checkout offers manual GCash and MariBank InstaPay QR transfers. After placing your order, send the exact required amount to the chosen account and submit the bank reference and receipt. We confirm payment only after checking the actual incoming transfer. Delivery orders need a final delivery quote before payment.</div>
+        <div class="faq-answer">Online checkout offers manual GCash and MariBank InstaPay QR transfers. After placing your order, send the exact required amount to the chosen account and submit the bank reference and receipt. We confirm payment only after checking the actual incoming transfer. For Lalamove delivery, you pay the rider directly.</div>
       </div>
       <div class="faq-item">
         <button class="faq-question">Are your pastries made with preservatives? <span class="faq-chevron">▾</span></button>
@@ -1235,7 +1235,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
           <h3 class="checkout-section-head" id="checkout-summary-heading">Order summary</h3>
           <div id="checkoutOrderList" class="checkout-order-list"></div>
           <div class="checkout-total-row"><span>Subtotal</span><span id="checkoutSubtotal">₱0</span></div>
-          <div class="checkout-total-row" id="checkoutDeliveryRow" style="display:none;"><span>Delivery fee</span><span id="checkoutDeliveryFee">₱0</span></div>
+          <div class="checkout-total-row" id="checkoutDeliveryRow" style="display:none;"><span>Lalamove fee</span><span id="checkoutDeliveryFee">₱0</span></div>
           <div class="checkout-total-row checkout-grand"><span>Order total</span><span id="checkoutGrandTotal">₱0</span></div>
           <div class="checkout-total-row checkout-due-row"><span id="checkoutRequiredLabel">Required downpayment (60%)</span><strong id="checkoutRequired">₱0.00</strong></div>
           <div class="checkout-total-row"><span>Balance after verified payment</span><span id="checkoutBalance">₱0.00</span></div>
@@ -1502,14 +1502,11 @@ function updateCheckoutDelivery() {
   const grandEl = document.getElementById('checkoutGrandTotal');
   const subtotal = cartSelectedItems().reduce((s, c) => s + Math.round(Number(c.price) * 100) * c.qty, 0) / 100;
   let deliveryFee = 0;
-  if (selectedDelivery === 'Lalamove') { deliveryFee = 0; deliveryRow.style.display = 'flex'; deliveryFeeEl.textContent = 'Varies (by distance)'; }
+  // the Lalamove fee is paid to the rider directly, so delivery orders are priced like pickup (phase 52)
+  if (selectedDelivery === 'Lalamove') { deliveryRow.style.display = 'flex'; deliveryFeeEl.textContent = 'Paid to the rider'; }
   else { deliveryRow.style.display = 'none'; }
-  grandEl.textContent = selectedDelivery === 'Lalamove' ? 'Pending delivery quote' : checkoutMoney(subtotal);
-  if (selectedDelivery === 'Lalamove') {
-    document.getElementById('checkoutRequired').textContent = 'Pending delivery quote';
-    document.getElementById('checkoutBalance').textContent = 'Pending delivery quote';
-    document.getElementById('checkoutStickyDue').textContent = 'After quote';
-  } else {
+  grandEl.textContent = checkoutMoney(subtotal);
+  {
     const required = Math.round(subtotal * 100 * 0.6);
     document.getElementById('checkoutRequired').textContent = checkoutMoney(required / 100);
     document.getElementById('checkoutBalance').textContent = checkoutMoney(subtotal - required / 100);
@@ -2362,7 +2359,7 @@ document.getElementById('loginName').value = localStorage.getItem('lexc_login_hi
 document.getElementById('loginRemember').checked = Boolean(localStorage.getItem('lexc_login_hint'));
 </script>
 
-<script src="shared/checkout-checks.js?v=1"></script>
+<script src="shared/checkout-checks.js?v=2"></script>
 <script src="shared/customer-backend.js?v=30"></script>
 <script src="shared/product-detail.js?v=10"></script>
 <script src="shared/fresh-feed.js?v=12"></script>
@@ -2375,6 +2372,6 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/motion.js?v=2" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=23';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=24';mountChatWidget();</script>
 </body>
 </html>

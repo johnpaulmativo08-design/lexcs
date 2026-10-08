@@ -62,13 +62,13 @@ function orderSummaryHTML(s,orderId){
   const row=(label,value,strong)=>'<div class="order-card-row'+(strong?' is-total':'')+'"><span>'+label+'</span>'+(strong?'<strong>':'<b>')+value+(strong?'</strong>':'</b>')+'</div>';
   const items=(s.items||[]).map(i=>'<li><div><strong>'+escapeHtml(i.name)+'</strong><span>'+escapeHtml(i.option||'')+(Number(i.qty)>1?' × '+Number(i.qty):'')+'</span>'+(i.details?'<small>'+escapeHtml(i.details)+'</small>':'')+'</div><b>'+money(i.total)+'</b></li>').join('');
   const delivery=s.fulfillment==='lalamove';
-  const fee=!delivery?'':s.delivery_fee_status==='quoted'?money(s.delivery_fee):'LexC’s will set it';
+  const fee=!delivery?'':s.delivery_fee_status==='quoted'&&Number(s.delivery_fee)>0?money(s.delivery_fee):'Paid to the rider';
   const day=s.receiving_start?phWhen(s.receiving_start,{weekday:'short',month:'short',day:'numeric',year:'numeric'}):'';
   const hours=s.receiving_start&&s.receiving_end?phWhen(s.receiving_start,{hour:'numeric',minute:'2-digit'})+' – '+phWhen(s.receiving_end,{hour:'numeric',minute:'2-digit'}):'';
   const count=(s.items||[]).reduce((sum,i)=>sum+Number(i.qty||0),0),key=String(s.order_number);
   return '<details class="order-card" data-order="'+escapeHtml(key)+'"'+(openOrderCards.has(key)?' open':'')+'><summary><span class="order-card-head"><strong>Order #'+escapeHtml(s.order_number)+'</strong><small>'+count+' item'+(count===1?'':'s')+(s.ordered_at?' · '+escapeHtml(phWhen(s.ordered_at,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})):'')+'</small></span><b>'+(s.total===null||s.total===undefined?'Total after delivery fee':money(s.total))+'</b><span class="order-card-toggle" aria-hidden="true"></span></summary><div class="order-card-body">'+
     '<ul class="order-card-items">'+items+'</ul>'+
-    '<div class="order-card-sums">'+row('Items',money(s.items_subtotal))+(Number(s.customization_total)>0?row('Design options',money(s.customization_total)):'')+(delivery?row('Delivery fee',fee):'')+
+    '<div class="order-card-sums">'+row('Items',money(s.items_subtotal))+(Number(s.customization_total)>0?row('Design options',money(s.customization_total)):'')+(delivery?row('Lalamove fee',fee):'')+
     row('Total',s.total===null||s.total===undefined?'After the delivery fee':money(s.total),true)+(s.deposit_due!==null&&s.deposit_due!==undefined&&Number(s.deposit_rate)<1?row('Downpayment ('+Math.round(Number(s.deposit_rate)*100)+'%)',money(s.deposit_due)):'')+'</div>'+
     '<div class="order-card-meta"><p><span>'+(delivery?'Delivery (Lalamove)':'Pickup')+'</span>'+escapeHtml([day,hours].filter(Boolean).join(' · '))+'</p>'+
     '<p><span>Contact</span>'+escapeHtml([s.name,s.phone].filter(Boolean).join(' · '))+'</p>'+(delivery&&s.address?'<p><span>Address</span>'+escapeHtml(s.address)+'</p>':'')+(s.notes?'<p><span>Notes</span>'+escapeHtml(s.notes)+'</p>':'')+'</div>'+orderLink(orderId)+'</div></details>';
@@ -78,9 +78,9 @@ const isAdminView=()=>/\/admin\//.test(location.pathname);
 function priceReviewHTML(r,orderId){
   const status=r.status||'awaiting',label={awaiting:'Waiting for your answer',accepted:'Accepted',declined:'Declined',replaced:'Replaced by a newer price'}[status]||status;
   const adminLabel={awaiting:'Waiting for the customer'}[status];
-  const total=r.new_total===null||r.new_total===undefined?'After the delivery fee':money(r.new_total);
+  const total=r.new_total===null||r.new_total===undefined?'To be confirmed':money(r.new_total);
   return '<section class="price-card is-'+escapeHtml(status)+'" data-price-order="'+escapeHtml(orderId||'')+'"><header><strong>Additional price</strong><span>'+escapeHtml(isAdminView()&&adminLabel?adminLabel:label)+'</span></header>'+
-    '<p class="price-card-reason">'+escapeHtml(r.reason||'')+'</p><dl>'+(r.old_total!==null&&r.old_total!==undefined?'<dt>Previous total</dt><dd>'+money(r.old_total)+'</dd>':'')+'<dt>Additional</dt><dd>+ '+money(r.amount)+'</dd><dt>New total</dt><dd>'+total+'</dd></dl>'+
+    (r.reason?'<p class="price-card-reason">'+escapeHtml(r.reason)+'</p>':'')+'<dl>'+(r.old_total!==null&&r.old_total!==undefined?'<dt>Previous total</dt><dd>'+money(r.old_total)+'</dd>':'')+'<dt>Additional</dt><dd>+ '+money(r.amount)+'</dd><dt>New total</dt><dd>'+total+'</dd></dl>'+
     (status==='awaiting'&&!isAdminView()&&orderId?'<div class="price-card-actions"><button type="button" class="is-accept" data-extra-answer="accept">Accept new price</button><button type="button" class="is-decline" data-extra-answer="decline">Decline</button></div><p class="price-card-error" role="alert"></p>':'')+'</section>';
 }
 // one listener for every place the card appears (chat page, chat bubble)
@@ -205,18 +205,18 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
   };
   root.addEventListener('submit',root._payReviewSubmit);
   // Admin: a pending order can be confirmed, given an additional price for custom work, or cancelled from its chat.
-  let extraOpen=false;const extraDraft={amount:'',reason:''};
+  let extraOpen=false;const extraDraft={amount:''};
   function orderActions(){
     if(!admin||!selected?.order_id)return '';
     const o=orders.find(row=>row.id===selected.order_id);
     if(!o||o.status!=='pending')return '';
     const r=o.price_review,waiting=r?.status==='awaiting',paying=Number(o.amount_paid||0)>0||payments.some(p=>p.order_id===o.id&&['awaiting_payment','verification_pending'].includes(p.status));
-    const note=waiting?'Waiting for the customer to accept + '+money(r.amount)+'.':r?.status==='declined'?'The customer declined + '+money(r.amount)+'. Confirm at the current price, add a different amount, or cancel.':o.total_amount===null?'Set the Lalamove delivery fee in Orders before confirming.':'Total '+money(o.total_amount)+'. Payment opens for the customer once you confirm.';
+    const note=waiting?'Waiting for the customer to accept + '+money(r.amount)+'.':r?.status==='declined'?'The customer declined + '+money(r.amount)+'. Confirm at the current price, add a different amount, or cancel.':o.total_amount===null?'This order has no total yet.':'Total '+money(o.total_amount)+'. Payment opens for the customer once you confirm.';
     return '<section class="chat-order-actions-bar" aria-label="Order actions"><p>'+escapeHtml(note)+'</p><div class="chat-order-buttons">'+
       '<button type="button" class="is-confirm" data-order-act="confirm"'+(waiting||o.total_amount===null?' disabled':'')+'>✓ Confirm order</button>'+
       (paying?'':'<button type="button" class="is-extra" data-order-act="extra" aria-expanded="'+extraOpen+'">+ Additional price</button>')+
       '<button type="button" class="is-cancel" data-order-act="cancel">Cancel order</button></div>'+
-      (extraOpen&&!paying?'<form class="chat-extra-form" id="chat-extra-form"><div class="chat-extra-fields"><label for="chat-extra-amount">Amount (₱)<input id="chat-extra-amount" name="amount" type="number" inputmode="decimal" min="1" max="100000" step="0.01" required value="'+escapeHtml(extraDraft.amount)+'" placeholder="e.g. 150"></label><label for="chat-extra-reason">Reason the customer will see<textarea id="chat-extra-reason" name="reason" rows="2" minlength="3" maxlength="300" required placeholder="e.g. Hand-piped portrait topper takes about two extra hours">'+escapeHtml(extraDraft.reason)+'</textarea></label></div><div class="chat-proof-actions"><button type="submit" class="is-confirm">Send to customer</button><button type="button" class="is-reject" data-order-act="extra-close">Close</button></div></form>':'')+
+      (extraOpen&&!paying?'<form class="chat-extra-form" id="chat-extra-form"><div class="chat-extra-fields"><label for="chat-extra-amount">Additional amount (₱)<input id="chat-extra-amount" name="amount" type="number" inputmode="decimal" min="1" max="100000" step="0.01" required value="'+escapeHtml(extraDraft.amount)+'" placeholder="e.g. 150"></label></div><div class="chat-proof-actions"><button type="submit" class="is-confirm">Send to customer</button><button type="button" class="is-reject" data-order-act="extra-close">Close</button></div></form>':'')+
       '<p class="chat-proof-error" role="alert"></p></section>';
   }
   if(root._extraInput)root.removeEventListener('input',root._extraInput);
@@ -236,12 +236,11 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
       try{await db.rpc('set_order_status',{order_id:o.id,next_status:confirm?'confirmed':'cancelled'});await refresh();}catch(error){fail(error);}
     });
     bar.querySelector('#chat-extra-form')?.addEventListener('submit',async event=>{
-      event.preventDefault();const form=event.currentTarget,amount=Number(form.elements.amount.value),reason=form.elements.reason.value.trim();
+      event.preventDefault();const form=event.currentTarget,amount=Number(form.elements.amount.value);
       if(!(amount>=1&&amount<=100000)){alert.textContent='Enter an amount between ₱1 and ₱100,000.';form.elements.amount.focus();return;}
-      if(reason.length<3){alert.textContent='Tell the customer why, in a few words.';form.elements.reason.focus();return;}
       if(!await ask('Order #'+o.order_number+' goes up by '+money(amount)+(o.total_amount===null?'':' to '+money(Number(o.total_amount)+amount))+'. The customer accepts or declines it in this chat before paying.',{title:'Send the additional price?',confirm:'Send to customer'}))return;
       busy(event.submitter,'Sending…');
-      try{await db.rpc('propose_order_extra',{target_order:o.id,amount,reason});extraOpen=false;extraDraft.amount='';extraDraft.reason='';await refresh();}catch(error){fail(error);}
+      try{await db.rpc('propose_order_extra',{target_order:o.id,amount,reason:''});extraOpen=false;extraDraft.amount='';await refresh();}catch(error){fail(error);}
     });
   }
   function context(){

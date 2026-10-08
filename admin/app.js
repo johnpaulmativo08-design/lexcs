@@ -2,12 +2,12 @@ import { renderDashboard } from './pages/dashboard.js?v=10';
 import { renderProducts } from './pages/products.js?v=8';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=20';
 import { renderReports } from './pages/reports.js?v=11';
-import { renderOrders } from './pages/orders.js?v=25';
+import { renderOrders } from './pages/orders.js?v=26';
 import { renderBookings } from './pages/bookings.js?v=11';
 import { renderDesignOptions } from './pages/design-options.js?v=11';
 import { renderProfile } from './pages/profile.js?v=3';
-import { mountChat } from '../shared/chat.js?v=25';
-import { mountChatWidget } from '../shared/chat-widget.js?v=23';
+import { mountChat } from '../shared/chat.js?v=26';
+import { mountChatWidget } from '../shared/chat-widget.js?v=24';
 import { renderUpdates } from './pages/updates.js?v=2';
 import { icon } from './components.js?v=3';
 

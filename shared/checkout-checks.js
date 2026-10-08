@@ -44,7 +44,7 @@
         if (t.length < 10) return 'Add more detail: house/unit, street, barangay and city.';
         return null;
       },
-      ok: 'Address added. We’ll confirm the delivery fee.'
+      ok: 'Address added. You pay the Lalamove rider directly.'
     },
     coNotes: {
       need: 'Optional · up to 1,000 characters.',

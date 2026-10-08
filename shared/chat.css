@@ -201,7 +201,7 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .chat-order-buttons .is-cancel{border:1.5px solid #e6b9c4;background:#fff;color:#a3324b}
 .chat-order-buttons button:disabled{opacity:.5;cursor:not-allowed}
 .chat-extra-form{display:grid;gap:8px}
-.chat-extra-fields{display:grid;grid-template-columns:minmax(110px,160px) 1fr;gap:8px}
+.chat-extra-fields{display:grid;grid-template-columns:minmax(140px,220px);gap:8px}
 .chat-extra-fields label{display:grid;gap:4px;font-size:.76rem;font-weight:700;color:#3a2160}
 .chat-extra-fields input,.chat-extra-fields textarea{width:100%;box-sizing:border-box;min-height:42px;padding:9px 11px;border:1.5px solid #ded3ec;border-radius:10px;font:inherit;font-size:.86rem;font-weight:400;resize:vertical}
 .chat-extra-fields input:focus,.chat-extra-fields textarea:focus{outline:none;border-color:#8a63d2;box-shadow:0 0 0 3px #ece3fb}
