@@ -315,6 +315,9 @@
       <fieldset class="bd-group"><legend>Cupcake size</legend>
         <div class="bd-cards" role="radiogroup">${Object.keys(products).map((size) => `<button type="button" role="radio" class="bd-card" data-cd-size="${size}" aria-checked="${s.size === size}"><strong>${size === 'mini' ? 'Mini cupcakes' : '3oz cupcakes'}</strong><small>${size === 'mini' ? 'Bite-size · rosette, two-tone, rainbow' : 'Full size · all styles incl. luxe & floral'}</small></button>`).join('')}</div>
       </fieldset>
+      <fieldset class="bd-group"><legend>Flavor <small>Same price</small></legend>
+        <div class="bd-cards" role="radiogroup">${(options().flavor || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="flavor" data-value="${o.code}" aria-checked="${s.flavor === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'chocolate' ? 'Dark cake, black liners' : 'Golden cake, white liners'}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
+      </fieldset>
       <fieldset class="bd-group"><legend>Box size</legend>
         <div class="bd-chips" role="radiogroup">${product().product_variants.filter((v) => v.is_active).map((v) => `<button type="button" role="radio" class="bd-chip" data-cd-variant="${v.id}" aria-checked="${s.variant_id === v.id}">${esc(v.label)} · ${money(v.price)}</button>`).join('')}</div>
       </fieldset>
@@ -331,9 +334,6 @@
       <fieldset class="bd-group"><legend>Finishing touches</legend>
         <div class="bd-chips" role="group">${(options().finish || []).map((o) => `<button type="button" class="bd-chip" data-cd-finish="${o.code}" aria-pressed="${s.finishes.includes(o.code)}">${esc(o.label)}${Number(o.price) ? ' <small>+' + money(o.price) + '</small>' : ''}</button>`).join('')}</div>
         <p class="bd-note">Pick gold or silver pearls, not both.</p>
-      </fieldset>
-      <fieldset class="bd-group"><legend>Flavor <small>Same price</small></legend>
-        <div class="bd-cards" role="radiogroup">${(options().flavor || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="flavor" data-value="${o.code}" aria-checked="${s.flavor === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'chocolate' ? 'Dark cake, black liners' : 'Golden cake, white liners'}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
       </fieldset>
       <fieldset class="bd-group"><legend>Theme toppers <small>Handmade fondant</small></legend>
         <div class="cd-themes" role="radiogroup">${(options().theme || []).map((o) => `<button type="button" role="radio" class="cd-theme" data-cd-set="theme" data-value="${o.code}" aria-checked="${s.theme === o.code}"><span aria-hidden="true">${THEME_ICON[o.code] || '✨'}</span><strong>${esc(o.label)}</strong>${Number(o.price) ? `<small>+${money(o.price)}</small>` : '<small>free</small>'}</button>`).join('')}</div>

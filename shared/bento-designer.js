@@ -543,6 +543,9 @@
     const s = state, max = Number(cfg().max_accents || 6);
     if (step === 'style') return `
       <div class="bd-surprise-row"><button type="button" class="bd-surprise" data-bd-surprise><span class="bd-dice" aria-hidden="true">🎲</span> Surprise me</button><span class="bd-note">Rolls a random design you can change</span></div>
+      <fieldset class="bd-group"><legend>Flavor <small>Same size and weight</small></legend>
+        <div class="bd-cards" role="radiogroup" aria-label="Flavor">${product.product_variants.filter((v) => v.is_active).map((v) =>
+          `<button type="button" role="radio" class="bd-card" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === s.variant_id}"><strong>${esc(v.label === 'Minimalist' ? 'Plain' : v.label)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>
       <fieldset class="bd-group"><legend>Start from a design <small>Optional · all editable</small></legend>
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
@@ -559,9 +562,6 @@
       ${s.accents.includes('drip') ? `<fieldset class="bd-group"><legend>Drip color <small>Free</small></legend>
         <div class="bd-chips" style="margin-bottom:10px"><button type="button" class="bd-chip" role="radio" data-bd-set="drip_color" data-value="" aria-checked="${!s.drip_color}">Matching (darker ${esc(opt('color', s.frosting_color)?.label.toLowerCase() || 'frosting')})</button></div>
         ${swatches('drip_color', s.drip_color, 'Drip color')}</fieldset>` : ''}
-      <fieldset class="bd-group"><legend>Flavor <small>Same size and weight</small></legend>
-        <div class="bd-cards" role="radiogroup" aria-label="Flavor">${product.product_variants.filter((v) => v.is_active).map((v) =>
-          `<button type="button" role="radio" class="bd-card" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === s.variant_id}"><strong>${esc(v.label === 'Minimalist' ? 'Plain' : v.label)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>
       <fieldset class="bd-group"><legend>Topper</legend>
         <div class="bd-chips" role="radiogroup" aria-label="Topper">${(options.topper || []).map((o) => `<button type="button" role="radio" class="bd-chip" data-bd-set="topper" data-value="${o.code}" aria-checked="${s.topper === o.code}">${esc(o.label)} ${o.code === 'none' ? '' : priceTag(o)}</button>`).join('')}</div>
         ${s.topper === 'number' ? `<label class="bd-label" for="bd-topper-text" style="margin-top:12px">Number on the topper <small>1–3 digits</small></label><input id="bd-topper-text" class="bd-input" inputmode="numeric" maxlength="3" autocomplete="off" data-bd-text="topper_text" value="${esc(s.topper_text)}">` : ''}
