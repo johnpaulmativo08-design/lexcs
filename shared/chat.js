@@ -173,11 +173,11 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&root.querySelector('.chat-workspace.show-context'))closeDetails();});
   root.addEventListener('click',event=>{if(root.querySelector('.chat-workspace.show-context')&&!event.target.closest('.chat-context'))closeDetails();});
   // Admin can confirm or reject a payment proof right on its chat card, on every screen size.
-  const reviewDrafts=new Map();
+  const reviewDrafts=new Map(),reviewErrors=new Map();
   function proofReview(p){
     if(!admin||p.status!=='verification_pending')return '';
     const id='pay-reason-'+p.id;
-    return '<form class="chat-proof-review" data-pay-review="'+escapeHtml(p.id)+'"><p class="chat-proof-hint">Check that '+money(p.amount)+' actually arrived in the bank or wallet before confirming.</p><label for="'+id+'">Bank confirmation or reason</label><input id="'+id+'" name="reason" maxlength="1000" autocomplete="off" placeholder="e.g. Received 2:04 PM, ref 34688789" value="'+escapeHtml(reviewDrafts.get(p.id)||'')+'"><div class="chat-proof-actions"><button type="submit" class="is-confirm" data-decision="paid">✓ Confirm payment</button><button type="submit" class="is-reject" data-decision="rejected">Reject</button></div><p class="chat-proof-error" role="alert"></p></form>';
+    return '<form class="chat-proof-review" data-pay-review="'+escapeHtml(p.id)+'"><p class="chat-proof-hint">Check that '+money(p.amount)+' actually arrived in the bank or wallet before confirming.</p><label for="'+id+'">Bank note <small>(optional to confirm, needed to reject)</small></label><input id="'+id+'" name="reason" maxlength="1000" autocomplete="off" placeholder="e.g. Received 2:04 PM, ref 34688789" value="'+escapeHtml(reviewDrafts.get(p.id)||'')+'"><div class="chat-proof-actions"><button type="submit" class="is-confirm" data-decision="paid">✓ Confirm payment</button><button type="submit" class="is-reject" data-decision="rejected">Reject</button></div><p class="chat-proof-error" role="alert">'+escapeHtml(reviewErrors.get(p.id)||'')+'</p></form>';
   }
   // the chat can be mounted into the same element again (admin routes), so replace any earlier listeners
   if(root._payReviewInput)root.removeEventListener('input',root._payReviewInput);
@@ -188,13 +188,20 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const form=event.target.closest('[data-pay-review]');if(!form)return;
     event.preventDefault();
     const decision=event.submitter?.dataset.decision||'paid',reason=form.elements.reason.value.trim(),p=payments.find(x=>x.id===form.dataset.payReview),alert=form.querySelector('[role=alert]');
-    if(!reason){alert.textContent=decision==='paid'?'Write how you confirmed it (for example the time it arrived).':'Write the reason so the customer knows what to fix.';form.elements.reason.focus();return;}
-    if(!p)return;
+    if(!reason&&decision!=='paid'){alert.textContent='Write the reason so the customer knows what to fix.';form.elements.reason.focus();return;}
+    if(!p){alert.textContent='This payment was already handled. Refreshing…';await refresh();return;}
+    reviewErrors.delete(p.id);alert.textContent='';
     const button=event.submitter;
     if(!await ask(decision==='paid'?'Mark '+money(p.amount)+' as received for this order? Only confirm after checking the money arrived.':'The customer will be asked to send a new payment proof.',{title:decision==='paid'?'Confirm payment?':'Reject this proof?',confirm:decision==='paid'?'Confirm payment':'Reject proof',tone:decision==='paid'?'success':'danger'}))return;
     form.querySelectorAll('button').forEach(b=>b.disabled=true);if(button)button.textContent=decision==='paid'?'Confirming…':'Rejecting…';
-    try{await db.rpc('review_order_payment',{target_payment:p.id,decision,review_reason:reason});reviewDrafts.delete(p.id);await refresh();}
-    catch(error){alert.textContent=error.message;form.querySelectorAll('button').forEach(b=>b.disabled=false);if(button)button.textContent=decision==='paid'?'✓ Confirm payment':'Reject';}
+    try{await db.rpc('review_order_payment',{target_payment:p.id,decision,review_reason:reason||'Amount checked and received ('+money(p.amount)+'), confirmed in chat.'});reviewDrafts.delete(p.id);}
+    catch(error){
+      // keep the message through live refreshes; a payment someone already handled just refreshes the chat
+      const message=/already been processed/i.test(error.message)?'This payment was already reviewed. The chat is refreshed below.':/exceeds the order balance/i.test(error.message)?'This proof is more than the remaining balance. Reject it and ask the customer to send the exact amount.':error.message||'The payment could not be saved. Please try again.';
+      reviewErrors.set(p.id,message);alert.textContent=message;form.querySelectorAll('button').forEach(b=>b.disabled=false);if(button)button.textContent=decision==='paid'?'✓ Confirm payment':'Reject';
+      if(/already been processed/i.test(error.message))reviewErrors.delete(p.id);
+    }
+    try{await refresh();}catch(error){showError('The chat could not refresh: '+error.message);}
   };
   root.addEventListener('submit',root._payReviewSubmit);
   // Admin: a pending order can be confirmed, given an additional price for custom work, or cancelled from its chat.
