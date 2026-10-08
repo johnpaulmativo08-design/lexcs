@@ -243,10 +243,6 @@ function makeTreatDesigner(K) {
       </fieldset>
       <fieldset class="bd-group"><legend>Start from one of our boxes <small>Optional · all editable</small></legend>
         <div class="cd-presets">${PRESETS.filter((p) => products[p.box]).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
-      </fieldset>
-      <fieldset class="bd-group"><legend>Flavor <small>Pick one, or mix up to 4${opt('flavor', 'mix') ? ' (' + plus(opt('flavor', 'mix')).slice(3) + ')' : ''}</small></legend>
-        <div class="bd-cards dd-flavors" role="group">${flavorsList().map((o) => `<button type="button" class="bd-card" data-dd-flavor="${o.code}" aria-pressed="${s.flavors.includes(o.code)}"><span class="dd-dough" style="background:${DOUGH[o.code] || '#d9a65a'}" aria-hidden="true"></span><strong>${esc(o.label)}</strong><small>${FLAVOR_NOTE[o.code] || ''}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
-        ${s.flavors.length > 1 ? `<p class="bd-note">We spread ${s.flavors.map((f) => esc(opt('flavor', f)?.label)).join(', ')} across your box.</p>` : ''}
       </fieldset>`;
     if (step === 'glaze') {
       const [lo, hi] = { same: [1, 1], alternate: [2, 2] }[s.pattern] || [2, 16];
@@ -265,6 +261,10 @@ function makeTreatDesigner(K) {
       <fieldset class="bd-group"><legend>Sprinkles</legend>
         <div class="bd-cards" role="radiogroup">${(options().sprinkle || []).map((o) => `<button type="button" role="radio" class="bd-card" data-dd-set="sprinkles" data-value="${o.code}" aria-checked="${s.sprinkles === o.code}"><strong>${esc(o.label)}</strong><small>${SPRINKLE_NOTE[o.code] || ''}${plus(o)}</small></button>`).join('')}</div>
         ${s.sprinkles === 'nonpareils' ? `<p class="bd-note cd-need" style="margin-top:12px">Sprinkle colors · pick 1–3 · <b>${s.sprinkle_colors.length} chosen</b></p>${chosenChips(s.sprinkle_colors)}${swatches('sprinkle', s.sprinkle_colors)}` : ''}
+      </fieldset>
+      <fieldset class="bd-group"><legend>Flavor <small>Pick one, or mix up to 4${opt('flavor', 'mix') ? ' (' + plus(opt('flavor', 'mix')).slice(3) + ')' : ''}</small></legend>
+        <div class="bd-cards dd-flavors" role="group">${flavorsList().map((o) => `<button type="button" class="bd-card" data-dd-flavor="${o.code}" aria-pressed="${s.flavors.includes(o.code)}"><span class="dd-dough" style="background:${DOUGH[o.code] || '#d9a65a'}" aria-hidden="true"></span><strong>${esc(o.label)}</strong><small>${FLAVOR_NOTE[o.code] || ''}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
+        ${s.flavors.length > 1 ? `<p class="bd-note">We spread ${s.flavors.map((f) => esc(opt('flavor', f)?.label)).join(', ')} across your box.</p>` : ''}
       </fieldset>
       <fieldset class="bd-group"><legend>Theme toppers <small>Handmade fondant</small></legend>
         <div class="cd-themes" role="radiogroup">${(options().theme || []).map((o) => `<button type="button" role="radio" class="cd-theme" data-dd-set="theme" data-value="${o.code}" aria-checked="${s.theme === o.code}"><span aria-hidden="true">${THEME_ICON[o.code] || '✨'}</span><strong>${esc(o.label)}</strong><small>${Number(o.price) ? '+' + money(o.price) : 'free'}</small></button>`).join('')}</div>

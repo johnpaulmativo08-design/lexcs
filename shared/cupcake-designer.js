@@ -320,9 +320,6 @@
       </fieldset>
       <fieldset class="bd-group"><legend>Start from one of our boxes <small>Optional · all editable</small></legend>
         <div class="cd-presets">${PRESETS.filter((p) => products[p.size]).map((p) => `<button type="button" class="cd-preset" data-cd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${p.size === 'mini' ? 'Mini' : '3oz'}</small></button>`).join('')}</div>
-      </fieldset>
-      <fieldset class="bd-group"><legend>Flavor <small>Same price</small></legend>
-        <div class="bd-cards" role="radiogroup">${(options().flavor || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="flavor" data-value="${o.code}" aria-checked="${s.flavor === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'chocolate' ? 'Dark cake, black liners' : 'Golden cake, white liners'}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
       </fieldset>`;
     if (step === 'design') return `
       <fieldset class="bd-group"><legend>How is the box arranged?</legend>
@@ -334,6 +331,9 @@
       <fieldset class="bd-group"><legend>Finishing touches</legend>
         <div class="bd-chips" role="group">${(options().finish || []).map((o) => `<button type="button" class="bd-chip" data-cd-finish="${o.code}" aria-pressed="${s.finishes.includes(o.code)}">${esc(o.label)}${Number(o.price) ? ' <small>+' + money(o.price) + '</small>' : ''}</button>`).join('')}</div>
         <p class="bd-note">Pick gold or silver pearls, not both.</p>
+      </fieldset>
+      <fieldset class="bd-group"><legend>Flavor <small>Same price</small></legend>
+        <div class="bd-cards" role="radiogroup">${(options().flavor || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="flavor" data-value="${o.code}" aria-checked="${s.flavor === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'chocolate' ? 'Dark cake, black liners' : 'Golden cake, white liners'}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
       </fieldset>
       <fieldset class="bd-group"><legend>Theme toppers <small>Handmade fondant</small></legend>
         <div class="cd-themes" role="radiogroup">${(options().theme || []).map((o) => `<button type="button" role="radio" class="cd-theme" data-cd-set="theme" data-value="${o.code}" aria-checked="${s.theme === o.code}"><span aria-hidden="true">${THEME_ICON[o.code] || '✨'}</span><strong>${esc(o.label)}</strong>${Number(o.price) ? `<small>+${money(o.price)}</small>` : '<small>free</small>'}</button>`).join('')}</div>
