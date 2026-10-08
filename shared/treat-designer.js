@@ -59,7 +59,7 @@ function makeTreatDesigner(K) {
     const ids = Object.values(products).map((p) => p.id);
     const rows = LexcBackend.unwrap(await LexcBackend.client.from('design_options').select('product_id,group_key,code,label,price,hex,sort_order').in('product_id', ids).order('sort_order'));
     optionsBy = {};
-    for (const [box, p] of Object.entries(products)) { const o = {}; rows.filter((r) => r.product_id === p.id).forEach((r) => (o[r.group_key] ||= []).push(r)); optionsBy[box] = o; }
+    for (const [box, p] of Object.entries(products)) { const o = {}; rows.filter((r) => r.product_id === p.id && !(r.group_key === 'theme' && r.code === 'custom')).forEach((r) => (o[r.group_key] ||= []).push(r)); optionsBy[box] = o; }
   }
 
   // ---- state, history, draft -----------------------------------------------------------------------
@@ -569,8 +569,8 @@ makeTreatDesigner({
   presets: [
     { key: 'pastel', name: 'Pastel sprinkles', box: 'pops', s: { pattern: 'assorted', glazes: ['pink', 'aqua', 'lavender'], sprinkles: 'nonpareils', sprinkle_colors: ['hot_pink', 'white', 'azure'] } },
     { key: 'babyshower', name: 'Baby shower', box: 'pops', s: { pattern: 'alternate', glazes: ['sky_blue', 'pink'], sprinkles: 'nonpareils', sprinkle_colors: ['white', 'hot_pink'], theme: 'baby' } },
-    { key: 'heroes', name: 'Blue & yellow heroes', box: 'pops', s: { style: 'donut', pattern: 'alternate', glazes: ['azure', 'lemon'], finishes: ['gold_star'], sprinkles: 'gold_pearls', theme: 'custom', theme_note: 'Favourite game characters' } },
+    { key: 'heroes', name: 'Blue & yellow stars', box: 'pops', s: { style: 'donut', pattern: 'alternate', glazes: ['azure', 'lemon'], finishes: ['gold_star'], sprinkles: 'gold_pearls' } },
     { key: 'space', name: 'Outer space', box: 'pops', s: { style: 'donut', glazes: ['navy'], finishes: ['edible_glitter'], sprinkles: 'gold_pearls', theme: 'space' } },
-    { key: 'kitty', name: 'Pink kitty', box: 'pops', s: { pattern: 'alternate', glazes: ['pink', 'white'], theme: 'custom', theme_note: 'Cute kitty and bunny faces' } }
+    { key: 'kitty', name: 'Pink & white', box: 'pops', s: { pattern: 'alternate', glazes: ['pink', 'white'] } }
   ]
 });

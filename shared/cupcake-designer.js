@@ -66,7 +66,7 @@
     const ids = Object.values(products).map((p) => p.id);
     const rows = LexcBackend.unwrap(await LexcBackend.client.from('design_options').select('product_id,group_key,code,label,price,hex,sort_order').in('product_id', ids).order('sort_order'));
     optionsBy = {};
-    for (const [size, p] of Object.entries(products)) { const o = {}; rows.filter((r) => r.product_id === p.id).forEach((r) => (o[r.group_key] ||= []).push(r)); optionsBy[size] = o; }
+    for (const [size, p] of Object.entries(products)) { const o = {}; rows.filter((r) => r.product_id === p.id && !(r.group_key === 'theme' && r.code === 'custom')).forEach((r) => (o[r.group_key] ||= []).push(r)); optionsBy[size] = o; }
   }
 
   // ---- state, history, draft -----------------------------------------------------------------------
