@@ -119,6 +119,12 @@ function render(){
     item.classList.toggle('done',number<step||(!active&&remaining===0));
     if(number===step)item.setAttribute('aria-current','step');
     else item.removeAttribute('aria-current');
+    const back=number===2&&step===3;
+    item.classList.toggle('is-back',back);
+    if(back){item.setAttribute('role','button');item.tabIndex=0;item.title='Go back and choose another account or amount';}
+    else{item.removeAttribute('role');item.removeAttribute('tabindex');item.removeAttribute('title');}
+    item.onclick=back?()=>{changing=true;say('');render();}:null;
+    item.onkeydown=back?event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();changing=true;say('');render();}}:null;
   });
   root.querySelector('#refresh-payment')?.addEventListener('click',()=>load());
   root.querySelector('#state-refresh')?.addEventListener('click',()=>load());
@@ -129,7 +135,10 @@ function render(){
     catch(error){say(error.message,true);buttons.forEach(b=>b.disabled=false);button.textContent=accept?'Accept new price':'Decline';}
   }));
   root.querySelector('#start-payment')?.addEventListener('click',startPayment);
-  root.querySelector('#change-payment')?.addEventListener('click',()=>{changing=true;say('');render();});
+  // back to step 2 (choose the account and amount again); nothing is sent until a receipt is uploaded
+  const backToChoice=()=>{changing=true;say('');render();root.querySelector('.choice-card')?.scrollIntoView({block:'start',behavior:'smooth'});};
+  root.querySelector('#change-payment')?.addEventListener('click',backToChoice);
+  root.querySelector('#back-to-choice')?.addEventListener('click',backToChoice);
   // the heading and the amount strip follow the downpayment / full choice
   root.querySelectorAll('[name=plan]').forEach(input=>input.addEventListener('change',()=>{
     const amount=input.value==='full'?Number(order.total_amount):Number(order.deposit_due);
@@ -185,7 +194,7 @@ function showProofPreview(input){
 }
 function paymentForm(attempt){
   const method=methodFor(attempt),qr=method?.qr_image_path||'';
-  return '<section class="card payment-card"><span class="eyebrow">SEND THE TRANSFER</span><div class="compact-payment-heading"><h2>'+e(method?.display_name||'Manual payment')+' QR</h2><span>'+e(kindName[kindOf(attempt)])+' · '+money(attempt.amount)+'</span></div>'+
+  return '<section class="card payment-card"><button type="button" class="back-step" id="back-to-choice"><span aria-hidden="true">←</span> Back · choose another account or amount</button><span class="eyebrow">SEND THE TRANSFER</span><div class="compact-payment-heading"><h2>'+e(method?.display_name||'Manual payment')+' QR</h2><span>'+e(kindName[kindOf(attempt)])+' · '+money(attempt.amount)+'</span></div>'+
     '<div class="compact-payment-core"><div class="qr-panel"><div class="qr-image-wrap"><span class="skel qr-image-skeleton" aria-hidden="true"></span><img class="qr-image" src="../'+e(qr)+'" alt="'+e(method?.display_name||'Manual payment')+' receiving QR"></div><div class="qr-actions"><a class="button secondary" href="../'+e(qr)+'" download="lexc-'+e(method?.code||'payment')+'-qr.'+(qr.toLowerCase().endsWith('.png')?'png':'jpg')+'">Save QR</a><a class="button secondary" href="../'+e(qr)+'" target="_blank" rel="noopener">View larger</a></div></div><div class="compact-payment-info"><div class="pay-amount"><span>Send exactly</span><strong>'+money(attempt.amount)+'</strong><button class="button secondary" id="copy-amount" type="button">Copy amount</button></div><div class="recipient"><span>RECIPIENT</span><strong>'+e(method?.account_name)+'</strong><small>'+e(method?.masked_account)+'</small></div><p class="compact-qr-note">Check the recipient and enter the amount in your banking app. A fixed QR may not include it; transfer fees are separate.</p></div></div>'+
     '<p class="change-payment">Paying '+e(kindName[kindOf(attempt)].toLowerCase())+' by '+e(method?.display_name||'QR')+'. <button class="text-button" id="change-payment" type="button">Change amount or account</button></p>'+
     '<p class="same-phone"><strong>Using one phone?</strong> Save the QR, then import it in your bank or wallet app if supported. Otherwise scan from another screen.</p>'+

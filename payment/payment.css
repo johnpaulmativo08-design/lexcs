@@ -321,3 +321,11 @@ nav[aria-label="Breadcrumb"] a:hover{text-decoration:underline;text-underline-of
 .price-review-card .price-lines dt{color:#7c6d91}.price-review-card .price-lines dd{margin:0;text-align:right;font-weight:700}
 .price-review-card .price-lines dt:last-of-type,.price-review-card .price-lines dd:last-of-type{padding-top:6px;border-top:1px solid #eee6f7;color:#502982;font-weight:800}
 .price-review-card .state-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+
+/* step 3: go back to choose another account (GCash / MariBank) or amount */
+.back-step{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;padding:8px 12px;border:1.5px solid #e1d6f1;border-radius:999px;background:#fff;color:#4f3188;font:inherit;font-size:.86rem;font-weight:700;cursor:pointer}
+.back-step:hover{background:#f6f1fd;border-color:#cdb9f0}
+.back-step:focus-visible{outline:3px solid #b9a1f0;outline-offset:2px}
+.flow-steps .is-back{cursor:pointer;border-radius:999px;padding:2px 8px 2px 2px;margin:-2px -8px -2px -2px;text-decoration:underline;text-decoration-color:#cbb9e6;text-underline-offset:3px}
+.flow-steps .is-back:hover{background:#f3edfc;color:#4f3188}
+.flow-steps .is-back:focus-visible{outline:3px solid #b9a1f0;outline-offset:2px}
