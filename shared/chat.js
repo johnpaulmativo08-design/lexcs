@@ -204,12 +204,14 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     try{await refresh();}catch(error){showError('The chat could not refresh: '+error.message);}
   };
   root.addEventListener('submit',root._payReviewSubmit);
-  // Admin: a pending order can be confirmed, given an additional price for custom work, or cancelled from its chat.
+  // Admin: a pending DIY order can be confirmed, given an additional price for custom work, or cancelled from its chat.
   let extraOpen=false;const extraDraft={amount:''};
   function orderActions(){
     if(!admin||!selected?.order_id)return '';
     const o=orders.find(row=>row.id===selected.order_id);
     if(!o||o.status!=='pending')return '';
+    // only DIY-customized orders (their design card is in this chat) get Confirm / Additional price / Cancel here
+    if(!messages.some(m=>m.message_type==='design_card'))return '';
     const r=o.price_review,waiting=r?.status==='awaiting',paying=Number(o.amount_paid||0)>0||payments.some(p=>p.order_id===o.id&&['awaiting_payment','verification_pending'].includes(p.status));
     const note=waiting?'Waiting for the customer to accept + '+money(r.amount)+'.':r?.status==='declined'?'The customer declined + '+money(r.amount)+'. Confirm at the current price, add a different amount, or cancel.':o.total_amount===null?'This order has no total yet.':'Total '+money(o.total_amount)+'. Payment opens for the customer once you confirm.';
     return '<section class="chat-order-actions-bar" aria-label="Order actions"><p>'+escapeHtml(note)+'</p><div class="chat-order-buttons">'+
