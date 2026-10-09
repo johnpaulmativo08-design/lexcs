@@ -1,4 +1,5 @@
 import {ask} from './ask.js?v=1';
+import {designLink} from './design-link.js?v=1';
 const db=window.LexcBackend;
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const money=value=>'₱'+Number(value||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -32,20 +33,8 @@ export async function ensureCustomerChat({userId,orderId=null}){
 }
 // ---- Bento design card (posted by the database after a successful order, phase 33) ----------------
 // Each line shows the angled + top-view pictures (private storage, short-lived signed links),
-// the summary and price, and an "Open in 3D" link that rebuilds the exact design in the designer.
-const DESIGN_KEYS=['frosting_color','border','accents','bow_color','message','lettering','lettering_color','topper','topper_text','layout','drip_color','font'];
-const siteIndex=new URL('../index.html',import.meta.url).href;
-const CUPCAKE_KEYS=['flavor','pattern','finishes','theme','theme_note'];
-const DONUT_KEYS=['style','flavors','pattern','glazes','finishes','sprinkles','sprinkle_colors','theme','theme_note','message','message_text','message_color'];
-const partOf=p=>p&&{style:p.style,colors:p.colors};
-function designLink(line){
-  const kind=line.design?.designer,cupcake=kind==='cupcake',d={};
-  for(const key of cupcake?CUPCAKE_KEYS:kind==='donut'||kind==='cakepop'?DONUT_KEYS:DESIGN_KEYS)if(line.design?.[key]!=null)d[key]=line.design[key];
-  if(cupcake){d.a=partOf(line.design.a);if(line.design.b)d.b=partOf(line.design.b);}
-  const bytes=new TextEncoder().encode(JSON.stringify({v:line.variant_id,d}));
-  const code=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  return siteIndex+(cupcake?'?cupcake=':kind==='donut'?'?donut=':kind==='cakepop'?'?cakepop=':'?design=')+code;
-}
+// the summary and price, and an "Open in 3D" link that rebuilds the exact design in the designer
+// (in Admin: "View in 3D", a view-only 3D window inside Admin).
 // The order summary the database posts into an order's chat when the customer orders (phase 47).
 const phWhen=(value,options)=>new Date(value).toLocaleString('en-PH',{timeZone:'Asia/Manila',...options});
 // The card starts closed; remember which ones the reader opened so a chat refresh does not close them again.
@@ -92,13 +81,21 @@ document.addEventListener('click',async event=>{
   try{await db.rpc('respond_order_extra',{target_order:card.dataset.priceOrder,accept});alert.textContent='';}
   catch(error){alert.textContent=error.message;card.querySelectorAll('button').forEach(b=>b.disabled=false);button.textContent=accept?'Accept new price':'Decline';}
 });
+// Admin: "View in 3D" opens a view-only 3D window inside Admin (admin/design-viewer.js), loaded on first use.
+const viewerCards=new Map();
+document.addEventListener('click',event=>{
+  const button=event.target.closest?.('[data-view-design]');if(!button)return;
+  const card=viewerCards.get(button.dataset.viewDesign);if(!card)return;
+  import('../admin/design-viewer.js?v=1').then(m=>m.openDesignViewer(card.lines,Number(button.dataset.viewLine)||0,{title:card.title}));
+});
 export function designCardHTML(m){
   if(m.message_type==='price_review'&&m.attachments&&typeof m.attachments==='object')return priceReviewHTML(m.attachments,m.order_id);
   if(m.message_type==='order_summary'&&m.attachments&&typeof m.attachments==='object')return orderSummaryHTML(m.attachments,m.order_id);
   if(m.message_type!=='design_card'||!Array.isArray(m.attachments))return '';
   const picture=(path,label)=>path?'<button type="button" class="design-card-pic" data-design-img="'+escapeHtml(path)+'" aria-label="Open '+label+' picture full size"><img alt="'+label+'" hidden><span class="skel" aria-hidden="true"></span><small>'+label+'</small></button>':'';
-  return '<div class="design-card">'+m.attachments.map(line=>'<section class="design-card-line"><div class="design-card-pics">'+picture(line.angle_path,['cupcake','donut','cakepop'].includes(line.design?.designer)?'Box picture':'Angled view')+picture(line.top_path,'Top view')+'</div>'+
-    '<strong>'+escapeHtml(line.name)+(Number(line.qty)>1?' × '+Number(line.qty):'')+'</strong><p>'+escapeHtml(line.summary||'')+'</p><div class="design-card-foot"><b>'+money(line.unit_price)+(['cupcake','donut','cakepop'].includes(line.design?.designer)?' per box':' per cake')+'</b><a href="'+escapeHtml(designLink(line))+'" target="_blank" rel="noopener">'+(['cupcake','donut','cakepop'].includes(line.design?.designer)?'Open design ↗':'Open in 3D ↗')+'</a></div></section>').join('')+'</div>';
+  const admin=isAdminView();if(admin)viewerCards.set(String(m.id),{lines:m.attachments,title:'Order #'+(m.body.match(/Order #(\d+)/)?.[1]||'')});
+  return '<div class="design-card">'+m.attachments.map((line,i)=>'<section class="design-card-line"><div class="design-card-pics">'+picture(line.angle_path,['cupcake','donut','cakepop'].includes(line.design?.designer)?'Box picture':'Angled view')+picture(line.top_path,'Top view')+'</div>'+
+    '<strong>'+escapeHtml(line.name)+(Number(line.qty)>1?' × '+Number(line.qty):'')+'</strong><p>'+escapeHtml(line.summary||'')+'</p><div class="design-card-foot"><b>'+money(line.unit_price)+(['cupcake','donut','cakepop'].includes(line.design?.designer)?' per box':' per cake')+'</b>'+(admin?'<button type="button" class="design-card-3d" data-view-design="'+escapeHtml(m.id)+'" data-view-line="'+i+'">View in 3D</button>':'<a href="'+escapeHtml(designLink(line))+'" target="_blank" rel="noopener">'+(['cupcake','donut','cakepop'].includes(line.design?.designer)?'Open design ↗':'Open in 3D ↗')+'</a>')+'</div></section>').join('')+'</div>';
 }
 const signedPictures=new Map();
 export function hydrateDesignImages(root){

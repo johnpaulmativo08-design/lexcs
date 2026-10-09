@@ -207,3 +207,6 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .chat-extra-fields input:focus,.chat-extra-fields textarea:focus{outline:none;border-color:#8a63d2;box-shadow:0 0 0 3px #ece3fb}
 .chat-order-actions-bar .chat-proof-error:empty{display:none}
 @media(max-width:560px){.chat-extra-fields{grid-template-columns:1fr}.chat-order-actions-bar{padding:10px 12px}}
+/* Admin: View in 3D (opens the view-only 3D window) */
+.design-card-3d{display:inline-flex;align-items:center;min-height:32px;padding:5px 12px;border:0;border-radius:999px;background:#7551aa;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.design-card-3d:hover{background:#5f3f93}.design-card-3d:focus-visible{outline:3px solid #9272db;outline-offset:2px}

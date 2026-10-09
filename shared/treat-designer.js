@@ -98,7 +98,7 @@ function makeTreatDesigner(K) {
     afterChange();
   }
   function afterChange(rerender = true) { saveDraft(); renderPreview(); scheduleQuote(); updateFooter(); updateTools(); if (rerender) renderBody(); }
-  function saveDraft() { try { if (editIndex === null) localStorage.setItem(DRAFT_KEY, JSON.stringify({ state, step })); } catch {} }
+  function saveDraft() { if (document.documentElement.classList.contains('design-viewer')) return; try { if (editIndex === null) localStorage.setItem(DRAFT_KEY, JSON.stringify({ state, step })); } catch {} }
   function undo() { if (!past.length) return; future.push(snap()); state = JSON.parse(past.pop()); normalise(); afterChange(); }
   function redo() { if (!future.length) return; past.push(snap()); state = JSON.parse(future.pop()); normalise(); afterChange(); }
 

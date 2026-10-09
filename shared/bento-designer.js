@@ -145,7 +145,7 @@
     if (!state.message.trim()) delete L.message;
     state.layout = L;
   }
-  function saveDraft() { try { if (editIndex === null) localStorage.setItem(DRAFT_KEY, JSON.stringify({ product_id: product.id, state, step })); } catch {} }
+  function saveDraft() { if (document.documentElement.classList.contains('design-viewer')) return; try { if (editIndex === null) localStorage.setItem(DRAFT_KEY, JSON.stringify({ product_id: product.id, state, step })); } catch {} }
   function undo() { if (!past.length) return; future.push(snapshot()); state = JSON.parse(past.pop()); afterChange(true); }
   function redo() { if (!future.length) return; past.push(snapshot()); state = JSON.parse(future.pop()); afterChange(true); }
   function resetDesign() { commit((s) => Object.assign(s, blank(), { qty: s.qty, variant_id: s.variant_id })); showToast('Design reset to a plain white cake. Tap Undo to bring it back.'); }

@@ -655,9 +655,9 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'DM Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=14">
+<link rel="stylesheet" href="shared/customer-flow.css?v=15">
 <link rel="stylesheet" href="shared/product-detail.css?v=3">
-<link rel="stylesheet" href="shared/chat-widget.css?v=8">
+<link rel="stylesheet" href="shared/chat-widget.css?v=9">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=6">
 <link rel="stylesheet" href="shared/landing.css?v=13">
 <link rel="stylesheet" href="shared/bento-designer.css?v=16">
@@ -666,7 +666,9 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <link rel="stylesheet" href="shared/motion.css?v=3">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@700&family=Pacifico&family=Lobster&family=Satisfy&family=Parisienne&family=Montserrat:wght@800&family=Poppins:wght@700&family=Fredoka:wght@600&family=Baloo+2:wght@800&family=Caveat:wght@700&family=Cinzel:wght@700&family=Grenze+Gotisch:wght@700&family=UnifrakturMaguntia&display=swap">
-<script>if(/[?&]embed=admin(&|$)/.test(location.search))document.documentElement.classList.add('admin-embed');</script>
+<script>if(/[?&]embed=admin(&|$)/.test(location.search))document.documentElement.classList.add('admin-embed');
+// Admin → View in 3D: the designer shows only its 3D stage (no menu, panel, price, cart; nothing saved)
+if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classList.add('admin-embed','design-viewer');</script>
 </head>
 <body>
 
@@ -2365,13 +2367,13 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/fresh-feed.js?v=12"></script>
 <script src="shared/landing.js?v=4"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
-<script src="shared/bento-designer.js?v=32"></script>
+<script src="shared/bento-designer.js?v=33"></script>
 <script src="shared/letter-pieces.js?v=3"></script>
-<script src="shared/cupcake-designer.js?v=29"></script>
-<script src="shared/treat-designer.js?v=18"></script>
+<script src="shared/cupcake-designer.js?v=30"></script>
+<script src="shared/treat-designer.js?v=19"></script>
 <script src="shared/motion.js?v=2" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=25';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=26';mountChatWidget();</script>
 </body>
 </html>

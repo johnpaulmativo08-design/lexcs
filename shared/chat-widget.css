@@ -86,3 +86,6 @@
 .price-card-actions .is-decline{border:1.5px solid #e6b9c4;background:#fff;color:#a3324b}
 .price-card-actions button:disabled{opacity:.6;cursor:progress}
 .price-card-error{margin:6px 0 0;color:#a3324b;font-size:12px}.price-card-error:empty{display:none}
+/* Admin: View in 3D (opens the view-only 3D window) */
+.design-card-3d{display:inline-flex;align-items:center;min-height:32px;padding:5px 12px;border:0;border-radius:999px;background:#7551aa;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.design-card-3d:hover{background:#5f3f93}.design-card-3d:focus-visible{outline:3px solid #9272db;outline-offset:2px}

@@ -376,3 +376,13 @@ html.admin-embed body{padding-bottom:0!important}
 html.admin-embed .fresh-wrap{padding-top:20px!important}
 html.admin-embed .fresh-bar.is-stuck{top:0!important}
 html.admin-embed{--fresh-top:0px}
+
+/* Admin → View in 3D (index.html?…&embed=viewer): only the designer's 3D stage, filling the window */
+html.design-viewer,html.design-viewer body{height:100%;overflow:hidden;background:#f6eefb}
+html.design-viewer .bd-head,html.design-viewer .bd-panel,html.design-viewer .bd-hint,html.design-viewer .bd-arrange,html.design-viewer .bd-arrange-bar,
+html.design-viewer .bd-expand,html.design-viewer [data-bd-resetview],html.design-viewer #toast,html.design-viewer .mo-toasts,html.design-viewer footer{display:none!important}
+html.design-viewer .bd-wrap{max-width:none!important;margin:0!important;padding:0!important}
+html.design-viewer .bd-layout{display:block!important}
+html.design-viewer .bd-stage{position:fixed!important;inset:0!important;z-index:50;display:flex;flex-direction:column;border:0!important;border-radius:0!important}
+html.design-viewer .bd-canvas-box,html.design-viewer .cd-box{flex:1 1 auto;min-height:0;height:auto!important;max-height:none!important;aspect-ratio:auto!important}
+html.design-viewer .bd-stage-bar{flex:none}
