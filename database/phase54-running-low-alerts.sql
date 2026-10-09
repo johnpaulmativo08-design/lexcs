@@ -73,7 +73,7 @@ begin
             when r.available <= r.min_stock + r.warning_margin then 'running_low:item:'||r.id end;
   if k is null then continue; end if;
   wanted := wanted || k;
-  amount := trim(to_char(r.available, 'FM999999990.###'), '.')||' '||r.unit||' left · minimum '||trim(to_char(r.min_stock, 'FM999999990.###'), '.')||' '||r.unit;
+  amount := trim(to_char(r.available, 'FM999999990.999'), '.')||' '||r.unit||' left · minimum '||trim(to_char(r.min_stock, 'FM999999990.999'), '.')||' '||r.unit;
   is_current := coalesce((select is_active from public.inventory_alert_state where alert_key=k), false);
   insert into public.inventory_alert_state(alert_key,condition,item_id,batch_id,is_active,changed_at)
    values(k,split_part(k,':',1),r.id,null,true,now())
@@ -132,4 +132,11 @@ revoke all on function public.save_inventory_item_settings(jsonb) from public, a
 grant execute on function public.save_inventory_item_settings(jsonb) to authenticated;
 
 select private.sync_inventory_alerts();
+commit;
+
+-- refresh the text of stock notifications that are already showing (amounts with decimals, e.g. 6.294 kg left)
+begin;
+update public.inventory_notifications n set detail = trim(to_char(s.available, 'FM999999990.999'), '.')||' '||s.unit||' left · minimum '||trim(to_char(s.min_stock, 'FM999999990.999'), '.')||' '||s.unit
+from public.inventory_alert_state a join public.inventory_item_stock s on s.id = a.item_id
+where a.alert_key = n.alert_key and a.is_active and a.condition in ('low_stock','running_low');
 commit;
