@@ -7,7 +7,7 @@ const KINDS = [['all', 'All movements'], ['orders', 'Orders'], ['restocks', 'Res
 const COLUMNS = ['Date', 'Order', 'Material', 'Movement', 'Before', 'Change', 'After', 'By'];
 
 export async function renderHistory(content) {
-  const state = { kind: 'all', item_id: sessionStorage.getItem('lexc-history-item') || '', product_id: '', order_number: '', from: '', to: '', sort: 'newest', offset: 0, limit: 50, lookups: null, result: null };
+  const state = { kind: 'all', item_id: sessionStorage.getItem('lexc-history-item') || '', product_id: '', order_number: '', from: '', to: '', sort: 'newest', offset: 0, limit: 100, lookups: null, result: null };
   sessionStorage.removeItem('lexc-history-item');
   let token = 0;
 
@@ -58,27 +58,65 @@ export async function renderHistory(content) {
     const orderCell = (r) => r.order_number ? `<a href="#orders/detail/${attr(r.order_id)}">#${e(r.order_number)}</a>` : '<span class="stock-quiet">—</span>';
     const pages = Math.max(1, Math.ceil(total / state.limit));
     const page = Math.floor(state.offset / state.limit) + 1;
-    target.innerHTML = `
-      <div class="panel stock-table-panel"><table class="data-table stock-table stock-table--history">
-        <thead><tr>${COLUMNS.map((c, i) => `<th scope="col" class="${i >= 4 && i <= 6 ? 'num' : ''}">${c}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map((r) => `<tr>
-          <td class="stock-quiet">${dateTime(r.created_at)}</td>
-          <td>${orderCell(r)}</td>
-          <td><strong>${e(r.item_name)}</strong><small><code>${e(r.batch_code)}</code>${r.recipe ? ` · ${e(r.recipe)}` : ''}</small></td>
-          <td>${movementBadge(r.movement_type)}${r.note ? `<small class="stock-note">${e(r.note)}</small>` : ''}</td>
+    // One row per order and movement type (e.g. Order #59 · Order deduction); its materials open with the toggle.
+    // Movements without an order (restocks, adjustments, expiry) stay one row each.
+    const groups = [], byKey = new Map();
+    rows.forEach((r) => {
+      const key = r.order_id ? `${r.order_id}|${r.movement_type}` : null;
+      if (key && byKey.has(key)) { byKey.get(key).rows.push(r); return; }
+      const group = { key, rows: [r] }; if (key) byKey.set(key, group); groups.push(group);
+    });
+    const unique = (list) => [...new Set(list.filter(Boolean))];
+    const by = (r) => `${e(r.actor_kind === 'system' ? 'System' : r.actor_name)}${r.actor_kind === 'system' ? `<small>via ${e(r.actor_name)}</small>` : ''}`;
+    const detailRow = (r, gi) => `<tr${gi == null ? '' : ` class="hist-detail" data-hist-of="${gi}" hidden`}>
+          <td class="stock-quiet">${gi == null ? dateTime(r.created_at) : ''}</td>
+          <td>${gi == null ? orderCell(r) : ''}</td>
+          <td${gi == null ? '' : ' class="hist-detail__material"'}><strong>${e(r.item_name)}</strong><small><code>${e(r.batch_code)}</code>${r.recipe ? ` · ${e(r.recipe)}` : ''}</small></td>
+          <td>${gi == null ? movementBadge(r.movement_type) : ''}${r.note && gi == null ? `<small class="stock-note">${e(r.note)}</small>` : ''}</td>
           <td class="num stock-quiet">${r.stock_before == null ? '—' : qty(r.stock_before, r.unit)}</td>
           <td class="num">${delta(r.quantity_delta, r.unit)}</td>
           <td class="num"><strong>${r.stock_after == null ? '—' : qty(r.stock_after, r.unit)}</strong></td>
-          <td class="stock-quiet">${e(r.actor_kind === 'system' ? 'System' : r.actor_name)}${r.actor_kind === 'system' ? `<small>via ${e(r.actor_name)}</small>` : ''}</td></tr>`).join('')}</tbody>
+          <td class="stock-quiet">${gi == null ? by(r) : ''}</td></tr>`;
+    const groupRows = (g, gi) => {
+      const r = g.rows[0], n = g.rows.length, recipes = unique(g.rows.map((x) => x.recipe));
+      return `<tr class="hist-group" data-hist-group="${gi}">
+          <td class="stock-quiet">${dateTime(r.created_at)}</td>
+          <td>${orderCell(r)}</td>
+          <td><button type="button" class="hist-toggle" data-hist-toggle="${gi}" aria-expanded="false"><span class="hist-chevron" aria-hidden="true"></span><span><strong>${n} material${n === 1 ? '' : 's'}</strong><small>${e(recipes.join(', ') || unique(g.rows.map((x) => x.item_name)).slice(0, 3).join(', '))}</small></span></button></td>
+          <td>${movementBadge(r.movement_type)}${r.note ? `<small class="stock-note">${e(r.note)}</small>` : ''}</td>
+          <td class="num stock-quiet">—</td>
+          <td class="num"><span class="hist-count">${n} change${n === 1 ? '' : 's'}</span></td>
+          <td class="num stock-quiet">—</td>
+          <td class="stock-quiet">${by(r)}</td></tr>${g.rows.map((x) => detailRow(x, gi)).join('')}`;
+    };
+    target.innerHTML = `
+      <div class="panel stock-table-panel"><table class="data-table stock-table stock-table--history">
+        <thead><tr>${COLUMNS.map((c, i) => `<th scope="col" class="${i >= 4 && i <= 6 ? 'num' : ''}">${c}</th>`).join('')}</tr></thead>
+        <tbody>${groups.map((g, gi) => g.key ? groupRows(g, gi) : detailRow(g.rows[0], null)).join('')}</tbody>
       </table></div>
-      <ul class="stock-cards stock-history-cards">${rows.map((r) => `<li class="stock-card">
+      <ul class="stock-cards stock-history-cards">${groups.map((g) => {
+        const r = g.rows[0];
+        if (!g.key) return `<li class="stock-card">
           <div class="stock-card__top"><h3>${e(r.item_name)}</h3>${delta(r.quantity_delta, r.unit)}</div>
-          <p class="stock-card__meta">${movementBadge(r.movement_type)} ${r.order_number ? `<a href="#orders/detail/${attr(r.order_id)}">Order #${e(r.order_number)}</a>` : ''}</p>
+          <p class="stock-card__meta">${movementBadge(r.movement_type)}</p>
           <p class="stock-card__meta">${r.stock_before == null ? '' : `${qty(r.stock_before, r.unit)} → <strong>${qty(r.stock_after, r.unit)}</strong> · `}${dateTime(r.created_at)}</p>
           ${r.note ? `<p class="stock-card__meta">${e(r.note)}</p>` : ''}
-        </li>`).join('')}</ul>
+        </li>`;
+        return `<li class="stock-card"><details class="hist-card">
+          <summary><div class="stock-card__top"><h3>Order #${e(r.order_number)}</h3><span class="hist-count">${g.rows.length} change${g.rows.length === 1 ? '' : 's'}</span></div>
+            <p class="stock-card__meta">${movementBadge(r.movement_type)} ${dateTime(r.created_at)}</p><span class="hist-card__more">Show materials</span></summary>
+          <ul class="hist-card__list">${g.rows.map((x) => `<li><span><strong>${e(x.item_name)}</strong><small>${x.stock_before == null ? '' : `${qty(x.stock_before, x.unit)} → ${qty(x.stock_after, x.unit)}`}</small></span>${delta(x.quantity_delta, x.unit)}</li>`).join('')}</ul>
+          <a class="hist-card__link" href="#orders/detail/${attr(r.order_id)}">Open order #${e(r.order_number)}</a>
+        </details></li>`;
+      }).join('')}</ul>
       <footer class="stock-pager"><span>${state.offset + 1}–${Math.min(state.offset + rows.length, total)} of ${total} movements</span>
         <div><button class="button button--small" type="button" data-page="-1" ${page <= 1 ? 'disabled' : ''} aria-label="Previous page">‹ Prev</button><span>Page ${page} of ${pages}</span><button class="button button--small" type="button" data-page="1" ${page >= pages ? 'disabled' : ''} aria-label="Next page">Next ›</button></div></footer>`;
+    target.querySelectorAll('[data-hist-toggle]').forEach((button) => { button.onclick = () => {
+      const open = button.getAttribute('aria-expanded') !== 'true';
+      button.setAttribute('aria-expanded', String(open));
+      button.closest('tr').classList.toggle('is-open', open);
+      target.querySelectorAll(`[data-hist-of="${button.dataset.histToggle}"]`).forEach((row) => { row.hidden = !open; });
+    }; });
     target.querySelectorAll('[data-page]').forEach((button) => { button.onclick = () => { state.offset = Math.max(0, state.offset + Number(button.dataset.page) * state.limit); load(); content.querySelector('.stock-kinds')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
   };
 

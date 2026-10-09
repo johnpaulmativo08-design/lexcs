@@ -5,7 +5,7 @@ import {
   attr, icon, qty, dateTime, dateOnly, stockStatus, movementBadge, delta, sectionTabs, pageHead,
   skeletonSummary, skeletonRows, skeletonPanel, errorState, emptyState, openDrawer, toast, requestId
 } from '../inventory-ui.js?v=2';
-import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=20';
+import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=21';
 
 // Show conversions the natural way round: "1 pcs = 225 g" instead of "1 g = 0.004444 pcs".
 const perStockUnit = (factor) => Number((1 / Number(factor)).toPrecision(5));

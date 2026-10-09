@@ -276,3 +276,23 @@
 .stock-batch-diff.is-bad{background:#fdecef;color:#a3324b}
 .stock-batch-diff .ui-icon,.stock-batch-diff svg{display:inline-block;width:16px;height:16px;margin:0 6px -3px 0;vertical-align:baseline}
 .stock-batch-form [aria-invalid=true]{border-color:#d4566f!important;background:#fff8f9}
+
+/* ---- Movement history: one row per order (materials open with the toggle) ---- */
+.stock-table--history .hist-group.is-open td{background:var(--stock-soft,#f7f3fd)}
+.hist-toggle{display:inline-flex;align-items:center;gap:10px;padding:4px 8px 4px 4px;border:0;border-radius:10px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.hist-toggle:hover{background:#f3edfc}.hist-toggle:focus-visible{outline:2px solid var(--admin-purple,#6033dd);outline-offset:2px}
+.hist-toggle small{display:block;margin-top:2px;color:var(--admin-muted);font-size:13px;font-weight:500}
+.hist-chevron{flex:none;display:grid;place-items:center;width:26px;height:26px;border:1.5px solid #ddd0f1;border-radius:8px;background:#fff}
+.hist-chevron::before{content:'';width:7px;height:7px;border-right:2px solid #6a4bb8;border-bottom:2px solid #6a4bb8;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.hist-toggle[aria-expanded=true] .hist-chevron::before{transform:translateY(2px) rotate(-135deg)}
+.hist-count{display:inline-block;padding:3px 9px;border-radius:999px;background:#f1ebfb;color:#4f2fa8;font-size:12.5px;font-weight:700;white-space:nowrap}
+.stock-table--history .hist-detail td{background:#fbf9fe;padding-top:8px;padding-bottom:8px;border-top:1px dashed #ece4f6}
+.stock-table--history .hist-detail__material{padding-left:46px}
+.hist-card summary{list-style:none;cursor:pointer}.hist-card summary::-webkit-details-marker{display:none}
+.hist-card__more{display:inline-block;margin-top:6px;color:var(--admin-purple,#6033dd);font-size:13px;font-weight:700}
+.hist-card[open] .hist-card__more{display:none}
+.hist-card__list{display:grid;gap:8px;margin:10px 0 0;padding:10px 0 0;border-top:1px dashed #e6dcf3;list-style:none}
+.hist-card__list li{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hist-card__list small{display:block;color:var(--admin-muted);font-size:12.5px}
+.hist-card__link{display:inline-block;margin-top:10px;font-size:13px;font-weight:700}
+@media (prefers-reduced-motion:reduce){.hist-chevron::before{transition:none}}
