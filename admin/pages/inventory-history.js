@@ -1,7 +1,7 @@
 // Inventory movement history: every deduction, restock, adjustment, reversal and expiry, linked to orders.
 import { escapeHtml as e } from '../components.js?v=3';
 import { db } from '../backend-ui.js?v=3';
-import { attr, icon, qty, dateTime, movementBadge, movementLabel, delta, sectionTabs, pageHead, skeletonRows, errorState, emptyState, csv, download, toast } from '../inventory-ui.js?v=2';
+import { attr, icon, qty, dateTime, movementBadge, movementLabel, delta, sectionTabs, pageHead, skeletonRows, errorState, emptyState, csv, download, toast } from '../inventory-ui.js?v=3';
 
 const KINDS = [['all', 'All movements'], ['orders', 'Orders'], ['restocks', 'Restocks'], ['adjustments', 'Adjustments'], ['reversals', 'Reversals'], ['wastage', 'Wastage'], ['expiry', 'Expiry']];
 const COLUMNS = ['Date', 'Order', 'Material', 'Movement', 'Before', 'Change', 'After', 'By'];

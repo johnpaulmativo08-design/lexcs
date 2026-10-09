@@ -2,7 +2,7 @@
 // same deductions). Inventory keeps the unit conversions those recipes rely on, plus an overview of every recipe.
 import { escapeHtml as e, showDetails } from '../components.js?v=3';
 import { db } from '../backend-ui.js?v=3';
-import { attr, icon, sectionTabs, pageHead, skeletonPanel, errorState, emptyState, toast } from '../inventory-ui.js?v=2';
+import { attr, icon, sectionTabs, pageHead, skeletonPanel, errorState, emptyState, toast } from '../inventory-ui.js?v=3';
 import { UNITS, perStockUnit, conversionText, flaggedLines } from '../recipe-model.js?v=1';
 
 const STATUS = { active: ['Active', 'success'], draft: ['Draft', 'warning'], archived: ['Archived', 'neutral'] };

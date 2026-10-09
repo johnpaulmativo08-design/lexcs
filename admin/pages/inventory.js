@@ -1,9 +1,9 @@
 import { escapeHtml, empty, showDetails } from '../components.js?v=3';
 import { db, loadingTable, loadingList } from '../backend-ui.js?v=3';
-import { sectionTabs } from '../inventory-ui.js?v=2';
-import { renderMaterials } from './inventory-materials.js?v=6';
-import { renderHistory } from './inventory-history.js?v=2';
-import { renderRecipes } from './recipes.js?v=4';
+import { sectionTabs } from '../inventory-ui.js?v=3';
+import { renderMaterials } from './inventory-materials.js?v=7';
+import { renderHistory } from './inventory-history.js?v=3';
+import { renderRecipes } from './recipes.js?v=5';
 
 const priority = { 'Out of Stock': 0, 'Low Stock': 1, 'Expiring Soon': 2, 'In Stock': 3, Expired: 4 };
 const activeStatuses = ['Out of Stock', 'Low Stock', 'Expiring Soon', 'In Stock'];
@@ -111,10 +111,10 @@ function signedQuantity(movement) {
 
 function notificationCondition(item) { return String(item.condition || item.alert_key || '').split(':')[0]; }
 function notificationTone(item) {
-  return { out_of_stock: 'danger', low_stock: 'danger', expiring_soon: 'warning', expired: 'info' }[notificationCondition(item)] || 'info';
+  return { out_of_stock: 'danger', low_stock: 'danger', running_low: 'warning', expiring_soon: 'warning', expired: 'info' }[notificationCondition(item)] || 'info';
 }
 function notificationIcon(item) {
-  return { out_of_stock: 'warning', low_stock: 'alert', expiring_soon: 'clock', expired: 'info' }[notificationCondition(item)] || 'bell';
+  return { out_of_stock: 'warning', low_stock: 'alert', running_low: 'alert', expiring_soon: 'clock', expired: 'info' }[notificationCondition(item)] || 'bell';
 }
 
 export async function getInventorySnapshot() {
@@ -290,14 +290,14 @@ function renderBatchHistory(batch, movements) {
 
 // Inventory sections: item-level materials (default), movement history, recipes, and the batch ledger.
 export async function renderInventory(content, subpage = '') {
-  if (!subpage || ['low', 'out', 'expiring'].includes(subpage)) return renderMaterials(content, subpage);
+  if (!subpage || ['low', 'running', 'out', 'expiring'].includes(subpage)) return renderMaterials(content, subpage);
   if (subpage === 'movements') return renderHistory(content);
   if (subpage === 'recipes') return renderRecipes(content);
   return renderBatches(content, subpage === 'batches' ? '' : subpage);
 }
 
 async function renderBatches(content, subpage = '') {
-  const initialFilters = { low: 'Low Stock', out: 'Out of Stock', expiring: 'Expiring Soon' };
+  const initialFilters = { low: 'Low Stock', running: 'Running Low', out: 'Out of Stock', expiring: 'Expiring Soon' };
   const state = {
     type: subpage === 'packaging' ? 'packaging' : 'ingredient', status: initialFilters[subpage] || '',
     category: '', expiry: '', sort: 'priority', search: '', dateFrom: '', dateTo: '',

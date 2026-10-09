@@ -2,7 +2,7 @@ import {escapeHtml as e,icon,toolbar} from '../components.js?v=3';
 import {db,rows,field,form,fail,loadingCards} from '../backend-ui.js?v=3';
 import {storefrontData} from '../data.js';
 import {recipeForProduct,flaggedLines} from '../recipe-model.js?v=1';
-import {openProductEditor} from './product-editor.js?v=3';
+import {openProductEditor} from './product-editor.js?v=4';
 import {ask} from '../../shared/ask.js?v=1';
 const money=n=>'₱'+Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:2});
 // Recipe status on each card: products without an active recipe are not deducted from inventory automatically.

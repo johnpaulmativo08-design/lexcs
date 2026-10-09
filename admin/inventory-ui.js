@@ -55,7 +55,7 @@ export const movementTone = (type) => (MOVEMENTS[type] || [0, 'neutral'])[1];
 export const movementBadge = (type) => `<span class="stock-type stock-type--${movementTone(type)}">${e(movementLabel(type))}</span>`;
 export const delta = (value, unit) => `<span class="stock-delta ${Number(value) >= 0 ? 'stock-delta--in' : 'stock-delta--out'}">${qty(value, unit, { signed: true })}</span>`;
 
-const STATUS_TONES = { 'In Stock': 'success', 'Low Stock': 'warning', 'Out of Stock': 'danger', 'Expiring Soon': 'info' };
+const STATUS_TONES = { 'In Stock': 'success', 'Running Low': 'warning', 'Low Stock': 'warning', 'Out of Stock': 'danger', 'Expiring Soon': 'info' };
 export function stockStatus(status) {
   const tone = STATUS_TONES[status] || 'neutral';
   const label = status === 'In Stock' ? 'Available' : status;

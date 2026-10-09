@@ -4,7 +4,7 @@
 // deducted keep the exact quantities they used. Only an ACTIVE recipe deducts stock when an order is confirmed.
 import { db } from '../backend-ui.js?v=3';
 import { escapeHtml as e } from '../components.js?v=3';
-import { attr, icon, qty, openDrawer, toast, emptyState } from '../inventory-ui.js?v=2';
+import { attr, icon, qty, openDrawer, toast, emptyState } from '../inventory-ui.js?v=3';
 import { ask } from '../../shared/ask.js?v=1';
 import { UNITS, GROUPS, BASES, BASIS_SHORT, recipeForProduct, conversionState, previewRequirements, conditionText, lineKey } from '../recipe-model.js?v=1';
 

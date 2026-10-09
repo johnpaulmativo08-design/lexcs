@@ -4,19 +4,19 @@ import { db } from '../backend-ui.js?v=3';
 import {
   attr, icon, qty, dateTime, dateOnly, stockStatus, movementBadge, delta, sectionTabs, pageHead,
   skeletonSummary, skeletonRows, skeletonPanel, errorState, emptyState, openDrawer, toast, requestId
-} from '../inventory-ui.js?v=2';
-import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=21';
+} from '../inventory-ui.js?v=3';
+import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=22';
 
 // Show conversions the natural way round: "1 pcs = 225 g" instead of "1 g = 0.004444 pcs".
 const perStockUnit = (factor) => Number((1 / Number(factor)).toPrecision(5));
 const conversionText = (c, stockUnit) => `1 ${stockUnit} = ${perStockUnit(c.factor).toLocaleString('en-PH', { maximumFractionDigits: 4 })} ${c.unit}`;
-const STATUS_ORDER = { 'Out of Stock': 0, 'Low Stock': 1, 'Expiring Soon': 2, 'In Stock': 3 };
+const STATUS_ORDER = { 'Out of Stock': 0, 'Low Stock': 1, 'Running Low': 2, 'Expiring Soon': 3, 'In Stock': 4 };
 const UNIT_GROUPS = { mass: ['g', 'kg', 'mg'], volume: ['mL', 'L'], count: ['pcs', 'dozen'], length: ['cm', 'm', 'inch', 'yard'] };
 const compatibleUnits = (unit) => Object.values(UNIT_GROUPS).find((group) => group.includes(unit)) || [unit];
 
 export async function renderMaterials(content, preset = '') {
   const state = {
-    search: '', category: '', type: '', status: { low: 'Low Stock', out: 'Out of Stock', expiring: 'Expiring Soon' }[preset] || '',
+    search: '', category: '', type: '', status: { low: 'Low Stock', running: 'Running Low', out: 'Out of Stock', expiring: 'Expiring Soon' }[preset] || '',
     updated: '', data: null
   };
   const shell = (body) => `<section class="inventory-page stock-page">${pageHead('Inventory', 'Manage ingredients, supplies and stock movements.', `<button class="button button--primary" type="button" data-add-stock>${icon('plus')} Add stock</button>`)}${sectionTabs('materials')}${body}</section>`;
@@ -62,11 +62,11 @@ export async function renderMaterials(content, preset = '') {
         <div class="stock-filters">
           <label><span class="sr-only">Category</span><select data-filter="category"><option value="">All categories</option>${categories.map((c) => `<option ${state.category === c ? 'selected' : ''}>${e(c)}</option>`).join('')}</select></label>
           <label><span class="sr-only">Type</span><select data-filter="type"><option value="">All types</option><option value="ingredient" ${state.type === 'ingredient' ? 'selected' : ''}>Ingredients</option><option value="packaging" ${state.type === 'packaging' ? 'selected' : ''}>Packaging</option></select></label>
-          <label><span class="sr-only">Status</span><select data-filter="status"><option value="">All statuses</option>${['In Stock', 'Low Stock', 'Out of Stock', 'Expiring Soon'].map((s) => `<option value="${s}" ${state.status === s ? 'selected' : ''}>${s === 'In Stock' ? 'Available' : s}</option>`).join('')}</select></label>
+          <label><span class="sr-only">Status</span><select data-filter="status"><option value="">All statuses</option>${['In Stock', 'Running Low', 'Low Stock', 'Out of Stock', 'Expiring Soon'].map((s) => `<option value="${s}" ${state.status === s ? 'selected' : ''}>${s === 'In Stock' ? 'Available' : s}</option>`).join('')}</select></label>
           <label><span class="sr-only">Last updated</span><select data-filter="updated"><option value="">Any date</option><option value="1" ${state.updated === '1' ? 'selected' : ''}>Updated today</option><option value="7" ${state.updated === '7' ? 'selected' : ''}>Last 7 days</option><option value="30" ${state.updated === '30' ? 'selected' : ''}>Last 30 days</option></select></label>
         </div>
       </div>
-      <div class="stock-summary">${tile('Total materials', items.length, '', 'neutral')}${tile('Low stock', count('Low Stock'), 'Low Stock', 'warning')}${tile('Out of stock', count('Out of Stock'), 'Out of Stock', 'danger')}${tile('Expiring soon', count('Expiring Soon'), 'Expiring Soon', 'info')}</div>
+      <div class="stock-summary">${tile('Total materials', items.length, '', 'neutral')}${tile('Running low', count('Running Low'), 'Running Low', 'warning')}${tile('Low stock', count('Low Stock'), 'Low Stock', 'warning')}${tile('Out of stock', count('Out of Stock'), 'Out of Stock', 'danger')}${tile('Expiring soon', count('Expiring Soon'), 'Expiring Soon', 'info')}</div>
       <p class="stock-count" aria-live="polite">${rows.length} of ${items.length} materials</p>
       ${rows.length ? `
       <div class="panel stock-table-panel"><table class="data-table stock-table">
@@ -274,6 +274,8 @@ function settingsForm(item, onSuccess) {
     <form class="inventory-form stock-form" data-settings>
       <div class="form-grid"><label class="form-field"><span>Minimum stock (${e(item.unit)})</span><input name="min_stock" type="number" min="0" step="any" value="${attr(item.min_stock)}" required></label>
         <label class="form-field"><span>Estimated cost per ${e(item.unit)} (₱)</span><input name="estimated_unit_cost" type="number" min="0" step="any" value="${attr(item.estimated_unit_cost ?? '')}"></label></div>
+      <label class="form-field"><span>Early warning (${e(item.unit)} above the minimum)</span><input name="warning_margin" type="number" min="0" step="any" value="${attr(item.warning_margin ?? 5)}" required>
+        <small class="stock-quiet">“Running low” shows when stock is at or below ${e(qty(Number(item.min_stock) + Number(item.warning_margin ?? 5), item.unit))} (minimum + this amount).</small></label>
       <label class="form-field"><span>Category</span><input name="category" maxlength="80" value="${attr(item.category)}"></label>
       <p class="form-error" role="alert" hidden></p>
       <div class="dialog-actions"><button class="button button--quiet" type="button" data-close>Cancel</button><button class="button button--primary" type="submit">Save settings</button></div>
@@ -283,7 +285,7 @@ function settingsForm(item, onSuccess) {
     event.preventDefault();
     const submit = form.querySelector('[type=submit]'); submit.disabled = true;
     try {
-      await db.rpc('save_inventory_item_settings', { payload: { item_id: item.id, min_stock: form.elements.min_stock.value, estimated_unit_cost: form.elements.estimated_unit_cost.value, category: form.elements.category.value } });
+      await db.rpc('save_inventory_item_settings', { payload: { item_id: item.id, min_stock: form.elements.min_stock.value, warning_margin: form.elements.warning_margin.value, estimated_unit_cost: form.elements.estimated_unit_cost.value, category: form.elements.category.value } });
       dialog.close(); toast('Material settings saved.'); await onSuccess();
     } catch (error) { const box = form.querySelector('[role=alert]'); box.textContent = error.message; box.hidden = false; submit.disabled = false; }
   });
