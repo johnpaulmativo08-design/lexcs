@@ -160,36 +160,4 @@ language plpgsql security invoker set search_path='' as $$ begin if auth.uid() i
 revoke all on function public.get_booking_schedule(date,date) from public;
 grant execute on function public.get_booking_schedule(date,date) to authenticated;
 
--- Idempotent normal demo records. They represent manual booking entries, never QA-only rows.
-do $$
-declare actor uuid;
-begin
- select p.id into actor from public.profiles p join public.user_roles r on r.user_id=p.id where r.role='admin' order by p.created_at limit 1;
- if actor is null then raise exception 'An Admin profile is required before seeding bookings.'; end if;
- insert into public.booking_entries(customer_name,customer_contact,order_reference,order_summary,customization_summary,booking_date,scheduled_start,scheduled_end,fulfillment_method,status,payment_status,order_total,deposit_due,amount_paid,notes,created_by)
- select * from (values
-  ('Mia Santos','0917 111 2048','ORD-1048','Bento Cake ×1',null::text,'2026-09-21'::date,'09:00'::time,'10:00'::time,'pickup','confirmed','partially_paid',2000::numeric,1200::numeric,1200::numeric,null::text,actor),
-  ('Jane Dela Cruz','0917 123 4567','ORD-1052','Bento Cake ×1, Mini Donuts ×12','Pink icing, "Happy Birthday Mia"','2026-09-21','11:30','12:30','lalamove','confirmed','partially_paid',2000,1200,1200,null,actor),
-  ('Mark Rivera','0917 555 1053','ORD-1053','Customized Cake ×1','Birthday message requested','2026-09-21','14:00','15:00','pickup','pending','unpaid',2500,1500,0,null,actor),
-  ('Ella Cruz','0917 222 1054','ORD-1054','Cupcakes ×1 box',null,'2026-09-21','16:00','17:00','lalamove','confirmed','partially_paid',1800,1080,1080,null,actor),
-  ('Daniel Co','0917 100 1055','ORD-1055','Mini Donuts ×1 box',null,'2026-09-22','09:00','10:00','lalamove','confirmed','paid',1200,720,1200,null,actor),
-  ('Rhea Beltran','0917 100 1056','ORD-1056','Cupcakes ×1 box',null,'2026-09-22','10:00','11:00','pickup','confirmed','partially_paid',1500,900,900,null,actor),
-  ('Leo Kim','0917 100 1057','ORD-1057','Cookies ×2 boxes',null,'2026-09-22','12:00','13:00','pickup','preparing','partially_paid',1600,960,960,null,actor),
-  ('Nathan Sy','0917 100 1058','ORD-1058','Bento Cake ×1',null,'2026-09-22','14:00','15:00','pickup','confirmed','partially_paid',2000,1200,1200,null,actor),
-  ('Isla Mendoza','0917 100 1059','ORD-1059','Cookies ×2 boxes',null,'2026-09-22','15:00','16:00','lalamove','confirmed','paid',1600,960,1600,null,actor),
-  ('Kenji Ocampo','0917 100 1060','ORD-1060','Mini Donuts ×1 box',null,'2026-09-22','16:00','17:00','pickup','pending','unpaid',1200,720,0,null,actor),
-  ('Grace Ng','0917 100 1061','ORD-1061','Bento Cake ×1',null,'2026-09-23','09:00','10:00','pickup','confirmed','partially_paid',2000,1200,1200,null,actor),
-  ('Lara Villanueva','0917 100 1062','ORD-1062','Customized Cake ×1','Blue floral finish','2026-09-23','11:00','12:00','lalamove','confirmed','partially_paid',2600,1560,1560,null,actor),
-  ('Carlos Tan','0917 100 1063','ORD-1063','Brownies ×2 boxes',null,'2026-09-23','14:00','15:00','pickup','pending','unpaid',1400,840,0,null,actor),
-  ('Miguel Santos','0917 100 1064','ORD-1064','Cupcakes ×1 box',null,'2026-09-24','10:00','11:00','lalamove','confirmed','partially_paid',1500,900,900,null,actor),
-  ('Tina Wu','0917 100 1065','ORD-1065','Brownies ×1 box',null,'2026-09-24','13:00','14:00','pickup','pending','unpaid',700,420,0,null,actor),
-  ('Jason P','0917 100 1066','ORD-1066','Bento Cake ×1',null,'2026-09-25','09:00','10:00','lalamove','confirmed','partially_paid',2000,1200,1200,null,actor),
-  ('Karen L','0917 100 1067','ORD-1067','Mini Donuts ×1 box',null,'2026-09-25','11:00','12:00','pickup','confirmed','paid',1200,720,1200,null,actor),
-  ('Mark D','0917 100 1068','ORD-1068','Cookies ×1 box',null,'2026-09-25','13:00','14:00','lalamove','cancelled','unpaid',800,480,0,'Customer cancelled',actor),
-  ('Ella V','0917 100 1069','ORD-1069','Cookies ×1 box',null,'2026-09-25','15:00','16:00','pickup','confirmed','partially_paid',800,480,480,null,actor),
-  ('Rhea M','0917 100 1070','ORD-1070','Cupcakes ×2 boxes',null,'2026-09-25','16:00','17:00','lalamove','confirmed','partially_paid',3000,1800,1800,null,actor),
-  ('Miguel Torres','0917 100 1071','ORD-1071','Bento Cake ×1',null,'2026-09-25','17:00','18:00','pickup','pending','unpaid',2000,1200,0,null,actor),
-  ('Ana Reyes','0917 100 1072','ORD-1072','Mini Donuts ×1 box',null,'2026-09-26','10:00','11:00','pickup','confirmed','partially_paid',1200,720,720,null,actor)
- ) as seed(customer_name,customer_contact,order_reference,order_summary,customization_summary,booking_date,scheduled_start,scheduled_end,fulfillment_method,status,payment_status,order_total,deposit_due,amount_paid,notes,created_by)
- where not exists(select 1 from public.booking_entries b where b.order_reference=seed.order_reference);
-end $$;
+-- (The demo reservations ORD-1048 to ORD-1072 that used to be added here were removed on 2026-10-09.)

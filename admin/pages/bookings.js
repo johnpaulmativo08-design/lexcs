@@ -11,7 +11,7 @@ const payment=x=>({unpaid:'Downpayment Pending',partially_paid:'60% Downpayment 
 const attention=x=>x.status==='pending'||x.payment_status==='unpaid'||Boolean(x.customization_summary), product=x=>(x||'Order').split(',')[0].replace(/\s×\d+$/,'').trim();
 
 export async function renderBookings(content){
- let selected='2026-09-21',start=weekStart(selected),view='week',filter='all',search='',entries=[],settings=new Map(),hoverTimer,hideTimer;
+ let selected=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila'}).format(new Date()),start=weekStart(selected),view='week',filter='all',search='',entries=[],settings=new Map(),hoverTimer,hideTimer;
  const days=()=>Array.from({length:7},(_,i)=>plus(start,i)), rows=d=>entries.filter(x=>x.booking_date===d);
  const summary=d=>{const list=rows(d),setting=settings.get(d),capacity=setting?.capacity||list[0]?.capacity||6,active=list.filter(x=>x.status!=='cancelled'),closed=!!(setting?.is_closed||list[0]?.is_closed);return {list,capacity,active,closed,pickup:active.filter(x=>x.fulfillment_method==='pickup').length,delivery:active.filter(x=>x.fulfillment_method==='lalamove').length};};
  const state=s=>s.closed?'closed':s.active.length>=s.capacity?'full':s.active.length===s.capacity-1?'near':'available';
