@@ -401,3 +401,6 @@ html.design-viewer .bd-stage-bar{flex:none}
 }
 @keyframes diy-glow{0%{transform:scale(.92);opacity:.9}70%,100%{transform:scale(1.22);opacity:0}}
 @media (prefers-reduced-motion:reduce){.customer-mobile-nav .mobile-diy>span::after{animation:none;opacity:0}}
+
+/* guests (no account): no cart */
+body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shopping"]{display:none!important}

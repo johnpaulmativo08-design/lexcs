@@ -596,6 +596,8 @@
   let chooser = null;
   window.LexcCustom = Object.freeze({
     choose() {
+      // DIY needs an account (designs go to the cart)
+      if (!window.currentUser) { showToast('Log in or create an account to use DIY customization.'); navigate('login'); return; }
       if (!chooser) {
         chooser = document.createElement('dialog'); chooser.className = 'cd-chooser'; chooser.setAttribute('aria-labelledby', 'cd-chooser-title');
         chooser.innerHTML = `<div class="cd-chooser-head"><h2 id="cd-chooser-title">What would you like to design?</h2><button type="button" class="bd-tool" data-close aria-label="Close">×</button></div>
