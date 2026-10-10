@@ -264,3 +264,12 @@ body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="
 .bd-msg-error{margin:-6px 0 12px;padding:8px 10px;border-radius:9px;background:#fdf0f2;color:#a73345;font-size:.8rem;line-height:1.4}
 .bd-msg-error[hidden]{display:none}
 #bd-message[aria-invalid=true]{border-color:#c7465f;box-shadow:0 0 0 3px rgba(199,70,95,.12)}
+/* ---- Inspiration photos on the Review step (phase 55; shared by all designers) ---- */
+.insp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,96px));gap:8px;margin:2px 0 10px}
+.insp-pic{position:relative;margin:0;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--bd-line,#e6dcf3);background:#f6f1fb}
+.insp-pic img{width:100%;height:100%;object-fit:cover;display:block}
+.insp-remove{position:absolute;top:4px;right:4px;display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:rgba(36,26,56,.75);color:#fff;font-size:16px;line-height:1;cursor:pointer}
+.insp-add{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1.5px dashed #cdb9f0;border-radius:12px;background:#fbf8ff;color:var(--bd-purple,#6033dd);font:700 .86rem 'DM Sans',sans-serif;cursor:pointer}
+.insp-add:hover{background:#f3edfc}.insp-add:focus-within{outline:3px solid #b9a1f0;outline-offset:2px}
+.insp-add.is-busy{opacity:.7;cursor:progress}
+.insp-error{margin:8px 0 0;color:#a3324b;font-size:.82rem}

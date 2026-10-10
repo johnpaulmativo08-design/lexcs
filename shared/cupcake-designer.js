@@ -47,7 +47,7 @@
   function blank(size = 'mini') {
     const p = products[size];
     return { size, variant_id: p?.product_variants.filter((v) => v.is_active)[0]?.id, qty: 1, flavor: 'chocolate', pattern: 'same',
-      a: { style: 'rosette', colors: ['baby_pink'] }, b: { style: 'rosette', colors: ['white'] }, finishes: ['gold_pearls'], theme: 'none', theme_note: '', message: 'none', message_pieces: [], message_color: 'purple' };
+      a: { style: 'rosette', colors: ['baby_pink'] }, b: { style: 'rosette', colors: ['white'] }, finishes: ['gold_pearls'], theme: 'none', theme_note: '', message: 'none', message_pieces: [], message_color: 'purple', inspiration: [] };
   }
   const design = () => ({ designer: 'cupcake', flavor: state.flavor, pattern: state.pattern,
     a: { style: state.a.style, colors: [...state.a.colors] },
@@ -359,6 +359,7 @@
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       ${quote.status === 'error' ? `<div class="bd-warning" role="alert">${esc(quote.message)}</div>` : ''}
+      ${window.LexcInspiration ? window.LexcInspiration.html('cupcake', s.inspiration) : ''}
       <div class="cd-qty-row"><span class="bd-label" style="margin:0" id="cd-qty-label">Boxes</span>
         <div class="bd-qty" role="group" aria-labelledby="cd-qty-label"><button type="button" data-cd-qty="-1" aria-label="One box less">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-cd-qty="1" aria-label="One box more">+</button></div></div>`;
   }
@@ -513,7 +514,7 @@
     const v = variant(), d = design(), p = product();
     const item = { id: 'cupcake-' + crypto.randomUUID(), product_id: p.id, variant_id: v.id, name: p.name, emoji: '🧁',
       sizeLabel: `${v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra, base_price: Number(v.price), extras: quote.extra,
-      qty: state.qty, selected: true, customization: d, preview: scene ? scene.snapshot(480) : await snapshot(400) };
+      qty: state.qty, selected: true, customization: d, inspiration: [...(state.inspiration || [])], preview: scene ? scene.snapshot(480) : await snapshot(400) };
     const wasEdit = editIndex !== null && cart[editIndex]?.customization?.designer === 'cupcake';
     if (wasEdit) { item.id = cart[editIndex].id; cart[editIndex] = item; } else cart.push(item);
     editIndex = null; try { localStorage.removeItem(DRAFT_KEY); } catch {}
@@ -557,7 +558,7 @@
     const sizeOf = (variantId) => Object.entries(products).find(([, p]) => p.product_variants.some((v) => v.id === variantId))?.[0];
     if (fromCart !== null && cart[fromCart]?.customization?.designer === 'cupcake') {
       const c = cart[fromCart], sz = sizeOf(c.variant_id) || 'mini'; editIndex = fromCart;
-      state = { ...blank(sz), ...JSON.parse(JSON.stringify(c.customization)), size: sz, variant_id: c.variant_id, qty: c.qty }; step = 'review';
+      state = { ...blank(sz), ...JSON.parse(JSON.stringify(c.customization)), size: sz, variant_id: c.variant_id, qty: c.qty, inspiration: [...(c.inspiration || [])] }; step = 'review';
     } else if (shared) {
       const sz = sizeOf(shared.v) || 'mini';
       state = { ...blank(sz), ...shared.d, size: sz, variant_id: shared.v, qty: 1 }; step = 'review';
@@ -577,6 +578,8 @@
   const fromB64 = (code) => new TextDecoder().decode(Uint8Array.from(atob(code.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)));
   function decodeShared(code) { try { const o = JSON.parse(fromB64(code)); return o && o.d && typeof o.d === 'object' ? o : null; } catch { return null; } }
 
+  // inspiration photos (shared/inspiration.js): kept in the design state and the cart item, never in the design itself
+  window.LexcInspiration?.register('cupcake', () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'review') renderBody(); }, saveDraft);
   window.LexcCupcake = Object.freeze({
     open({ productId = null, shared = null } = {}) {
       whenReady(() => {

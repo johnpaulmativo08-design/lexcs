@@ -31,6 +31,7 @@ const STYLE=`
 .dv-side .dv-meta{margin:0 0 10px;color:#7c6d91;font-size:13px}
 .dv-side .dv-summary{margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#faf7fe;color:#3d3150;line-height:1.45}
 .dv-side .dv-tip{margin:12px 0 0;color:#7c6d91;font-size:12.5px;line-height:1.45}
+.dv-insp-title{margin:14px 0 6px;font-size:14px}.dv-insp{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.dv-insp button{aspect-ratio:1;padding:0;border:1px solid #e3d9f0;border-radius:10px;overflow:hidden;background:#f6f1fb;cursor:zoom-in}.dv-insp img{width:100%;height:100%;object-fit:cover;display:block}
 .dv-side .dv-open{display:inline-block;margin-top:10px;color:#5a32b8;font-size:13px;font-weight:700}
 @media (max-width:820px){.dv{width:100vw;height:100dvh;border-radius:0}.dv-body{grid-template-columns:1fr;grid-template-rows:minmax(300px,58%) minmax(0,1fr)}.dv-side{border-left:0;border-top:1px solid #eee6f6}}
 @media (prefers-reduced-motion:reduce){.dv-stage iframe{transition:none}.dv-loading i{animation:none}}`;
@@ -57,8 +58,11 @@ export function openDesignViewer(lines,index=0,{title=''}={}){
     side.innerHTML=`<h3>${e(line.name||kindName[kind])}${Number(line.qty)>1?' × '+Number(line.qty):''}</h3>
       <p class="dv-meta">${e(kindName[kind]||'Custom design')}${line.unit_price!=null?' · '+money(line.unit_price)+(kind==='bento'?' per cake':' per box'):''}</p>
       ${line.summary?`<p class="dv-summary">${e(line.summary)}</p>`:''}${designDetails(line.design)}
+      ${(line.inspiration||[]).length?`<h4 class="dv-insp-title">Customer’s inspiration</h4><div class="dv-insp">${line.inspiration.map((p,k)=>`<button type="button" data-dv-insp="${e(p)}" aria-label="Open inspiration photo ${k+1}"><img alt="Inspiration photo ${k+1}"></button>`).join('')}</div>`:''}
       <p class="dv-tip">The 3D model is a guide. Bake from the details above; handmade decorations vary slightly.</p>
       <a class="dv-open" href="${e(designLink(line))}" target="_blank" rel="noopener">Open in the shop designer ↗</a>`;
+    // inspiration photos are private: short-lived links, opened full size on tap
+    side.querySelectorAll('[data-dv-insp]').forEach(async button=>{try{const url=await window.LexcBackend.privateImage('customer-references',button.dataset.dvInsp);button.querySelector('img').src=url;button.onclick=()=>window.open(url,'_blank','noopener');}catch{button.textContent='Photo unavailable';}});
     stage.querySelector('iframe')?.remove();loading.hidden=false;
     const frame=document.createElement('iframe');
     frame.title='3D view of '+(line.name||kindName[kind]);

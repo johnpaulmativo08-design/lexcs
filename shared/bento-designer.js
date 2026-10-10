@@ -59,7 +59,7 @@
   let textTimer = 0, view3d = true, packed = false;
 
   const blank = () => ({ variant_id: product.product_variants.filter((v) => v.is_active)[0]?.id, frosting_color: 'white', border: [], accents: [], bow_color: 'pink',
-    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {}, drip_color: '', font: 'rounded' });
+    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {}, drip_color: '', font: 'rounded', inspiration: [] });
   const design = () => ({ designer: 'bento', frosting_color: state.frosting_color, border: [...state.border], accents: [...state.accents],
     bow_color: state.accents.includes('ribbon_bows') ? state.bow_color : null, message: state.message.trim(),
     lettering: state.message.trim() ? state.lettering : null, lettering_color: state.message.trim() ? state.lettering_color : null,
@@ -594,6 +594,7 @@
         ${hasLayout() ? '<li><span>Placement</span><strong>Arranged by you</strong></li>' : ''}
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
+      ${window.LexcInspiration ? window.LexcInspiration.html('bento', s.inspiration) : ''}
       <div class="bd-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span class="bd-label" style="margin:0" id="bd-qty-label">Quantity</span>
         <div class="bd-qty" role="group" aria-labelledby="bd-qty-label"><button type="button" data-bd-qty="-1" aria-label="Decrease quantity">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-bd-qty="1" aria-label="Increase quantity">+</button></div>
@@ -795,7 +796,7 @@
     const item = {
       id: 'bento-' + crypto.randomUUID(), product_id: product.id, variant_id: v.id, name: product.name, emoji: '🎂',
       sizeLabel: `${v.label === 'Minimalist' ? 'Plain' : v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra,
-      base_price: Number(v.price), extras: quote.extra, qty: state.qty, selected: true, customization: d, preview: scene ? scene.snapshot(400) : '', preview_top: scene ? scene.snapshot(400, 'top') : ''
+      base_price: Number(v.price), extras: quote.extra, qty: state.qty, selected: true, customization: d, inspiration: [...(state.inspiration || [])], preview: scene ? scene.snapshot(400) : '', preview_top: scene ? scene.snapshot(400, 'top') : ''
     };
     if (editIndex !== null && cart[editIndex]?.customization?.designer === 'bento') { item.id = cart[editIndex].id; cart[editIndex] = item; }
     else cart.push(item);
@@ -847,7 +848,7 @@
     root.querySelector('[data-bd-arrange]')?.setAttribute('aria-pressed', 'false'); const arrangeBar = root.querySelector('[data-bd-arrange-bar]'); if (arrangeBar) arrangeBar.hidden = true;
     if (fromCart !== null && cart[fromCart]?.customization?.designer === 'bento') {
       const c = cart[fromCart]; editIndex = fromCart;
-      state = { ...blank(), ...c.customization, border: [...(c.customization.border || [])], accents: [...(c.customization.accents || [])], message: c.customization.message || '', topper_text: c.customization.topper_text || '', variant_id: c.variant_id, qty: c.qty };
+      state = { ...blank(), ...c.customization, border: [...(c.customization.border || [])], accents: [...(c.customization.accents || [])], message: c.customization.message || '', topper_text: c.customization.topper_text || '', variant_id: c.variant_id, qty: c.qty, inspiration: [...(c.inspiration || [])] };
       if (!state.bow_color) state.bow_color = 'pink'; if (!state.lettering) state.lettering = 'piped'; if (!state.lettering_color) state.lettering_color = 'purple';
       step = 'review';
     } else if (shared) {
@@ -881,6 +882,8 @@
     if (window.lexcCatalogState === 'ready') return fn();
     let waited = 0; const t = setInterval(() => { waited += 200; if (window.lexcCatalogState === 'ready') { clearInterval(t); fn(); } else if (waited > 15000) { clearInterval(t); showToast('The menu could not load. Please try again.'); } }, 200);
   }
+  // inspiration photos (shared/inspiration.js): kept in the design state and the cart item, never in the design itself
+  window.LexcInspiration?.register('bento', () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'review') renderBody(); }, saveDraft);
   window.LexcBento = Object.freeze({
     open(shared = null) { whenReady(() => { navigate('bento'); start({ shared }); }); },
     edit(index) { window.closeCart?.(); whenReady(() => { navigate('bento'); start({ fromCart: index }); }); },

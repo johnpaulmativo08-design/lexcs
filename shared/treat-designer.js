@@ -39,7 +39,7 @@ function makeTreatDesigner(K) {
   function blank(box = 'party') {
     const p = products[box];
     return { box, variant_id: p?.product_variants.filter((v) => v.is_active)[0]?.id, qty: 1, flavors: [K.defaultFlavor], pattern: 'same', glazes: ['pink'], ...(K.styles ? { style: 'round' } : {}),
-      finishes: [], sprinkles: 'white_pearls', sprinkle_colors: [], theme: 'none', theme_note: '', message: 'none', message_text: '', message_pieces: [], message_color: 'white' };
+      finishes: [], sprinkles: 'white_pearls', sprinkle_colors: [], theme: 'none', theme_note: '', message: 'none', message_text: '', message_pieces: [], message_color: 'white', inspiration: [] };
   }
   const design = () => ({ designer: K.designer, ...(K.styles ? { style: state.style } : {}), flavors: [...state.flavors], pattern: state.pattern, glazes: [...state.glazes], finishes: [...state.finishes],
     sprinkles: state.sprinkles, ...(state.sprinkles === 'nonpareils' ? { sprinkle_colors: [...state.sprinkle_colors] } : {}),
@@ -300,6 +300,7 @@ function makeTreatDesigner(K) {
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       ${quote.status === 'error' ? `<div class="bd-warning" role="alert">${esc(quote.message)}</div>` : ''}
+      ${window.LexcInspiration ? window.LexcInspiration.html(K.key, s.inspiration) : ''}
       <div class="cd-qty-row"><span class="bd-label" style="margin:0" id="${K.key}-qty-label">Boxes</span>
         <div class="bd-qty" role="group" aria-labelledby="${K.key}-qty-label"><button type="button" data-dd-qty="-1" aria-label="One box less">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-dd-qty="1" aria-label="One box more">+</button></div></div>`;
   }
@@ -450,7 +451,7 @@ function makeTreatDesigner(K) {
     const v = variant(), d = design(), p = product();
     const item = { id: K.designer + '-' + crypto.randomUUID(), product_id: p.id, variant_id: v.id, name: p.name, emoji: K.emoji,
       sizeLabel: `${v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra, base_price: Number(v.price), extras: quote.extra,
-      qty: state.qty, selected: true, customization: d, preview: scene ? scene.snapshot(480) : await svgSnapshot(400) };
+      qty: state.qty, selected: true, customization: d, inspiration: [...(state.inspiration || [])], preview: scene ? scene.snapshot(480) : await svgSnapshot(400) };
     const wasEdit = editIndex !== null && cart[editIndex]?.customization?.designer === K.designer;
     if (wasEdit) { item.id = cart[editIndex].id; cart[editIndex] = item; } else cart.push(item);
     editIndex = null; try { localStorage.removeItem(DRAFT_KEY); } catch {}
@@ -496,7 +497,7 @@ function makeTreatDesigner(K) {
       theme: d.theme, theme_note: d.theme_note || '', message: d.message || 'none', message_text: d.message_text || '', message_pieces: d.message_pieces || [], message_color: d.message_color || 'white' });
     if (fromCart !== null && cart[fromCart]?.customization?.designer === K.designer) {
       const c = cart[fromCart], b = boxOf(c.variant_id) || 'party'; editIndex = fromCart;
-      state = { ...blank(b), ...fromDesign(c.customization), box: b, variant_id: c.variant_id, qty: c.qty }; step = 'review';
+      state = { ...blank(b), ...fromDesign(c.customization), box: b, variant_id: c.variant_id, qty: c.qty, inspiration: [...(c.inspiration || [])] }; step = 'review';
     } else if (shared) {
       const b = boxOf(shared.v) || 'party';
       state = { ...blank(b), ...fromDesign(shared.d), box: b, variant_id: shared.v, qty: 1 }; step = 'review';
@@ -515,6 +516,8 @@ function makeTreatDesigner(K) {
   const fromB64 = (code) => new TextDecoder().decode(Uint8Array.from(atob(code.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)));
   function decodeShared(code) { try { const o = JSON.parse(fromB64(code)); return o && o.d && typeof o.d === 'object' ? o : null; } catch { return null; } }
 
+  // inspiration photos (shared/inspiration.js): kept in the design state and the cart item, never in the design itself
+  window.LexcInspiration?.register(K.key, () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'review') renderBody(); }, saveDraft);
   const api = window[K.global] = Object.freeze({
     open({ productId = null, shared = null } = {}) {
       whenReady(() => {

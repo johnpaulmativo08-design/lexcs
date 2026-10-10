@@ -89,7 +89,7 @@ async function submitCheckout(){
  if(!field('coDate')||!field('coTime'))return showToast('Choose a booking date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
   if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
-  const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,preview_top,reference_image_path,design_top_path,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
+  const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,preview_top,reference_image_path,design_top_path,inspiration,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
  let request=readAuthStorage(localStorage,'lexc_checkout_request',null);
  if(!request||request.fingerprint!==fingerprint)request={fingerprint,id:crypto.randomUUID()};
  localStorage.setItem('lexc_checkout_request',JSON.stringify(request));checkoutSaving=true;
@@ -133,6 +133,9 @@ async function submitCheckout(){
    // Add the top-view pictures to the design card the database posted in the customer's chat.
   const topViews=selectedItems.map((item,index)=>({line:index+1,top_path:item.design_top_path})).filter(view=>view.top_path);
   if(topViews.length){try{await LexcBackend.rpc('attach_design_views',{p_order_id:order.id,p_views:topViews});}catch(error){console.warn('Top-view pictures could not be added to the chat:',error);}}
+  // Inspiration photos added while designing go to the order line and the order's chat (phase 55).
+  const inspiration=selectedItems.map((item,index)=>({line:index+1,paths:(item.inspiration||[]).slice(0,3)})).filter(entry=>entry.paths.length);
+  if(inspiration.length){try{await LexcBackend.rpc('attach_inspiration',{p_order_id:order.id,p_items:inspiration});}catch(error){console.warn('Inspiration photos could not be added to the order:',error);}}
   const orderedItems=new Set(selectedItems);
    cart=cart.filter(item=>!orderedItems.has(item));renderCart();localStorage.removeItem('lexc_checkout_request');
   try { await flushCustomerCart(); } catch (syncError) { console.warn('Order created, but cart sync needs retry:', syncError); }
