@@ -296,3 +296,17 @@
 .hist-card__list small{display:block;color:var(--admin-muted);font-size:12.5px}
 .hist-card__link{display:inline-block;margin-top:10px;font-size:13px;font-weight:700}
 @media (prefers-reduced-motion:reduce){.hist-chevron::before{transition:none}}
+
+/* ---- Order materials: one dropdown per ordered item ---- */
+details.stock-order__group{margin-bottom:8px;border:1px solid #e9e1f5;border-radius:12px;background:#fff;overflow:hidden}
+details.stock-order__group>summary{display:flex;align-items:center;gap:10px;padding:11px 14px;list-style:none;cursor:pointer}
+details.stock-order__group>summary::-webkit-details-marker{display:none}
+details.stock-order__group>summary:hover{background:#faf7fe}
+details.stock-order__group>summary:focus-visible{outline:2px solid var(--admin-purple,#6033dd);outline-offset:-2px}
+.stock-order__group-name{flex:1;min-width:0;color:#4b24b8;font-size:15px;font-weight:700}
+.stock-order__group-count{flex:none;padding:3px 9px;border-radius:999px;background:#f1ebfb;color:#4f2fa8;font-size:12.5px;font-weight:700;white-space:nowrap}
+.stock-order__group-chevron{flex:none;width:8px;height:8px;border-right:2px solid #6a4bb8;border-bottom:2px solid #6a4bb8;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+details.stock-order__group[open] .stock-order__group-chevron{transform:translateY(2px) rotate(-135deg)}
+details.stock-order__group>ul{padding:0 14px 6px;border-top:1px solid #f0eaf8}
+details.stock-order__group>ul li:last-child{border-bottom:0}
+@media (prefers-reduced-motion:reduce){.stock-order__group-chevron{transition:none}}

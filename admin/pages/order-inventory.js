@@ -58,7 +58,8 @@ export async function mountOrderInventory(dialog, order, { onChanged } = {}) {
       ${a?.status === 'shortage' ? shortagePanel(a.shortage, { orderNumber: order.order_number }) : ''}
       ${(detail.lines || []).length ? `<div class="stock-order__groups">${[...byLine.entries()].map(([key, lines]) => {
         const head = key === 'extra' ? 'Extra materials added by Admin' : `${lines[0].product_name} · ${lines[0].variant} × ${lines[0].ordered}`;
-        return `<div class="stock-order__group"><h4>${e(head)}</h4><ul>${lines.map((l) => `<li><span>${e(l.item_name)}<small>${e(BASIS[l.basis] || l.basis)}${l.note ? ` · ${e(l.note)}` : ''}</small></span><strong class="stock-delta stock-delta--out">${qty(-l.required, l.unit)}</strong></li>`).join('')}</ul></div>`;
+        // one closed dropdown per ordered item; it opens to the materials it uses
+        return `<details class="stock-order__group"><summary><span class="stock-order__group-name">${e(head)}</span><span class="stock-order__group-count">${lines.length} material${lines.length === 1 ? '' : 's'}</span><span class="stock-order__group-chevron" aria-hidden="true"></span></summary><ul>${lines.map((l) => `<li><span>${e(l.item_name)}<small>${e(BASIS[l.basis] || l.basis)}${l.note ? ` · ${e(l.note)}` : ''}</small></span><strong class="stock-delta stock-delta--out">${qty(-l.required, l.unit)}</strong></li>`).join('')}</ul></details>`;
       }).join('')}</div>` : ''}
       ${!a || ['shortage', 'no_recipe'].includes(a?.status) ? previewBlock(detail.preview, a) : ''}
       ${untracked.length ? `<div class="stock-order__untracked">${icon('flag')}<div><strong>Needs manual material review</strong><ul>${untracked.map((u) => `<li>${e(u.name)} · ${e(u.variant)} × ${e(u.quantity)} — ${e(u.reason)}</li>`).join('')}</ul></div></div>` : ''}
