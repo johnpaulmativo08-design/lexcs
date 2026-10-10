@@ -565,7 +565,8 @@
       <fieldset class="bd-group"><legend>Topper</legend>
         <div class="bd-chips" role="radiogroup" aria-label="Topper">${(options.topper || []).map((o) => `<button type="button" role="radio" class="bd-chip" data-bd-set="topper" data-value="${o.code}" aria-checked="${s.topper === o.code}">${esc(o.label)} ${o.code === 'none' ? '' : priceTag(o)}</button>`).join('')}</div>
         ${s.topper === 'number' ? `<label class="bd-label" for="bd-topper-text" style="margin-top:12px">Number on the topper <small>1–3 digits</small></label><input id="bd-topper-text" class="bd-input" inputmode="numeric" maxlength="3" autocomplete="off" data-bd-text="topper_text" value="${esc(s.topper_text)}">` : ''}
-      </fieldset>`;
+      </fieldset>
+      ${window.LexcInspiration ? window.LexcInspiration.html('bento', s.inspiration) : ''}`;
     }
     if (step === 'message') {
       const maxLines = Number(cfg().message_max_lines || 3), words = wordCount(s.message), maxWords = messageWords();
@@ -594,7 +595,6 @@
         ${hasLayout() ? '<li><span>Placement</span><strong>Arranged by you</strong></li>' : ''}
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
-      ${window.LexcInspiration ? window.LexcInspiration.html('bento', s.inspiration) : ''}
       <div class="bd-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span class="bd-label" style="margin:0" id="bd-qty-label">Quantity</span>
         <div class="bd-qty" role="group" aria-labelledby="bd-qty-label"><button type="button" data-bd-qty="-1" aria-label="Decrease quantity">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-bd-qty="1" aria-label="Increase quantity">+</button></div>
@@ -884,7 +884,7 @@
     let waited = 0; const t = setInterval(() => { waited += 200; if (window.lexcCatalogState === 'ready') { clearInterval(t); fn(); } else if (waited > 15000) { clearInterval(t); showToast('The menu could not load. Please try again.'); } }, 200);
   }
   // inspiration photos (shared/inspiration.js): kept in the design state and the cart item, never in the design itself
-  window.LexcInspiration?.register('bento', () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'review') renderBody(); }, saveDraft);
+  window.LexcInspiration?.register('bento', () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'decorate') renderBody(); }, saveDraft);
   window.LexcBento = Object.freeze({
     open(shared = null) { whenReady(() => { navigate('bento'); start({ shared }); }); },
     edit(index) { window.closeCart?.(); whenReady(() => { navigate('bento'); start({ fromCart: index }); }); },

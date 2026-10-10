@@ -343,7 +343,8 @@
       ${(options().message || []).length > 1 ? `<fieldset class="bd-group"><legend>Fondant letters <small>1–5 letters per cupcake</small></legend>
         <div class="bd-cards cd-patterns" role="radiogroup">${(options().message || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="message" data-value="${o.code}" aria-checked="${s.message === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'letters' ? 'A word or name on each cupcake you choose' : 'No letters'}${Number(o.price) ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
         ${s.message === 'letters' ? LexcLetterPieces.markup({ pieces: s.message_pieces, count: countOf(variant()?.label), at: pieceAt, noun: 'cupcake', id: 'cd-lp' }) + `<p class="bd-label" style="margin-top:14px">Letter color</p><div class="bd-swatches">${(options().color || []).map((c) => `<button type="button" class="bd-swatch${s.message_color === c.code ? ' is-on' : ''}" style="background:${c.hex}" data-cd-set="message_color" data-value="${c.code}" aria-pressed="${s.message_color === c.code}" aria-label="${esc(c.label)}" title="${esc(c.label)}"></button>`).join('')}</div>` : ''}
-      </fieldset>` : ''}`;
+      </fieldset>` : ''}
+      ${window.LexcInspiration ? window.LexcInspiration.html('cupcake', s.inspiration) : ''}`;
     const v = variant(), ex = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : [];
     const partText = (p) => `${esc(opt('style', p.style)?.label)} — ${p.colors.map((c) => esc(opt('color', c)?.label)).join(', ')}`;
     return `
@@ -359,7 +360,6 @@
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       ${quote.status === 'error' ? `<div class="bd-warning" role="alert">${esc(quote.message)}</div>` : ''}
-      ${window.LexcInspiration ? window.LexcInspiration.html('cupcake', s.inspiration) : ''}
       <div class="cd-qty-row"><span class="bd-label" style="margin:0" id="cd-qty-label">Boxes</span>
         <div class="bd-qty" role="group" aria-labelledby="cd-qty-label"><button type="button" data-cd-qty="-1" aria-label="One box less">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-cd-qty="1" aria-label="One box more">+</button></div></div>`;
   }
@@ -580,7 +580,7 @@
   function decodeShared(code) { try { const o = JSON.parse(fromB64(code)); return o && o.d && typeof o.d === 'object' ? o : null; } catch { return null; } }
 
   // inspiration photos (shared/inspiration.js): kept in the design state and the cart item, never in the design itself
-  window.LexcInspiration?.register('cupcake', () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'review') renderBody(); }, saveDraft);
+  window.LexcInspiration?.register('cupcake', () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'finish') renderBody(); }, saveDraft);
   window.LexcCupcake = Object.freeze({
     open({ productId = null, shared = null } = {}) {
       whenReady(() => {

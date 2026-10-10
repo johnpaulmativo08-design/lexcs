@@ -270,7 +270,8 @@ function makeTreatDesigner(K) {
         <div class="cd-themes" role="radiogroup">${(options().theme || []).map((o) => `<button type="button" role="radio" class="cd-theme" data-dd-set="theme" data-value="${o.code}" aria-checked="${s.theme === o.code}"><span aria-hidden="true">${THEME_ICON[o.code] || '✨'}</span><strong>${esc(o.label)}</strong><small>${Number(o.price) ? '+' + money(o.price) : 'free'}</small></button>`).join('')}</div>
         ${s.theme !== 'none' ? `<label class="bd-label" for="${K.key}-theme-note" style="margin-top:12px">${s.theme === 'custom' ? 'Your theme' : 'Anything to add?'} <small>${s.theme === 'custom' ? 'Required · e.g. a favourite character · ' : 'Optional · '}up to 60 characters</small></label>
           <input id="${K.key}-theme-note" class="bd-input" maxlength="60" data-dd-input="theme_note" value="${esc(s.theme_note)}" placeholder="${s.theme === 'custom' ? 'e.g. a kitty with a pink bow' : 'e.g. favourite colours'}">` : ''}
-      </fieldset>`;
+      </fieldset>
+      ${window.LexcInspiration ? window.LexcInspiration.html(K.key, s.inspiration) : ''}`;
     if (step === 'message') {
       const count = countOf(variant()?.label);
       return `
@@ -300,7 +301,6 @@ function makeTreatDesigner(K) {
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       ${quote.status === 'error' ? `<div class="bd-warning" role="alert">${esc(quote.message)}</div>` : ''}
-      ${window.LexcInspiration ? window.LexcInspiration.html(K.key, s.inspiration) : ''}
       <div class="cd-qty-row"><span class="bd-label" style="margin:0" id="${K.key}-qty-label">Boxes</span>
         <div class="bd-qty" role="group" aria-labelledby="${K.key}-qty-label"><button type="button" data-dd-qty="-1" aria-label="One box less">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-dd-qty="1" aria-label="One box more">+</button></div></div>`;
   }
@@ -518,7 +518,7 @@ function makeTreatDesigner(K) {
   function decodeShared(code) { try { const o = JSON.parse(fromB64(code)); return o && o.d && typeof o.d === 'object' ? o : null; } catch { return null; } }
 
   // inspiration photos (shared/inspiration.js): kept in the design state and the cart item, never in the design itself
-  window.LexcInspiration?.register(K.key, () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'review') renderBody(); }, saveDraft);
+  window.LexcInspiration?.register(K.key, () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'toppings') renderBody(); }, saveDraft);
   const api = window[K.global] = Object.freeze({
     open({ productId = null, shared = null } = {}) {
       whenReady(() => {
