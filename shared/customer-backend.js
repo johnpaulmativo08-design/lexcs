@@ -43,6 +43,7 @@ async function loadStorefront(){
  }catch(error){console.warn('Storefront could not load:',error);window.lexcCatalogState='error';renderShop();if(packageContainer)packageContainer.innerHTML='<div class="shop-no-results" role="alert"><strong>Packages could not load.</strong><p>Check your connection and try again.</p><button class="btn-primary" type="button" onclick="loadStorefront()">Try again</button></div>';document.getElementById('checkoutPaymentMethods').innerHTML='<p role="alert">Payment methods could not load. <button type="button" class="btn-outline" onclick="loadStorefront()">Try again</button></p>';}
 }
 function addPackageToCart(name){
+ if(!requireAccountForCart('Log in or create an account to order a package.'))return;
  const p=liveCatalog.find(p=>p.kind==='package'&&p.name===name),v=p?.product_variants.find(v=>v.is_active);
  if(!v)return showToast('This package is unavailable.');
  const item=cart.find(i=>i.variant_id===v.id);

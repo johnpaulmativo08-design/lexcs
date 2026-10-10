@@ -785,6 +785,7 @@
     fill();
   }
   async function addToCart() {
+    if (!window.currentUser) { saveDraft(); showToast('Log in or create an account to add your design to the cart. Your design stays saved on this device.'); navigate('login'); return; }
     // the message is limited by words (not characters); the database checks the same rule when pricing
     if (wordCount(state.message) > messageWords()) {
       if (step !== 'message') goStep('message');

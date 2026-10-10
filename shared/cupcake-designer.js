@@ -506,6 +506,7 @@
 
   // ---- cart -------------------------------------------------------------------------------------------------
   async function addToCart() {
+    if (!window.currentUser) { saveDraft(); showToast('Log in or create an account to add your design to the cart. Your design stays saved on this device.'); navigate('login'); return; }
     if (state.message === 'letters' && !LexcLetterPieces.filled(state.message_pieces)) {
       if (step !== 'finish') goStep('finish');
       return showToast('Add letters to at least one cupcake, or choose No letters.');
