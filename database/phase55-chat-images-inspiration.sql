@@ -21,6 +21,12 @@ begin
   execute format('alter table public.chat_messages add constraint chat_messages_message_type_check check (message_type = any (%L::text[]))', kinds);
 end $$;
 
+-- people may post text, and customers picture messages (only through send_chat_images / attach_inspiration);
+-- every other kind of message comes from the system
+alter table public.chat_messages drop constraint if exists chat_messages_check1;
+alter table public.chat_messages add constraint chat_messages_check1
+  check (message_type = 'text' or sender_type = 'system' or (message_type = 'image' and sender_type = 'customer'));
+
 -- every path must be one of the caller's own uploaded pictures
 create or replace function private.own_pictures(paths text[], max_count integer) returns text[]
 language plpgsql stable security definer set search_path = '' as $$
