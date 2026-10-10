@@ -386,3 +386,18 @@ html.design-viewer .bd-layout{display:block!important}
 html.design-viewer .bd-stage{position:fixed!important;inset:0!important;z-index:50;display:flex;flex-direction:column;border:0!important;border-radius:0!important}
 html.design-viewer .bd-canvas-box,html.design-viewer .cd-box{flex:1 1 auto;min-height:0;height:auto!important;max-height:none!important;aspect-ratio:auto!important}
 html.design-viewer .bd-stage-bar{flex:none}
+
+/* Phones: DIY customization is the highlighted button in the middle of the bottom bar */
+@media(max-width:900px){
+  .customer-mobile-nav{overflow:visible}
+  .customer-mobile-nav .mobile-diy{position:relative;color:#5a2bbf;font-weight:800}
+  .customer-mobile-nav .mobile-diy>span{display:grid;place-items:center;width:52px;height:52px;min-height:52px;margin-top:-26px;border-radius:50%;
+    background:linear-gradient(140deg,#8f5cf0 0%,#6033dd 55%,#d9468f 120%);color:#fff;border:3px solid #fff;
+    box-shadow:0 8px 18px rgba(96,51,221,.38),0 0 0 4px rgba(143,92,240,.14)}
+  .customer-mobile-nav .mobile-diy .ui-icon{width:24px;height:24px;stroke:#fff}
+  .customer-mobile-nav .mobile-diy>span::after{content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(143,92,240,.35);animation:diy-glow 2.4s ease-out infinite}
+  .customer-mobile-nav .mobile-diy[aria-current]>span{box-shadow:0 8px 18px rgba(96,51,221,.45),0 0 0 4px rgba(217,70,143,.25)}
+  .customer-mobile-nav .mobile-diy:focus-visible{outline:none}.customer-mobile-nav .mobile-diy:focus-visible>span{outline:3px solid #b9a1f0;outline-offset:3px}
+}
+@keyframes diy-glow{0%{transform:scale(.92);opacity:.9}70%,100%{transform:scale(1.22);opacity:0}}
+@media (prefers-reduced-motion:reduce){.customer-mobile-nav .mobile-diy>span::after{animation:none;opacity:0}}
