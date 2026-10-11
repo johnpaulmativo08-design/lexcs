@@ -470,3 +470,19 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .pf-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .pf-close{display:grid;place-items:center;width:34px;height:34px;border:1px solid #e3d9f0;border-radius:50%;background:#fff;color:#5a32b8;font-size:20px;line-height:1;cursor:pointer}
 .pf-pay-card .pf-pays{margin-top:6px}
+
+/* profile: phones stack (log out last); desktop shows two columns */
+.pf-grid{display:flex;flex-direction:column}
+.pf-side{display:contents}.pf-side .pf-logout{order:3}.pf-main{order:2}.pf-side .pf-hero{order:1}
+@media(min-width:900px){
+  .pf-wrap{max-width:1080px;padding:100px 24px 60px}
+  .pf-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start;margin-top:18px}
+  .pf-side{display:block;position:sticky;top:96px;padding:22px 20px;border:1px solid #e9e1f5;border-radius:16px;background:#fff}
+  .pf-side .pf-hero{margin:0 0 16px}
+  .pf-main .pf-card{margin-bottom:18px;padding:20px 22px}
+  .pf-main .pf-actions{display:grid;grid-template-columns:1fr 1fr}
+  .pf-main .pf-action{border-right:1px solid #f1ebf8}
+  .pf-main .pf-action:nth-child(2n){border-right:0}
+  .pf-main .pf-action:nth-last-child(-n+2){border-bottom:0}
+  .pf-row{grid-template-columns:40px 150px minmax(0,1fr)}
+}

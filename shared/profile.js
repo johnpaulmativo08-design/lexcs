@@ -40,11 +40,11 @@
     const user = window.currentUser, name = profile.full_name || user.name || '', initials = (name || user.email || '?').slice(0, 2).toUpperCase();
     root().innerHTML = `<header class="pf-head"><button type="button" class="pf-round" data-pf="back" aria-label="Back">${icon(ICONS.back)}</button><h1>My Profile</h1>
         <button type="button" class="pf-round" data-pf="edit" aria-label="${editing ? 'Cancel editing' : 'Edit profile'}" aria-pressed="${editing}">${icon(editing ? ICONS.x : ICONS.edit)}</button></header>
-      <section class="pf-hero">
+      <div class="pf-grid"><aside class="pf-side"><section class="pf-hero">
         <div class="pf-photo">${photoUrl ? `<img src="${esc(photoUrl)}" alt="Your profile photo">` : `<span>${esc(initials)}</span>`}
           <label class="pf-photo-btn" aria-label="Change profile photo">${icon(ICONS.camera)}<input type="file" accept="image/jpeg,image/png,image/webp" data-pf-photo hidden></label></div>
         <h2>${esc(name || 'Your name')}</h2><p>${esc(user.email || '')}</p><span class="pf-badge">Customer account</span>
-      </section>
+      </section><button type="button" class="pf-logout" data-pf="logout">Log out</button></aside><div class="pf-main">
       <form class="pf-card" data-pf-form><h3>Account Details</h3>
         ${row('user', 'Full name', profile.full_name, 'full_name')}
         ${row('mail', 'Email', user.email, null)}
@@ -58,7 +58,7 @@
         ${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
       </div></section>
       ${payments ? `<section class="pf-card pf-pay-card" id="pfPayments"><div class="pf-card-head"><h3>Order transactions</h3><button type="button" class="pf-close" data-pf="payments" aria-label="Close order transactions">×</button></div>${paymentsList()}</section>` : ''}
-      <button type="button" class="pf-logout" data-pf="logout">Log out</button>`;
+      </div></div>`;
   }
   function paymentsList() {
     if (!payments.length) return '<p class="pf-empty">No payments yet.</p>';
