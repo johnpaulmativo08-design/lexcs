@@ -20,7 +20,7 @@
     edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
     back: '<path d="m15 6-6 6 6 6"/>', chev: '<path d="m9 6 6 6-6 6"/>', camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'
   };
-  let profile = null, editing = false, photoUrl = '', payments = null, saving = false;
+  let profile = null, editing = false, photoUrl = '', saving = false, panel = null, panelData = null;
   const root = () => document.getElementById('profileRoot');
 
   async function load() {
@@ -57,20 +57,50 @@
         ${action('bag', 'Shop', 'shop')}${action('wand', 'DIY customization', 'diy')}${action('cart', 'Cart', 'cart')}
         ${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
       </div></section>
-      ${payments ? `<section class="pf-card pf-pay-card" id="pfPayments"><div class="pf-card-head"><h3>Order transactions</h3><button type="button" class="pf-close" data-pf="payments" aria-label="Close order transactions">×</button></div>${paymentsList()}</section>` : ''}
+      ${panel ? panelCard() : ''}
       </div></div>`;
   }
-  function paymentsList() {
-    if (!payments.length) return '<p class="pf-empty">No payments yet.</p>';
-    const label = { awaiting_payment: 'Waiting for transfer', verification_pending: 'Being verified', paid: 'Verified', rejected: 'Rejected', refunded: 'Refunded' };
-    return `<ul class="pf-pays">${payments.map((p) => `<li><span><strong>Order #${esc(p.orders?.order_number ?? '')}</strong><small>${when(p.created_at)}</small></span><b>${money(p.amount)}</b><em class="is-${esc(p.status)}">${esc(label[p.status] || p.status)}</em></li>`).join('')}</ul>`;
+  // Order history, cancelled orders and payments: one compact card at a time, under Activities
+  const PANELS = { orders: 'Order history', cancelled: 'Cancelled orders', payments: 'Order transactions' };
+  const STATUS = { pending: 'Waiting for LexC’s', confirmed: 'Confirmed', preparing: 'Being made', ready: 'Ready', completed: 'Completed', cancelled: 'Cancelled',
+    awaiting_payment: 'Waiting for transfer', verification_pending: 'Being verified', paid: 'Verified', rejected: 'Rejected', refunded: 'Refunded' };
+  const tone = (st) => ['paid', 'completed', 'ready', 'confirmed'].includes(st) ? 'ok' : ['rejected', 'cancelled'].includes(st) ? 'bad' : 'wait';
+  const pill = (st) => `<em class="pf-pill is-${tone(st)}">${esc(STATUS[st] || st)}</em>`;
+  const paymentURL = (id) => new URL('payment/index.html?order=' + encodeURIComponent(id), document.baseURI).href;
+  function panelCard() {
+    const rows = panelData || [];
+    const empty = { orders: 'No orders yet.', cancelled: 'No cancelled orders.', payments: 'No payments yet.' }[panel];
+    const body = !panelData ? '<p class="pf-empty">Loading…</p>' : !rows.length ? `<p class="pf-empty">${empty}</p>` : `<ul class="pf-mini">${rows.map((r) => panel === 'payments'
+      ? `<li><span class="pf-mini-main"><strong>Order #${esc(r.order_number ?? '')}</strong><small>${when(r.created_at)}</small></span><b>${money(r.amount)}</b>${pill(r.status)}</li>`
+      : `<li><a href="${esc(paymentURL(r.id))}"><span class="pf-mini-main"><strong>Order #${esc(r.order_number)}</strong><small>${when(r.created_at)} · ${r.items} item${r.items === 1 ? '' : 's'}</small></span><b>${r.total_amount == null ? '—' : money(r.total_amount)}</b>${pill(r.status)}</a></li>`).join('')}</ul>`;
+    return `<section class="pf-card pf-panel" id="pfPanel"><div class="pf-card-head"><h3>${PANELS[panel]}</h3><button type="button" class="pf-close" data-pf="${panel}" aria-label="Close ${PANELS[panel].toLowerCase()}">×</button></div>${body}</section>`;
+  }
+  async function openPanel(kind) {
+    if (panel === kind) { panel = null; panelData = null; draw(); return; }
+    panel = kind; panelData = null; draw(); document.getElementById('pfPanel')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    const db = window.LexcBackend, me = window.currentUser.id;
+    try {
+      let data;
+      if (kind === 'payments') {
+        // payments link to orders twice in the database, so order numbers are looked up separately
+        const rows = db.unwrap(await db.client.from('order_payment_attempts').select('id,order_id,amount,status,created_at').order('created_at', { ascending: false }).limit(50));
+        const ids = [...new Set(rows.map((r) => r.order_id))], numbers = new Map();
+        if (ids.length) db.unwrap(await db.client.from('orders').select('id,order_number').in('id', ids)).forEach((o) => numbers.set(o.id, o.order_number));
+        data = rows.map((r) => ({ ...r, order_number: numbers.get(r.order_id) }));
+      } else {
+        let q = db.client.from('orders').select('id,order_number,created_at,total_amount,status,order_items(quantity)').eq('customer_id', me).order('created_at', { ascending: false }).limit(50);
+        q = kind === 'cancelled' ? q.eq('status', 'cancelled') : q.neq('status', 'cancelled');
+        data = db.unwrap(await q).map((o) => ({ ...o, items: (o.order_items || []).reduce((n, i) => n + Number(i.quantity || 0), 0) }));
+      }
+      if (panel === kind) { panelData = data; draw(); }
+    } catch (e) { panel = null; draw(); window.showToast?.(e.message); }
   }
   function error(text) { const box = root().querySelector('.pf-error'); if (box) { box.textContent = text; box.hidden = !text; } }
 
   async function show() {
     if (!window.currentUser) { window.navigate('login'); return; }
     root().innerHTML = '<div class="pf-loading" role="status"><span class="skel skel-circle"></span><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span></div>';
-    editing = false; payments = null;
+    editing = false; panel = null; panelData = null;
     try { await load(); draw(); } catch (e) { root().innerHTML = `<p class="pf-empty" role="alert">Your profile could not load: ${esc(e.message)}</p>`; }
   }
 
@@ -82,19 +112,8 @@
     if (act === 'logout') return window.handleLogout?.();
     if (act === 'shop') return window.navigate('shop');
     if (act === 'diy') return window.LexcCustom ? window.LexcCustom.choose() : window.navigate('shop');
-    if (act === 'cart' || act === 'orders') return window.openCart?.();
-    if (act === 'cancelled') { window.openCart?.(); setTimeout(() => { const t = document.getElementById('drawerToggleCancelledOrders'); if (t && !t.hidden && /Show/.test(t.textContent)) t.click(); document.getElementById('ordersSectionTitle')?.scrollIntoView({ block: 'start' }); }, 600); return; }
-    if (act === 'payments') {
-      if (payments) { payments = null; draw(); return; }
-      try {
-        // payments link to orders twice in the database, so order numbers are looked up separately
-        const db = window.LexcBackend, rows = db.unwrap(await db.client.from('order_payment_attempts').select('id,order_id,amount,status,created_at').order('created_at', { ascending: false }).limit(50));
-        const ids = [...new Set(rows.map((r) => r.order_id))], numbers = new Map();
-        if (ids.length) db.unwrap(await db.client.from('orders').select('id,order_number').in('id', ids)).forEach((o) => numbers.set(o.id, o.order_number));
-        payments = rows.map((r) => ({ ...r, orders: { order_number: numbers.get(r.order_id) } })); draw(); document.getElementById('pfPayments')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      }
-      catch (e) { window.showToast?.(e.message); }
-    }
+    if (act === 'cart') return window.openCart?.();
+    if (act === 'orders' || act === 'cancelled' || act === 'payments') return openPanel(act);
   });
   document.addEventListener('submit', async (event) => {
     const form = event.target.closest?.('[data-pf-form]'); if (!form) return;

@@ -486,3 +486,15 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
   .pf-main .pf-action:nth-last-child(-n+2){border-bottom:0}
   .pf-row{grid-template-columns:40px 150px minmax(0,1fr)}
 }
+
+/* profile: compact lists for order history, cancelled orders and payments */
+.pf-mini{display:grid;gap:0;margin:6px 0 0;padding:0;list-style:none;border:1px solid #efe8f8;border-radius:12px;overflow:hidden}
+.pf-mini li,.pf-mini li>a{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px}
+.pf-mini li{border-bottom:1px solid #f3eefa}.pf-mini li:last-child{border-bottom:0}
+.pf-mini li:not(:has(a)),.pf-mini li>a{padding:8px 12px}
+.pf-mini li>a{grid-column:1/-1;color:inherit;text-decoration:none}.pf-mini li>a:hover{background:#faf7fe}
+.pf-mini-main strong{display:block;font-size:.92rem}.pf-mini-main small{display:block;color:#7c6d91;font-size:.76rem}
+.pf-mini b{font-size:.9rem;white-space:nowrap}
+.pf-pill{font-style:normal;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pf-pill.is-ok{background:#e6f5ed;color:#1f7a50}.pf-pill.is-bad{background:#f8e9ec;color:#a3324b}.pf-pill.is-wait{background:#f1ebfb;color:#5b3a99}
+.pf-panel .pf-card-head h3{margin:0}
