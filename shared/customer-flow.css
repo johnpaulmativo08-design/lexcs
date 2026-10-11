@@ -513,3 +513,33 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 @media(min-width:900px){.pf-row.has-pen{grid-template-columns:40px 150px minmax(0,1fr) 34px}}
 @media(max-width:520px){.pf-row.has-pen{grid-template-columns:40px minmax(0,1fr) 34px}.pf-row.has-pen .pf-pen{grid-column:3;grid-row:1 / span 2}
   .pf-float{place-items:end stretch;padding:0}.pf-panel{width:100%;max-height:75vh;border-radius:20px 20px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}}
+/* profile on phones: smaller, tighter, lighter */
+@media(max-width:600px){
+  .pf-wrap{padding:72px 12px 96px}
+  .pf-head{padding:8px 10px;border-radius:14px;gap:8px}
+  .pf-head h1{font-size:1.02rem}
+  .pf-round{width:34px;height:34px}.pf-round .ui-icon{width:16px;height:16px}
+  .pf-hero{margin:12px 0 10px;gap:2px}
+  .pf-photo{width:84px;height:84px;padding:3px}
+  .pf-photo img,.pf-photo>span{font-size:1.5rem}
+  .pf-photo-btn{width:28px;height:28px;right:0;bottom:2px;border-width:2px}.pf-photo-btn .ui-icon{width:14px;height:14px}
+  .pf-hero h2{margin-top:6px;font-size:1.15rem}.pf-hero p{font-size:.82rem}
+  .pf-badge{margin-top:4px;padding:3px 10px;font-size:.72rem}
+  .pf-card{margin-bottom:10px;padding:10px 12px;border-radius:14px}
+  .pf-card h3{font-size:.92rem;margin-bottom:4px}
+  .pf-row,.pf-row.has-pen{grid-template-columns:30px minmax(0,1fr) 30px;column-gap:10px;row-gap:0;padding:7px 0}
+  .pf-row:not(.has-pen){grid-template-columns:30px minmax(0,1fr)}
+  .pf-ic{width:30px;height:30px}.pf-ic .ui-icon{width:15px;height:15px}
+  .pf-row .pf-label{font-size:.7rem}.pf-value,.pf-input{font-size:.86rem}
+  .pf-input{min-height:36px;padding:7px 9px}
+  .pf-pen{width:30px;height:30px}.pf-pen .ui-icon{width:14px;height:14px}
+  .pf-btn{min-height:36px;padding:0 14px;font-size:.85rem}
+  .pf-actions{border-radius:12px}
+  .pf-action{gap:10px;padding:7px 10px;font-size:.88rem}
+  .pf-action small{font-size:.7rem}.pf-action>.ui-icon{width:15px;height:15px}
+  .pf-logout{min-height:38px;font-size:.86rem;border-radius:10px}
+  .pf-panel{padding:12px 12px 10px}.pf-panel h3{font-size:.92rem}
+  .pf-mini li:not(:has(a)),.pf-mini li>a{padding:7px 10px;gap:8px}
+  .pf-mini-main strong{font-size:.84rem}.pf-mini-main small{font-size:.7rem}
+  .pf-mini b{font-size:.82rem}.pf-pill{font-size:.66rem;padding:2px 7px}
+}
