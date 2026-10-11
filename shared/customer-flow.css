@@ -498,3 +498,18 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .pf-pill{font-style:normal;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
 .pf-pill.is-ok{background:#e6f5ed;color:#1f7a50}.pf-pill.is-bad{background:#f8e9ec;color:#a3324b}.pf-pill.is-wait{background:#f1ebfb;color:#5b3a99}
 .pf-panel .pf-card-head h3{margin:0}
+
+/* profile: pen at the end of each detail; floating minimal lists */
+.pf-row.has-pen{grid-template-columns:40px 120px minmax(0,1fr) 34px}
+.pf-pen{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:#8a7aa3;cursor:pointer}
+.pf-pen:hover{background:#f3edfc;color:#5a32b8}.pf-pen .ui-icon{width:16px;height:16px}
+.pf-float{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:16px;background:rgba(44,26,71,.28)}
+.pf-panel{width:min(440px,100%);max-height:min(560px,80vh);overflow:auto;padding:16px 16px 12px;border-radius:20px;background:#fff;box-shadow:0 24px 60px rgba(44,26,71,.22)}
+.pf-panel .pf-card-head{margin-bottom:6px}.pf-panel h3{font-size:1rem}
+.pf-panel .pf-close{border:0;background:#f5f1fb}
+.pf-panel .pf-mini{border:0;gap:6px;margin:0}
+.pf-panel .pf-mini li{border:0;border-radius:12px;background:#faf8fd}
+.pf-panel .pf-mini li>a:hover{background:#f3eefb;border-radius:12px}
+@media(min-width:900px){.pf-row.has-pen{grid-template-columns:40px 150px minmax(0,1fr) 34px}}
+@media(max-width:520px){.pf-row.has-pen{grid-template-columns:40px minmax(0,1fr) 34px}.pf-row.has-pen .pf-pen{grid-column:3;grid-row:1 / span 2}
+  .pf-float{place-items:end stretch;padding:0}.pf-panel{width:100%;max-height:75vh;border-radius:20px 20px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}}

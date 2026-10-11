@@ -30,16 +30,18 @@
     photoUrl = profile.avatar_path ? await db.privateImage('avatars', profile.avatar_path).catch(() => '') : '';
   }
   function row(ic, label, value, field, type = 'text') {
-    return `<div class="pf-row"><span class="pf-ic">${icon(ICONS[ic])}</span><span class="pf-label">${label}</span>${editing && field
+    const on = field && (editing === true || editing === field);
+    const pen = field && !on ? `<button type="button" class="pf-pen" data-pf-field="${field}" aria-label="Edit ${label.toLowerCase()}">${icon(ICONS.edit)}</button>` : '';
+    return `<div class="pf-row${pen ? ' has-pen' : ''}"><span class="pf-ic">${icon(ICONS[ic])}</span><span class="pf-label">${label}</span>${on
       ? `<${field === 'address' ? 'textarea rows="2"' : `input type="${type}"`} class="pf-input" name="${field}" maxlength="${field === 'address' ? 300 : 80}" ${field === 'full_name' ? 'required' : ''}${field === 'address' ? `>${esc(value || '')}</textarea>` : ` value="${esc(value || '')}">`}`
-      : `<span class="pf-value${value ? '' : ' is-empty'}">${esc(value || 'Not added yet')}</span>`}</div>`;
+      : `<span class="pf-value${value ? '' : ' is-empty'}">${esc(value || 'Not added yet')}</span>`}${pen}</div>`;
   }
   const action = (ic, label, act, note = '') => `<button type="button" class="pf-action" data-pf="${act}"><span class="pf-ic">${icon(ICONS[ic])}</span><span>${label}${note ? `<small>${note}</small>` : ''}</span>${icon(ICONS.chev)}</button>`;
 
   function draw() {
     const user = window.currentUser, name = profile.full_name || user.name || '', initials = (name || user.email || '?').slice(0, 2).toUpperCase();
     root().innerHTML = `<header class="pf-head"><button type="button" class="pf-round" data-pf="back" aria-label="Back">${icon(ICONS.back)}</button><h1>My Profile</h1>
-        <button type="button" class="pf-round" data-pf="edit" aria-label="${editing ? 'Cancel editing' : 'Edit profile'}" aria-pressed="${editing}">${icon(editing ? ICONS.x : ICONS.edit)}</button></header>
+        <button type="button" class="pf-round" data-pf="edit" aria-label="${editing ? 'Cancel editing' : 'Edit profile'}" aria-pressed="${!!editing}">${icon(editing ? ICONS.x : ICONS.edit)}</button></header>
       <div class="pf-grid"><aside class="pf-side"><section class="pf-hero">
         <div class="pf-photo">${photoUrl ? `<img src="${esc(photoUrl)}" alt="Your profile photo">` : `<span>${esc(initials)}</span>`}
           <label class="pf-photo-btn" aria-label="Change profile photo">${icon(ICONS.camera)}<input type="file" accept="image/jpeg,image/png,image/webp" data-pf-photo hidden></label></div>
@@ -73,11 +75,11 @@
     const body = !panelData ? '<p class="pf-empty">Loading…</p>' : !rows.length ? `<p class="pf-empty">${empty}</p>` : `<ul class="pf-mini">${rows.map((r) => panel === 'payments'
       ? `<li><span class="pf-mini-main"><strong>Order #${esc(r.order_number ?? '')}</strong><small>${when(r.created_at)}</small></span><b>${money(r.amount)}</b>${pill(r.status)}</li>`
       : `<li><a href="${esc(paymentURL(r.id))}"><span class="pf-mini-main"><strong>Order #${esc(r.order_number)}</strong><small>${when(r.created_at)} · ${r.items} item${r.items === 1 ? '' : 's'}</small></span><b>${r.total_amount == null ? '—' : money(r.total_amount)}</b>${pill(r.status)}</a></li>`).join('')}</ul>`;
-    return `<section class="pf-card pf-panel" id="pfPanel"><div class="pf-card-head"><h3>${PANELS[panel]}</h3><button type="button" class="pf-close" data-pf="${panel}" aria-label="Close ${PANELS[panel].toLowerCase()}">×</button></div>${body}</section>`;
+    return `<div class="pf-float" data-pf-backdrop><section class="pf-panel" id="pfPanel" role="dialog" aria-modal="true" aria-label="${PANELS[panel]}"><div class="pf-card-head"><h3>${PANELS[panel]}</h3><button type="button" class="pf-close" data-pf="${panel}" aria-label="Close ${PANELS[panel].toLowerCase()}">×</button></div>${body}</section></div>`;
   }
   async function openPanel(kind) {
     if (panel === kind) { panel = null; panelData = null; draw(); return; }
-    panel = kind; panelData = null; draw(); document.getElementById('pfPanel')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    panel = kind; panelData = null; draw(); root().querySelector('.pf-panel .pf-close')?.focus();
     const db = window.LexcBackend, me = window.currentUser.id;
     try {
       let data;
@@ -108,17 +110,23 @@
     const b = event.target.closest?.('#profileRoot [data-pf]'); if (!b) return;
     const act = b.dataset.pf;
     if (act === 'back') return history.length > 1 ? history.back() : window.navigate('home');
-    if (act === 'edit') { editing = !editing; draw(); if (editing) root().querySelector('[name=full_name]')?.focus(); return; }
+    if (act === 'edit') { editing = editing ? false : true; draw(); if (editing) root().querySelector('[name=full_name]')?.focus(); return; }
     if (act === 'logout') return window.handleLogout?.();
     if (act === 'shop') return window.navigate('shop');
     if (act === 'diy') return window.LexcCustom ? window.LexcCustom.choose() : window.navigate('shop');
     if (act === 'cart') return window.openCart?.();
     if (act === 'orders' || act === 'cancelled' || act === 'payments') return openPanel(act);
   });
+  document.addEventListener('click', (event) => {
+    const pen = event.target.closest?.('#profileRoot [data-pf-field]');
+    if (pen) { editing = pen.dataset.pfField; draw(); const box = root().querySelector(`[name=${editing}]`); box?.focus(); box?.select?.(); return; }
+    if (event.target.matches?.('#profileRoot [data-pf-backdrop]')) { panel = null; panelData = null; draw(); }
+  });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && panel && root()?.isConnected) { panel = null; panelData = null; draw(); } });
   document.addEventListener('submit', async (event) => {
     const form = event.target.closest?.('[data-pf-form]'); if (!form) return;
     event.preventDefault(); if (saving) return;
-    const f = form.elements, full_name = f.full_name.value.trim(), phone = f.phone.value.trim(), address = f.address.value.trim();
+    const f = form.elements, full_name = (f.full_name ? f.full_name.value : profile.full_name || '').trim(), phone = (f.phone ? f.phone.value : profile.phone || '').trim(), address = (f.address ? f.address.value : profile.address || '').trim();
     if (full_name.length < 2) return error('Enter your full name.');
     if (phone && !/^[+\d][\d\s-]{6,19}$/.test(phone)) return error('Enter a valid contact number.');
     saving = true; draw();
