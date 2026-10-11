@@ -43,7 +43,7 @@
     async signOut() { unwrap(await client.auth.signOut()); },
     async signUp(name, email, password) {
       return unwrap(await client.auth.signUp({ email: email.trim(), password,
-        options: { data: { full_name: name.trim() }, emailRedirectTo: location.origin + '/' }
+        options: { data: { full_name: name.trim(), terms_accepted_at: new Date().toISOString() }, emailRedirectTo: location.origin + '/' }
       }));
     },
     async catalog() {

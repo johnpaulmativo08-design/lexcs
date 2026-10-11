@@ -404,3 +404,18 @@ html.design-viewer .bd-stage-bar{flex:none}
 
 /* guests (no account): no cart */
 body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shopping"]{display:none!important}
+
+/* ---- Sign-up steps: details → terms → email code ---- */
+.reg-steps{display:flex;gap:6px;margin:0 0 14px;padding:0;list-style:none;counter-reset:reg}
+.reg-steps li{flex:1;padding:6px 4px;border-radius:999px;background:#f3eef9;color:#7c6d91;font-size:12px;font-weight:700;text-align:center}
+.reg-steps li.is-on{background:#6033dd;color:#fff}.reg-steps li.is-done{background:#e3f5ec;color:#1f7a50}
+.reg-title{margin:0 0 10px;font-size:1.1rem;color:#2c1a47}
+.reg-terms{max-height:220px;overflow:auto;padding:12px 14px;border:1px solid #e3d9f0;border-radius:12px;background:#fbf9fe;font-size:13.5px;line-height:1.5;color:#3d3150}
+.reg-terms p{margin:0 0 8px}
+.reg-agree{display:flex;align-items:flex-start;gap:8px;margin:12px 0;font-size:14px;color:#3d3150;cursor:pointer}
+.reg-agree input{width:18px;height:18px;margin-top:1px;accent-color:#6033dd}
+.reg-back{margin-top:8px;border:0;background:none;color:#5a32b8;font:inherit;font-weight:700;cursor:pointer}
+.reg-code{letter-spacing:.5em;font-size:1.3rem;text-align:center}
+.reg-resend{margin:10px 0 0;font-size:13px;color:#7c6d91}
+.reg-resend button{border:0;background:none;color:#5a32b8;font:inherit;font-weight:700;cursor:pointer;padding:0}
+.reg-resend button:disabled{color:#a99bbd;cursor:default}
