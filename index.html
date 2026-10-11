@@ -3,7 +3,7 @@
 <head>
 <script src="shared/vendor/supabase.js"></script>
 <script src="shared/supabase-config.js"></script>
-<script src="shared/supabase-client.js?v=7"></script>
+<script src="shared/supabase-client.js?v=8"></script>
 <script src="shared/catalog.js"></script>
 <script src="shared/fuzzy-search.js"></script>
 <link rel="stylesheet" href="shared/brand.css?v=4">
@@ -655,7 +655,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'DM Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=18">
+<link rel="stylesheet" href="shared/customer-flow.css?v=19">
 <link rel="stylesheet" href="shared/product-detail.css?v=3">
 <link rel="stylesheet" href="shared/chat-widget.css?v=10">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=6">
@@ -1120,13 +1120,9 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
         </div>
         <div data-reg-step="3" hidden>
           <h2 class="reg-title">Verify your email</h2>
-          <p class="auth-sub">We sent a 6-digit code to <strong id="regSentTo"></strong>. Enter it below to confirm your account.</p>
-          <div class="auth-field">
-            <label class="auth-label" for="regCode">Verification code</label>
-            <input class="auth-input reg-code" id="regCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
-          </div>
-          <button class="auth-btn" type="button" onclick="verifyRegisterCode()">Confirm account</button>
-          <p class="reg-resend">Didn’t get it? Check spam, or <button type="button" id="regResend" onclick="resendRegisterCode()">send a new code</button></p>
+          <div class="reg-mail" aria-hidden="true">✉️</div>
+          <p class="auth-sub">We sent a confirmation email to <strong id="regSentTo"></strong>. Open it and tap <strong>Confirm your mail</strong>. You’ll come back here signed in.</p>
+          <p class="reg-resend">Didn’t get it? Check your spam folder, or <button type="button" id="regResend" onclick="resendRegisterCode()">send it again</button></p>
         </div>
         <div class="auth-switch">Already have an account? <a onclick="navigate('login')">Log In</a></div>
       </div>
@@ -2332,7 +2328,6 @@ function registerStep(n) {
   document.querySelectorAll('[data-reg-step]').forEach(step => { step.hidden = Number(step.dataset.regStep) !== n; });
   document.querySelectorAll('[data-reg-dot]').forEach(dot => { const k = Number(dot.dataset.regDot); dot.classList.toggle('is-on', k === n); dot.classList.toggle('is-done', k < n); });
   registerMessage('');
-  if (n === 3) setTimeout(() => document.getElementById('regCode').focus(), 50);
 }
 function registerNext() {
   const email = document.getElementById('regEmail').value.trim(), name = document.getElementById('regName').value.trim();
@@ -2358,27 +2353,15 @@ async function handleRegister() {
   } catch (problem) { registerMessage(problem.message); }
   finally { authBusy = false; }
 }
-async function verifyRegisterCode() {
-  if (authBusy) return;
-  const email = document.getElementById('regEmail').value.trim(), token = document.getElementById('regCode').value.replace(/\D/g, '');
-  if (token.length !== 6) return registerMessage('Enter the 6-digit code from the email.');
-  authBusy = true;
-  try {
-    LexcBackend.unwrap(await LexcBackend.client.auth.verifyOtp({ email, token, type: 'signup' }));
-    registerMessage('Your account is confirmed. Welcome!', true);
-    await completeCustomerLogin(await LexcBackend.identity());
-  } catch (problem) { registerMessage(/expired|invalid/i.test(problem.message) ? 'That code is wrong or has expired. Check the latest email, or send a new code.' : problem.message); }
-  finally { authBusy = false; }
-}
 let resendTimer = null;
 function resendCooldown(seconds = 60) {
   const button = document.getElementById('regResend'); clearInterval(resendTimer);
-  let left = seconds; button.disabled = true; button.textContent = `send a new code (${left}s)`;
-  resendTimer = setInterval(() => { left--; if (left <= 0) { clearInterval(resendTimer); button.disabled = false; button.textContent = 'send a new code'; } else button.textContent = `send a new code (${left}s)`; }, 1000);
+  let left = seconds; button.disabled = true; button.textContent = `send it again (${left}s)`;
+  resendTimer = setInterval(() => { left--; if (left <= 0) { clearInterval(resendTimer); button.disabled = false; button.textContent = 'send it again'; } else button.textContent = `send it again (${left}s)`; }, 1000);
 }
 async function resendRegisterCode() {
   const email = document.getElementById('regEmail').value.trim();
-  try { LexcBackend.unwrap(await LexcBackend.client.auth.resend({ type: 'signup', email })); registerMessage('A new code was sent to ' + email + '.', true); resendCooldown(); }
+  try { LexcBackend.unwrap(await LexcBackend.client.auth.resend({ type: 'signup', email })); registerMessage('A new confirmation email was sent to ' + email + '.', true); resendCooldown(); }
   catch (problem) { registerMessage(problem.message); }
 }
 async function handleLogout() {
@@ -2396,6 +2379,8 @@ async function handleForgotPassword() {
 LexcBackend.identity().then(async user => {
   currentUser = user;
   updateNavAuth();
+  // back from the confirmation email link
+  if (new URLSearchParams(location.search).has('confirmed')) { const u = new URL(location.href); u.searchParams.delete('confirmed'); history.replaceState(history.state, '', u); if (user) showToast('Your email is confirmed. Welcome to LexC’s Snacktime!'); }
   if (user) try { await hydrateCustomerCart(user); } catch (error) { showToast('Could not load your saved cart: ' + error.message); }
   if (user && sessionStorage.getItem('lexc_checkout_pending') === 'true' && cart.length) await completeCustomerLogin(user);
   else if (user) openOrderFromReturnLink();
@@ -2421,7 +2406,7 @@ for (const key of ['lexc_users','lexc_current_user']) localStorage.removeItem(ke
 for (const key of ['customer_logged_in','lexc_customer_user','admin_logged_in']) sessionStorage.removeItem(key);
 updateNavAuth();
 // Associate existing labels and enable keyboard submission without duplicate forms.
-for (const [page, submit] of [['login', handleLogin], ['register', () => { const step = document.querySelector('[data-reg-step]:not([hidden])')?.dataset.regStep; return step === '3' ? verifyRegisterCode() : step === '2' ? handleRegister() : registerNext(); }]]) {
+for (const [page, submit] of [['login', handleLogin], ['register', () => { const step = document.querySelector('[data-reg-step]:not([hidden])')?.dataset.regStep; return step === '3' ? null : step === '2' ? handleRegister() : registerNext(); }]]) {
   const container = document.getElementById('page-' + page);
   container.querySelectorAll('.auth-field').forEach(field => {
     field.querySelector('label').htmlFor = field.querySelector('input').id;
