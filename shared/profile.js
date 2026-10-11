@@ -53,10 +53,11 @@
         ${editing ? `<div class="pf-form-actions"><button type="button" class="pf-btn pf-btn--quiet" data-pf="edit">Cancel</button><button type="submit" class="pf-btn">${saving ? 'Saving…' : 'Save changes'}</button></div>` : ''}
         <p class="pf-error" role="alert" hidden></p>
       </form>
-      <section class="pf-card"><h3>Order Activity</h3><div class="pf-actions">
+      <section class="pf-card"><h3>Activities</h3><div class="pf-actions">
         ${action('bag', 'Shop', 'shop')}${action('wand', 'DIY customization', 'diy')}${action('cart', 'Cart', 'cart')}
         ${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
-      </div>${payments ? paymentsList() : ''}</section>
+      </div></section>
+      ${payments ? `<section class="pf-card pf-pay-card" id="pfPayments"><div class="pf-card-head"><h3>Order transactions</h3><button type="button" class="pf-close" data-pf="payments" aria-label="Close order transactions">×</button></div>${paymentsList()}</section>` : ''}
       <button type="button" class="pf-logout" data-pf="logout">Log out</button>`;
   }
   function paymentsList() {
@@ -90,7 +91,7 @@
         const db = window.LexcBackend, rows = db.unwrap(await db.client.from('order_payment_attempts').select('id,order_id,amount,status,created_at').order('created_at', { ascending: false }).limit(50));
         const ids = [...new Set(rows.map((r) => r.order_id))], numbers = new Map();
         if (ids.length) db.unwrap(await db.client.from('orders').select('id,order_number').in('id', ids)).forEach((o) => numbers.set(o.id, o.order_number));
-        payments = rows.map((r) => ({ ...r, orders: { order_number: numbers.get(r.order_id) } })); draw();
+        payments = rows.map((r) => ({ ...r, orders: { order_number: numbers.get(r.order_id) } })); draw(); document.getElementById('pfPayments')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
       }
       catch (e) { window.showToast?.(e.message); }
     }

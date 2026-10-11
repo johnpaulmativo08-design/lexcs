@@ -461,3 +461,12 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .pf-logout{display:block;width:100%;min-height:46px;border:1.5px solid #e6b9c4;border-radius:12px;background:#fff;color:#a3324b;font:inherit;font-weight:700;cursor:pointer}
 .pf-loading{display:grid;justify-items:center;gap:10px;padding:40px 0}
 @media(max-width:520px){.pf-row{grid-template-columns:40px minmax(0,1fr);row-gap:2px;padding:9px 0}.pf-row .pf-ic{grid-row:span 2}.pf-row .pf-label{grid-column:2;font-size:.8rem}.pf-row .pf-value,.pf-row .pf-input{grid-column:2}}
+
+/* profile: pastel header (no gradient), transactions card */
+.pf-head{background:#efe7fb;color:#3b2160;border:1px solid #e3d6f5}
+.pf-head h1{color:#3b2160}
+.pf-round{background:#fff;color:#5a32b8;box-shadow:0 1px 0 #e3d6f5}
+.pf-photo-btn{background:#8a6fd1}
+.pf-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pf-close{display:grid;place-items:center;width:34px;height:34px;border:1px solid #e3d9f0;border-radius:50%;background:#fff;color:#5a32b8;font-size:20px;line-height:1;cursor:pointer}
+.pf-pay-card .pf-pays{margin-top:6px}
