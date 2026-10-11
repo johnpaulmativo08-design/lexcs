@@ -2291,7 +2291,7 @@ function updateNavAuth() {
   area.innerHTML = '<details class="nav-user-chip"><summary aria-label="Account menu"><div class="user-avatar">' + authEscape(name.slice(0,2).toUpperCase()) +
     '</div><span>' + authEscape(name.split(' ')[0]) + '</span></summary><div class="user-dropdown">' +
     (currentUser.role === 'admin' ? '<a href="admin/">Admin Dashboard</a>' : '') +
-    '<a href="#" onclick="event.preventDefault();this.closest('details').open=false;navigate('profile')">My profile</a><a href="#" onclick="event.preventDefault();handleLogout()">Log Out</a></div></details>';
+    '<a href="#" onclick="event.preventDefault();this.closest(&quot;details&quot;).open=false;navigate(&quot;profile&quot;)">My profile</a><a href="#" onclick="event.preventDefault();handleLogout()">Log Out</a></div></details>';
 }
 async function completeCustomerLogin(user) {
   currentUser = user;
