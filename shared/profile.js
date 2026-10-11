@@ -85,7 +85,13 @@
     if (act === 'cancelled') { window.openCart?.(); setTimeout(() => { const t = document.getElementById('drawerToggleCancelledOrders'); if (t && !t.hidden && /Show/.test(t.textContent)) t.click(); document.getElementById('ordersSectionTitle')?.scrollIntoView({ block: 'start' }); }, 600); return; }
     if (act === 'payments') {
       if (payments) { payments = null; draw(); return; }
-      try { payments = window.LexcBackend.unwrap(await window.LexcBackend.client.from('order_payment_attempts').select('id,amount,status,created_at,orders(order_number)').order('created_at', { ascending: false }).limit(50)); draw(); }
+      try {
+        // payments link to orders twice in the database, so order numbers are looked up separately
+        const db = window.LexcBackend, rows = db.unwrap(await db.client.from('order_payment_attempts').select('id,order_id,amount,status,created_at').order('created_at', { ascending: false }).limit(50));
+        const ids = [...new Set(rows.map((r) => r.order_id))], numbers = new Map();
+        if (ids.length) db.unwrap(await db.client.from('orders').select('id,order_number').in('id', ids)).forEach((o) => numbers.set(o.id, o.order_number));
+        payments = rows.map((r) => ({ ...r, orders: { order_number: numbers.get(r.order_id) } })); draw();
+      }
       catch (e) { window.showToast?.(e.message); }
     }
   });
