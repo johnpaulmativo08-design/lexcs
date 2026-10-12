@@ -543,3 +543,7 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
   .pf-mini-main strong{font-size:.84rem}.pf-mini-main small{font-size:.7rem}
   .pf-mini b{font-size:.82rem}.pf-pill{font-size:.66rem;padding:2px 7px}
 }
+
+/* next-day rush fee */
+.dt-rush{display:block;margin-top:6px;padding:6px 10px;border-radius:10px;background:#fff4e0;color:#8a4b12;font-weight:700;font-size:.82rem}
+.checkout-rush-row{color:#8a4b12;font-weight:700}

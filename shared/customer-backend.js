@@ -9,7 +9,11 @@ function customerActionError(error,fallback){
 let savedInvoiceItems=[];
 const phDate=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
 const phTime=value=>new Date(value).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hour12:false});
-const slotLabel=s=>phTime(s.starts_at)+'–'+phTime(s.ends_at);
+// receiving times are one hour each (9 AM–5 PM): show the start, e.g. "9:00 AM"
+const slotLabel=s=>new Date(s.starts_at).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit',hour12:true});
+// orders for the day after they are placed pay a ₱200 rush fee (phase 59)
+const RUSH_FEE=200;
+function isRushDate(date){if(!date)return false;const t=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));t.setDate(t.getDate()+1);return date===t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
 const bookingDateLabel=value=>new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric'}).format(new Date(value+'T12:00:00+08:00'));
 async function loadStorefront(){
  window.lexcCatalogState='loading';
@@ -62,7 +66,7 @@ async function renderDtSlots(){
   const from=new Date(date+'T00:00:00+08:00'),to=new Date(from.getTime()+86400000);
   const slots=await LexcBackend.rpc('get_availability',{from_date:from.toISOString(),to_date:to.toISOString()});
   if(dtSelectedDate!==date)return;liveSlots=slots;
-  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>'+bookingDay.remaining_slots+' of '+bookingDay.capacity+' booking slots remaining · Choose a receiving window.</div>';
+  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>'+bookingDay.remaining_slots+' of '+bookingDay.capacity+' booking slots remaining · Choose a receiving time (open 9 AM–5 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Next-day order: a ₱'+RUSH_FEE+' rush fee is added.</span>':'')+'</div>';
   list.innerHTML=slots.length?summary+slots.map(s=>'<button type="button" class="dt-slot'+(s.remaining<=0?' full':'')+'" data-slot="'+s.id+'" '+(s.remaining<=0?'disabled':'')+'><span class="dt-slot-time">'+slotLabel(s)+'</span><span class="dt-slot-status '+(s.remaining>0?'avail':'full')+'">'+(s.remaining>0?'Available':'Fully booked')+'</span></button>').join(''):summary+'<div class="dt-slot-summary">No receiving window is available for this date. Please choose another available date.</div>';
   list.setAttribute('aria-busy','false');
   list.querySelectorAll('[data-slot]').forEach(button=>button.onclick=()=>{
@@ -77,6 +81,7 @@ function confirmDateTime(){
  document.getElementById('coDate').value=dtSelectedDate;document.getElementById('coTime').value=dtSelectedSlot;
  document.getElementById('coDate').dataset.slotId=selectedSlotId;
  document.getElementById('coDateLabel').textContent=bookingDateLabel(dtSelectedDate);document.getElementById('coTimeLabel').textContent=dtSelectedSlot;closeDateTimeModal();
+ updateCheckoutDelivery();if(isRushDate(dtSelectedDate))showToast('Next-day order: a ₱'+RUSH_FEE+' rush fee is added to your total.');
 }
 async function submitCheckout(){
  if(checkoutSaving)return;if(!currentUser){navigate('checkout');return;}
