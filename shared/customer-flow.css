@@ -586,3 +586,10 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .pf-pwform .pf-form-actions{margin-top:2px}
 .pf-pw-forgot{margin:0;font-size:.8rem;color:#7c6d91}.pf-pw-forgot button{border:0;background:none;padding:0;color:#5a32b8;font:inherit;font-weight:700;cursor:pointer}
 @media(max-width:600px){.pf-pwform{padding-left:0}}
+
+/* live password checklist */
+.pw-checks{display:grid;gap:3px;margin:4px 0 2px;padding:0;list-style:none;font-size:.78rem;color:#8a7aa3}
+.pw-checks li{display:flex;align-items:center;gap:6px}
+.pw-checks li::before{content:'';flex:none;width:14px;height:14px;border-radius:50%;border:1.5px solid #cbbde3;box-sizing:border-box}
+.pw-checks li.is-ok{color:#1f7a50}.pw-checks li.is-ok::before{border:0;background:#2fa36b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
+.pw-checks li.is-bad{color:#a3324b}.pw-checks li.is-bad::before{border-color:#e3a2b1;background:#fbecef}

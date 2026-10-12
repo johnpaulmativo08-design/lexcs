@@ -52,9 +52,9 @@
         <div class="pf-row pf-pass"><span class="pf-ic">${icon('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')}</span><span class="pf-label">Password</span><span class="pf-value">••••••••</span><button type="button" class="pf-forgot" data-pf="pw" aria-expanded="${pwOpen}">${pwOpen ? 'Close' : 'Change'}</button></div>
         ${pwOpen ? `<div class="pf-pwform" data-pf-pwform>
           <label>Current password<input type="password" name="pw_current" autocomplete="current-password"></label>
-          <label>New password<input type="password" name="pw_new" autocomplete="new-password"></label>
-          <label>Confirm new password<input type="password" name="pw_confirm" autocomplete="new-password"></label>
-          <small>At least 8 characters, one capital letter and one number. One special character allowed.</small>
+          <label>New password<input type="password" name="pw_new" autocomplete="new-password" data-pw-live></label>
+          ${typeof window.passwordChecklistHTML === 'function' ? window.passwordChecklistHTML() : ''}
+          <label>Confirm new password<input type="password" name="pw_confirm" autocomplete="new-password" data-pw-confirm></label>
           <p class="pf-error" data-pw-msg hidden></p>
           <div class="pf-form-actions"><button type="button" class="pf-btn" data-pf="pwsave">Save new password</button></div>
           <p class="pf-pw-forgot">Forgot your current password? <button type="button" data-pf="reset">Email me a reset link</button></p>

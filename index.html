@@ -659,7 +659,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'DM Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=31">
+<link rel="stylesheet" href="shared/customer-flow.css?v=32">
 <link rel="stylesheet" href="shared/product-detail.css?v=3">
 <link rel="stylesheet" href="shared/chat-widget.css?v=10">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=6">
@@ -1100,12 +1100,12 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
         </div>
         <div class="auth-field">
           <label class="auth-label">Password</label>
-          <input class="auth-input" id="regPassword" type="password" placeholder="••••••••" autocomplete="new-password">
-          <small class="reg-hint">At least 8 characters, one capital letter and one number. One special character allowed.</small>
+          <input class="auth-input" id="regPassword" type="password" placeholder="••••••••" autocomplete="new-password" data-pw-live>
+          <div data-pw-slot></div>
         </div>
         <div class="auth-field">
           <label class="auth-label">Confirm Password</label>
-          <input class="auth-input" id="regConfirm" type="password" placeholder="••••••••">
+          <input class="auth-input" id="regConfirm" type="password" placeholder="••••••••" data-pw-confirm>
         </div>
         <button class="auth-btn" type="button" onclick="registerNext()">Next</button>
         </div>
@@ -2334,6 +2334,25 @@ async function handleLogin() {
   } catch (problem) { error.textContent = problem.message; error.classList.add('show'); }
   finally { authBusy = false; }
 }
+// Live password checklist: any new-password box with data-pw-live updates the list right after it as you type;
+// a confirm box with data-pw-confirm shows whether both match.
+const PW_RULES = [['len', 'At least 8 characters', (p) => p.length >= 8], ['cap', 'One capital letter (A–Z)', (p) => /[A-Z]/.test(p)],
+  ['num', 'One number (0–9)', (p) => /[0-9]/.test(p)], ['spec', 'At most one special character (optional)', (p) => (p.match(/[^A-Za-z0-9]/g) || []).length <= 1]];
+function passwordChecklistHTML() {
+  return '<ul class="pw-checks" data-pw-checks aria-live="polite">' + PW_RULES.map(([k, t]) => '<li data-rule="' + k + '">' + t + '</li>').join('') + '<li data-rule="match" hidden>Passwords match</li></ul>';
+}
+document.querySelectorAll('[data-pw-slot]').forEach((slot) => { slot.outerHTML = passwordChecklistHTML(); });
+document.addEventListener('input', (event) => {
+  const box = event.target.closest?.('[data-pw-live],[data-pw-confirm]'); if (!box) return;
+  const scope = box.closest('form, [data-pf-pwform], .auth-card, dialog') || document;
+  const pw = scope.querySelector('[data-pw-live]'), confirm = scope.querySelector('[data-pw-confirm]'), list = scope.querySelector('[data-pw-checks]');
+  if (!pw || !list) return;
+  const p = pw.value;
+  PW_RULES.forEach(([k, , test]) => { const li = list.querySelector('[data-rule="' + k + '"]'); li.classList.toggle('is-ok', !!p && test(p)); li.classList.toggle('is-bad', !!p && !test(p)); });
+  const m = list.querySelector('[data-rule="match"]');
+  if (confirm && confirm.value) { m.hidden = false; const ok = confirm.value === p; m.classList.toggle('is-ok', ok); m.classList.toggle('is-bad', !ok); m.textContent = ok ? 'Passwords match' : 'Passwords do not match yet'; }
+  else m.hidden = true;
+});
 // New passwords: at least 8 characters, one capital letter, one number; one special character allowed (optional),
 // no more. Only checked when a password is created or changed; existing accounts keep working as they are.
 function passwordProblem(p) {
@@ -2419,7 +2438,7 @@ LexcBackend.client.auth.onAuthStateChange(event => {
   if (event === 'SIGNED_OUT') { currentUser = null; clearSignedInCart(); updateNavAuth(); if (currentPage === 'checkout') navigate('login'); else if (currentPage === 'orders') navigate('home'); }
   if (event === 'PASSWORD_RECOVERY') setTimeout(() => {
     const dialog = document.createElement('dialog');
-    dialog.className = 'lx-pw'; dialog.innerHTML = '<form><h2>Set a new password</h2><p class="lx-pw-sub">At least 8 characters, with one capital letter and one number. One special character is allowed.</p><label>New password<input type="password" name="password" minlength="8" autocomplete="new-password" required></label><label>Confirm password<input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label><p role="alert"></p><button>Save password</button></form>';
+    dialog.className = 'lx-pw'; dialog.innerHTML = '<form><h2>Set a new password</h2><p class="lx-pw-sub">At least 8 characters, with one capital letter and one number. One special character is allowed.</p><label>New password<input type="password" name="password" minlength="8" autocomplete="new-password" required data-pw-live></label>' + passwordChecklistHTML() + '<label>Confirm password<input type="password" name="confirm" minlength="8" autocomplete="new-password" required data-pw-confirm></label><p role="alert"></p><button>Save password</button></form>';
     document.body.append(dialog); dialog.showModal();
     dialog.querySelector('form').onsubmit = async event => {
       event.preventDefault();
@@ -2465,7 +2484,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/landing.js?v=4"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/inspiration.js?v=1"></script>
-<script src="shared/profile.js?v=8"></script>
+<script src="shared/profile.js?v=9"></script>
 <script src="shared/bento-designer.js?v=36"></script>
 <script src="shared/letter-pieces.js?v=3"></script>
 <script src="shared/cupcake-designer.js?v=34"></script>
