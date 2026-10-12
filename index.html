@@ -2257,6 +2257,9 @@ async function renderDtCalendar() {
   
   const nowDate = new Date();
   document.getElementById('dtPrevBtn').disabled = (dtYear === nowDate.getFullYear() && dtMonth <= nowDate.getMonth());
+  // bookings open through the end of the month after next (the database checks the same rule)
+  const lastMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() + 2, 1);
+  document.getElementById('dtNextBtn').disabled = (dtYear > lastMonth.getFullYear() || (dtYear === lastMonth.getFullYear() && dtMonth >= lastMonth.getMonth()));
 }
 
 function dtChangeMonth(dir) {
