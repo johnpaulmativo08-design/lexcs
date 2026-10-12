@@ -33,18 +33,20 @@ function makeTreatDesigner(K) {
   const palette = () => Object.fromEntries((options().color || []).map((c) => [c.code, c.hex]));
   const opt = (group, code) => (options()[group] || []).find((o) => o.code === code);
   const variant = () => product()?.product_variants.find((v) => v.id === state.variant_id && v.is_active);
+  const PER_PIECE = K.designer === 'cakepop', MIN_PIECES = 12, MAX_PIECES = 300;
+  const pieces = () => PER_PIECE ? state.qty : countOf(variant()?.label);
   const countOf = (label) => Number(String(label).match(/(\d+)\s*pcs/i)?.[1]) || Number(String(label).match(/\d+/)?.[0]) || 25;
   const flavorsList = () => (options().flavor || []).filter((o) => o.code !== 'mix');
 
   function blank(box = 'party') {
     const p = products[box];
-    return { box, variant_id: p?.product_variants.filter((v) => v.is_active)[0]?.id, qty: 1, flavors: [K.defaultFlavor], pattern: 'same', glazes: ['pink'], ...(K.styles ? { style: 'round' } : {}),
+    return { box, variant_id: p?.product_variants.filter((v) => v.is_active)[0]?.id, qty: K.designer === 'cakepop' ? 12 : 1, flavors: [K.defaultFlavor], pattern: 'same', glazes: ['pink'], ...(K.styles ? { style: 'round' } : {}),
       finishes: [], sprinkles: 'white_pearls', sprinkle_colors: [], theme: 'none', theme_note: '', message: 'none', message_text: '', message_pieces: [], message_color: 'white', inspiration: [] };
   }
   const design = () => ({ designer: K.designer, ...(K.styles ? { style: state.style } : {}), flavors: [...state.flavors], pattern: state.pattern, glazes: [...state.glazes], finishes: [...state.finishes],
     sprinkles: state.sprinkles, ...(state.sprinkles === 'nonpareils' ? { sprinkle_colors: [...state.sprinkle_colors] } : {}),
     theme: state.theme, ...(state.theme !== 'none' && state.theme_note.trim() ? { theme_note: state.theme_note.trim() } : {}),
-    message: state.message, ...(state.message === 'letters' ? { message_pieces: LexcLetterPieces.fit(state.message_pieces, countOf(variant()?.label)), message_text: piecesText(), message_color: state.message_color }
+    message: state.message, ...(state.message === 'letters' ? { message_pieces: LexcLetterPieces.fit(state.message_pieces, pieces()), message_text: piecesText(), message_color: state.message_color }
       : state.message !== 'none' ? { message_text: state.message_text.trim(), message_color: state.message_color } : {}) });
   // which donut the customer is typing letters for (not part of the design)
   let pieceAt = 0;
@@ -67,7 +69,7 @@ function makeTreatDesigner(K) {
   function normalise() {
     if (!products[state.box]) state.box = Object.keys(products)[0];
     if (!variant()) state.variant_id = product().product_variants.find((v) => v.is_active)?.id;
-    state.qty = Math.min(20, Math.max(1, Number(state.qty) || 1));
+    state.qty = PER_PIECE ? Math.min(MAX_PIECES, Math.max(MIN_PIECES, Math.round(Number(state.qty) || MIN_PIECES))) : Math.min(20, Math.max(1, Number(state.qty) || 1));
     const flav = new Set(flavorsList().map((o) => o.code));
     state.flavors = [...new Set(state.flavors)].filter((f) => flav.has(f)).slice(0, K.maxFlavors); if (!state.flavors.length) state.flavors = [flavorsList()[0]?.code || 'vanilla'];
     if (K.styles && !opt('style', state.style)) state.style = 'round';
@@ -86,7 +88,7 @@ function makeTreatDesigner(K) {
     if (state.message === 'letters') {
       // older designs spelled one sentence across the box: keep it as per-donut letters
       if (!LexcLetterPieces.filled(state.message_pieces) && String(state.message_text || '').trim()) state.message_pieces = LexcLetterPieces.fromSentence(state.message_text);
-      state.message_pieces = LexcLetterPieces.fit(state.message_pieces, countOf(variant()?.label));
+      state.message_pieces = LexcLetterPieces.fit(state.message_pieces, pieces());
       pieceAt = Math.min(pieceAt, state.message_pieces.length - 1);
     } else state.message_text = String(state.message_text || '').replace(LETTER_OK, '').slice(0, LETTER_MAX[state.message] || 40);
     if (!pal[state.message_color]) state.message_color = 'white';
@@ -125,7 +127,7 @@ function makeTreatDesigner(K) {
   // ---- the box: what goes on each donut ------------------------------------------------------------------
   function grid(count) { const g = { 6: [3, 2], 12: [4, 3], 24: [6, 4], 25: [5, 5], 36: [6, 6], 48: [8, 6] }[count]; if (g) return g; const cols = Math.ceil(Math.sqrt(count * 1.4)); return [cols, Math.ceil(count / cols)]; }
   function cellsFor() {
-    const pal = palette(), hex = (c) => pal[c] || '#ffffff', count = countOf(variant()?.label), [cols, rows] = grid(count), out = [];
+    const pal = palette(), hex = (c) => pal[c] || '#ffffff', count = pieces(), [cols, rows] = grid(count), out = [];
     const decor = new Array(count).fill(null);
     if (state.message === 'letters') {
       (state.message_pieces || []).slice(0, count).forEach((t, k) => { if (t) decor[k] = { type: 'letters', text: t }; });
@@ -242,9 +244,15 @@ function makeTreatDesigner(K) {
         <div class="bd-cards dd-flavors" role="group">${flavorsList().map((o) => `<button type="button" class="bd-card" data-dd-flavor="${o.code}" aria-pressed="${s.flavors.includes(o.code)}"><span class="dd-dough" style="background:${DOUGH[o.code] || '#d9a65a'}" aria-hidden="true"></span><strong>${esc(o.label)}</strong><small>${FLAVOR_NOTE[o.code] || ''}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
         ${s.flavors.length > 1 ? `<p class="bd-note">We spread ${s.flavors.map((f) => esc(opt('flavor', f)?.label)).join(', ')} across your box.</p>` : ''}
       </fieldset>
-      <fieldset class="bd-group"><legend>Box size</legend>
+      ${PER_PIECE ? `<fieldset class="bd-group"><legend>How many cake pops? <small>${money(variant()?.price || 0)} each · minimum ${MIN_PIECES}</small></legend>
+        <div class="dd-count"><button type="button" data-dd-qty="-1" aria-label="One cake pop less" ${s.qty <= MIN_PIECES ? 'disabled' : ''}>−</button>
+          <input type="number" inputmode="numeric" min="${MIN_PIECES}" max="${MAX_PIECES}" value="${s.qty}" data-dd-count aria-label="Number of cake pops">
+          <button type="button" data-dd-qty="1" aria-label="One cake pop more" ${s.qty >= MAX_PIECES ? 'disabled' : ''}>+</button></div>
+        <div class="bd-chips" style="margin-top:10px">${[12, 24, 36, 50].map((n) => `<button type="button" class="bd-chip" data-dd-setqty="${n}" aria-pressed="${s.qty === n}">${n} pcs</button>`).join('')}</div>
+        <p class="bd-note" style="margin-top:8px">${s.qty} pcs · ${money((variant()?.price || 0) * s.qty)}</p>
+      </fieldset>` : `<fieldset class="bd-group"><legend>Box size</legend>
         <div class="bd-chips" role="radiogroup">${product().product_variants.filter((v) => v.is_active).map((v) => `<button type="button" role="radio" class="bd-chip" data-dd-variant="${v.id}" aria-checked="${s.variant_id === v.id}">${esc(v.label)} · ${money(v.price)}</button>`).join('')}</div>
-      </fieldset>
+      </fieldset>`}
       <fieldset class="bd-group"><legend>Presets <small>Optional · all editable</small></legend>
         <div class="cd-presets">${PRESETS.filter((p) => products[p.box]).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
       </fieldset>`;
@@ -273,7 +281,7 @@ function makeTreatDesigner(K) {
       </fieldset>
       ${window.LexcInspiration ? window.LexcInspiration.html(K.key, s.inspiration) : ''}`;
     if (step === 'message') {
-      const count = countOf(variant()?.label);
+      const count = pieces();
       return `
       <fieldset class="bd-group"><legend>Fondant message</legend>
         <div class="bd-cards cd-patterns" role="radiogroup">${(options().message || []).map((o) => `<button type="button" role="radio" class="bd-card" data-dd-set="message" data-value="${o.code}" aria-checked="${s.message === o.code}"><strong>${esc(o.label)}</strong><small>${MESSAGE_NOTE[o.code] || ''}${plus(o)}</small></button>`).join('')}</div>
@@ -301,8 +309,8 @@ function makeTreatDesigner(K) {
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
       ${quote.status === 'error' ? `<div class="bd-warning" role="alert">${esc(quote.message)}</div>` : ''}
-      <div class="cd-qty-row"><span class="bd-label" style="margin:0" id="${K.key}-qty-label">Boxes</span>
-        <div class="bd-qty" role="group" aria-labelledby="${K.key}-qty-label"><button type="button" data-dd-qty="-1" aria-label="One box less">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-dd-qty="1" aria-label="One box more">+</button></div></div>`;
+      ${PER_PIECE ? `<p class="bd-note">${s.qty} cake pops · change the number in step 1.</p>` : `<div class="cd-qty-row"><span class="bd-label" style="margin:0" id="${K.key}-qty-label">Boxes</span>
+        <div class="bd-qty" role="group" aria-labelledby="${K.key}-qty-label"><button type="button" data-dd-qty="-1" aria-label="One box less">−</button><output aria-live="polite">${s.qty}</output><button type="button" data-dd-qty="1" aria-label="One box more">+</button></div></div>`}`;
   }
 
   // ---- render ------------------------------------------------------------------------------------------
@@ -408,7 +416,8 @@ function makeTreatDesigner(K) {
       if (d.ddSet) return commit((s) => { s[d.ddSet] = d.value; });
       if (d.ddColor) return pickColor(d.ddColor, d.value);
       if (d.ddFinish) return commit((s) => { const f = d.ddFinish, set = new Set(s.finishes); if (set.has(f)) set.delete(f); else { set.add(f); if (f === 'choco_drizzle') set.delete('white_drizzle'); if (f === 'white_drizzle') set.delete('choco_drizzle'); } s.finishes = [...set]; });
-      if (d.ddQty) return commit((s) => { s.qty += Number(d.ddQty); }, { soft: true });
+      if (d.ddQty) return commit((s) => { s.qty += Number(d.ddQty); }, { soft: !PER_PIECE });
+      if (d.ddSetqty) return commit((s) => { s.qty = Number(d.ddSetqty); });
       if ('ddUndo' in d) return undo();
       if ('ddRedo' in d) return redo();
       if ('ddReset' in d) { commit((s) => Object.assign(s, blank(s.box))); return showToast('Started over. Tap Undo to bring your design back.'); }
@@ -418,7 +427,7 @@ function makeTreatDesigner(K) {
     // letters per donut (shared picker): typing updates the box shortly after; fill/clear are undoable steps
     let lettersTimer = 0;
     LexcLetterPieces.bind(root, {
-      pieces: () => state.message_pieces, count: () => countOf(variant()?.label), at: () => pieceAt,
+      pieces: () => state.message_pieces, count: () => pieces(), at: () => pieceAt,
       setAt: (i) => { pieceAt = i; renderBody(); },
       set: (pieces, { render }) => {
         if (render) return commit((st) => { st.message_pieces = pieces; });
@@ -426,6 +435,8 @@ function makeTreatDesigner(K) {
       }
     });
     let typing = 0;
+    // number of cake pops typed in (kept between 12 and 300 when the field is left)
+    root.addEventListener('change', (e) => { if (!e.target.matches('[data-dd-count]')) return; commit((st) => { st.qty = Math.round(Number(e.target.value) || MIN_PIECES); }); });
     root.addEventListener('input', (e) => {
       const key = e.target.dataset.ddInput; if (!key) return;
       if (key === 'message_text') { const clean = e.target.value.replace(LETTER_OK, ''); if (clean !== e.target.value) e.target.value = clean; }
@@ -451,7 +462,7 @@ function makeTreatDesigner(K) {
     if (quote.status !== 'ok') return;
     const v = variant(), d = design(), p = product();
     const item = { id: K.designer + '-' + crypto.randomUUID(), product_id: p.id, variant_id: v.id, name: p.name, emoji: K.emoji,
-      sizeLabel: `${v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra, base_price: Number(v.price), extras: quote.extra,
+      sizeLabel: `${PER_PIECE ? state.qty + ' pcs' : v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra, base_price: Number(v.price), extras: quote.extra,
       qty: state.qty, selected: true, customization: d, inspiration: [...(state.inspiration || [])], preview: scene ? scene.snapshot(480) : await svgSnapshot(400) };
     const wasEdit = editIndex !== null && cart[editIndex]?.customization?.designer === K.designer;
     if (wasEdit) { item.id = cart[editIndex].id; cart[editIndex] = item; } else cart.push(item);
