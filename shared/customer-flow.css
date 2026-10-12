@@ -576,3 +576,13 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .dt-slots-list .dt-slot:disabled .dt-slot-status{color:#bd4b58!important}
 
 .reg-hint{display:block;margin-top:4px;color:#7c6d91;font-size:.75rem}
+
+/* profile: change password without email */
+.pf-pwform{display:grid;gap:8px;padding:10px 0 12px 50px;border-bottom:1px solid #f1ebf8}
+.pf-pwform label{display:grid;gap:4px;font-size:.82rem;font-weight:700;color:#3a2160}
+.pf-pwform input{min-height:40px;padding:8px 11px;border:1.5px solid #ded3ec;border-radius:10px;font:inherit}
+.pf-pwform input:focus{outline:none;border-color:#8a63d2;box-shadow:0 0 0 3px #ece3fb}
+.pf-pwform small{color:#7c6d91;font-size:.75rem}
+.pf-pwform .pf-form-actions{margin-top:2px}
+.pf-pw-forgot{margin:0;font-size:.8rem;color:#7c6d91}.pf-pw-forgot button{border:0;background:none;padding:0;color:#5a32b8;font:inherit;font-weight:700;cursor:pointer}
+@media(max-width:600px){.pf-pwform{padding-left:0}}

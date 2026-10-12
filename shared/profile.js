@@ -20,7 +20,7 @@
     edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
     back: '<path d="m15 6-6 6 6 6"/>', chev: '<path d="m9 6 6 6-6 6"/>', camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'
   };
-  let profile = null, editing = false, photoUrl = '', saving = false, panel = null, panelData = null;
+  let pwOpen = false, profile = null, editing = false, photoUrl = '', saving = false, panel = null, panelData = null;
   const root = () => document.getElementById('profileRoot');
 
   async function load() {
@@ -49,7 +49,16 @@
       </section><button type="button" class="pf-logout" data-pf="logout">Log out</button></aside><div class="pf-main">
       <form class="pf-card" data-pf-form><h3>Account Details</h3>
         ${row('user', 'Full name', profile.full_name, 'full_name')}
-        <div class="pf-row pf-pass"><span class="pf-ic">${icon('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')}</span><span class="pf-label">Password</span><span class="pf-value">••••••••</span><button type="button" class="pf-forgot" data-pf="reset">Forgot / change</button></div>
+        <div class="pf-row pf-pass"><span class="pf-ic">${icon('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')}</span><span class="pf-label">Password</span><span class="pf-value">••••••••</span><button type="button" class="pf-forgot" data-pf="pw" aria-expanded="${pwOpen}">${pwOpen ? 'Close' : 'Change'}</button></div>
+        ${pwOpen ? `<div class="pf-pwform" data-pf-pwform>
+          <label>Current password<input type="password" name="pw_current" autocomplete="current-password"></label>
+          <label>New password<input type="password" name="pw_new" autocomplete="new-password"></label>
+          <label>Confirm new password<input type="password" name="pw_confirm" autocomplete="new-password"></label>
+          <small>At least 8 characters, one capital letter and one number. One special character allowed.</small>
+          <p class="pf-error" data-pw-msg hidden></p>
+          <div class="pf-form-actions"><button type="button" class="pf-btn" data-pf="pwsave">Save new password</button></div>
+          <p class="pf-pw-forgot">Forgot your current password? <button type="button" data-pf="reset">Email me a reset link</button></p>
+        </div>` : ''}
         ${row('mail', 'Email', user.email, null)}
         ${row('phone', 'Contact number', profile.phone, 'phone', 'tel')}
         ${row('pin', 'Address', profile.address, 'address')}
@@ -113,11 +122,30 @@
     if (act === 'back') return history.length > 1 ? history.back() : window.navigate('home');
     if (act === 'edit') { editing = editing ? false : true; draw(); if (editing) root().querySelector('[name=full_name]')?.focus(); return; }
     if (act === 'logout') return window.handleLogout?.();
+    if (act === 'pw') { pwOpen = !pwOpen; draw(); root().querySelector('[name=pw_current]')?.focus(); return; }
+    if (act === 'pwsave') {
+      // no email: check the current password, then save the new one right away
+      const box = root().querySelector('[data-pf-pwform]'), msg = box.querySelector('[data-pw-msg]'), say = (t, ok) => { msg.textContent = t; msg.hidden = !t; msg.classList.toggle('is-ok', !!ok); };
+      const cur = box.querySelector('[name=pw_current]').value, nw = box.querySelector('[name=pw_new]').value, cf = box.querySelector('[name=pw_confirm]').value;
+      if (!cur) return say('Enter your current password.');
+      const weak = typeof window.passwordProblem === 'function' ? window.passwordProblem(nw) : (nw.length < 8 ? 'Use at least 8 characters.' : '');
+      if (weak) return say(weak);
+      if (nw !== cf) return say('The new passwords do not match.');
+      if (nw === cur) return say('Choose a password different from the current one.');
+      b.disabled = true; b.textContent = 'Saving…';
+      try {
+        const check = await window.LexcBackend.client.auth.signInWithPassword({ email: window.currentUser.email, password: cur });
+        if (check.error) throw new Error('Your current password is not correct.');
+        window.LexcBackend.unwrap(await window.LexcBackend.client.auth.updateUser({ password: nw }));
+        pwOpen = false; draw(); window.showToast?.('Password changed.');
+      } catch (e) { say(e.message); b.disabled = false; b.textContent = 'Save new password'; }
+      return;
+    }
     if (act === 'reset') {
       // emails a secure link; opening it shows "Set a new password" on the site
       b.disabled = true; b.textContent = 'Sending…';
       try { window.LexcBackend.unwrap(await window.LexcBackend.client.auth.resetPasswordForEmail(window.currentUser.email, { redirectTo: new URL('index.html', document.baseURI).href })); window.showToast?.('We emailed a password reset link to ' + window.currentUser.email + '. Check spam if you don’t see it.'); b.textContent = 'Link sent'; }
-      catch (e) { window.showToast?.(e.message); b.disabled = false; b.textContent = 'Forgot / change'; }
+      catch (e) { window.showToast?.(/rate limit/i.test(e.message) ? 'Too many emails were sent recently. Please wait an hour, or change your password here using your current password.' : e.message); b.disabled = false; b.textContent = 'Email me a reset link'; }
       return;
     }
     if (act === 'shop') return window.navigate('shop');
