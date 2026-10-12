@@ -49,6 +49,7 @@
       </section><button type="button" class="pf-logout" data-pf="logout">Log out</button></aside><div class="pf-main">
       <form class="pf-card" data-pf-form><h3>Account Details</h3>
         ${row('user', 'Full name', profile.full_name, 'full_name')}
+        <div class="pf-row pf-pass"><span class="pf-ic">${icon('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')}</span><span class="pf-label">Password</span><span class="pf-value">••••••••</span><button type="button" class="pf-forgot" data-pf="reset">Forgot / change</button></div>
         ${row('mail', 'Email', user.email, null)}
         ${row('phone', 'Contact number', profile.phone, 'phone', 'tel')}
         ${row('pin', 'Address', profile.address, 'address')}
@@ -112,6 +113,13 @@
     if (act === 'back') return history.length > 1 ? history.back() : window.navigate('home');
     if (act === 'edit') { editing = editing ? false : true; draw(); if (editing) root().querySelector('[name=full_name]')?.focus(); return; }
     if (act === 'logout') return window.handleLogout?.();
+    if (act === 'reset') {
+      // emails a secure link; opening it shows "Set a new password" on the site
+      b.disabled = true; b.textContent = 'Sending…';
+      try { window.LexcBackend.unwrap(await window.LexcBackend.client.auth.resetPasswordForEmail(window.currentUser.email, { redirectTo: new URL('index.html', document.baseURI).href })); window.showToast?.('We emailed a password reset link to ' + window.currentUser.email + '. Check spam if you don’t see it.'); b.textContent = 'Link sent'; }
+      catch (e) { window.showToast?.(e.message); b.disabled = false; b.textContent = 'Forgot / change'; }
+      return;
+    }
     if (act === 'shop') return window.navigate('shop');
     if (act === 'diy') return window.LexcCustom ? window.LexcCustom.choose() : window.navigate('shop');
     if (act === 'cart') return window.openCart?.();

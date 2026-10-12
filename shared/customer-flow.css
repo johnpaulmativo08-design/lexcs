@@ -547,3 +547,19 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 /* next-day rush fee */
 .dt-rush{display:block;margin-top:6px;padding:6px 10px;border-radius:10px;background:#fff4e0;color:#8a4b12;font-weight:700;font-size:.82rem}
 .checkout-rush-row{color:#8a4b12;font-weight:700}
+
+/* profile: password row */
+.pf-row.pf-pass{grid-template-columns:40px 120px minmax(0,1fr) auto}
+.pf-forgot{border:1.5px solid #ddd0f1;border-radius:999px;background:#fff;color:#5a32b8;font:inherit;font-size:.8rem;font-weight:700;padding:5px 12px;cursor:pointer;white-space:nowrap}
+.pf-forgot:disabled{opacity:.6;cursor:default}
+@media(min-width:900px){.pf-row.pf-pass{grid-template-columns:40px 150px minmax(0,1fr) auto}}
+@media(max-width:600px){.pf-row.pf-pass{grid-template-columns:30px minmax(0,1fr) auto}.pf-row.pf-pass .pf-forgot{grid-column:3;grid-row:1 / span 2;align-self:center;font-size:.72rem;padding:4px 9px}}
+
+.lx-pw{width:min(400px,calc(100vw - 32px));border:0;border-radius:18px;padding:0;box-shadow:0 24px 60px rgba(32,18,60,.28)}
+.lx-pw::backdrop{background:rgba(26,18,48,.45)}
+.lx-pw form{display:grid;gap:10px;padding:22px}
+.lx-pw h2{margin:0;color:#2c1a47;font-size:1.2rem}.lx-pw-sub{margin:0;color:#6d5c86;font-size:.9rem}
+.lx-pw label{display:grid;gap:4px;font-size:.85rem;font-weight:700;color:#3a2160}
+.lx-pw input{min-height:42px;padding:9px 11px;border:1.5px solid #ded3ec;border-radius:10px;font:inherit}
+.lx-pw [role=alert]{margin:0;color:#a3324b;font-size:.85rem}.lx-pw [role=alert]:empty{display:none}
+.lx-pw button{min-height:44px;border:0;border-radius:12px;background:#6033dd;color:#fff;font:inherit;font-weight:700;cursor:pointer}
