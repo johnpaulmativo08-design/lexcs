@@ -1,19 +1,22 @@
 -- Phase 59: receiving times and the rush fee.
---  * Open 9 AM–5 PM: one-hour receiving times (9, 10, 11, 12, 1, 2, 3, 4 PM). The old all-day 09:00–18:00 windows are
---    closed (kept for orders that already use them). The daily limit (6 bookings) still applies.
+--  * Open 9 AM–5 PM: one-hour receiving times (9, 10, 11, 12, 1, 2, 3, 4 PM). The old all-day windows are
+--    removed (any that an order already uses are kept). The daily limit (6 bookings) still applies.
 --  * Rush fee ₱200: an order for the day after it is placed (e.g. ordered Oct 19 for Oct 20) pays ₱200 more.
 --    It is added to the order total and the downpayment and shown on the order. Safe to re-run.
 begin;
 
 -- 1. hourly receiving times through 2027
-update public.availability_slots set is_open = false
-where starts_at > now() and extract(hour from starts_at at time zone 'Asia/Manila') = 9 and ends_at - starts_at > interval '2 hours';
+-- future all-day windows that no order uses are replaced (receiving times cannot overlap)
+delete from public.availability_slots s
+where s.starts_at > now() and s.ends_at - s.starts_at > interval '1 hour'
+  and not exists (select 1 from public.orders o where o.slot_id = s.id);
 insert into public.availability_slots(starts_at, ends_at, capacity, is_open)
 select (d.day + make_time(h, 0, 0)) at time zone 'Asia/Manila', (d.day + make_time(h + 1, 0, 0)) at time zone 'Asia/Manila', 6, true
 from generate_series((now() at time zone 'Asia/Manila')::date + 1, date '2027-12-31', interval '1 day') as g(ts)
 cross join lateral (select g.ts::date as day) d
 cross join generate_series(9, 16) as h
-where not exists (select 1 from public.availability_slots s where s.starts_at = (d.day + make_time(h, 0, 0)) at time zone 'Asia/Manila');
+where not exists (select 1 from public.availability_slots s
+  where s.starts_at < (d.day + make_time(h + 1, 0, 0)) at time zone 'Asia/Manila' and s.ends_at > (d.day + make_time(h, 0, 0)) at time zone 'Asia/Manila');
 
 -- 2. rush fee on next-day orders
 alter table public.orders add column if not exists rush_fee numeric(12,2) not null default 0;
