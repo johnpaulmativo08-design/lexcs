@@ -563,3 +563,14 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .lx-pw input{min-height:42px;padding:9px 11px;border:1.5px solid #ded3ec;border-radius:10px;font:inherit}
 .lx-pw [role=alert]{margin:0;color:#a3324b;font-size:.85rem}.lx-pw [role=alert]:empty{display:none}
 .lx-pw button{min-height:44px;border:0;border-radius:12px;background:#6033dd;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+/* booking time cards: light tiles like the calendar days */
+.dt-slots-list{gap:6px!important}
+.dt-slots-list .dt-slot{min-height:52px!important;padding:6px 4px!important;gap:2px!important;border-radius:10px!important;border:1px solid transparent!important;background:#faf8fd!important;box-shadow:none!important;transition:background .15s,border-color .15s,transform .15s}
+.dt-slots-list .dt-slot .dt-slot-time{font-size:.82rem!important;font-weight:700!important;color:#3a2a4d!important}
+.dt-slots-list .dt-slot .dt-slot-status{padding:0!important;background:none!important;border:0!important;font-size:.6rem!important;font-weight:700!important;color:#35a96b!important}
+.dt-slots-list .dt-slot:hover:not(:disabled){background:#f2ecff!important;border-color:#b79aff!important;transform:translateY(-1px)}
+.dt-slots-list .dt-slot.selected{background:#d9c9f3!important;border-color:transparent!important}
+.dt-slots-list .dt-slot.selected .dt-slot-time{color:#3b2160!important}
+.dt-slots-list .dt-slot.selected .dt-slot-status{color:#3b2160!important}
+.dt-slots-list .dt-slot:disabled{opacity:.5;cursor:not-allowed}
+.dt-slots-list .dt-slot:disabled .dt-slot-status{color:#bd4b58!important}
