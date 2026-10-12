@@ -58,12 +58,12 @@ export function unavailableButton(label) {
 }
 
 // Shared native dialog: keyboard focus, Escape and backdrop dismissal.
-export function showDetails(title, body, opener) {
+export function showDetails(title, body, opener, { footer = true } = {}) {
   document.querySelector('#admin-dialog')?.remove();
   const dialog = document.createElement('dialog');
   dialog.id = 'admin-dialog';
   dialog.setAttribute('aria-labelledby', 'dialog-title');
-  dialog.innerHTML = `<header class="dialog-header"><h2 id="dialog-title">${escapeHtml(title)}</h2><button class="button icon-button" aria-label="Close details" data-close>${icon('close')}</button></header><div class="dialog-body">${body}</div><footer class="dialog-footer"><button class="button primary" data-close>${icon('check')} Done</button></footer>`;
+  dialog.innerHTML = `<header class="dialog-header"><h2 id="dialog-title">${escapeHtml(title)}</h2><button class="button icon-button" aria-label="Close details" data-close>${icon('close')}</button></header><div class="dialog-body">${body}</div>${footer ? `<footer class="dialog-footer"><button class="button primary" data-close>${icon('check')} Done</button></footer>` : ''}`;
   document.body.append(dialog);
   dialog.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
   dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
