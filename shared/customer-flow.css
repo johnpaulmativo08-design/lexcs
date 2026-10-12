@@ -574,3 +574,5 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .dt-slots-list .dt-slot.selected .dt-slot-status{color:#3b2160!important}
 .dt-slots-list .dt-slot:disabled{opacity:.5;cursor:not-allowed}
 .dt-slots-list .dt-slot:disabled .dt-slot-status{color:#bd4b58!important}
+
+.reg-hint{display:block;margin-top:4px;color:#7c6d91;font-size:.75rem}
