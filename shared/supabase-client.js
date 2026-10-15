@@ -34,7 +34,8 @@
   const mediaURL = value => {
     if (!value) return '';
     // Site-relative asset: resolve from the site folder (works at "/" locally and "/lexcs/" on GitHub Pages).
-    if (value.startsWith('local:')) return new URL(value.slice(6), siteRoot).href;
+    // ?v= makes browsers fetch a photo again after its file is replaced; raise it when you swap product photos
+    if (value.startsWith('local:')) return new URL(value.slice(6) + '?v=2', siteRoot).href;
     if (/^https:\/\//i.test(value)) return value;
     return client.storage.from('catalog-media').getPublicUrl(value).data.publicUrl;
   };
