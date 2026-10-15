@@ -95,9 +95,9 @@ export async function mountOrderInventory(dialog, order, { onChanged } = {}) {
 
 function waitingReason(order) {
   const paid = ['partially_paid', 'paid'].includes(order.payment_status);
-  if (!paid && order.status === 'pending') return 'Materials are deducted automatically once the payment is verified and the order is confirmed.';
-  if (!paid) return 'Order is confirmed. Materials are deducted automatically as soon as the payment is verified.';
-  return 'Payment is verified. Materials are deducted automatically when you confirm the order.';
+  if (!paid && order.status === 'pending') return 'Materials are deducted when you press Start making (after the order is confirmed and paid).';
+  if (!paid) return 'Order is confirmed. Once the payment is verified, press Start making to deduct the materials.';
+  return 'Payment is verified. Press Start making to deduct the materials and begin.';
 }
 
 function previewBlock(preview, allocation) {
@@ -105,7 +105,7 @@ function previewBlock(preview, allocation) {
   const totals = preview.totals || [];
   if (!totals.length) return '';
   const short = totals.some((t) => Number(t.available) < Number(t.required));
-  return `<div class="stock-order__preview"><h4>${allocation?.status === 'shortage' ? 'Current requirement' : 'Confirming this order will allocate'}</h4>
+  return `<div class="stock-order__preview"><h4>${allocation?.status === 'shortage' ? 'Current requirement' : 'Start making will use'}</h4>
     <ul>${totals.map((t) => { const lacking = Number(t.available) < Number(t.required); return `<li class="${lacking ? 'is-short' : ''}"><span>${e(t.name)}<small>${qty(t.available, t.unit)} available</small></span><strong>${qty(t.required, t.unit)}</strong>${lacking ? `<em>short ${qty(Number(t.required) - Number(t.available), t.unit)}</em>` : ''}</li>`; }).join('')}</ul>
     <p class="stock-quiet">${short ? `${icon('alert')} Some materials are short — confirmation will be blocked until they are restocked.` : 'Stock is re-checked on the server at the moment of confirmation.'}</p></div>`;
 }
