@@ -68,7 +68,7 @@
 
 /* product cards: white, soft, badge pill, round add button on phones */
 #page-shop.mx .pd-card{border:1px solid #f0eaf5;border-radius:20px;box-shadow:0 8px 22px rgba(92,61,110,.07)}
-#page-shop.mx .pd-card__media{margin:8px 8px 0;width:calc(100% - 16px);border-radius:14px;background:#f6f0fc}
+#page-shop.mx .pd-card__media{margin:8px 8px 0;width:calc(100% - 16px);border-radius:14px;background:#fff}
 #page-shop.mx .pd-card>.pd-badge{left:16px;top:16px;border-radius:999px;padding:5px 10px;background:#d0457a;box-shadow:0 4px 10px rgba(208,69,122,.3);text-transform:uppercase}
 #page-shop.mx .pd-card .pd-price strong{font-size:1.05rem;color:#2f1d40}
 

@@ -89,3 +89,9 @@ html[data-theme=dark] .lx-appear-sizes button[aria-checked=true]{background:#3a2
 html[data-theme=dark] :is(.lx-appear-label,.lx-appear-sizes button small,.lx-appear-note){color:#a898b8}
 html[data-theme=dark] .lx-appear-preview{background:#1a1420}
 @media(prefers-reduced-motion:reduce){.lx-appear[open]{animation:none}}
+
+/* ---------- Product photos sit on white (light) or black (dark); only cut-out images with a transparent background show it */
+:is(.pd-card__media,.pd-hero,.pd-thumb,.pd-mini__media,.mx-new-photo):has(img),#page-shop.mx .mx-cat-art:has(img){background:#fff}
+html[data-theme=dark] :is(.pd-card__media,.pd-hero,.pd-thumb,.pd-mini__media,.mx-new-photo):has(img),
+html[data-theme=dark] #page-shop.mx :is(.pd-card__media,.mx-new-photo,.mx-cat-art):has(img){background:#000}
+html[data-theme=dark] #page-shop.mx .pd-rating--none .pd-star{fill:none;stroke:#6f5f80}
