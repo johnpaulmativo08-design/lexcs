@@ -146,3 +146,10 @@
 /* hero lines up with the header and grid; text clears the slide arrows */
 #page-shop.mx .mx-hero{margin:6px max(clamp(16px,5vw,48px),calc((100% - 1200px)/2 + clamp(16px,5vw,48px))) 0!important;max-width:none}
 @media(min-width:761px){#page-shop.mx .mx-hero .carousel-slide{padding:0 96px}}
+
+/* card details like the reference: short description + rating row */
+#page-shop.mx .pd-card__desc{margin:0;font-size:.74rem;line-height:1.35;color:#8a7b98;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#page-shop.mx .pd-rating{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;color:#6d5d7c}
+#page-shop.mx .pd-rating .pd-star{width:14px;height:14px;fill:#f4b400;stroke:none}
+#page-shop.mx .pd-rating--none{color:#a597b2}
+#page-shop.mx .pd-rating--none .pd-star{fill:none;stroke:#cbbfd8;stroke-width:1.8}

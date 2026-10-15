@@ -115,7 +115,8 @@
       ${p.badge ? `<span class="pd-badge">${esc(p.badge)}</span>` : ''}
       <div class="pd-card__body">
         <button type="button" class="pd-card__name" data-pd-open="${p.id}">${esc(p.name)}</button>
-        ${ratingLine(p)}
+        ${p.desc ? `<p class="pd-card__desc">${esc(p.desc)}</p>` : ''}
+        ${ratingLine(p) || `<span class="pd-rating pd-rating--none">${icon('star', 'pd-star')}<span>No ratings yet</span></span>`}
         <div class="pd-card__foot">
           <span class="pd-price">${priceLabel(p)}</span>
           <button type="button" class="pd-add" data-pd-add="${p.id}" aria-label="Add ${esc(p.name)} (${esc(p.sizes[0].label)}) to cart">${icon('plus', 'pd-add__plus')}${icon('cart', 'pd-add__cart')}<span>Add to Cart</span></button>
