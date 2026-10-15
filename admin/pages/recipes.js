@@ -26,23 +26,23 @@ export async function renderRecipes(content) {
     const recipes = [...latest.values()].filter((r) => r.status !== 'archived').sort((a, b) => a.name.localeCompare(b.name));
     const unverified = cat.conversions.filter((c) => !c.is_verified);
     content.innerHTML = shell(`
-      <div class="stock-callout">${icon('recipe')}<div><strong>Recipes moved to Products.</strong> Open a product and use <em>Edit product → Recipe</em> to choose its ingredients from Inventory. Only active recipes deduct stock when an order is confirmed — exactly as before.</div></div>
-      <section class="panel stock-conversions">
-        <header class="panel__head"><div><h2>Unit conversions</h2><p>Needed when a recipe measures in a different unit type than the stock (e.g. grams of butter vs. 225 g blocks). Unverified conversions keep a recipe from being activated.</p></div><button class="button" type="button" data-add-conversion>${icon('plus')} Add conversion</button></header>
+      <div class="stock-callout">${icon('recipe')}<div><strong>Recipes moved to Products.</strong> Open a product and use <em>Edit product → Recipe</em> to choose its ingredients from Inventory. Only active recipes deduct stock, when you press Start making on a paid order — exactly as before.</div></div>
+      <details class="panel stock-conversions stock-drop">
+        <summary class="panel__head"><div><h2>Unit conversions</h2><p>Needed when a recipe measures in a different unit type than the stock (e.g. grams of butter vs. 225 g blocks). Unverified conversions keep a recipe from being activated.</p></div><span class="stock-drop__count">${cat.conversions.length}</span><button class="button" type="button" data-add-conversion>${icon('plus')} Add conversion</button></summary>
         ${cat.conversions.length ? `<div class="table-scroll"><table class="data-table stock-table"><thead><tr><th scope="col">Material</th><th scope="col">Conversion</th><th scope="col">Source / note</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>${cat.conversions.map((c) => `<tr>
           <td><strong>${e(c.item_name)}</strong></td><td>${e(conversionText(c, c.item_unit))}</td><td class="stock-quiet">${e(c.note || '—')}</td>
           <td>${c.is_verified ? '<span class="status-chip status-chip--success">Verified</span>' : '<span class="status-chip status-chip--warning">Needs verification</span>'}</td>
           <td class="stock-row-actions">${c.is_verified ? '' : `<button class="button button--small" type="button" data-verify="${attr(c.item_id)}|${attr(c.unit)}">Verify</button>`}<button class="button button--small button--quiet" type="button" data-edit-conversion="${attr(c.item_id)}|${attr(c.unit)}">Edit</button></td></tr>`).join('')}</tbody></table></div>` : emptyState('No conversions yet')}
         ${unverified.length ? `<p class="stock-conversions__note">${icon('alert')} ${unverified.length} conversion${unverified.length === 1 ? '' : 's'} must be confirmed against your actual packaging.</p>` : ''}
-      </section>
-      <section class="panel">
-        <header class="panel__head"><div><h2>Recipes overview</h2><p>Each recipe belongs to a product. Edit it from the product.</p></div></header>
+      </details>
+      <details class="panel stock-drop">
+        <summary class="panel__head"><div><h2>Recipes overview</h2><p>Each recipe belongs to a product. Edit it from the product.</p></div><span class="stock-drop__count">${recipes.length}</span></summary>
         ${recipes.length ? `<div class="table-scroll"><table class="data-table stock-table"><thead><tr><th scope="col">Recipe</th><th scope="col">Product</th><th scope="col">Status</th><th scope="col">Ingredients</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>${recipes.map((r) => { const flags = flaggedLines(r); return `<tr>
           <td><strong>${e(r.name)}</strong> <small class="stock-quiet">v${r.version}</small></td><td>${r.product_name ? e(r.product_name) : '<span class="stock-warn-text">Not linked to a product</span>'}</td>
           <td>${chip(r.status)}${flags ? ` <span class="stock-flag">${icon('flag')} ${flags} to review</span>` : ''}</td><td>${r.lines.length}</td>
           <td class="stock-row-actions">${r.product_id ? `<a class="button button--small" href="#products/edit/${attr(r.product_id)}">Edit in Products</a>` : '<span class="stock-quiet">Link it from a product: Edit product → Recipe → start from an unlinked recipe</span>'}</td></tr>`; }).join('')}</tbody></table></div>` : emptyState('No recipes yet', 'Build one from Products → Edit product → Recipe.')}
-      </section>`);
-    content.querySelector('[data-add-conversion]').onclick = () => conversionForm({});
+      </details>`);
+    content.querySelector('[data-add-conversion]').onclick = (event) => { event.preventDefault(); event.stopPropagation(); conversionForm({}); };
     content.querySelectorAll('[data-verify]').forEach((b) => { b.onclick = async () => {
       const [itemId, unit] = b.dataset.verify.split('|'); const c = cat.conversions.find((x) => x.item_id === itemId && x.unit === unit);
       b.disabled = true;

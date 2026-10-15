@@ -310,3 +310,12 @@ details.stock-order__group[open] .stock-order__group-chevron{transform:translate
 details.stock-order__group>ul{padding:0 14px 6px;border-top:1px solid #f0eaf8}
 details.stock-order__group>ul li:last-child{border-bottom:0}
 @media (prefers-reduced-motion:reduce){.stock-order__group-chevron{transition:none}}
+
+/* Conversions page: sections fold */
+.stock-drop>summary{list-style:none;cursor:pointer;align-items:center}
+.stock-drop>summary::-webkit-details-marker{display:none}
+.stock-drop>summary::after{content:'';flex:none;width:9px;height:9px;margin-left:12px;border-right:2px solid #6a4bb8;border-bottom:2px solid #6a4bb8;transform:rotate(45deg);transition:transform .15s}
+.stock-drop[open]>summary::after{transform:rotate(-135deg)}
+.stock-drop__count{flex:none;margin-left:auto;padding:3px 10px;border-radius:999px;background:#f1ebfb;color:#4f2fa8;font-size:12.5px;font-weight:700}
+.stock-drop>summary .button{margin-left:10px}
+.stock-drop:not([open])>summary{border-bottom:0}
