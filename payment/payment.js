@@ -22,6 +22,19 @@ const awaitingConfirmation=()=>order.status==='pending';
 // What a payment is for (older payments have no saved kind, so it is worked out from the amount).
 function kindOf(attempt){return attempt.payment_kind||(Number(attempt.amount)>=Number(order.total_amount)?'full':Number(attempt.amount)===Number(order.deposit_due)?'downpayment':'balance');}
 const depositPercent=()=>Math.round(Number(order.deposit_rate)*100);
+// One clear state for the badge: icon + words (never colour alone). Read from the saved order, never from clicks.
+let shownState=null,shownStep=null,pollTimer=null,submitting=false;
+function orderState(active,last,remaining){
+  if(order.status==='cancelled')return ['cancelled','Order cancelled','×'];
+  if(awaitingConfirmation()&&!active)return ['pending','Awaiting confirmation','⋯'];
+  if(order.total_amount===null)return ['pending','Waiting for quote','⋯'];
+  if(active?.status==='verification_pending')return ['review','Proof under review','◷'];
+  if(remaining===0)return ['verified','Paid · verified','✓'];
+  if(last?.status==='rejected'&&!active)return ['rejected','Proof not accepted','!'];
+  if(order.payment_status==='partially_paid')return ['partial','Downpayment verified','✓'];
+  if(active?.status==='awaiting_payment')return ['awaiting','Awaiting your payment','₱'];
+  return ['confirmed','Confirmed · ready to pay','✓'];
+}
 function paymentSkeleton(){return '<section class="payment-skeleton" role="status" aria-label="Loading your saved order"><div class="payment-skeleton-strip skel-panel" aria-hidden="true"><span class="skel skel-line skel-line--short"></span><span class="skel skel-value"></span><span class="skel skel-badge"></span></div><div class="payment-skeleton-grid"><div class="skel-panel" aria-hidden="true"><span class="skel skel-title"></span><div class="payment-skeleton-main"><span class="skel skel-image skel-image--square"></span><span class="skel-stack"><span class="skel skel-line"></span><span class="skel skel-value"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-button"></span></span></div></div><div class="skel-panel skel-stack" aria-hidden="true"><span class="skel skel-title"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span><span class="skel skel-line skel-line--long"></span></div></div></section>';}
 function paymentError(error,fallback){
  const message=String(error?.message||'');
@@ -78,7 +91,8 @@ function render(){
   const dueValue=due===null?active?.status==='verification_pending'?'Under review':awaitingConfirmation()?'After LexC’s confirms':'To be confirmed':due===0?'No payment due':money(due);
   const pageTitle=document.querySelector('main>h1');
   pageTitle.textContent=due!==null&&due>0&&order.status!=='cancelled'&&active?.status!=='verification_pending'?'Pay '+money(due):'Order payment';
-  const orderStrip='<section class="payment-strip" aria-label="Current order payment"><div class="strip-order"><small>ORDER #'+e(order.order_number)+'</small><span class="status '+e(status)+'">'+e(awaitingConfirmation()&&status==='unpaid'?'Awaiting confirmation':statusName[status]||status)+'</span></div><div class="strip-amount"><small>'+e(dueLabel)+'</small><strong>'+e(dueValue)+'</strong></div><a href="'+e(ordersURL)+'">My Orders <span aria-hidden="true">→</span></a><a href="../chat/?order='+encodeURIComponent(order.id)+'">Chat about this order</a></section>';
+  const state=orderState(active,last,remaining);
+  const orderStrip='<section class="payment-strip" aria-label="Current order payment"><div class="strip-order"><small>ORDER #'+e(order.order_number)+'</small><span class="status state-'+state[0]+(shownState&&shownState!==state[0]?' is-changed':'')+'"><i aria-hidden="true">'+state[2]+'</i>'+e(state[1])+'</span></div><div class="strip-amount"><small>'+e(dueLabel)+'</small><strong>'+e(dueValue)+'</strong></div><a href="'+e(ordersURL)+'">My Orders <span aria-hidden="true">→</span></a><a href="../chat/?order='+encodeURIComponent(order.id)+'">Chat about this order</a></section>';
   const orderSummary='<details class="card order-card"><summary><span>Order details & balance</span><span aria-hidden="true">⌄</span></summary><div class="order-detail-body"><p class="order-meta">'+e(when(order.created_at))+' · '+e(order.fulfillment_method==='pickup'?'Pickup':'Delivery')+'</p>'+ 
     order.order_items.map(item=>'<div class="summary-row"><span>'+e(item.name_snapshot)+' · '+e(item.variant_label_snapshot)+' ×'+item.quantity+'</span><strong>'+money(item.line_total)+'</strong></div>').join('')+
     '<div class="summary-row"><span>Order total</span><strong>'+(order.total_amount===null?'Pending delivery quote':money(order.total_amount))+'</strong></div>'+
@@ -99,7 +113,8 @@ function render(){
   else if(remaining===0)paymentArea='<section class="card state-card"><span class="state-icon paid-icon" aria-hidden="true">✓</span><span class="eyebrow">PAYMENT COMPLETE</span><h2>Payment verified</h2><span class="status paid">Paid</span><p>LexC’s verified '+money(order.amount_paid)+' received for this order.</p><a class="button" href="'+e(ordersURL)+'">View My Orders</a></section>';
   else paymentArea=methodChoice(last,active);
   const before=lastSeenStatus(),verifiedNow=before==='verification_pending'&&['partially_paid','paid'].includes(status);
-  const verifiedFlash=verifiedNow?'<div class="verified-flash" role="status">'+successMark(true)+'<span><strong>'+(status==='paid'?'Payment verified':'Downpayment verified')+'</strong> LexC’s matched your transfer.</span></div>':'';
+  if(verifiedNow&&remaining===0)paymentArea=paymentArea.replace('<section class="card state-card"><span class="state-icon paid-icon" aria-hidden="true">✓</span>','<section class="card state-card mo-success">'+successMark());
+  const verifiedFlash=verifiedNow&&remaining!==0?'<div class="verified-flash" role="status">'+successMark(true)+'<span><strong>'+(status==='paid'?'Payment verified':'Downpayment verified')+'</strong> LexC’s matched your transfer.</span></div>':'';
   root.innerHTML=orderStrip+'<div class="layout"><div class="payment-main">'+verifiedFlash+paymentArea+history()+'</div>'+orderSummary+'</div>';
   if(justSubmitted&&active?.status==='verification_pending')pageTitle.textContent='Payment submitted';
   if(placedFresh&&awaitingConfirmation())pageTitle.textContent='Order received';
@@ -113,6 +128,8 @@ function render(){
   }
   const step=order.status==='cancelled'?0:awaitingConfirmation()&&!active||order.total_amount===null?1:active?.status==='verification_pending'?4:active?.status==='awaiting_payment'&&!changing?3:remaining===0?4:2;
   root.dataset.stage=String(step);
+  if(shownStep!==null&&shownStep!==step)root.querySelector('.payment-main')?.classList.add('mo-stage-in');
+  shownStep=step;shownState=state[0];schedulePoll();
   document.querySelectorAll('[data-step]').forEach(item=>{
     const number=Number(item.dataset.step);
     item.classList.toggle('current',number===step);
@@ -175,7 +192,7 @@ function methodChoice(last,active){
   if(!methods.length)return '<section class="card state-card"><h2>QR payment is temporarily unavailable</h2><p>Please return later. Your order remains saved; do not send money to an account not shown here.</p><a class="button" href="'+e(ordersURL)+'">View My Orders</a></section>';
   const chosen=active?methodFor(active)?.code:order.requested_payment_method;
   const choices=methods.map((method,index)=>'<label class="method-choice"><input type="radio" name="method" value="'+e(method.code)+'" '+((chosen===method.code||(!methods.some(m=>m.code===chosen)&&index===0))?'checked':'')+'><span class="method-mark" aria-hidden="true">'+e(method.display_name.slice(0,1))+'</span><span><strong>'+e(method.display_name)+'</strong><small>'+e(method.account_name)+' · '+e(method.masked_account)+'</small></span></label>').join('');
-  return '<section class="card choice-card"><span class="eyebrow">ORDER CONFIRMED · CHOOSE YOUR PAYMENT</span><h2>'+(last?.status==='rejected'&&!active?'Choose how to try again':'How much would you like to pay now?')+'</h2>'+(last?.status==='rejected'&&!active?'<p class="error">Your previous proof was not accepted: '+e(last.rejection_reason||'Please check your transfer details and try again.')+'</p>':'')+planChoice(active)+'<h3 class="choice-subhead">Pay to</h3><div class="method-list">'+choices+'</div><button id="start-payment" type="button">Show payment QR →</button>'+(active?'<button class="button secondary" id="keep-payment" type="button">Keep my current choice</button>':'')+'<p class="fine-print">This does not send money or mark your order paid.</p></section>';
+  return '<section class="card choice-card"><span class="eyebrow">ORDER CONFIRMED · CHOOSE YOUR PAYMENT</span><h2>'+(last?.status==='rejected'&&!active?'Choose how to try again':'How much would you like to pay now?')+'</h2>'+(last?.status==='rejected'&&!active?'<p class="reject-note" role="alert"><span aria-hidden="true">!</span><span><strong>Your previous proof was not accepted.</strong> '+e(last.rejection_reason||'Please check your transfer details and try again.')+' Choose your payment again to send a new proof.</span></p>':'')+planChoice(active)+'<h3 class="choice-subhead">Pay to</h3><div class="method-list">'+choices+'</div><button id="start-payment" type="button">Show payment QR →</button>'+(active?'<button class="button secondary" id="keep-payment" type="button">Keep my current choice</button>':'')+'<p class="fine-print">This does not send money or mark your order paid.</p></section>';
 }
 // The chosen receipt appears as a thumbnail with Replace / Remove (nothing is uploaded until 'Send proof').
 let proofURL=null;
@@ -207,14 +224,17 @@ function history(){
 async function startPayment(event){
   const button=event.currentTarget,method=root.querySelector('[name=method]:checked')?.value,plan=root.querySelector('[name=plan]:checked')?.value||null;
   if(!method)return say('Choose a payment method.',true);
+  if(submitting)return;submitting=true;button.classList.add('mo-busy');
   button.disabled=true;button.textContent='Preparing payment…';
   try{await backend.rpc('start_order_payment',{target_order:order.id,method_code:method,pay_option:plan});say('Payment prepared. Check the recipient before transferring.');await load();}
-  catch(error){say(paymentError(error,'The QR could not be prepared. Your order is saved; please try again.'),true);button.disabled=false;button.textContent='Show payment QR →';}
+  catch(error){say(paymentError(error,'The QR could not be prepared. Your order is saved; please try again.'),true);button.disabled=false;button.classList.remove('mo-busy');button.textContent='Show payment QR →';}
+  finally{submitting=false;}
 }
 async function submitPayment(event){
   event.preventDefault();const form=event.currentTarget,button=form.querySelector('button');
   const attempt=attempts.find(item=>item.status==='awaiting_payment');if(!attempt)return say('Payment attempt is no longer available.',true);
-  button.disabled=true;button.textContent='Checking and uploading proof…';
+  if(submitting)return;submitting=true;
+  button.disabled=true;button.classList.add('mo-busy');button.textContent='Checking and uploading proof…';
   try{
     const file=form.elements.proof.files[0];await validImage(file);
     const reference=form.elements.reference.value.trim();
@@ -225,6 +245,27 @@ async function submitPayment(event){
     const path=uploaded.path;
     await backend.rpc('submit_order_payment',{target_payment:attempt.id,reference_number:reference,proof_path:path});
     say('');justSubmitted=true;await load();
-  }catch(error){say(paymentError(error,'Your proof could not be submitted. Check your connection and try again.'),true);button.disabled=false;button.textContent='Send proof for verification';}
+  }catch(error){say(paymentError(error,'Your proof could not be submitted. Check your connection and try again.'),true);button.disabled=false;button.classList.remove('mo-busy');button.textContent='Send proof for verification';}
+  finally{submitting=false;}
 }
+const signature=()=>[order.status,order.payment_status,order.amount_paid,order.total_amount,attempts.map(a=>a.id+a.status).join()].join('|');
+function watching(){return order&&order.status!=='cancelled'&&(awaitingConfirmation()||order.total_amount===null||attempts.some(a=>a.status==='verification_pending'));}
+function schedulePoll(){clearTimeout(pollTimer);if(watching())pollTimer=setTimeout(silentCheck,15000);}
+async function silentCheck(){
+  if(document.hidden||submitting)return schedulePoll();
+  try{
+    const [fresh,freshAttempts]=await Promise.all([
+      backend.client.from('orders').select('*,order_items(*)').eq('id',orderId).single().then(backend.unwrap),
+      backend.client.from('order_payment_attempts').select('*').eq('order_id',orderId).order('created_at',{ascending:false}).then(backend.unwrap)]);
+    const before=signature(),wasPending=awaitingConfirmation(),wasReview=attempts.some(a=>a.status==='verification_pending');
+    order=fresh;attempts=freshAttempts;
+    if(signature()===before)return schedulePoll();
+    const toast=(text,type)=>window.LexcToast?.show(text,{type});
+    if(wasPending&&!awaitingConfirmation()&&order.status!=='cancelled')toast('Your order is confirmed. You can choose your payment now.','success');
+    else if(order.status==='cancelled')toast('This order was cancelled.','warning');
+    else if(wasReview&&attempts[0]?.status==='rejected')toast('Your payment proof was not accepted. See the reason below.','error');
+    render();
+  }catch{schedulePoll();}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&watching()){clearTimeout(pollTimer);silentCheck();}});
 load().catch(error=>{root.setAttribute('aria-busy','false');root.innerHTML='<section class="card state-card"><h2>Payment could not load</h2><p class="error">'+e(paymentError(error,'Check your connection and try again. Your order remains saved.'))+'</p><button class="button" type="button" id="retry-payment">Try again</button><a class="button secondary" href="'+e(ordersURL)+'">My Orders</a></section>';root.querySelector('#retry-payment').onclick=load;});

@@ -329,3 +329,52 @@ nav[aria-label="Breadcrumb"] a:hover{text-decoration:underline;text-underline-of
 .flow-steps .is-back{cursor:pointer;border-radius:999px;padding:2px 8px 2px 2px;margin:-2px -8px -2px -2px;text-decoration:underline;text-decoration-color:#cbb9e6;text-underline-offset:3px}
 .flow-steps .is-back:hover{background:#f3edfc;color:#4f3188}
 .flow-steps .is-back:focus-visible{outline:3px solid #b9a1f0;outline-offset:2px}
+
+/* Progress tracker: numbered circles joined by a line; done steps show a tick, the current one is filled (also on phones). */
+.flow-steps{display:grid;grid-template-columns:repeat(4,1fr);list-style:none;padding:0;margin:14px 0 18px;max-width:640px;white-space:normal;font-size:.8rem;gap:0}
+.flow-steps li{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;color:#6e6280;line-height:1.25}
+.flow-steps li span::after,.flow-steps li::after{content:none}
+.flow-steps li:not(:last-child)::before{content:'';position:absolute;top:13px;left:calc(50% + 17px);right:calc(-50% + 17px);height:2px;border-radius:2px;background:#e3d9f1;transition:background .3s ease}
+.flow-steps li.done:not(:last-child)::before{background:#8a6cc4}
+.flow-steps b{position:relative;z-index:1;width:28px;height:28px;border:2px solid #d8cbec;background:#fff;color:#6a5390;transition:background .25s ease,border-color .25s ease,color .25s ease}
+.flow-steps .current b{background:#6545a3;border-color:#6545a3;color:#fff;box-shadow:0 0 0 5px #efe7fb}
+.flow-steps .done b{background:#efe8fb;border-color:#8a6cc4;color:transparent}
+.flow-steps .done b::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;color:#5a3b98;font-size:.85rem}
+.flow-steps .current span{color:#3f2873;font-weight:700}
+.flow-steps .is-back{margin:0;padding:0;border-radius:10px;text-decoration:none}
+.flow-steps .is-back span{text-decoration:underline;text-decoration-color:#cbb9e6;text-underline-offset:3px}
+@media(max-width:760px){.flow-steps{display:grid;font-size:.7rem;margin:6px 0 12px}.flow-steps b{width:24px;height:24px;font-size:.72rem}.flow-steps li:not(:last-child)::before{top:11px;left:calc(50% + 15px);right:calc(-50% + 15px)}}
+
+/* State badges: each state has its own icon and words, plus a calm colour */
+.status{display:inline-flex;align-items:center;gap:6px}
+.status i{font-style:normal;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#fff9;font-size:.72rem;line-height:1}
+.status.state-pending{background:#f1edf7;color:#55476b}
+.status.state-confirmed,.status.state-awaiting{background:#ece4fb;color:#4c3285}
+.status.state-review{background:#fff1d9;color:#7c510a}
+.status.state-partial,.status.state-verified{background:#ddf5e8;color:#115f3c}
+.status.state-rejected{background:#ffe5ea;color:#97233a}
+.status.state-cancelled{background:#eeeaf0;color:#5c5363}
+.status.is-changed{animation:pay-badge .45s ease}
+@keyframes pay-badge{0%{transform:scale(.85);opacity:.4}60%{transform:scale(1.05)}100%{transform:none;opacity:1}}
+
+/* Rejected proof */
+.reject-note{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:12px 14px;border:1px solid #f0b9c5;border-left:4px solid #b3304b;border-radius:12px;background:#fff4f6;color:#7d1f33;line-height:1.45}
+.reject-note>span:first-child{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#b3304b;color:#fff;font-weight:700;font-size:.8rem}
+
+/* Moving between stages */
+.mo-stage-in{animation:pay-stage .32s ease both}
+@keyframes pay-stage{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Selected payment option is unmistakable; keyboard focus is visible; touch targets are comfortable */
+.method-choice,.plan-choice{transition:border-color .2s ease,background .2s ease,box-shadow .2s ease}
+.method-choice:has(input:checked),.plan-choice:has(input:checked){box-shadow:0 0 0 2px #6545a3 inset}
+.method-choice:has(input:focus-visible),.plan-choice:has(input:focus-visible){outline:3px solid #b9a1f0;outline-offset:2px}
+:is(button,.button,a,summary,input,[role=button]):focus-visible{outline:3px solid #b9a1f0;outline-offset:2px}
+button,.button,.text-button,.proof-disclosure>summary,.history>summary,.order-card>summary{min-height:44px}
+.text-button{display:inline-flex;align-items:center}
+button,.button{transition:background .18s ease,transform .12s ease,opacity .18s ease}
+button:active:not(:disabled),.button:active{transform:scale(.97)}
+main{overflow-wrap:anywhere}
+@media(max-width:560px){.state-actions>.button,.state-actions>button,#start-payment,#proof-form button[type=submit]{width:100%}}
+@media(prefers-reduced-motion:reduce){.status.is-changed,.mo-stage-in{animation:none}.flow-steps b,.flow-steps li::before,button,.button{transition:none}button:active,.button:active{transform:none}}
+@media(max-width:980px){.layout{grid-template-columns:1fr}}
