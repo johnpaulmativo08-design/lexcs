@@ -593,3 +593,58 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .pw-checks li::before{content:'';flex:none;width:14px;height:14px;border-radius:50%;border:1.5px solid #cbbde3;box-sizing:border-box}
 .pw-checks li.is-ok{color:#1f7a50}.pw-checks li.is-ok::before{border:0;background:#2fa36b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
 .pw-checks li.is-bad{color:#a3324b}.pw-checks li.is-bad::before{border-color:#e3a2b1;background:#fbecef}
+
+/* Order cards: progress track, product row with total, payment line with state dot */
+.co-card{position:relative;display:grid;gap:14px;padding:18px!important;border:1px solid #ebe3f3!important;border-radius:18px!important;background:#fff;box-shadow:0 1px 2px rgba(60,35,90,.04),0 10px 26px rgba(92,61,110,.07)!important;transition:box-shadow .2s ease,transform .2s ease}
+.co-card:hover{box-shadow:0 1px 2px rgba(60,35,90,.05),0 14px 32px rgba(92,61,110,.12)!important}
+.co-card.is-focused{border-color:#b9a1dc!important;box-shadow:0 0 0 3px #efe6fb,0 12px 28px rgba(92,61,110,.12)!important}
+.co-card.is-cancelled{opacity:.78;background:#fbfafc}
+.co-card .customer-order-top{align-items:flex-start}
+.co-card .customer-order-number{font-size:1.02rem;letter-spacing:-.01em}
+.co-card .customer-order-pills{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}
+.co-track{display:grid;grid-template-columns:repeat(5,1fr);list-style:none;margin:0;padding:0;font-size:.64rem;color:#9a8ea6;text-align:center}
+.co-track li{position:relative;display:grid;justify-items:center;gap:5px}
+.co-track li span{position:relative;z-index:1;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #ddd2ea;box-sizing:border-box;transition:background .25s,border-color .25s}
+.co-track li:not(:last-child)::after{content:'';position:absolute;top:5px;left:calc(50% + 8px);right:calc(-50% + 8px);height:2px;border-radius:2px;background:#ece5f4}
+.co-track li.is-done{color:#6b5487}.co-track li.is-done span{background:#8a6cc4;border-color:#8a6cc4}
+.co-track li.is-done::after{background:#b9a1dc}
+.co-track li.is-now{color:#3f2873;font-weight:700}.co-track li.is-now span{border-color:#6545a3;box-shadow:0 0 0 4px #efe7fb;background:#6545a3}
+.co-main{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.co-thumb{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:linear-gradient(145deg,#f4ecff,#fce9f2);color:#6a4a9c;font:700 1.15rem 'Playfair Display',serif}
+.co-card .customer-order-product{margin:0 0 3px;font-size:.95rem;line-height:1.3}
+.co-card .customer-order-schedule{display:flex;align-items:center;gap:5px;margin:0;font-size:.78rem}
+.co-card .customer-order-schedule svg,.co-card .customer-order-actions svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.co-count{display:inline-block;margin-top:5px;font-size:.68rem;color:#8a7d96;background:#f6f2fa;border-radius:999px;padding:2px 8px}
+.co-amount{display:grid;justify-items:end;gap:1px}
+.co-amount small{font-size:.66rem;color:#8a7d96;text-transform:uppercase;letter-spacing:.06em}
+.co-amount strong{font-size:1.05rem;color:#3f2873;white-space:nowrap}
+.co-pay{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#f7f4fb}
+.co-pay div{display:grid;gap:1px;min-width:0}
+.co-pay strong{font-size:.82rem;color:#2f2440}
+.co-pay span:not(.co-pay-dot){font-size:.72rem;color:#7d7089}
+.co-pay-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#a99bbb;box-shadow:0 0 0 4px #ece6f3}
+.co-pay.is-due{background:#f4eefc}.co-pay.is-due .co-pay-dot{background:#6545a3;box-shadow:0 0 0 4px #e3d8f6}
+.co-pay.is-wait .co-pay-dot{background:#b49ad6;animation:co-pulse 1.8s ease-in-out infinite}
+.co-pay.is-review{background:#fff6e6}.co-pay.is-review .co-pay-dot{background:#d99a2b;box-shadow:0 0 0 4px #fde8c4}
+.co-pay.is-ok,.co-pay.is-part{background:#eef9f3}.co-pay.is-ok .co-pay-dot,.co-pay.is-part .co-pay-dot{background:#2f9b67;box-shadow:0 0 0 4px #d3efdf}
+.co-pay.is-issue{background:#fff1f4}.co-pay.is-issue .co-pay-dot{background:#c23a56;box-shadow:0 0 0 4px #fbd6de}
+@keyframes co-pulse{50%{box-shadow:0 0 0 7px #ece3f8}}
+.co-card .customer-order-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.co-card .customer-order-actions .btn-primary{grid-column:1/-1;display:flex;align-items:center;justify-content:center;min-height:46px;border-radius:12px;letter-spacing:.06em}
+.co-card .customer-order-actions .btn-outline,.co-card .customer-order-cancel{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:12px;text-align:center}
+.co-card .customer-order-actions>:nth-child(2):last-child{grid-column:1/-1}
+.co-card .customer-order-more{margin:0;padding-top:10px;border-top:1px dashed #e6ddef}
+.co-card .customer-order-more summary{cursor:pointer;font-size:.78rem;font-weight:700;color:#5c3d6e;min-height:32px;display:flex;align-items:center}
+.co-card .customer-order-details{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:8px;font-size:.78rem;color:#2f2440}
+.co-card .customer-order-details span{display:grid;gap:1px}
+.co-card .customer-order-details span:nth-last-child(-n+2){grid-column:1/-1}
+.co-card .customer-order-details em{font-style:normal;font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:#8a7d96}
+@media(max-width:380px){.co-main{grid-template-columns:auto 1fr}.co-amount{grid-column:1/-1;grid-auto-flow:column;justify-content:space-between;align-items:baseline}}
+@media(prefers-reduced-motion:reduce){.co-pay.is-wait .co-pay-dot{animation:none}.co-card{transition:none}}
+
+/* Empty cart */
+.cart-empty{display:grid;justify-items:center;gap:10px;padding:34px 20px;text-align:center}
+.cart-empty-icon{display:grid;place-items:center;width:64px;height:64px;border-radius:20px;background:linear-gradient(145deg,#f4ecff,#fce9f2);font-size:1.7rem}
+.cart-empty p{margin:0;color:#7d7089;font-size:.86rem;line-height:1.5}
+.cart-empty p strong{display:block;color:#3f2873;font-size:1rem;margin-bottom:2px}
+.cart-empty .btn-primary{margin-top:4px;min-height:44px;padding:0 22px;display:inline-flex;align-items:center;border-radius:12px}
