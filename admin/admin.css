@@ -503,3 +503,11 @@ main .panel-title,main .panel h2,main .panel__head h2{font-family:'Plus Jakarta 
 .order-proof-ok{background:#1f8a5b!important;border-color:#1f8a5b!important;color:#fff!important}
 .order-proof-no{background:#fff!important;border-color:#e6b9c4!important;color:#a3324b!important}
 .order-proof-error{margin:0;color:#a3324b;font-size:13px}.order-proof-error:empty{display:none}
+
+/* order window: wider, and table scrollbars that stay visible */
+dialog.order-dialog{max-width:900px;width:calc(100% - 32px)}
+.table-scroll,.stock-order .table-scroll,dialog .dialog-body{scrollbar-width:thin;scrollbar-color:#b9a6e6 #f3eefb}
+.table-scroll::-webkit-scrollbar,dialog .dialog-body::-webkit-scrollbar{height:10px;width:10px}
+.table-scroll::-webkit-scrollbar-track,dialog .dialog-body::-webkit-scrollbar-track{background:#f3eefb;border-radius:999px}
+.table-scroll::-webkit-scrollbar-thumb,dialog .dialog-body::-webkit-scrollbar-thumb{background:#b9a6e6;border-radius:999px;border:2px solid #f3eefb}
+.table-scroll::-webkit-scrollbar-thumb:hover,dialog .dialog-body::-webkit-scrollbar-thumb:hover{background:#8f74d6}
