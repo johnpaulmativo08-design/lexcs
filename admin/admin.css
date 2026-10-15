@@ -511,3 +511,8 @@ dialog.order-dialog{max-width:900px;width:calc(100% - 32px)}
 .table-scroll::-webkit-scrollbar-track,dialog .dialog-body::-webkit-scrollbar-track{background:#f3eefb;border-radius:999px}
 .table-scroll::-webkit-scrollbar-thumb,dialog .dialog-body::-webkit-scrollbar-thumb{background:#b9a6e6;border-radius:999px;border:2px solid #f3eefb}
 .table-scroll::-webkit-scrollbar-thumb:hover,dialog .dialog-body::-webkit-scrollbar-thumb:hover{background:#8f74d6}
+.pw-checks{display:grid;gap:3px;margin:4px 0 2px;padding:0;list-style:none;font-size:.78rem;color:#8a7aa3}
+.pw-checks li{display:flex;align-items:center;gap:6px}
+.pw-checks li::before{content:'';flex:none;width:14px;height:14px;border-radius:50%;border:1.5px solid #cbbde3;box-sizing:border-box}
+.pw-checks li.is-ok{color:#1f7a50}.pw-checks li.is-ok::before{border:0;background:#2fa36b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
+.pw-checks li.is-bad{color:#a3324b}.pw-checks li.is-bad::before{border-color:#e3a2b1;background:#fbecef}
