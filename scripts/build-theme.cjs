@@ -11,7 +11,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const indexInline = () => { const html = read('index.html'); return html.slice(html.indexOf('<style>') + 7, html.indexOf('</style>')); };
 
 const PAGES = {
-  'shared/theme/site-dark.css': ['shared/brand.css', indexInline, 'shared/customer-flow.css', 'shared/product-detail.css', 'shared/chat-widget.css', 'shared/fresh-feed.css', 'shared/landing.css', 'shared/bento-designer.css', 'shared/cupcake-designer.css', 'shared/selected-ui.css', 'shared/motion.css'],
+  'shared/theme/site-dark.css': ['shared/brand.css', indexInline, 'shared/customer-flow.css', 'shared/product-detail.css', 'shared/chat-widget.css', 'shared/fresh-feed.css', 'shared/landing.css', 'shared/bento-designer.css', 'shared/cupcake-designer.css', 'shared/selected-ui.css', 'shared/menu-layout.css', 'shared/motion.css'],
   'shared/theme/payment-dark.css': ['shared/brand.css', 'payment/payment.css', 'shared/motion.css'],
   'shared/theme/chat-dark.css': ['shared/brand.css', 'shared/chat.css', 'shared/motion.css'],
 };
