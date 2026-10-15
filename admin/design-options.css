@@ -114,7 +114,8 @@
   .dopt-head,.dopt-row{grid-template-columns:minmax(150px,1fr) 300px 160px 80px;gap:10px}
 }
 @media (max-width:900px){
-  .dopt-head{display:none}
+  .dopt-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;padding:4px 8px 2px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
+.dopt-head span:nth-child(2){width:182px}.dopt-head span:nth-child(3){width:36px;white-space:nowrap;text-align:right}
   .dopt-row{grid-template-columns:1fr auto;grid-template-areas:"name offer" "price undo";gap:10px 12px;padding:12px 10px}
   .dopt-name{grid-area:name}.dopt-price{grid-area:price}.dopt-offer{grid-area:offer}.dopt-undo{grid-area:undo;justify-self:end}
   .dopt-filters{width:100%}.dopt-filters button{flex:1;min-width:0;padding:3px 8px}
@@ -174,4 +175,48 @@
   .dopt-group-title{font-size:14.5px}
   .dopt-group-desc{display:none}
   .dopt-pill{min-height:22px;font-size:11px}
+}
+
+/* ---------- Option rows: one compact line (name · price · switch · undo); two short lines on phones ---------- */
+.dopt-toggle{min-height:0;gap:10px;padding:10px 12px}
+.dopt-caret{width:30px;height:30px}
+.dopt-caret .dopt-ico{width:16px;height:16px}
+.dopt-body{padding:0 8px 8px}
+.dopt-body-top{gap:8px;padding:8px 4px 4px;font-size:12.5px;color:var(--muted2)}
+.dopt-body-top p{margin:0;font-size:12.5px}
+.dopt-group-actions .dopt-chip{min-height:28px;padding:3px 10px;font-size:12px}
+.dopt-head{display:none}
+.dopt-row,.dopt-row:hover{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;grid-template-areas:"name price offer undo";align-items:center;gap:10px;padding:8px 8px;border-top:1px solid #f1ecf7;border-radius:8px}
+.dopt-name{grid-area:name;display:flex;align-items:center;gap:8px;min-width:0}
+.dopt-name strong{font-size:13.5px;font-weight:600;line-height:1.25}
+.dopt-swatch{width:14px;height:14px;flex:none}
+.dopt-flag{font-size:10.5px}
+/* price: one slim pill  − ₱ [ 3 ] +  then a small Free link */
+.dopt-price{grid-area:price;display:flex;align-items:center;gap:6px}
+.dopt-price .dopt-step{width:26px;height:26px;border:1px solid var(--edge-strong);border-radius:50%;background:#fff;font-size:15px;color:var(--deep)}
+.dopt-price .dopt-step:hover:not(:disabled){background:#ece4fb}
+.dopt-price .dopt-step:disabled{opacity:.3}
+.dopt-price .dopt-peso{margin:0 -3px 0 2px;font-size:12.5px}
+.dopt-price input{width:52px;min-height:28px;height:28px;padding:0 4px;border:1px solid var(--edge-strong);border-radius:8px;background:#fff;font-size:13.5px;font-weight:700;text-align:center;-moz-appearance:textfield}
+.dopt-price input::-webkit-inner-spin-button,.dopt-price input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.dopt-price input:focus{outline:2px solid #b9a1f0;outline-offset:1px}
+.dopt-price [data-free]{min-height:0;padding:2px 4px;margin-left:4px;border:0;background:none;color:var(--deep);font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.dopt-price [data-free]:disabled{color:var(--muted2);text-decoration:none;opacity:.6}
+.dopt-free{font-size:12.5px}
+/* switch: small knob only; the state stays readable to screen readers */
+.dopt-offer{grid-area:offer}
+.dopt-switch{min-height:0;gap:0;padding:0;border:0;background:none!important}
+.dopt-switch-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.dopt-knob{width:36px;height:22px}
+.dopt-knob::after{top:3px;left:3px;width:16px;height:16px}
+.dopt-switch[aria-checked=true] .dopt-knob::after{transform:translateX(14px)}
+.dopt-switch:focus-visible{outline:none}
+.dopt-switch:focus-visible .dopt-knob{outline:3px solid #b9a1f0;outline-offset:2px}
+.dopt-undo{grid-area:undo}
+.dopt-undo .dopt-chip{min-height:26px;padding:2px 9px;font-size:11.5px}
+.dopt-undo{min-width:60px;text-align:right}
+@media(max-width:700px){
+  .dopt-head{display:none}
+  .dopt-row,.dopt-row:hover{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name offer" "price undo";gap:6px 8px;padding:9px 6px}
+  .dopt-undo{min-width:0}
 }
