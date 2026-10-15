@@ -136,3 +136,42 @@
   .dopt-bar .button{padding:10px 14px;white-space:nowrap}
 }
 @media (prefers-reduced-motion:reduce){.dopt *,.dopt-bar,.dopt-toast{transition:none!important;animation:none!important}}
+
+/* ---------- Compact, minimal layout (smaller type, tighter spacing, lighter chrome) ---------- */
+.dopt-heading h1{font-size:1.45rem;margin:0 0 2px}
+.dopt-heading p{font-size:13px;line-height:1.45;max-width:640px}
+.dopt-products{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:6px 0 12px}
+.dopt-products button{min-height:0;gap:8px;padding:9px 12px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:none}
+.dopt-products button:hover{transform:none;box-shadow:none}
+.dopt-products button>.dopt-ico{width:16px;height:16px}
+.dopt-toolbar{gap:8px;margin-bottom:10px}
+.dopt-search input{min-height:40px;padding:8px 14px 8px 38px;font-size:14px}
+.dopt-search .dopt-ico{left:13px;width:16px;height:16px}
+.dopt-filters{padding:3px;gap:0}
+.dopt-filters button{flex-direction:row;gap:5px;min-width:0;min-height:34px;padding:3px 12px;font-size:12px}
+.dopt-filters button b{font-size:12px;font-weight:700}
+.dopt-jump{gap:6px;margin-bottom:10px;padding:6px 4px}
+.dopt-sec{min-height:32px;gap:6px;padding:3px 5px 3px 12px;font-size:12.5px}
+.dopt-sec b{padding:1px 7px;font-size:11.5px}
+.dopt-group{margin-bottom:6px;border-radius:12px;box-shadow:none}
+.dopt-group.is-open{box-shadow:none}
+.dopt-group-ico{width:34px;height:34px}
+.dopt-group-ico .dopt-ico{width:18px;height:18px}
+.dopt-group-title{font-size:15px}
+.dopt-group-desc{font-size:12.5px;margin-top:1px}
+.dopt-pill{min-height:24px;padding:2px 9px;font-size:11.5px}
+.dopt-row{padding:7px 10px;border-radius:8px}
+.dopt-step{width:32px;height:32px;font-size:17px}
+.dopt-chip{min-height:30px;padding:4px 11px;font-size:12.5px}
+.dopt-bar{padding:8px 10px 8px 16px;border-radius:14px;font-size:13px}
+.dopt-bar .button{min-height:36px;padding:7px 16px;font-size:13px}
+@media(max-width:700px){
+  .dopt-heading p{display:none}
+  .dopt-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .dopt-products button{min-height:0;padding:8px 10px;font-size:12.5px;line-height:1.25}
+  .dopt-filters button{padding:3px 6px;font-size:11.5px}
+  .dopt-group-ico{display:none}
+  .dopt-group-title{font-size:14.5px}
+  .dopt-group-desc{display:none}
+  .dopt-pill{min-height:22px;font-size:11px}
+}
