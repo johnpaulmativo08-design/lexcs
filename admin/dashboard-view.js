@@ -73,6 +73,17 @@ function draw(content, data, refresh) {
     `${panel('Receiving capacity',`<p class="ops-caption">Next 7 days · receiving reservations</p><div class="ops-capacity">${capacity.map(day=>`<div><div class="ops-capacity-label"><strong>${e(new Date(day.date+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'short',day:'numeric'}))}</strong><span>${day.booked} / ${day.capacity} booked</span></div><div class="slot-progress" role="meter" aria-label="${e(day.date)} open slot capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${day.percent}"><span style="width:${day.percent}%"></span></div><small>${day.closedBooked ? day.closedBooked+' reservations in closed slots · ' : ''}${day.capacity ? day.remaining+' places available' : 'No open slots'}</small></div>`).join('')}</div>`, '<button class="button" data-manage-slots>'+icon('clock')+' Manage slots</button>')}`+
     `${panel('Recent activity',activity.length?'<div class="ops-list">'+activity.map(item=>`<a class="ops-row" href="${e(item.href)}"><div><strong>${e(item.label)}</strong><small>${e(time(item.at))}</small></div>${icon('arrow')}</a>`).join('')+'</div>':empty('No recorded activity yet.'),link('#reports','Reports'))}</div></div>`;
   content.querySelector('[data-refresh-dashboard]').onclick = refresh;
+  // side panels fold up with a small toggle; the choice is remembered on this device
+  const FOLD_KEY='lexc_dash_folded',folded=new Set((()=>{try{return JSON.parse(localStorage.getItem(FOLD_KEY)||'[]')}catch{return []}})());
+  content.querySelectorAll('.panel').forEach(sec=>{
+    const h=sec.querySelector(':scope>.panel-title'),name=h?.firstElementChild?.textContent.trim();
+    if(!h||!['Inventory warnings','Receiving capacity','Recent activity'].includes(name))return;
+    const btn=document.createElement('button');btn.type='button';btn.className='dash-fold';
+    const set=on=>{sec.classList.toggle('is-folded',on);btn.setAttribute('aria-expanded',String(!on));btn.setAttribute('aria-label',(on?'Show ':'Hide ')+name);};
+    btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+    btn.onclick=()=>{const on=!sec.classList.contains('is-folded');set(on);on?folded.add(name):folded.delete(name);try{localStorage.setItem(FOLD_KEY,JSON.stringify([...folded]))}catch{}};
+    h.append(btn);set(folded.has(name));
+  });
   const lists = {today:todayOrders,pending,production,handoffs,attention};
   const titles = {today:'Today’s orders',pending:'Pending review',production:'Today’s production',handoffs:'Upcoming pickups & deliveries',attention:'Orders requiring attention'};
   const showOrders = (key, opener) => showDetails(titles[key], list(lists[key], 'Scheduled receiving times', Infinity)+link('#orders','Open Orders'), opener);

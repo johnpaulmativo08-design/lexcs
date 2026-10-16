@@ -516,3 +516,12 @@ dialog.order-dialog{max-width:900px;width:calc(100% - 32px)}
 .pw-checks li::before{content:'';flex:none;width:14px;height:14px;border-radius:50%;border:1.5px solid #cbbde3;box-sizing:border-box}
 .pw-checks li.is-ok{color:#1f7a50}.pw-checks li.is-ok::before{border:0;background:#2fa36b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
 .pw-checks li.is-bad{color:#a3324b}.pw-checks li.is-bad::before{border-color:#e3a2b1;background:#fbecef}
+
+/* dashboard side panels: small fold toggle in the title */
+.panel-title .dash-fold{display:inline-grid;place-items:center;width:30px;height:30px;margin-left:6px;padding:0;border:1px solid #e3dcee;border-radius:9px;background:#fff;color:#5c3d8f;cursor:pointer;flex:none}
+.panel-title .dash-fold:hover{background:#f3eefb}
+.panel-title .dash-fold svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease}
+.panel.is-folded .dash-fold svg{transform:rotate(-90deg)}
+.panel.is-folded>:not(.panel-title){display:none}
+.panel.is-folded>.panel-title{margin-bottom:0}
+@media(prefers-reduced-motion:reduce){.panel-title .dash-fold svg{transition:none}}
