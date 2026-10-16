@@ -587,6 +587,7 @@ makeTreatDesigner({
     { key: 'babyshower', name: 'Baby shower', box: 'pops', s: { pattern: 'alternate', glazes: ['sky_blue', 'pink'], sprinkles: 'nonpareils', sprinkle_colors: ['white', 'hot_pink'], theme: 'baby' } },
     { key: 'heroes', name: 'Blue & yellow stars', box: 'pops', s: { style: 'donut', pattern: 'alternate', glazes: ['azure', 'lemon'], finishes: ['gold_star'], sprinkles: 'gold_pearls' } },
     { key: 'space', name: 'Outer space', box: 'pops', s: { style: 'donut', glazes: ['navy'], finishes: ['edible_glitter'], sprinkles: 'gold_pearls', theme: 'space' } },
-    { key: 'kitty', name: 'Pink & white', box: 'pops', s: { pattern: 'alternate', glazes: ['pink', 'white'] } }
+    { key: 'kitty', name: 'Pink & white', box: 'pops', s: { pattern: 'alternate', glazes: ['pink', 'white'] } },
+    { key: 'pixel', name: 'Green, white & choco', box: 'pops', s: { style: 'round', pattern: 'assorted', glazes: ['leaf_green', 'white', 'chocolate'], sprinkles: 'none' } }
   ]
 });
