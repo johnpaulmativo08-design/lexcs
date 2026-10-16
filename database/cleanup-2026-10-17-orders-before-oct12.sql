@@ -45,3 +45,6 @@ delete from public.order_items where order_id in (select id from old_orders);
 delete from public.orders where id in (select id from old_orders);
 
 commit;
+
+-- Follow-up (same day): reservations dated before Oct 12 removed as well (24 rows). Applied live.
+delete from public.booking_entries where booking_date < '2026-10-12';
