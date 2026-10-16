@@ -1815,6 +1815,9 @@ function showRecentShopSearches() {
   if (box.hidden) return;
   box.innerHTML = '<span>Recent searches</span>' + recentShopSearches.map(term => `<button type="button" data-term="${authEscape(term)}">${authEscape(term)}</button>`).join('') + '<button type="button" data-clear="true">Clear</button>';
 }
+// the recent-searches box closes when you click or tap anywhere outside the search, or press Escape
+document.addEventListener("pointerdown", (event) => { const box = document.getElementById("shopSearchRecent"); if (box && !box.hidden && !event.target.closest(".shop-search-wrap")) box.hidden = true; });
+document.addEventListener("keydown", (event) => { const box = document.getElementById("shopSearchRecent"); if (event.key === "Escape" && box && !box.hidden) box.hidden = true; });
 function rememberShopSearch(term) {
   term = term.trim().slice(0, 80);
   if (!term) return;
