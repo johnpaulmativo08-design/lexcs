@@ -50,3 +50,10 @@ commit;
 delete from public.booking_entries where booking_date < '2026-10-12';
 -- Follow-up 2: the 5 remaining reservations with no order (test entries) removed. Applied live.
 delete from public.booking_entries where order_id is null and (booking_date, customer_name) in (('2026-10-13','fgggg'),('2026-10-15','awdaw'),('2026-10-17','Irish custorio'),('2026-10-18','Twtwrwra'),('2026-10-23','awdwa'));
+-- Follow-up 3: remaining orders finished (#64, #65, #66 -> completed; #65/#66 deducted their materials through
+-- the normal Start making step), stock alerts marked read, chats waiting on LexC's marked handled. Applied live.
+update public.orders set status='preparing' where order_number in (65,66) and status='confirmed';
+update public.orders set status='ready' where order_number in (64,65,66) and status='preparing';
+update public.orders set status='completed' where order_number in (64,65,66) and status='ready';
+update public.inventory_notifications set is_read=true, read_at=now() where not is_read;
+update public.chat_conversations set state='active', updated_at=now() where state='needs_admin';
