@@ -570,7 +570,8 @@ makeTreatDesigner({
     { key: 'baby', name: 'Baby shower', box: 'themed', s: { glazes: ['azure'], sprinkles: 'nonpareils', sprinkle_colors: ['white', 'sky_blue'], theme: 'baby', message: 'letters', message_text: 'A BABY BOY ON THE WAY', message_color: 'white' } },
     { key: 'fairy', name: 'Fairy garden', box: 'themed', s: { pattern: 'assorted', glazes: ['mint', 'hot_pink', 'sky_blue', 'leaf_green'], finishes: ['choco_drizzle', 'gold_dust'], theme: 'fairy', message: 'plaque', message_text: 'YANA', message_color: 'white' } },
     { key: 'builder', name: 'Little builder', box: 'themed', s: { flavors: ['vanilla', 'chocolate'], pattern: 'assorted', glazes: ['lemon', 'orange', 'white', 'chocolate'], sprinkles: 'nonpareils', sprinkle_colors: ['orange', 'black', 'lemon'], theme: 'construction', message: 'plaque', message_text: 'TWO', message_color: 'orange' } },
-    { key: 'pink', name: 'Pretty in pink', box: 'themed', s: { flavors: ['strawberry'], pattern: 'assorted', glazes: ['pink', 'white'], sprinkles: 'nonpareils', sprinkle_colors: ['hot_pink', 'pink', 'sky_blue'], theme: 'bows', message: 'letters', message_text: 'happy 4th', message_color: 'purple' } }
+    { key: 'bowsrainbows', name: 'Bows & rainbows', box: 'themed', s: { pattern: 'alternate', glazes: ['hot_pink', 'white'], sprinkles: 'nonpareils', sprinkle_colors: ['hot_pink', 'white'], theme: 'bows' } },
+    { key: 'pink', name: 'Pretty in pink',box: 'themed', s: { flavors: ['strawberry'], pattern: 'assorted', glazes: ['pink', 'white'], sprinkles: 'nonpareils', sprinkle_colors: ['hot_pink', 'pink', 'sky_blue'], theme: 'bows', message: 'letters', message_text: 'happy 4th', message_color: 'purple' } }
   ]
 });
 
