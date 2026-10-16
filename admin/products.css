@@ -131,3 +131,9 @@
   .pe-foot .button--primary{flex:1;min-width:0}
 }
 @media (prefers-reduced-motion:reduce){.pm-card,.pm-card__media img,.pe-section>summary>svg{transition:none}}
+/* archived cards: Edit + Remove permanently share the row; a small Restore link below */
+.pm-card.is-archived .pm-card__actions>.button{flex:1 1 0;min-width:0;justify-content:center;white-space:normal;line-height:1.2;text-align:center}
+.pm-card__remove{border:1px solid #e9b8c3;background:#fff4f6;color:#a3243f}
+.pm-card__remove:hover{background:#ffe7ec;border-color:#d98a9c}
+.pm-card__restore{display:block;margin:-6px 14px 12px;padding:4px 0;border:0;background:none;color:#5c3d8f;font:600 .78rem inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.pm-card__restore:hover{color:#3f2873}
