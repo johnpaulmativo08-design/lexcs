@@ -214,7 +214,7 @@ html[data-theme=dark] .mo-toast--warning .mo-toast__icon{background:#d18a24}
 html[data-theme=dark] .mo-toast__action{border:1px solid rgba(48,37,55,0.35);background:rgba(27,20,31,0.08);color:#fff}
 html[data-theme=dark] .mo-toast__action:hover{background:rgba(27,20,31,0.18)}
 html[data-theme=dark] .mo-fly{background:#241c2e center/cover no-repeat;box-shadow:0 8px 22px rgba(60,30,90,.3)}
-html[data-theme=dark] .pd-option.is-active::after{background:#6d4bc3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#1b141f' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat;box-shadow:0 0 0 2px #1b141f}
+html[data-theme=dark] .pd-option.is-active::after{background-color:#6d4bc3;box-shadow:0 0 0 2px #1b141f}
 html[data-theme=dark] .mo-pass-toggle{color:#b6aac8}
 html[data-theme=dark] .mo-pass-toggle:hover{background:#241b29}
 html[data-theme=dark] .mo-check .mo-ring{fill:#f3edfc;stroke:#b0a1d9}

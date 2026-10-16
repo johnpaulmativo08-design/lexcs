@@ -78,7 +78,8 @@
 #page-shop.mx .mx-offer>div>div:first-child{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#c2416f;margin-bottom:4px}
 #page-shop.mx .mx-offer h3{margin:0 0 4px;font:700 1.35rem 'Playfair Display',Georgia,serif;color:#2f1d40}
 #page-shop.mx .mx-offer p{margin:0;font-size:.84rem;color:#6d5d7c}
-#page-shop.mx .mx-offer-btn{position:relative;z-index:1;background:#7a55b8!important;color:#fff!important;border-radius:999px;box-shadow:0 8px 18px rgba(122,85,184,.3)!important;white-space:nowrap}
+#page-shop.mx .mx-offer-btn{position:relative;z-index:1;background:#7551aa!important;color:#fff!important;border-radius:999px;box-shadow:none!important;white-space:nowrap}
+#page-shop.mx .mx-offer-btn:hover{background:#5f3f8e!important;transform:none}
 #page-shop.mx .mx-offer-art{position:absolute;right:-14px;bottom:-26px;font-size:7rem;opacity:.16;transform:rotate(-12deg);pointer-events:none}
 
 @media(max-width:760px){

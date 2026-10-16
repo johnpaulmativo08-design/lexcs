@@ -23,7 +23,8 @@
   const PRESETS = [
     { key: 'ocean', name: 'Ocean swirl', size: 'mini', s: { pattern: 'same', a: { style: 'two_tone', colors: ['azure', 'white'] }, finishes: ['gold_pearls'] } },
     { key: 'pinkwhite', name: 'Pink & white', size: 'mini', s: { pattern: 'alternate', a: { style: 'rosette', colors: ['hot_pink'] }, b: { style: 'rosette', colors: ['white'] }, finishes: ['gold_pearls'] } },
-    { key: 'glam', name: 'Black & blush', size: 'mini', s: { pattern: 'alternate', a: { style: 'rosette', colors: ['black'] }, b: { style: 'rosette', colors: ['baby_pink'] }, finishes: ['gold_pearls'] } },
+    { key: 'pinkpurple', name: 'Pink & purple rose', size: 'mini', s: { flavor: 'chocolate', pattern: 'alternate', a: { style: 'rosette', colors: ['pink'] }, b: { style: 'rosette', colors: ['purple'] }, finishes: ['gold_pearls'] } },
+    { key: 'glam', name: 'Black & blush',size: 'mini', s: { pattern: 'alternate', a: { style: 'rosette', colors: ['black'] }, b: { style: 'rosette', colors: ['baby_pink'] }, finishes: ['gold_pearls'] } },
     { key: 'rainbow', name: 'Pastel rainbow', size: 'mini', s: { pattern: 'same', a: { style: 'rainbow', colors: ['baby_pink', 'butter', 'sky_blue', 'lavender', 'mint'] }, finishes: ['gold_pearls'] } },
     { key: 'blush', name: 'Blush luxe', size: 'regular', s: { flavor: 'vanilla', pattern: 'alternate', a: { style: 'luxe', colors: ['blush', 'deep_rose'] }, b: { style: 'rosette', colors: ['pink'] }, finishes: ['gold_pearls', 'gold_balls'] } },
     { key: 'royal', name: 'Royal navy', size: 'regular', s: { flavor: 'vanilla', pattern: 'alternate', a: { style: 'luxe', colors: ['white', 'denim'] }, b: { style: 'rosette', colors: ['denim'] }, finishes: ['gold_pearls', 'gold_balls'] } },

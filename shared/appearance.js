@@ -14,7 +14,7 @@
   function setTheme(theme) {
     theme = theme === 'dark' ? 'dark' : 'light';
     if (theme === 'dark' && !darkSheet) {
-      darkSheet = document.createElement('link'); darkSheet.rel = 'stylesheet'; darkSheet.href = base + 'theme/' + page + '-dark.css?v=2';
+      darkSheet = document.createElement('link'); darkSheet.rel = 'stylesheet'; darkSheet.href = base + 'theme/' + page + '-dark.css?v=3';
       document.head.append(darkSheet);
     }
     root.dataset.theme = theme;

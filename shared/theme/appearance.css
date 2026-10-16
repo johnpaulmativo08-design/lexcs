@@ -93,5 +93,7 @@ html[data-theme=dark] .lx-appear-preview{background:#1a1420}
 /* ---------- Product photos sit on white (light) or black (dark); only cut-out images with a transparent background show it */
 :is(.pd-card__media,.pd-hero,.pd-thumb,.pd-mini__media,.mx-new-photo):has(img),#page-shop.mx .mx-cat-art:has(img){background:#fff}
 html[data-theme=dark] :is(.pd-card__media,.pd-hero,.pd-thumb,.pd-mini__media,.mx-new-photo):has(img),
-html[data-theme=dark] #page-shop.mx :is(.pd-card__media,.mx-new-photo,.mx-cat-art):has(img){background:#000}
-html[data-theme=dark] #page-shop.mx .pd-rating--none .pd-star{fill:none;stroke:#6f5f80}
+html[data-theme=dark] #page-shop.mx :is(.pd-card__media,.mx-new-photo,.mx-cat-art):has(img){background:#2a2133}
+html[data-theme=dark] #page-shop.mx .pd-rating--none .pd-star{fill:none!important;stroke:#7d6c8f!important;stroke-width:1.8}
+/* the search box's input is part of the pill: no inner box of its own */
+html[data-theme=dark] .shop-search-line input[type],html[data-theme=dark] .shop-search-line input{background:transparent!important;border:0!important;box-shadow:none!important}

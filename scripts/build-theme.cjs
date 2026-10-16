@@ -132,6 +132,14 @@ function build(items, mode) {
         const resolved = resolve(value);
         if (!COLOR_RE.test(resolved) && resolved === value) { COLOR_RE.lastIndex = 0; continue; }
         COLOR_RE.lastIndex = 0;
+        // a background with an image (url() or a var() holding one) keeps its image: only its colour is changed,
+        // because a repeated url()/var() would resolve against this generated file's folder and break the photo
+        if (/^background(-image)?$/.test(prop) && /url\(|var\(/.test(resolved)) {
+          if (prop === 'background-image') continue;
+          const colors = resolved.replace(/url\([^)]*\)|var\([^)]*\)/g, '').match(COLOR_RE); COLOR_RE.lastIndex = 0;
+          if (colors) decls.push('background-color:' + mapValue(colors[colors.length - 1], kind));
+          continue;
+        }
         decls.push(prop + ':' + mapValue(resolved, kind));
       } else if (prop === 'font-size') {
         decls.push(prop + ':' + value.replace(/(\d*\.?\d+)px/g, (m, n) => +(n / 16).toFixed(4) + 'rem'));
