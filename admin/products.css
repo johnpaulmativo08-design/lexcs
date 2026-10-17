@@ -137,3 +137,36 @@
 .pm-card__remove:hover{background:#ffe7ec;border-color:#d98a9c}
 .pm-card__restore{display:block;margin:-6px 14px 12px;padding:4px 0;border:0;background:none;color:#5c3d8f;font:600 .78rem inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .pm-card__restore:hover{color:#3f2873}
+
+/* Phones: compact toolbar and cards with a clear hierarchy (one filled primary action, quiet secondary ones) */
+@media (max-width:700px){
+  .toolbar:has(#add-product){gap:8px;padding:10px}
+  .toolbar:has(#add-product) .search{min-height:38px;font-size:16px}
+  .toolbar:has(#add-product) .controls{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .toolbar:has(#add-product) select{min-height:34px;height:34px;padding:0 22px 0 8px;font-size:12px!important;border-radius:9px;background-position:right 6px center}
+  .toolbar:has(#add-product) .button{min-height:34px!important;height:34px;padding:0 8px;font-size:12px;border-radius:9px;gap:4px;justify-content:center;box-shadow:none}
+  .toolbar:has(#add-product) .button svg{width:14px;height:14px}
+  .toolbar:has(#add-product) #add-category,.toolbar:has(#add-product) a.button{background:#fff;border:1px solid #e3dcee;color:#5c3d8f}
+  .pm-card__actions{gap:6px;padding:0 10px 10px}
+  .pm-card__actions .button{min-height:32px!important;height:32px;padding:0 10px;font-size:12px;border-radius:9px;box-shadow:none}
+  .pm-card__actions .primary{background:#f1ebfb;color:#4c2f86;border:1px solid #e2d6f5}
+  .pm-card__actions .primary svg{width:13px;height:13px}
+  .pm-card__archive{width:32px!important;min-width:32px!important;min-height:32px!important;padding:0!important;justify-content:center}
+  .pm-card__remove{font-size:11.5px}
+  .pm-card__restore{font-size:11.5px;margin:-4px 10px 8px}
+}
+@media (max-width:700px){
+  .toolbar:has(#add-product) .controls{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .toolbar:has(#add-product) #category,.toolbar:has(#add-product) #status{grid-column:span 3}
+  .toolbar:has(#add-product) #recipe-filter{grid-column:span 6}
+  .toolbar:has(#add-product) .button{grid-column:span 2;white-space:nowrap;font-size:11.5px;padding:0 6px}
+}
+@media (max-width:700px){
+  .toolbar:has(#add-product) .controls{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .toolbar:has(#add-product) #category,.toolbar:has(#add-product) #status{grid-column:span 6}
+  .toolbar:has(#add-product) #recipe-filter{grid-column:span 12}
+  .toolbar:has(#add-product) #add-product{grid-column:span 5}
+  .toolbar:has(#add-product) #add-category{grid-column:span 3}
+  .toolbar:has(#add-product) a.button{grid-column:span 4}
+  .toolbar:has(#add-product) #add-category svg,.toolbar:has(#add-product) a.button svg{display:none}
+}

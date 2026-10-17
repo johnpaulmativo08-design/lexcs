@@ -52,3 +52,9 @@
   .booking-topbar [data-prev],.booking-topbar [data-next]{width:44px!important;min-width:44px;height:44px;padding:0!important}
   .booking-topbar [data-add]{grid-column:1/-1}
 }
+/* Phones: day headers show just the date */
+@media (max-width:700px){
+  .booking-day .capacity-number,.booking-day .capacity-progress,.booking-day small{display:none!important}
+  .booking-day{padding:8px 1px!important}
+  .booking-day b{font-size:10px}
+}
