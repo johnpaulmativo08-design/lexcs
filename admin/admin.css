@@ -525,3 +525,14 @@ dialog.order-dialog{max-width:900px;width:calc(100% - 32px)}
 .panel.is-folded>:not(.panel-title){display:none}
 .panel.is-folded>.panel-title{margin-bottom:0}
 @media(prefers-reduced-motion:reduce){.panel-title .dash-fold svg{transition:none}}
+
+/* phones / touch: comfortable tap sizes for the remaining small controls */
+@media (max-width:700px),(pointer:coarse){
+  .booking-search input,main input[type=search]{min-height:44px;font-size:16px}
+  [data-month]{min-width:44px;min-height:44px}
+  .chat-thread header a,.chat-thread header button,.chat-back{min-width:44px;min-height:44px}
+  .pm-card__archive{min-width:44px;min-height:44px}
+  main select,main input:not([type=checkbox]):not([type=radio]):not([type=range]){font-size:16px} /* 16px stops phones zooming in on focus */
+  dialog summary,main summary{min-height:44px;display:flex;align-items:center}
+  dialog .button,dialog button:not(.dopt-step){min-height:44px}
+}

@@ -220,3 +220,28 @@
   .dopt-row,.dopt-row:hover{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name offer" "price undo";gap:6px 8px;padding:9px 6px}
   .dopt-undo{min-width:0}
 }
+
+/* ---------- Phones and touch screens: finger-sized controls (desktop keeps the compact look) ---------- */
+@media (max-width:700px),(pointer:coarse){
+  .dopt-sec{min-height:40px;padding:4px 6px 4px 14px;font-size:13px}
+  .dopt-filters button{min-height:40px}
+  .dopt-search input{min-height:44px}
+  .dopt-products button{min-height:48px}
+  .dopt-toggle{padding:12px}
+  .dopt-caret{width:36px;height:36px}
+  .dopt-group-actions .dopt-chip,.dopt-body-top .dopt-chip{min-height:40px;padding:6px 14px;font-size:13px}
+  .dopt-row,.dopt-row:hover{gap:10px 10px;padding:12px 6px}
+  .dopt-name strong{font-size:14.5px}
+  .dopt-price{gap:8px}
+  .dopt-price .dopt-step{width:42px;height:42px;font-size:20px}
+  .dopt-price input{width:64px;height:42px;min-height:42px;font-size:16px}
+  .dopt-price [data-free]{min-height:42px;padding:0 10px;margin-left:2px;font-size:13.5px}
+  /* the switch gets a full-size tap area around the small knob */
+  .dopt-switch{min-width:52px;min-height:44px;justify-content:center}
+  .dopt-knob{width:44px;height:26px}
+  .dopt-knob::after{top:3px;left:3px;width:20px;height:20px}
+  .dopt-switch[aria-checked=true] .dopt-knob::after{transform:translateX(18px)}
+  .dopt-undo .dopt-chip{min-height:42px;padding:0 14px;font-size:13px}
+  .dopt-bar{padding:10px 12px;gap:8px}
+  .dopt-bar .button{min-height:44px}
+}
