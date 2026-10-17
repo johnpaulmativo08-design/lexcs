@@ -536,3 +536,29 @@ dialog.order-dialog{max-width:900px;width:calc(100% - 32px)}
   dialog summary,main summary{min-height:44px;display:flex;align-items:center}
   dialog .button,dialog button:not(.dopt-step){min-height:44px}
 }
+
+/* Reports on phones: comfortable reading sizes, tabs and periods as one compact scrolling row each */
+@media (max-width:700px){
+  main:has(.rep-tabs) .module-heading h1{font-size:24px;margin-bottom:2px}
+  main:has(.rep-tabs) .module-heading p{font-size:12.5px;line-height:1.4}
+  .rep-tabs,.rep-period-buttons{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;gap:4px;padding:3px!important;border-radius:999px;scrollbar-width:none}
+  .rep-tabs::-webkit-scrollbar,.rep-period-buttons::-webkit-scrollbar{display:none}
+  .rep-tabs>*,.rep-period-buttons>*{flex:none;min-height:32px!important;padding:0 12px!important;font-size:12px!important;white-space:nowrap;border-radius:999px}
+  .rep-period{gap:6px}
+  .rep-range{font-size:11.5px}
+  .rep-kpis{gap:8px!important}
+  .rep-kpi{padding:12px!important;gap:2px;border-radius:12px}
+  .rep-kpi>span:first-child{font-size:11.5px}
+  .rep-kpi strong{font-size:19px!important;line-height:1.2}
+  .rep-kpi .rep-delta{font-size:11px}
+  .rep-kpi small{font-size:10.5px;line-height:1.35}
+  .rep-card-head,.rep-money-head{font-size:13px}
+  .rep-bar-label,.rep-bar-value,.rep-slot-label,.rep-note,.rep-sub{font-size:11px}
+}
+@media (max-width:700px){
+  main:has(.rep-tabs) .panel h2,main:has(.rep-tabs) .rep-money-head h2,main:has(.rep-tabs) .rep-card-head h2{font-size:15px!important}
+  main:has(.rep-tabs) .rep-money-head strong{font-size:17px!important}
+  main:has(.rep-tabs) .rep-money-head p,main:has(.rep-tabs) .rep-card-head p,main:has(.rep-tabs) .panel>p{font-size:11.5px!important;line-height:1.4}
+  main:has(.rep-tabs) .panel{padding:14px!important}
+  .rep-mchart-y,.rep-mchart-y *{font-size:10px!important}
+}
