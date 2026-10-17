@@ -1,2 +1,37 @@
 /* Stable calendar positioning: each booking is placed from its recorded start time. */
 .booking-time-grid .booking-column{position:relative;padding:0 5px;min-height:660px}.booking-time-grid .booking-card{position:absolute;left:5px;right:5px;width:calc(100% - 10px);margin:0;z-index:2}.booking-time-grid .booking-card:hover{z-index:4}.booking-time-grid .booking-hour{height:66px}
+
+/* Phones: the whole week fits the screen like on desktop (no sideways scrolling); hour rows keep their height */
+@media (max-width:700px){
+  .booking-calendar{overflow-x:hidden}
+  .booking-days,.booking-time-grid{width:100%!important;min-width:0!important;grid-template-columns:30px repeat(7,minmax(0,1fr))!important}
+  .booking-hours{grid-template-columns:1fr!important}
+  .booking-hours>*{width:auto!important;font-size:9px;padding-right:2px;text-align:right;white-space:nowrap}
+  .booking-column{min-width:0}
+  .booking-hour{width:auto!important}
+  .booking-day{min-height:0;padding:7px 1px 6px}
+  .booking-day b{font-size:9.5px;line-height:1.15;font-weight:700}
+  .booking-day .capacity-number{font-size:10px;gap:2px}
+  .booking-day .capacity-number i{width:5px;height:5px}
+  .booking-day .capacity-progress{height:3px;margin:3px 2px}
+  .booking-day small{display:none}
+  .booking-card{left:2px!important;right:2px!important;width:auto!important;padding:4px 4px 4px 5px;border-radius:6px}
+  .booking-card b{font-size:9px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .booking-card small{font-size:8px}
+  .booking-card>span:not(.booking-status-dot),.booking-card em{display:none}
+  .booking-card .booking-status-dot{width:5px;height:5px;top:4px;right:4px}
+}
+@media (max-width:700px){
+  .booking-hours span,.booking-hours>*{font-size:8.5px!important;letter-spacing:-.02em;padding-right:3px!important}
+  .booking-card em,.booking-card .fulfillment,.booking-card>span:not(.booking-status-dot){display:none!important}
+  .booking-card b{display:block;font-size:8.5px;text-overflow:clip;white-space:normal;word-break:break-word;max-height:2.3em;overflow:hidden}
+  .booking-card small{display:block;font-size:7.5px;white-space:nowrap;overflow:hidden}
+  .booking-card{padding:3px 3px 3px 4px!important}
+  .booking-card .booking-status-dot{display:none}
+  .booking-days>:first-child{padding:0}
+}
+@media (max-width:700px){
+  .booking-card b{white-space:nowrap!important;text-overflow:ellipsis!important;max-height:none;word-break:normal;font-size:9px}
+  .booking-card small{display:none!important}
+  .booking-card{display:flex!important;align-items:flex-start;min-height:22px}
+}
