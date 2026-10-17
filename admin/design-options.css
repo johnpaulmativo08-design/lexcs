@@ -251,3 +251,12 @@
   .dopt-bar{padding:8px 10px;gap:8px;font-size:12.5px}
   .dopt-bar .button{min-height:38px;font-size:13px}
 }
+@media (max-width:700px),(pointer:coarse){
+  .dopt-price{gap:4px}
+  .dopt-price .dopt-step{width:24px;height:24px;font-size:13px}
+  .dopt-price .dopt-peso{font-size:11px;margin:0 -2px 0 1px}
+  .dopt-price input{width:40px;height:24px;min-height:24px;font-size:13px;border-radius:6px}
+  .dopt-price [data-free]{font-size:11px;padding:2px 4px}
+  .dopt-price .dopt-step::after{inset:-9px -5px}
+}
+@media (max-width:700px),(pointer:coarse){main .dopt-price input[data-price]{font-size:13px}}

@@ -63,8 +63,9 @@ export async function renderDesignOptions(content){
   const sorted=[...products].sort((a,b)=>kind(a).localeCompare(kind(b))||a.name.localeCompare(b.name));
   const byId=new Map(options.map(o=>[o.id,o]));
   const edits=new Map();   // option id -> {price, is_active} that differ from the saved row
-  const view={product:sorted.some(p=>p.id===recall(STORE))?recall(STORE):sorted[0]?.id,filter:'all',query:'',section:null,open:new Set()};   // open: "productId:group" sections shown open; section: show only that group
-  const isOpen=key=>view.open.has(view.product+':'+key)||view.section===key||view.filter!=='all'||view.query.trim()!=='';
+  const view={product:sorted.some(p=>p.id===recall(STORE))?recall(STORE):sorted[0]?.id,filter:'all',query:'',section:null,open:new Set(),closed:new Set()};   // open: "productId:group" sections shown open; section: show only that group
+  // a section opens on its own when a chip, filter or search points at it, but its arrow can always close it again
+  const isOpen=key=>{const id=view.product+':'+key;return !view.closed.has(id)&&(view.open.has(id)||view.section===key||view.filter!=='all'||view.query.trim()!=='');};
 
   // A fresh root each render, so event listeners never pile up on the shared content element.
   const root=document.createElement('div');root.className='dopt';
@@ -172,9 +173,9 @@ export async function renderDesignOptions(content){
    if(t.dataset.filter){view.filter=t.dataset.filter;render();return;}
    if(t.hasAttribute('data-clear')){view.filter='all';view.query='';view.section=null;render();return;}
    if(t.hasAttribute('data-sections')){view.section=null;render();return;}
-   if(t.dataset.jump){view.section=view.section===t.dataset.jump?null:t.dataset.jump;view.open.add(view.product+':'+t.dataset.jump);render();return;}
-   if(t.dataset.section){const id=view.product+':'+t.dataset.section;view.open.has(id)?view.open.delete(id):view.open.add(id);render();root.querySelector('[data-section="'+CSS.escape(t.dataset.section)+'"]')?.focus();return;}
-   if(t.dataset.expand){const keys=GROUPS[kind(sorted.find(x=>x.id===view.product))].map(([k])=>view.product+':'+k);keys.forEach(k=>t.dataset.expand==='open'?view.open.add(k):view.open.delete(k));render();return;}
+   if(t.dataset.jump){view.section=view.section===t.dataset.jump?null:t.dataset.jump;view.open.add(view.product+':'+t.dataset.jump);view.closed.delete(view.product+':'+t.dataset.jump);render();return;}
+   if(t.dataset.section){const id=view.product+':'+t.dataset.section;if(isOpen(t.dataset.section)){view.open.delete(id);view.closed.add(id);}else{view.closed.delete(id);view.open.add(id);}render();root.querySelector('[data-section="'+CSS.escape(t.dataset.section)+'"]')?.focus();return;}
+   if(t.dataset.expand){const keys=GROUPS[kind(sorted.find(x=>x.id===view.product))].map(([k])=>view.product+':'+k);keys.forEach(k=>{if(t.dataset.expand==='open'){view.open.add(k);view.closed.delete(k);}else{view.open.delete(k);view.closed.add(k);}});render();return;}
    if(t.dataset.all){const key=t.closest('[data-group]').dataset.group;options.filter(x=>x.product_id===view.product&&x.group_key===key&&!activeLocked(x)).forEach(x=>setEdit(x,{is_active:t.dataset.all==='on'}));render();return;}
    if(t.hasAttribute('data-discard')){edits.clear();render();return;}
    if(t.hasAttribute('data-save-all')){saveAll();return;}
