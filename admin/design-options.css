@@ -221,27 +221,33 @@
   .dopt-undo{min-width:0}
 }
 
-/* ---------- Phones and touch screens: finger-sized controls (desktop keeps the compact look) ---------- */
+/* ---------- Phones and touch screens: small, quiet controls with an invisible finger-sized tap area ---------- */
 @media (max-width:700px),(pointer:coarse){
-  .dopt-sec{min-height:40px;padding:4px 6px 4px 14px;font-size:13px}
-  .dopt-filters button{min-height:40px}
-  .dopt-search input{min-height:44px}
-  .dopt-products button{min-height:48px}
-  .dopt-toggle{padding:12px}
-  .dopt-caret{width:36px;height:36px}
-  .dopt-group-actions .dopt-chip,.dopt-body-top .dopt-chip{min-height:40px;padding:6px 14px;font-size:13px}
-  .dopt-row,.dopt-row:hover{gap:10px 10px;padding:12px 6px}
-  .dopt-name strong{font-size:14.5px}
-  .dopt-price{gap:8px}
-  .dopt-price .dopt-step{width:42px;height:42px;font-size:20px}
-  .dopt-price input{width:64px;height:42px;min-height:42px;font-size:16px}
-  .dopt-price [data-free]{min-height:42px;padding:0 10px;margin-left:2px;font-size:13.5px}
-  /* the switch gets a full-size tap area around the small knob */
-  .dopt-switch{min-width:52px;min-height:44px;justify-content:center}
-  .dopt-knob{width:44px;height:26px}
-  .dopt-knob::after{top:3px;left:3px;width:20px;height:20px}
-  .dopt-switch[aria-checked=true] .dopt-knob::after{transform:translateX(18px)}
-  .dopt-undo .dopt-chip{min-height:42px;padding:0 14px;font-size:13px}
-  .dopt-bar{padding:10px 12px;gap:8px}
-  .dopt-bar .button{min-height:44px}
+  .dopt-sec,.dopt-filters button,.dopt-products button,.dopt-price .dopt-step,.dopt-price [data-free],.dopt-switch,.dopt-undo .dopt-chip,.dopt-group-actions .dopt-chip,.dopt-caret{position:relative}
+  .dopt-sec::after,.dopt-price .dopt-step::after,.dopt-price [data-free]::after,.dopt-switch::after,.dopt-undo .dopt-chip::after,.dopt-group-actions .dopt-chip::after{content:"";position:absolute;inset:-7px -4px}
+  .dopt-sec{min-height:30px;padding:2px 4px 2px 11px;font-size:12px}
+  .dopt-sec b{font-size:11px}
+  .dopt-search input{min-height:40px;font-size:16px}
+  .dopt-filters button{min-height:34px;font-size:11.5px}
+  .dopt-toggle{padding:10px 10px}
+  .dopt-group-title{font-size:14px}
+  .dopt-caret{width:28px;height:28px}
+  .dopt-body{padding:0 6px 6px}
+  .dopt-body-top{gap:6px;padding:6px 4px 2px;font-size:11.5px}
+  .dopt-body-top p{font-size:11.5px}
+  .dopt-group-actions .dopt-chip{min-height:28px;padding:2px 10px;font-size:11.5px}
+  .dopt-row,.dopt-row:hover{gap:6px 8px;padding:9px 4px}
+  .dopt-name strong{font-size:13px}
+  .dopt-price{gap:5px}
+  .dopt-price .dopt-step{width:30px;height:30px;font-size:15px}
+  .dopt-price .dopt-peso{font-size:12px}
+  .dopt-price input{width:48px;height:30px;min-height:30px;font-size:16px;padding:0 2px}
+  .dopt-price [data-free]{min-height:0;padding:2px 6px;font-size:12px}
+  .dopt-switch{min-width:0;min-height:0}
+  .dopt-knob{width:36px;height:22px}
+  .dopt-knob::after{top:3px;left:3px;width:16px;height:16px}
+  .dopt-switch[aria-checked=true] .dopt-knob::after{transform:translateX(14px)}
+  .dopt-undo .dopt-chip{min-height:28px;padding:2px 10px;font-size:11.5px}
+  .dopt-bar{padding:8px 10px;gap:8px;font-size:12.5px}
+  .dopt-bar .button{min-height:38px;font-size:13px}
 }
