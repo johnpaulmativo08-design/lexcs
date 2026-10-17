@@ -170,3 +170,11 @@
   .toolbar:has(#add-product) a.button{grid-column:span 4}
   .toolbar:has(#add-product) #add-category svg,.toolbar:has(#add-product) a.button svg{display:none}
 }
+/* Phones: the photo runs the full card height; Edit + archive sit under the text only */
+@media (max-width:700px){
+  .pm-card{grid-template-areas:"media body" "media actions"!important;grid-template-rows:auto auto!important}
+  .pm-card__media{height:100%!important;min-height:100%;align-self:stretch}
+  .pm-card__media img{height:100%;object-fit:cover}
+  .pm-card__actions{padding:0 10px 10px 12px!important}
+  .pm-card__actions .primary{flex:1 1 auto}
+}
