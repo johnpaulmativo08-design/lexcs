@@ -21,8 +21,11 @@
   #navShoppingButton{display:none}
   body[data-customer-page="checkout"] #navShoppingButton{display:inline-flex}
   /* left buttons · DIY · right buttons: equal side columns keep DIY in the middle (guests have no Cart) */
-  .customer-mobile-nav{position:fixed;bottom:0;left:0;right:0;z-index:210;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);background:#fff;border-top:1px solid #e9e2ee;padding:7px 4px max(7px,env(safe-area-inset-bottom))}
-  .customer-mobile-nav .mnav-side{display:flex;justify-content:space-around;min-width:0}
+  .customer-mobile-nav{position:fixed;bottom:0;left:0;right:0;z-index:210;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,2fr);background:#fff;border-top:1px solid #e9e2ee;padding:7px 4px max(7px,env(safe-area-inset-bottom))}
+  .customer-mobile-nav .mnav-side{display:flex;min-width:0}
+  .customer-mobile-nav .mnav-side>button{flex:1 1 0;min-width:0}
+  /* signed-out visitors get Log in where customers see Cart, so both sides have two buttons */
+  body:not(.is-guest) .customer-mobile-nav .mobile-login{display:none}
   body[data-customer-page="checkout"] .customer-mobile-nav,body[data-customer-page="invoice"] .customer-mobile-nav{display:none}
   .customer-mobile-nav button{border:0;background:transparent;color:#6d5d79;font:600 .66rem 'DM Sans',sans-serif;min-width:50px;display:grid;justify-items:center;gap:2px;padding:3px}
   .customer-mobile-nav button span{font-size:1.3rem;line-height:1.1}
