@@ -470,6 +470,22 @@ html[data-theme=dark] .reg-back{color:#aa97d7}
 html[data-theme=dark] .reg-resend{color:#b0a5c1}
 html[data-theme=dark] .reg-resend button{color:#aa97d7}
 html[data-theme=dark] .reg-resend button:disabled{color:#bbb1c8}
+html[data-theme=dark] .auth-or{color:#b4a8c0}
+html[data-theme=dark] .auth-or::before,html[data-theme=dark] .auth-or::after{background:#2d2237}
+html[data-theme=dark] .auth-google{border:1px solid #48365b;background:#1b141f;color:#cfc1e3}
+html[data-theme=dark] .auth-google:hover{background:#1f1823;border-color:#4a3464}
+html[data-theme=dark] .auth-google:focus-visible,html[data-theme=dark] .auth-inline-link:focus-visible,html[data-theme=dark] .auth-back:focus-visible{outline:2px solid #6545a3}
+html[data-theme=dark] .auth-legal{color:#b4a8c0}
+html[data-theme=dark] .auth-inline-link{color:#c8b3d4}
+html[data-theme=dark] .auth-back{color:#c8b3d4}
+html[data-theme=dark] .auth-resend{color:#b4a8c0}
+html[data-theme=dark] .auth-resend button{color:#c8b3d4}
+html[data-theme=dark] .auth-resend button:disabled{color:#bbb1c8}
+html[data-theme=dark] .otp input{border:1.5px solid rgba(77,54,104,0.7);background:#1b141f;color:#cfc1e3}
+html[data-theme=dark] .otp input:focus{border-color:#5c3d6e;box-shadow:0 0 0 3px rgba(92,61,110,.12)}
+html[data-theme=dark] .otp.is-bad input{border-color:#743039}
+html[data-theme=dark] .reg-terms-dialog{background:#1b141f;color:#c9bfd8;box-shadow:0 20px 60px rgba(92,61,110,.22)}
+html[data-theme=dark] .reg-terms-dialog::backdrop{background:rgba(30,18,24,.45)}
 html[data-theme=dark] .pf-wrap{color:#cfc1e3}
 html[data-theme=dark] .pf-head{background:linear-gradient(135deg,#6033dd,#402b69);color:#fff}
 html[data-theme=dark] .pf-head h1{color:#fff}
