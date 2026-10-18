@@ -659,7 +659,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'DM Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=33">
+<link rel="stylesheet" href="shared/customer-flow.css?v=35">
 <link rel="stylesheet" href="shared/product-detail.css?v=3">
 <link rel="stylesheet" href="shared/chat-widget.css?v=10">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=6">
@@ -1052,23 +1052,67 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
     <div class="auth-form-side">
       <div class="auth-logo" onclick="navigate('home')">LexC's <span>Snacktime</span></div>
       <div class="auth-card">
-        <h1 class="auth-heading">LOG IN</h1>
-        <p class="auth-sub">Welcome back! Enter your details to continue.</p>
         <div class="auth-error" id="loginError"></div>
-        <div class="auth-field">
-          <label class="auth-label">Name</label>
-          <input class="auth-input" id="loginName" type="email" placeholder="you@email.com" autocomplete="email">
+        <div class="auth-success" id="loginSuccess"></div>
+        <!-- Log in (GitHub-style: Sign in, then "or", then Continue with Google) -->
+        <div data-login-view="signin">
+          <h1 class="auth-heading">Log in</h1>
+          <p class="auth-sub">Welcome back! Enter your details to continue.</p>
+          <div class="auth-field">
+            <label class="auth-label">Email</label>
+            <input class="auth-input" id="loginName" type="email" placeholder="you@email.com" autocomplete="email">
+          </div>
+          <div class="auth-field">
+            <div class="auth-label-row"><label class="auth-label">Password</label><button type="button" class="auth-forgot" onclick="forgotStart()">Forgot password?</button></div>
+            <input class="auth-input" id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password">
+          </div>
+          <div class="auth-remember">
+            <label><input type="checkbox" id="loginRemember"> Remember my email</label>
+          </div>
+          <button class="auth-btn" onclick="handleLogin()">Sign in</button>
+          <div class="auth-or" data-google-only hidden><span>or</span></div>
+          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button>
+          <div class="auth-switch">New to LexC’s Snacktime? <a onclick="navigate('register')">Create an account</a></div>
         </div>
-        <div class="auth-field">
-          <label class="auth-label">Password</label>
-          <input class="auth-input" id="loginPassword" type="password" placeholder="••••••••">
+        <!-- Forgot password: email → 6-digit code → new password → done -->
+        <div data-login-view="forgot" hidden>
+          <h1 class="auth-heading">Forgot password?</h1>
+          <p class="auth-sub">No worries. Enter your account email and we’ll send you a 6-digit code to reset it.</p>
+          <div class="auth-field">
+            <label class="auth-label">Email</label>
+            <input class="auth-input" id="forgotEmail" type="email" placeholder="you@email.com" autocomplete="email">
+          </div>
+          <button class="auth-btn" type="button" data-auth-primary onclick="forgotSend()">Send code</button>
+          <button class="auth-back" type="button" onclick="loginView('signin')">← Back to log in</button>
         </div>
-        <div class="auth-remember">
-          <label><input type="checkbox" id="loginRemember"> Remember email/name</label>
-          <button type="button" class="auth-forgot" onclick="handleForgotPassword()">Forgot password?</button>
+        <div data-login-view="code" hidden>
+          <h1 class="auth-heading">Enter the code</h1>
+          <p class="auth-sub">We sent a 6-digit code to <strong id="forgotSentTo"></strong>. It may take a minute to arrive.</p>
+          <div class="otp" data-otp="forgotVerify"></div>
+          <button class="auth-btn" type="button" data-auth-primary onclick="forgotVerify()">Continue</button>
+          <p class="auth-resend">Didn’t receive the code? <button type="button" id="forgotResend" onclick="forgotSend(true)">Send again</button></p>
+          <button class="auth-back" type="button" onclick="loginView('forgot')">← Use a different email</button>
         </div>
-        <button class="auth-btn" onclick="handleLogin()">Sign In</button>
-        <div class="auth-switch">Don't have an account? <a onclick="navigate('register')">Register</a></div>
+        <div data-login-view="newpw" hidden>
+          <h1 class="auth-heading">Set a new password</h1>
+          <p class="auth-sub">Choose a password you haven’t used here before.</p>
+          <div class="auth-field">
+            <label class="auth-label">New password</label>
+            <input class="auth-input" id="forgotPassword" type="password" placeholder="New password" autocomplete="new-password" data-pw-live>
+            <div data-pw-slot></div>
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">Confirm password</label>
+            <input class="auth-input" id="forgotConfirm" type="password" placeholder="Re-enter password" autocomplete="new-password" data-pw-confirm>
+          </div>
+          <button class="auth-btn" type="button" data-auth-primary onclick="forgotSetPassword()">Reset password</button>
+        </div>
+        <div data-login-view="done" hidden class="auth-done">
+          <div class="mo-check" aria-hidden="true"><svg viewBox="0 0 84 84"><circle class="mo-ring" cx="42" cy="42" r="38"/><path class="mo-tick" d="M26 43l11 11 21-22"/></svg></div>
+          <h1 class="auth-heading">Password changed!</h1>
+          <p class="auth-sub">Your password has been reset. You’re signed in.</p>
+          <button class="auth-btn" type="button" data-auth-primary onclick="authFinish()">Continue</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1086,34 +1130,55 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
     <div class="auth-form-side">
       <div class="auth-logo" onclick="navigate('home')">LexC's <span>Snacktime</span></div>
       <div class="auth-card">
-        <h1 class="auth-heading">Create Account</h1>
-        <p class="auth-sub">Sign up to start ordering your favorite pastries!</p>
         <div class="auth-error" id="registerError"></div>
         <div class="auth-success" id="registerSuccess"></div>
-        <ol class="reg-steps" aria-label="Sign-up steps"><li data-reg-dot="1" class="is-on">Details</li><li data-reg-dot="2">Terms</li><li data-reg-dot="3">Verify email</li></ol>
+        <!-- 1. details + agree (one screen) -->
         <div data-reg-step="1">
-        <div class="auth-field">
-          <label class="auth-label">Email</label>
-          <input class="auth-input" id="regEmail" type="email" placeholder="you@email.com" autocomplete="email">
+          <h1 class="auth-heading">Create account</h1>
+          <p class="auth-sub">Sign up to start ordering your favorite pastries!</p>
+          <div class="auth-field">
+            <label class="auth-label">Full name</label>
+            <input class="auth-input" id="regName" type="text" placeholder="Your full name" autocomplete="name">
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">Email</label>
+            <input class="auth-input" id="regEmail" type="email" placeholder="you@email.com" autocomplete="email">
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">Password</label>
+            <input class="auth-input" id="regPassword" type="password" placeholder="Create a password" autocomplete="new-password" data-pw-live>
+            <div data-pw-slot></div>
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">Confirm password</label>
+            <input class="auth-input" id="regConfirm" type="password" placeholder="Re-enter password" autocomplete="new-password" data-pw-confirm>
+          </div>
+          <label class="reg-agree"><input type="checkbox" id="regAgree"> <span>I agree to the <button type="button" class="auth-inline-link" onclick="openTermsDialog()">Terms and Conditions</button></span></label>
+          <button class="auth-btn" type="button" onclick="handleRegister()">Create account</button>
+          <div class="auth-or" data-google-only hidden><span>or sign up with</span></div>
+          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button>
+          <p class="auth-legal" data-google-only hidden>Continuing with Google means you agree to our <button type="button" class="auth-inline-link" onclick="openTermsDialog()">Terms and Conditions</button>.</p>
         </div>
-        <div class="auth-field">
-          <label class="auth-label">Name</label>
-          <input class="auth-input" id="regName" type="text" placeholder="Your full name">
-        </div>
-        <div class="auth-field">
-          <label class="auth-label">Password</label>
-          <input class="auth-input" id="regPassword" type="password" placeholder="••••••••" autocomplete="new-password" data-pw-live>
-          <div data-pw-slot></div>
-        </div>
-        <div class="auth-field">
-          <label class="auth-label">Confirm Password</label>
-          <input class="auth-input" id="regConfirm" type="password" placeholder="••••••••" data-pw-confirm>
-        </div>
-        <button class="auth-btn" type="button" onclick="registerNext()">Next</button>
-        </div>
+        <!-- 2. 6-digit code from the confirmation email -->
         <div data-reg-step="2" hidden>
-          <h2 class="reg-title">Terms and Conditions</h2>
-          <div class="reg-terms" tabindex="0" aria-label="Terms and Conditions">
+          <h1 class="auth-heading">Verify your email</h1>
+          <p class="auth-sub">Enter the 6-digit code we sent to <strong id="regSentTo"></strong>. You can also tap the link in that email.</p>
+          <div class="otp" data-otp="verifyRegisterCode"></div>
+          <button class="auth-btn" type="button" data-auth-primary onclick="verifyRegisterCode()">Continue</button>
+          <p class="auth-resend">Didn’t receive the code? Check your spam folder, or <button type="button" id="regResend" onclick="resendRegisterCode()">send again</button></p>
+          <button class="auth-back" type="button" onclick="registerStep(1)">← Use a different email</button>
+        </div>
+        <!-- 3. done -->
+        <div data-reg-step="3" hidden class="auth-done">
+          <div class="mo-check" aria-hidden="true"><svg viewBox="0 0 84 84"><circle class="mo-ring" cx="42" cy="42" r="38"/><path class="mo-tick" d="M26 43l11 11 21-22"/></svg></div>
+          <h1 class="auth-heading">Account created!</h1>
+          <p class="auth-sub">Welcome to LexC’s Snacktime. Your email is verified and you’re signed in.</p>
+          <button class="auth-btn" type="button" data-auth-primary onclick="authFinish()">Continue</button>
+        </div>
+        <div class="auth-switch" data-reg-switch>Already have an account? <a onclick="navigate('login')">Log in</a></div>
+        <dialog class="reg-terms-dialog" id="regTermsDialog" aria-labelledby="regTermsTitle">
+          <h2 id="regTermsTitle" class="reg-title">Terms and Conditions</h2>
+          <div class="reg-terms" tabindex="0">
             <p><strong>1. Orders.</strong> Orders are confirmed by LexC’s Snacktime before payment. Custom designs may be reviewed and, for extra work, an additional price may be proposed, which you can accept or decline.</p>
             <p><strong>2. Payment.</strong> A downpayment or full payment is made by QR transfer after confirmation. Payments count only after LexC’s verifies the actual transfer. Lalamove delivery fees are paid to the rider.</p>
             <p><strong>3. Changes and cancellation.</strong> Unpaid pending orders can be cancelled in My Orders. Once preparation starts, changes and refunds are handled case by case through chat.</p>
@@ -1121,17 +1186,8 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
             <p><strong>5. Your pictures and data.</strong> Photos you send (receipts, inspiration) are kept private and used only for your orders. We keep your name, email and order details to serve you.</p>
             <p><strong>6. Account.</strong> Keep your password private. One account per person; LexC’s may close accounts used for abuse or fake orders.</p>
           </div>
-          <label class="reg-agree"><input type="checkbox" id="regAgree"> I have read and agree to the Terms and Conditions</label>
-          <button class="auth-btn" type="button" onclick="handleRegister()">Create account</button>
-          <button class="reg-back" type="button" onclick="registerStep(1)">← Back</button>
-        </div>
-        <div data-reg-step="3" hidden>
-          <h2 class="reg-title">Verify your email</h2>
-          <div class="reg-mail" aria-hidden="true">✉️</div>
-          <p class="auth-sub">We sent a confirmation email to <strong id="regSentTo"></strong>. Open it and tap <strong>Confirm your mail</strong>. You’ll come back here signed in.</p>
-          <p class="reg-resend">Didn’t get it? Check your spam folder, or <button type="button" id="regResend" onclick="resendRegisterCode()">send it again</button></p>
-        </div>
-        <div class="auth-switch">Already have an account? <a onclick="navigate('login')">Log In</a></div>
+          <div class="reg-terms-actions"><button type="button" class="auth-back" onclick="this.closest('dialog').close()">Close</button><button type="button" class="auth-btn" onclick="agreeToTerms()">I agree</button></div>
+        </dialog>
       </div>
     </div>
   </div>
@@ -1661,6 +1717,9 @@ function navigate(page, anchor) {
     if (a.dataset.page === page) a.classList.add('active');
   });
 
+  // coming back to Log in starts at the sign-in form; a finished sign-up starts over
+  if (page === 'login' && currentPage !== 'login' && typeof loginView === 'function') loginView('signin');
+  if (page === 'register' && document.querySelector('[data-reg-step="3"]:not([hidden])')) registerStep(1);
   currentPage = page;
   updateCustomerMobileNavigation();
   window.scrollTo(0, 0);
@@ -2336,7 +2395,18 @@ async function handleLogin() {
     if (document.getElementById('loginRemember').checked) localStorage.setItem('lexc_login_hint',email);
     else localStorage.removeItem('lexc_login_hint');
     await completeCustomerLogin(user);
-  } catch (problem) { error.textContent = problem.message; error.classList.add('show'); }
+  } catch (problem) {
+    // signed up but never entered the code: send a fresh code and open the code screen
+    if (/email not confirmed/i.test(problem?.message || '')) {
+      const email = document.getElementById('loginName').value.trim();
+      document.getElementById('regEmail').value = email; document.getElementById('regSentTo').textContent = email;
+      navigate('register'); registerStep(2);
+      try { LexcBackend.unwrap(await LexcBackend.client.auth.resend({ type: 'signup', email })); registerMessage('Your email isn’t verified yet. We sent a new 6-digit code to ' + email + '.', true); resendCooldown('regResend'); }
+      catch (resendProblem) { registerMessage(authErrorText(resendProblem)); }
+      return;
+    }
+    error.textContent = problem.message; error.classList.add('show');
+  }
   finally { authBusy = false; }
 }
 // Live password checklist: any new-password box with data-pw-live updates the list right after it as you type;
@@ -2368,64 +2438,208 @@ function passwordProblem(p) {
   if ((p.match(/[^A-Za-z0-9]/g) || []).length > 1) return 'Use at most one special character (like ! or @).';
   return '';
 }
-// Sign-up: 1 details → 2 Terms and Conditions → 3 the 6-digit code emailed by Supabase → confirmed and signed in.
-function registerMessage(text, ok) {
-  const error = document.getElementById('registerError'), success = document.getElementById('registerSuccess');
+// Sign-up: 1 details + agree → 2 the 6-digit code from the confirmation email → 3 account created (signed in).
+// Forgot password (inside the log-in page): email → 6-digit code → new password → password changed.
+// The code is Supabase's {{ .Token }}; the email's link still works too (?confirmed=1 / PASSWORD_RECOVERY dialog).
+function authMessage(page, text, ok) {
+  const error = document.getElementById(page + 'Error'), success = document.getElementById(page + 'Success');
   error.classList.remove('show'); success.classList.remove('show');
   if (!text) return;
   const box = ok ? success : error; box.textContent = text; box.classList.add('show');
 }
+function registerMessage(text, ok) { authMessage('register', text, ok); }
+function loginMessage(text, ok) { authMessage('login', text, ok); }
+// Supabase wording → plain words for the few errors people actually hit here.
+function authErrorText(problem) {
+  const m = String(problem?.message || problem || '');
+  if (/token has expired|invalid token|otp.*(expired|invalid)|expired or is invalid/i.test(m)) return 'That code is wrong or has expired. Check the latest email, or send a new code.';
+  if (/email rate limit|over_email_send_rate_limit/i.test(m)) return 'Too many emails were sent just now. Please wait a few minutes, then try again.';
+  if (/only request this after (\d+) seconds/i.test(m)) return 'Please wait ' + m.match(/after (\d+) seconds/i)[1] + ' seconds before asking for another code.';
+  if (/same.*(old|current) password|different from the old/i.test(m)) return 'Choose a password you haven’t used before.';
+  if (/provider is not enabled|unsupported provider/i.test(m)) return 'Google sign-in isn’t available yet. Please use your email and password.';
+  return m || 'Something went wrong. Please try again.';
+}
+// Button shows progress while an action runs; errors stay in the page's message box.
+async function authAction(button, busyText, action) {
+  if (authBusy) return;
+  authBusy = true;
+  const label = button?.textContent;
+  if (button) { button.disabled = true; button.textContent = busyText; }
+  try { return await action(); }
+  finally { authBusy = false; if (button) { button.disabled = false; button.textContent = label; } }
+}
+const authButton = (scope) => document.querySelector(scope + ' [data-auth-primary]');
+
+// ---- 6-digit code boxes: type, paste the whole code, backspace/arrows move between boxes; a full code submits.
+function otpValue(root) { return [...root.querySelectorAll('input')].map((input) => input.value).join(''); }
+function otpReset(root) { root.querySelectorAll('input').forEach((input) => { input.value = ''; }); root.classList.remove('is-bad'); }
+function initOtp(root) {
+  root.setAttribute('role', 'group'); root.setAttribute('aria-label', '6-digit code');
+  root.innerHTML = Array.from({ length: 6 }, (_, i) => '<input inputmode="numeric" pattern="[0-9]*" maxlength="6" aria-label="Digit ' + (i + 1) + ' of 6" autocomplete="' + (i === 0 ? 'one-time-code' : 'off') + '">').join('');
+  const boxes = [...root.querySelectorAll('input')];
+  const fill = (from, digits) => { digits.split('').forEach((d, k) => { if (boxes[from + k]) boxes[from + k].value = d; }); boxes[Math.min(from + digits.length, 5)].focus(); };
+  const maybeSubmit = () => { root.classList.remove('is-bad'); if (otpValue(root).length === 6 && typeof window[root.dataset.otp] === 'function') window[root.dataset.otp](); };
+  boxes.forEach((box, i) => {
+    box.addEventListener('input', () => {
+      const digits = box.value.replace(/\D/g, '');
+      box.value = '';
+      if (digits) fill(i, digits.slice(0, 6 - i));
+      maybeSubmit();
+    });
+    box.addEventListener('keydown', (event) => {
+      if (event.key === 'Backspace' && !box.value && i > 0) { boxes[i - 1].value = ''; boxes[i - 1].focus(); event.preventDefault(); }
+      else if (event.key === 'ArrowLeft' && i > 0) boxes[i - 1].focus();
+      else if (event.key === 'ArrowRight' && i < 5) boxes[i + 1].focus();
+    });
+    box.addEventListener('focus', () => box.select());
+  });
+}
+document.querySelectorAll('[data-otp]').forEach(initOtp);
+function otpProblem(root) {
+  if (otpValue(root).length === 6) return false;
+  root.classList.add('is-bad'); [...root.querySelectorAll('input')].find((input) => !input.value)?.focus();
+  return true;
+}
+
+// Resend links wait 60 seconds between emails (Supabase also limits how often it sends).
+const resendTimers = {};
+function resendCooldown(id, seconds = 60) {
+  const button = document.getElementById(id); if (!button) return;
+  const label = button.dataset.label || (button.dataset.label = button.textContent);
+  clearInterval(resendTimers[id]);
+  let left = seconds; button.disabled = true; button.textContent = label + ' (' + left + 's)';
+  resendTimers[id] = setInterval(() => { left--; if (left <= 0) { clearInterval(resendTimers[id]); button.disabled = false; button.textContent = label; } else button.textContent = label + ' (' + left + 's)'; }, 1000);
+}
+
+// ---- Sign-up
 function registerStep(n) {
   document.querySelectorAll('[data-reg-step]').forEach(step => { step.hidden = Number(step.dataset.regStep) !== n; });
-  document.querySelectorAll('[data-reg-dot]').forEach(dot => { const k = Number(dot.dataset.regDot); dot.classList.toggle('is-on', k === n); dot.classList.toggle('is-done', k < n); });
+  document.querySelector('[data-reg-switch]').hidden = n === 3;
   registerMessage('');
+  if (n === 2) { const otp = document.querySelector('[data-reg-step="2"] [data-otp]'); otpReset(otp); setTimeout(() => otp.querySelector('input').focus(), 50); }
 }
-function registerNext() {
+function openTermsDialog() { document.getElementById('regTermsDialog').showModal(); }
+function agreeToTerms() { document.getElementById('regAgree').checked = true; document.getElementById('regTermsDialog').close(); registerMessage(''); }
+async function handleRegister() {
+  if (authBusy) return;
   const email = document.getElementById('regEmail').value.trim(), name = document.getElementById('regName').value.trim();
   const password = document.getElementById('regPassword').value;
   if (!name || !email || !document.getElementById('regEmail').checkValidity()) return registerMessage('Enter your name and a valid email.');
   const weak = passwordProblem(password); if (weak) return registerMessage(weak);
   if (password !== document.getElementById('regConfirm').value) return registerMessage('The passwords do not match.');
-  registerStep(2);
-}
-async function handleRegister() {
-  if (authBusy) return;
   if (!document.getElementById('regAgree').checked) return registerMessage('Please read and agree to the Terms and Conditions to continue.');
-  const email = document.getElementById('regEmail').value.trim(), name = document.getElementById('regName').value.trim();
-  const password = document.getElementById('regPassword').value;
   authBusy = true;
   try {
     const data = await LexcBackend.signUp(name, email, password);
+    // Supabase answers an already-registered email with a user that has no identities (and sends nothing).
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) return registerMessage('This email already has an account. Log in instead, or use “Forgot password?” on the log-in page.');
     document.getElementById('regPassword').value = ''; document.getElementById('regConfirm').value = '';
-    if (data.session) { await completeCustomerLogin(await LexcBackend.identity()); return; }
+    if (data.session) { registerStep(3); return; }
     document.getElementById('regSentTo').textContent = email;
-    registerStep(3);
-    resendCooldown();
-  } catch (problem) { registerMessage(problem.message); }
+    registerStep(2);
+    resendCooldown('regResend');
+  } catch (problem) { registerMessage(authErrorText(problem)); }
   finally { authBusy = false; }
 }
-let resendTimer = null;
-function resendCooldown(seconds = 60) {
-  const button = document.getElementById('regResend'); clearInterval(resendTimer);
-  let left = seconds; button.disabled = true; button.textContent = `send it again (${left}s)`;
-  resendTimer = setInterval(() => { left--; if (left <= 0) { clearInterval(resendTimer); button.disabled = false; button.textContent = 'send it again'; } else button.textContent = `send it again (${left}s)`; }, 1000);
+async function verifyRegisterCode() {
+  const otp = document.querySelector('[data-reg-step="2"] [data-otp]');
+  if (otpProblem(otp)) return registerMessage('Enter all 6 digits of the code.');
+  const email = document.getElementById('regEmail').value.trim();
+  await authAction(authButton('[data-reg-step="2"]'), 'Checking code…', async () => {
+    try {
+      LexcBackend.unwrap(await LexcBackend.client.auth.verifyOtp({ email, token: otpValue(otp), type: 'signup' }));
+      registerStep(3);
+    } catch (problem) { otp.classList.add('is-bad'); registerMessage(authErrorText(problem)); }
+  });
 }
 async function resendRegisterCode() {
   const email = document.getElementById('regEmail').value.trim();
-  try { LexcBackend.unwrap(await LexcBackend.client.auth.resend({ type: 'signup', email })); registerMessage('A new confirmation email was sent to ' + email + '.', true); resendCooldown(); }
-  catch (problem) { registerMessage(problem.message); }
+  try { LexcBackend.unwrap(await LexcBackend.client.auth.resend({ type: 'signup', email })); registerMessage('A new code was sent to ' + email + '.', true); resendCooldown('regResend'); }
+  catch (problem) { registerMessage(authErrorText(problem)); }
 }
+// "Continue" on Account created / Password changed: same landing as a normal log-in (checkout resumes if pending).
+async function authFinish() {
+  await authAction(document.querySelector('.auth-done:not([hidden]) [data-auth-primary]'), 'Loading…', async () => {
+    try {
+      const user = await LexcBackend.identity();
+      registerStep(1); loginView('signin');
+      if (!user) return navigate('login');
+      await completeCustomerLogin(user);
+    } catch (problem) { showToast(authErrorText(problem)); }
+  });
+}
+
+// ---- Forgot password (views inside the log-in page)
+let codeRecovery = false;   // true while the code flow signs in for a reset, so the link-flow dialog stays closed
+function loginView(name) {
+  document.querySelectorAll('[data-login-view]').forEach(view => { view.hidden = view.dataset.loginView !== name; });
+  loginMessage('');
+  const view = document.querySelector('[data-login-view="' + name + '"]');
+  const otp = view.querySelector('[data-otp]'); if (otp) otpReset(otp);
+  if (currentPage === 'login') setTimeout(() => view.querySelector('input')?.focus(), 50);
+}
+function forgotStart() {
+  const typed = document.getElementById('loginName').value.trim();
+  if (typed) document.getElementById('forgotEmail').value = typed;
+  loginView('forgot');
+}
+async function forgotSend(again) {
+  const input = document.getElementById('forgotEmail'), email = input.value.trim();
+  if (!email || !input.checkValidity()) { if (again) loginView('forgot'); return loginMessage('Enter the email address of your account.'); }
+  const run = async () => {
+    try {
+      LexcBackend.unwrap(await LexcBackend.client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }));
+      document.getElementById('forgotSentTo').textContent = email;
+      if (!again) loginView('code');
+      if (again) loginMessage('A new code was sent to ' + email + '.', true);
+      resendCooldown('forgotResend');
+    } catch (problem) { loginMessage(authErrorText(problem)); }
+  };
+  if (again) return run();
+  await authAction(authButton('[data-login-view="forgot"]'), 'Sending code…', run);
+}
+async function forgotVerify() {
+  const otp = document.querySelector('[data-login-view="code"] [data-otp]');
+  if (otpProblem(otp)) return loginMessage('Enter all 6 digits of the code.');
+  await authAction(authButton('[data-login-view="code"]'), 'Checking code…', async () => {
+    codeRecovery = true;
+    try {
+      LexcBackend.unwrap(await LexcBackend.client.auth.verifyOtp({ email: document.getElementById('forgotEmail').value.trim(), token: otpValue(otp), type: 'recovery' }));
+      loginView('newpw');
+    } catch (problem) { codeRecovery = false; otp.classList.add('is-bad'); loginMessage(authErrorText(problem)); }
+  });
+}
+async function forgotSetPassword() {
+  const password = document.getElementById('forgotPassword').value;
+  const weak = passwordProblem(password); if (weak) return loginMessage(weak);
+  if (password !== document.getElementById('forgotConfirm').value) return loginMessage('The passwords do not match.');
+  await authAction(authButton('[data-login-view="newpw"]'), 'Saving…', async () => {
+    try {
+      LexcBackend.unwrap(await LexcBackend.client.auth.updateUser({ password }));
+      document.getElementById('forgotPassword').value = ''; document.getElementById('forgotConfirm').value = '';
+      codeRecovery = false;
+      loginView('done');
+    } catch (problem) { loginMessage(authErrorText(problem)); }
+  });
+}
+
+// ---- Continue with Google: shown only when the Google provider is switched on in Supabase Auth.
+async function signInWithGoogle() {
+  const message = currentPage === 'register' ? registerMessage : loginMessage;
+  try {
+    LexcBackend.unwrap(await LexcBackend.client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }));
+  } catch (problem) { message(authErrorText(problem)); }
+}
+(async () => {
+  try {
+    const { url, key } = window.LexcSupabaseConfig;
+    const settings = await (await fetch(url + '/auth/v1/settings', { headers: { apikey: key } })).json();
+    if (settings?.external?.google) document.querySelectorAll('[data-google-only]').forEach(el => { el.hidden = false; });
+  } catch { /* leave Google hidden; email sign-in still works */ }
+})();
 async function handleLogout() {
   try { await flushCustomerCart(); await LexcBackend.signOut(); currentUser=null; clearSignedInCart(); updateNavAuth(); navigate('home'); showToast('You have been logged out.'); }
   catch(error) { showToast(error.message); }
-}
-async function handleForgotPassword() {
-  const email = document.getElementById('loginName').value.trim();
-  if (!email || !document.getElementById('loginName').checkValidity()) return showToast('Enter your email address first.');
-  try {
-    LexcBackend.unwrap(await LexcBackend.client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/'}));
-    showToast('If an account exists, a password reset email will be sent.');
-  } catch(error) { showToast(error.message); }
 }
 LexcBackend.identity().then(async user => {
   currentUser = user;
@@ -2441,7 +2655,8 @@ LexcBackend.client.auth.onAuthStateChange(event => {
     LexcBackend.identity().then(async user => { currentUser = user; updateNavAuth(); if (user) await hydrateCustomerCart(user); }).catch(() => { currentUser = null; updateNavAuth(); });
   }, 0);
   if (event === 'SIGNED_OUT') { currentUser = null; clearSignedInCart(); updateNavAuth(); if (currentPage === 'checkout') navigate('login'); else if (currentPage === 'orders') navigate('home'); }
-  if (event === 'PASSWORD_RECOVERY') setTimeout(() => {
+  // the email-link reset opens this dialog; the 6-digit code reset has its own screens on the log-in page
+  if (event === 'PASSWORD_RECOVERY' && !codeRecovery) setTimeout(() => {
     const dialog = document.createElement('dialog');
     dialog.className = 'lx-pw'; dialog.innerHTML = '<form><h2>Set a new password</h2><p class="lx-pw-sub">At least 8 characters, with one capital letter and one number. One special character is allowed.</p><label>New password<input type="password" name="password" minlength="8" autocomplete="new-password" required data-pw-live></label>' + passwordChecklistHTML() + '<label>Confirm password<input type="password" name="confirm" minlength="8" autocomplete="new-password" required data-pw-confirm></label><p role="alert"></p><button>Save password</button></form>';
     document.body.append(dialog); dialog.showModal();
@@ -2458,7 +2673,10 @@ for (const key of ['lexc_users','lexc_current_user']) localStorage.removeItem(ke
 for (const key of ['customer_logged_in','lexc_customer_user','admin_logged_in']) sessionStorage.removeItem(key);
 updateNavAuth();
 // Associate existing labels and enable keyboard submission without duplicate forms.
-for (const [page, submit] of [['login', handleLogin], ['register', () => { const step = document.querySelector('[data-reg-step]:not([hidden])')?.dataset.regStep; return step === '3' ? null : step === '2' ? handleRegister() : registerNext(); }]]) {
+// Enter runs the visible step's main action (code boxes submit by themselves once all 6 digits are in).
+const loginSubmit = () => ({ signin: handleLogin, forgot: () => forgotSend(), code: forgotVerify, newpw: forgotSetPassword, done: authFinish })[document.querySelector('[data-login-view]:not([hidden])')?.dataset.loginView]?.();
+const registerSubmit = () => ({ 1: handleRegister, 2: verifyRegisterCode, 3: authFinish })[document.querySelector('[data-reg-step]:not([hidden])')?.dataset.regStep]?.();
+for (const [page, submit] of [['login', loginSubmit], ['register', registerSubmit]]) {
   const container = document.getElementById('page-' + page);
   container.querySelectorAll('.auth-field').forEach(field => {
     field.querySelector('label').htmlFor = field.querySelector('input').id;
@@ -2495,7 +2713,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/letter-pieces.js?v=3"></script>
 <script src="shared/cupcake-designer.js?v=35"></script>
 <script src="shared/treat-designer.js?v=25"></script>
-<script src="shared/motion.js?v=2" defer></script>
+<script src="shared/motion.js?v=3" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
 <script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=29';mountChatWidget();</script>

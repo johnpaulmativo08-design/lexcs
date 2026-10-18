@@ -283,7 +283,8 @@
     };
   }
   authWithMotion('handleLogin', 'Signing in…', '✓ Signed in', 'loginError');
-  authWithMotion('handleRegister', 'Creating account…', '✓ Account created', 'registerError');
+  // the account is only created once the emailed code is entered, so this step just sends the code
+  authWithMotion('handleRegister', 'Creating account…', '✓ Code sent', 'registerError');
 
   // ---- Checkout: a field that blocks the order gets one small nudge (the message and red border stay the main signal)
   if (has('submitCheckout')) {

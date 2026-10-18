@@ -78,6 +78,11 @@ html[data-text] .reg-agree{font-size:0.875rem}
 html[data-text] .reg-code{font-size:1.3rem}
 html[data-text] .reg-resend{font-size:0.8125rem}
 html[data-text] .reg-mail{font-size:2.4rem}
+html[data-text] .auth-or{font-size:.8rem}
+html[data-text] .auth-legal{font-size:.76rem}
+html[data-text] .auth-resend{font-size:.8rem}
+@media(max-width:360px){html[data-text] .otp input{font-size:1.15rem}
+}
 html[data-text] .pf-head h1{font-size:1.25rem}
 html[data-text] .pf-photo img,html[data-text] .pf-photo>span{font-size:2.4rem}
 html[data-text] .pf-hero h2{font-size:1.6rem}
