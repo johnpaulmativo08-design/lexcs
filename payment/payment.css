@@ -382,3 +382,6 @@ main{overflow-wrap:anywhere}
 .method-mark.has-logo img{width:100%;height:100%;object-fit:cover;display:block}
 .compact-payment-heading h2{display:flex;align-items:center;gap:10px}
 .compact-payment-heading h2 .method-mark{flex:none;width:34px;height:34px;border-radius:9px}
+
+/* nothing may widen the page sideways (tablets stayed zoomed out after "Request desktop website" was turned off) */
+html,body{overflow-x:clip}

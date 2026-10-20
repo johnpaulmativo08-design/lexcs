@@ -124,7 +124,7 @@
     const n = 'Order #' + o.order_number, pay = 'payment/index.html?order=' + encodeURIComponent(o.id), chat = 'chat/?order=' + encodeURIComponent(o.id);
     if (o.status === 'cancelled') return ['cancelled', '✕', n + ' was cancelled.', 'If you already paid, message LexC’s.', chat];
     if (o.status === 'completed') return ['completed', '★', n + ' is complete.', 'Enjoy! You can now rate your treats.', pay];
-    if (o.status === 'ready') return ['ready', '✓', n + ' is ready.', o.fulfillment_method === 'pickup' ? 'Ready for pickup at your booked time.' : 'Ready for delivery at your booked time.', pay];
+    if (o.status === 'ready') return ['ready', '✓', n + ' is ready.', o.fulfillment_method === 'pickup' ? 'Ready for pickup at your reserved time.' : 'Ready for delivery at your reserved time.', pay];
     if (o.payment_status === 'rejected') return ['pay-rejected', '!', 'Payment for ' + n + ' needs attention.', 'Your proof was not accepted. Open the order to try again.', pay];
     if (o.status === 'preparing') return ['preparing', '🧁', 'We started making ' + n + '.', 'Your treats are being prepared.', pay];
     if (o.payment_status === 'paid') return ['paid', '✓', 'Payment verified for ' + n + '.', 'Fully paid. Thank you!', pay];

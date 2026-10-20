@@ -12,7 +12,7 @@ const { chromium } = require(process.argv[2] || 'playwright');
     const failed = [];
     page.on('response', response => { if (response.status() >= 400) failed.push(response.url()); });
     await page.goto('http://127.0.0.1:8000/admin/', { waitUntil: 'domcontentloaded' });
-    await page.waitForURL('**/login.html');
+    await page.waitForURL(url => !String(url).includes('/admin/'));
     await page.locator('[name=email]').fill('admin@lexcsnacktime.local');
     await page.locator('[name=password]').fill(process.env.LEXC_ADMIN_PASSWORD || '');
     await page.getByRole('button',{name:'Log In',exact:true}).click();

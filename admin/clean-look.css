@@ -1,0 +1,66 @@
+/* Admin · clean card look, on every admin page (loaded last).
+   A soft lilac canvas so white cards stand on their own: no outlines, large radius and a soft wide shadow;
+   titles without divider lines; quiet tinted buttons; segmented tabs as white pills; lighter table lines.
+   Where an outline used to show a state (selected tile, open group), a soft violet ring shows it instead.
+   Form fields keep their borders so they stay easy to see and use. #content wins over page-specific styles. */
+:root{--clean-canvas:#f5f3fb;--clean-card:0 1px 2px rgba(46,34,90,.04),0 10px 30px rgba(46,34,90,.06);--clean-raise:0 2px 4px rgba(46,34,90,.05),0 16px 36px rgba(46,34,90,.10);--clean-ring:0 0 0 2px #8d6fe0;--clean-tint:#f3effc;--clean-tint-hover:#e9e1fb;--clean-ink:#5b3fc0;--clean-line:#f0ecf6}
+body main#content,body.inventory-view main#content{background:var(--clean-canvas)}
+
+/* cards */
+#content .panel,#content .skel-panel,#content .pm-card,#content .dopt-group,#content .booking-calendar,#content .booking-mini,
+#content .booking-selected-card,#content .booking-today,#content .chat-workspace,#content .stock-tile,#content .rep-kpi,#content .rep-card,
+#content .profile-card,#content .profile-form,#content .updates-frame,#content .toolbar,#content .stat{border-color:transparent;box-shadow:var(--clean-card)}
+#content .panel,#content .skel-panel,#content .booking-calendar,#content .chat-workspace,#content .updates-frame,#content .rep-card,#content .rep-kpi,#content .profile-card,#content .profile-form{border-radius:22px}
+#content .pm-card,#content .dopt-group,#content .booking-mini,#content .booking-selected-card,#content .booking-today,#content .stock-tile,#content .toolbar,#content .stat{border-radius:18px}
+#content .panel:hover{border-color:transparent;transform:none}
+#content .pm-card:hover,#content .stock-tile:hover,#content .rep-kpi:hover{border-color:transparent;box-shadow:var(--clean-raise)}
+#content .dopt-group:hover{border-color:transparent}
+#content .dopt-group.is-open{border-color:transparent;box-shadow:var(--clean-ring),var(--clean-raise)}
+#content .stock-tile.is-active{border-color:transparent;box-shadow:var(--clean-ring),var(--clean-card)}
+
+/* titles sit on the card: no divider line, bold sans */
+#content .panel-title{border-bottom-color:transparent;color:#1d1530;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;letter-spacing:-.01em}
+#content .rep-card-head,#content .booking-selected-card header{border-bottom-color:var(--clean-line)}
+
+/* buttons: secondary ones become quiet tinted pills; primary stays filled */
+#content .button:not(.primary):not(.button--primary):not(.status-chip){border-color:transparent;background:var(--clean-tint);color:var(--clean-ink);box-shadow:none}
+#content .button:not(.primary):not(.button--primary):not(.status-chip):hover:not(:disabled){background:var(--clean-tint-hover);border-color:transparent}
+#content .panel-title .dash-fold{border:0;border-radius:999px;background:#f6f3fb}
+
+/* segmented tabs and switches: white pills on the canvas */
+#content .rep-tabs,#content .rep-period-buttons,#content .inventory-tabs,#content .stock-tabs,#content .booking-view-toggle,#content .cap-switch{border-color:transparent;background:#fff;box-shadow:var(--clean-card)}
+#content .cap-switch{background:var(--clean-tint);box-shadow:none}
+#content .stock-search{border-color:transparent;box-shadow:var(--clean-card)}
+
+/* status pills and tables */
+#content .status-indicator{border-color:transparent}
+#content .data-table td,#content .data-table th{border-color:var(--clean-line)}
+#content .table-scroll{border-color:transparent}
+#content .ops-row,#content .rep-list-row{border-bottom-color:transparent}
+
+@media(max-width:520px){
+ #content .panel,#content .skel-panel,#content .booking-calendar,#content .chat-workspace,#content .updates-frame,#content .rep-card,#content .rep-kpi,#content .profile-card,#content .profile-form{border-radius:18px}
+ #content .pm-card,#content .dopt-group,#content .stock-tile,#content .toolbar{border-radius:16px}
+}
+
+/* designer options: product picker chips */
+#content .dopt-products button{border-color:transparent;box-shadow:var(--clean-card)}
+#content .dopt-products button[aria-pressed=true]{border-color:transparent;box-shadow:var(--clean-ring),var(--clean-card)}
+
+/* inventory tabs on phones: keep each tab whole and let the row scroll sideways instead of squeezing the words together */
+@media(max-width:520px){#content .stock-tabs{display:flex;flex-wrap:nowrap;max-width:100%;overflow-x:auto;scrollbar-width:none}#content .stock-tabs::-webkit-scrollbar{display:none}#content .stock-tabs>*{flex:none;white-space:nowrap;padding-inline:14px}}
+
+/* ---- tablet fixes (iPad portrait 768–834, landscape 1024–1194) ---- */
+/* the admin page itself never scrolls sideways; wide tables and calendars scroll inside their own card */
+html,body{overflow-x:clip}
+/* screen-reader-only labels (e.g. the "Action" table header) are pinned to their box's corner, so a label inside a
+   sideways-scrolling table can't stretch the page — they read exactly the same to screen readers */
+#content .sr-only{left:0;top:0}
+/* Reservations: the week calendar needs ~760px beside its 245px side panel; with the admin menu open that only fits
+   on wide screens, so the side panel goes below the calendar until there is room */
+#content .booking-reference-layout{grid-template-columns:minmax(0,1fr) 245px}
+@media(max-width:1366px){#content .booking-reference-layout{grid-template-columns:minmax(0,1fr)}}
+/* Reservations filters: wrap onto a second line instead of running off the edge */
+#content .booking-filter-row{flex-wrap:wrap;min-width:0;max-width:100%}
+#content .booking-filter-row .booking-search{min-width:0;flex:1 1 200px}
+#content .booking-topbar{min-width:0;flex-wrap:wrap}

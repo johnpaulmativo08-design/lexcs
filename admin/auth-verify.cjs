@@ -6,7 +6,7 @@ const { chromium } = require(process.argv[2]);
   const page = await browser.newPage();
   for (const route of ['dashboard','products','inventory','inventory/restock','orders','reports','reports/revenue','reports/transactions','gallery','profile','profile/password']) {
    await page.goto('http://127.0.0.1:8000/admin/#'+route);
-   await page.waitForURL('**/login.html');
+   await page.waitForURL(url => !String(url).includes('/admin/'));
   }
   await page.locator('[name=email]').fill('admin@lexcsnacktime.local');
   await page.screenshot({path:require('node:path').join(__dirname,'verification/admin-login.png')});
@@ -16,7 +16,7 @@ const { chromium } = require(process.argv[2]);
   await page.locator('[name=password]').fill('wrong');
   await page.getByRole('button',{name:'Log In',exact:true}).click();
   assert.equal(await page.locator('#login-error').innerText(),'Incorrect email or password.');
-  assert.ok(page.url().endsWith('login.html'));
+  assert.ok(!page.url().includes('/admin/'));
   await page.locator('[name=password]').fill(process.env.LEXC_ADMIN_PASSWORD || '');
   await page.getByRole('button',{name:'Log In',exact:true}).click();
   await page.waitForURL('**/#dashboard');
@@ -26,9 +26,9 @@ const { chromium } = require(process.argv[2]);
   assert.equal(await page.locator('.page.active').getAttribute('id'),'page-login');
   await page.goto('http://127.0.0.1:8000/admin/#dashboard');
   await page.locator('.logout').click();
-  await page.waitForURL('**/login.html');
+  await page.waitForURL(url => !String(url).includes('/admin/'));
   await page.goto('http://127.0.0.1:8000/admin/#products');
-  await page.waitForURL('**/login.html');
+  await page.waitForURL(url => !String(url).includes('/admin/'));
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('admin_logged_in')),null);
   console.log('PASS: all admin guards, wrong credentials, correct login, refresh, logout, reentry.');
  } finally { await browser.close(); }

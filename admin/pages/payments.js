@@ -1,8 +1,8 @@
 import {escapeHtml as e,money,showDetails,statusIndicator} from '../components.js?v=3';
 import {db,grid,loadingTable} from '../backend-ui.js?v=3';
 
-const label={awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',paid:'Paid',rejected:'Rejected'};
-const tone={awaiting_payment:'neutral',verification_pending:'warning',paid:'success',rejected:'danger'};
+const label={awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',paid:'Paid',rejected:'Rejected',cancelled:'Cancelled'};
+const tone={awaiting_payment:'neutral',verification_pending:'warning',paid:'success',rejected:'danger',cancelled:'neutral'};
 const phTime=value=>value?new Date(value).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}):'—';
 
 // What the customer chose to pay (older payments have no saved kind, so it is worked out from the amount).

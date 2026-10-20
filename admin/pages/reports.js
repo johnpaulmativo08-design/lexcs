@@ -1,5 +1,6 @@
 import {escapeHtml as e,icon,money,toolbar} from '../components.js?v=3';
 import {db,allRows,grid,fail,loadingMetrics,loadingTable,loadingList} from '../backend-ui.js?v=3';
+import {xlsxBlob} from '../xlsx.js?v=3';
 
 // Reports: how the business is doing over a chosen period (compared with the period before it), plus the
 // detailed records (orders, payments, revenue by month) with filters, CSV download and print.
@@ -10,7 +11,7 @@ const addDays=(key,n)=>new Date(Date.parse(key+'T00:00:00Z')+n*86400000).toISOSt
 const daysBetween=(a,b)=>Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);
 const total=values=>values.reduce((sum,value)=>sum+Math.round(Number(value||0)*100),0)/100;
 const peso=v=>'₱'+Number(v||0).toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:2});
-const labels={awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',paid:'Paid',rejected:'Rejected'};
+const labels={awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',paid:'Paid',rejected:'Rejected',cancelled:'Cancelled'};
 const WEEKDAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const PERIODS=[['week','This week'],['month','This month'],['last-month','Last month'],['90','Last 90 days'],['custom','Custom']];
 const STORE='lexc_admin_report_period';
@@ -26,6 +27,41 @@ function periodRange(choice,from,to){
 const within=(value,[a,b])=>{if(!value)return false;const k=dateKey(value);return k>=a&&k<=b;};
 const change=(now,before)=>{if(!before&&!now)return '<span class="rep-delta">No change</span>';if(!before)return '<span class="rep-delta is-up">New this period</span>';const pct=Math.round((now-before)/before*100);return '<span class="rep-delta '+(pct>0?'is-up':pct<0?'is-down':'')+'">'+(pct>0?'▲ ':pct<0?'▼ ':'')+Math.abs(pct)+'% vs previous period</span>';};
 const bars=(rows,format=v=>v)=>{const max=Math.max(1,...rows.map(r=>r[1]));return '<div class="rep-bars">'+rows.map(([label,value,extra])=>'<div class="rep-bar-row"><span class="rep-bar-label">'+e(label)+'</span><span class="rep-bar-track"><span style="width:'+(value>0?Math.max(2,Math.round(value/max*100)):0)+'%"></span></span><span class="rep-bar-value">'+e(format(value))+(extra?' <small>'+e(extra)+'</small>':'')+'</span></div>').join('')+'</div>';};
+// ---- CSV export: a title block (report, what it covers, period, filters, when it was made), then clean tables whose
+// columns each hold one kind of value — dates as YYYY-MM-DD, times as HH:MM, money as plain numbers in pesos without
+// ₱ or commas — so spreadsheets line them up and can add them, then a totals row and plain-language notes.
+const stamp=()=>new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date())+' (Philippine time)';
+const day=v=>v?dateKey(v):'';
+const time=v=>v?new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(v)):'';
+const pesos=v=>v===null||v===undefined||v===''?'':(Math.round(Number(v)*100)/100).toFixed(2);
+const words=s=>s?String(s).replaceAll('_',' ').replace(/^./,c=>c.toUpperCase()):'';
+const longDay=k=>new Date(k+'T12:00:00+08:00').toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric',timeZone:'Asia/Manila'});
+const asText=value=>({text:String(value??'')});             // long digit strings (bank references) stay exactly as typed
+function csvCell(v){
+ if(v&&typeof v==='object'&&'text' in v){const s=v.text;return /^\d{6,}$|^0\d/.test(s)?'"=""'+s+'"""':csvCell(s);}
+ let s=String(v??'');
+ if(/^[=+\-@\t\r]/.test(s)&&!/^-?\d+(\.\d+)?$/.test(s))s="'"+s;   // never let a name or note run as a formula
+ return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;
+}
+function csvFile({title,about,details,sections,notes=[]}){
+ const out=[['LexC’s Snacktime'],[title],[about],[]];
+ details.forEach(row=>out.push(row));
+ sections.forEach(({heading,columns,rows,totals})=>{
+  out.push([]);if(heading)out.push([heading]);out.push(columns);
+  if(rows.length){rows.forEach(r=>out.push(r));if(totals)out.push(totals);}else out.push(['No records for this period and these filters.']);
+ });
+ if(notes.length){out.push([],['Notes']);notes.forEach(n=>out.push(['• '+n]));}
+ return '﻿'+out.map(r=>r.map(csvCell).join(',')).join('\r\n')+'\r\n';
+}
+// one report, two files: CSV for any program, Excel (.xlsx) with borders, colours, widths and ₱ / date formats
+const NO_SIGN='Amounts are in pesos without the ₱ sign so spreadsheet programs can add them up.';
+function exportAs(kind,base,report){
+ if(kind==='xlsx')return saveFile(base+'.xlsx',xlsxBlob({...report,notes:(report.notes||[]).map(n=>n.replace(NO_SIGN,'Amounts are in Philippine pesos and stay real numbers, so you can sort, filter and add them up.'))}));
+ saveFile(base+'.csv',new Blob([csvFile(report)],{type:'text/csv;charset=utf-8'}));
+}
+function saveFile(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+const csvName=(report,from,to)=>'lexcs-snacktime_'+report+'_'+(from||to?(from||'first-record')+'_to_'+(to||dateKey(new Date())):'all-dates');
+const periodText=(from,to)=>from||to?(from?longDay(from):'First record')+' to '+(to?longDay(to):'today'):'All dates';
 const card=(title,body,extra='')=>'<section class="panel rep-card"><header class="rep-card-head"><h2>'+e(title)+'</h2>'+extra+'</header>'+body+'</section>';
 const none=text=>'<p class="rep-empty">'+e(text)+'</p>';
 
@@ -153,7 +189,7 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
   content.innerHTML=head('How the business is doing, compared with the period before.')+tabs('overview')+
    '<div class="rep-period"><div class="rep-period-buttons" role="group" aria-label="Period">'+PERIODS.map(([k,l])=>'<button type="button" data-period="'+k+'" aria-pressed="'+(state.choice===k)+'">'+l+'</button>').join('')+'</div>'+
    (state.choice==='custom'?'<label>From <input type="date" data-from value="'+e(range[0])+'"></label><label>To <input type="date" data-to value="'+e(range[1])+'"></label>':'')+
-   '<span class="rep-range">'+e(phDate(range[0]+'T12:00:00+08:00'))+' – '+e(phDate(range[1]+'T12:00:00+08:00'))+'</span></div>'+
+   '<span class="rep-range">'+e(phDate(range[0]+'T12:00:00+08:00'))+' – '+e(phDate(range[1]+'T12:00:00+08:00'))+'</span><span class="rep-export"><button class="button" type="button" data-overview-export="xlsx">'+icon('save')+' Download Excel</button></span></div>'+
    '<div class="rep-kpis">'+kpi('Sales received',peso(received),change(received,receivedBefore),'Verified payments')+kpi('Orders',String(cur.orders.length),change(cur.orders.length,old.orders.length),'Not cancelled')+kpi('Average order',peso(avg),change(avg,avgBefore),'Order value ÷ orders')+kpi('Design add-ons',peso(addOns),change(addOns,addOnsBefore),'Extras from the designers')+kpi('Balances owed',peso(owed),'<span class="rep-delta">Right now</span>','Unpaid parts of open orders')+'</div>'+
    '<section class="panel rep-card rep-money"><header class="rep-money-head"><div><h2>Money received</h2><p>Verified payments collected '+(weekly?'per week ':'per day ')+'during this period</p></div><strong>'+e(peso2(received))+'</strong></header>'+(received?chart:none('No verified payments in this period.'))+'</section>'+
    '<div class="rep-masonry">'+
@@ -165,6 +201,34 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
     card('Ingredients',(usedTop.length?'<h3 class="rep-sub">Most used</h3>'+bars(usedTop.map(([n,q,u])=>[n,q,u]),v=>v.toLocaleString('en-PH')):none('No ingredient use recorded in this period.'))+'<p class="rep-note">Waste and expired stock: <strong>'+peso(wasteValue)+'</strong>'+(wasteUnpriced?' (+'+wasteUnpriced+' without a purchase price)':'')+'</p>')+
    '</div>';
   bindMoneyChart(content);
+  const exportOverview=kind=>{
+   const pct=(now,before)=>before?Math.round((now-before)/before*100):now?'New':0;
+   const choiceName=PERIODS.find(p=>p[0]===state.choice)?.[1]||'Custom';
+   const late3=late.map(o=>[o.order_number,o.customer_name||'',day(o.receiving_end),time(o.receiving_end),pesos(Number(o.total_amount)-Number(o.amount_paid))]);
+   exportAs(kind,csvName('overview',range[0],range[1]),{title:'Business overview',sheet:'Overview',about:'How the business did in the period, compared with the same number of days just before it.',
+    details:[['Report','Business overview'],['Period',choiceName+': '+longDay(range[0])+' to '+longDay(range[1])+' ('+span+' days)'],['Compared with',longDay(prev[0])+' to '+longDay(prev[1])],['Currency','Philippine peso (PHP)'],['Generated',stamp()]],
+    sections:[
+     {heading:'1. Summary',columns:['Measure','This period','Previous period','Change (%)','What it counts'],rows:[
+      ['Sales received (PHP)',pesos(received),pesos(receivedBefore),pct(received,receivedBefore),'Payments LexC’s verified as received'],
+      ['Orders',cur.orders.length,old.orders.length,pct(cur.orders.length,old.orders.length),'Orders placed, not cancelled'],
+      ['Average order (PHP)',pesos(avg),pesos(avgBefore),pct(avg,avgBefore),'Order value ÷ number of orders'],
+      ['Design add-ons (PHP)',pesos(addOns),pesos(addOnsBefore),pct(addOns,addOnsBefore),'Extra charges from the DIY designers'],
+      ['Balances owed (PHP)',pesos(owed),'','','Unpaid parts of open orders right now, any date']]},
+     {heading:'2. Money received '+(weekly?'per week':'per day'),columns:[weekly?'Week starting':'Date','Verified payments','Amount received (PHP)'],
+      rows:[...buckets].map(([k,c])=>[k,counts.get(k)||0,pesos(c/100)]),totals:['Total',cur.paid.length,pesos(received)]},
+     {heading:'3. Best sellers',columns:['Product and size','Quantity sold','Sales (PHP)'],
+      rows:[...seller].sort((a,b)=>b[1].sales-a[1].sales).map(([n,s])=>[n,s.qty,pesos(s.sales)]),totals:['Total',items.reduce((a,i)=>a+Number(i.quantity),0),pesos(total(items.map(i=>i.line_total)))]},
+     {heading:'4. Custom designs ('+designed.length+' of '+items.length+' order lines were designed)',columns:['Designer','Items ordered'],rows:[...byDesigner].map(([k,v])=>[designerName[k]||k,v])},
+     {heading:'5. Most-picked design choices',columns:['Choice','Times picked'],rows:[...picks].sort((a,b)=>b[1]-a[1])},
+     {heading:'6. Payments by method',columns:['Payment method','Amount received (PHP)'],rows:[...byMethodSum].map(([n,v])=>[n,pesos(v)]),totals:['Total',pesos(received)]},
+     {heading:'7. Busy days (by receiving date)',columns:['Day','Orders'],rows:WEEKDAYS.map((d,i)=>[d,weekday[i]]),totals:['Total',weekday.reduce((a,b)=>a+b,0)]},
+     {heading:'8. Pickup or delivery',columns:['Method','Orders'],rows:cur.orders.length?[['Pickup',pickup],['Delivery',delivery]]:[]},
+     {heading:'9. Late balances (any date)',columns:['Order no.','Customer','Due on','Due at','Balance (PHP)'],rows:late3,totals:['Total','','','',pesos(total(late.map(o=>Number(o.total_amount)-Number(o.amount_paid))))]},
+     {heading:'10. Ingredients used',columns:['Ingredient','Quantity used','Unit'],rows:[...used].sort((a,b)=>b[1]-a[1]).map(([id,q])=>[itemName.get(id)?.name||'Item',Math.round(q*100)/100,itemName.get(id)?.unit||''])},
+     {heading:'11. Waste and expired stock',columns:['Measure','Value'],rows:[['Value of wasted or expired stock (PHP)',pesos(wasteValue)],['Movements without a purchase price',wasteUnpriced]]}],
+    notes:['Dates and times are Philippine time. Amounts are in pesos without the ₱ sign so spreadsheet programs can add them up.','Change (%) compares this period with the same number of days just before it; "New" means the previous period had none.','Late balances: unpaid more than 3 hours after pickup or delivery.','Waste value uses each batch’s purchase price divided by the quantity received.']});
+  };
+  content.querySelectorAll('[data-overview-export]').forEach(b=>b.onclick=()=>exportOverview(b.dataset.overviewExport));
   content.querySelectorAll('[data-period]').forEach(b=>b.onclick=()=>{state.choice=b.dataset.period;save();draw();});
   content.querySelector('[data-from]')?.addEventListener('change',ev=>{state.from=ev.target.value;save();draw();});
   content.querySelector('[data-to]')?.addEventListener('change',ev=>{state.to=ev.target.value;save();draw();});
@@ -174,9 +238,9 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
 }
 
 function records(content,page,{orders,payments,methods,byOrder,byMethod,byAdmin},head,tabs){
- const controls='<label>From <input type="date" id="report-from"></label><label>To <input type="date" id="report-to"></label><select id="report-method" aria-label="Payment method"><option value="">All methods</option>'+methods.map(m=>'<option value="'+e(m.id)+'">'+e(m.display_name)+'</option>').join('')+'</select><select id="report-payment-status" aria-label="Payment status"><option value="">All payment statuses</option>'+Object.entries(labels).map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('')+'</select><select id="report-order-status" aria-label="Order status"><option value="">All order statuses</option>'+['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>'<option>'+s+'</option>').join('')+'</select><button class="button" id="csv-report">'+icon('save')+' Download CSV</button><button class="button" id="print-report">'+icon('reports')+' Print</button>';
+ const controls='<label>From <input type="date" id="report-from"></label><label>To <input type="date" id="report-to"></label><select id="report-method" aria-label="Payment method"><option value="">All methods</option>'+methods.map(m=>'<option value="'+e(m.id)+'">'+e(m.display_name)+'</option>').join('')+'</select><select id="report-payment-status" aria-label="Payment status"><option value="">All payment statuses</option>'+Object.entries(labels).map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('')+'</select><select id="report-order-status" aria-label="Order status"><option value="">All order statuses</option>'+['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>'<option>'+s+'</option>').join('')+'</select><button class="button" id="xlsx-report" data-export="xlsx">'+icon('save')+' Download Excel</button><button class="button" id="print-report">'+icon('reports')+' Print</button>';
  content.innerHTML=head('Received revenue includes verified payment attempts only.')+tabs(page)+toolbar(controls)+'<div id="report-data"></div>';
- let table={head:[],rows:[]};
+ let table={head:[],rows:[]},sheet={columns:[],rows:[],notes:[]};
  const draw=()=>{
   const q=content.querySelector('.search').value.toLowerCase(),from=content.querySelector('#report-from').value,to=content.querySelector('#report-to').value,method=content.querySelector('#report-method').value,paymentStatus=content.querySelector('#report-payment-status').value,orderStatus=content.querySelector('#report-order-status').value;
   const inRange=value=>(!from||dateKey(value)>=from)&&(!to||dateKey(value)<=to);
@@ -192,14 +256,39 @@ function records(content,page,{orders,payments,methods,byOrder,byMethod,byAdmin}
   }else{
    table={head:['Date','Order','Customer','Order Total','Verified Paid','Remaining','Payment','Order Status'],rows:fo.map(o=>[phDate(o.created_at),'#'+o.order_number,o.customer_name,o.total_amount===null?'Pending quote':money(o.total_amount),money(o.amount_paid),o.total_amount===null?'Pending quote':money(Math.max(0,Number(o.total_amount)-Number(o.amount_paid))),o.payment_status,o.status])};
   }
+  // the same records for the CSV file, one kind of value per column
+  const live=fo.filter(o=>o.status!=='cancelled'),sumOf=(list,f)=>total(list.map(f));
+  if(page==='payments'){
+   const paid=fp.filter(p=>p.status==='paid');
+   sheet={columns:['Order no.','Customer','Payment method','Bank reference no.','Amount (PHP)','Payment status','Submitted on','Submitted at','Verified on','Verified at','Verified by'],
+    rows:fp.map(p=>{const o=byOrder.get(p.order_id),sent=p.submitted_at||p.created_at;return [o?.order_number??'',o?.customer_name||'',byMethod.get(p.payment_method_id)||'Manual QR',asText(p.transaction_reference||''),pesos(p.amount),labels[p.status]||words(p.status),day(sent),time(sent),day(p.verified_at),time(p.verified_at),p.verified_by?byAdmin.get(p.verified_by)||'Admin':''];}),
+    totals:['Total received','','','',pesos(sumOf(paid,p=>p.amount)),paid.length+' verified of '+fp.length,'','','','',''],
+    notes:['One row per payment attempt (a downpayment, a balance or a full payment), newest first.','The period filter uses the verified date for verified payments and the submitted date for the others.','Total received adds verified (paid) payments only; uploaded receipts still under review or rejected are not money received.']};
+  }else if(page==='revenue'){
+   const counted=new Map();fp.filter(p=>p.status==='paid').forEach(p=>{const m=dateKey(p.verified_at).slice(0,7);counted.set(m,(counted.get(m)||0)+1);});
+   const months=table.rows.map(([m])=>m);
+   sheet={columns:['Month','Month name','Verified payments','Amount received (PHP)'],
+    rows:months.map(m=>{const c=fp.filter(p=>p.status==='paid'&&dateKey(p.verified_at).slice(0,7)===m);return [m,new Date(m+'-15T12:00:00+08:00').toLocaleDateString('en-PH',{month:'long',year:'numeric',timeZone:'Asia/Manila'}),counted.get(m)||0,pesos(sumOf(c,p=>p.amount))];}),
+    totals:['Total','',[...counted.values()].reduce((a,b)=>a+b,0),pesos(sumOf(fp.filter(p=>p.status==='paid'),p=>p.amount))],
+    notes:['Each month adds the payments LexC’s verified as received in that month (Philippine time), newest month first.']};
+  }else{
+   sheet={columns:['Order no.','Placed on','Placed at','Customer','Pickup or delivery','Receiving date','Receiving time','Order total (PHP)','Verified paid (PHP)','Balance (PHP)','Payment status','Order status'],
+    rows:fo.map(o=>[o.order_number,day(o.created_at),time(o.created_at),o.customer_name||'',words(o.fulfillment_method),day(o.receiving_start),o.receiving_start?time(o.receiving_start)+(o.receiving_end?' to '+time(o.receiving_end):''):'',pesos(o.total_amount),pesos(o.amount_paid),o.total_amount===null?'':pesos(Math.max(0,Number(o.total_amount)-Number(o.amount_paid))),words(o.payment_status),words(o.status)]),
+    totals:['Total','','',live.length+' orders (not cancelled)','','','',pesos(sumOf(live,o=>o.total_amount)),pesos(sumOf(live,o=>o.amount_paid)),pesos(sumOf(live.filter(o=>o.total_amount!==null),o=>Math.max(0,Number(o.total_amount)-Number(o.amount_paid)))),'',''],
+    notes:['One row per order, newest first. The period filter uses the date the order was placed.','Order total is blank while an order still waits for LexC’s quote.','Verified paid counts only money LexC’s confirmed as received; uploaded receipts under review are not included.','The totals row leaves out cancelled orders.']};
+  }
   content.querySelector('#report-data').innerHTML=grid(table.head,table.rows.map(r=>'<tr>'+r.map(c=>'<td>'+e(c)+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="'+table.head.length+'">Nothing found for the selected filters.</td></tr>');
  };
  content.querySelectorAll('.toolbar input,.toolbar select').forEach(input=>input.addEventListener('input',draw));
  content.querySelector('#print-report').onclick=()=>window.print();
- content.querySelector('#csv-report').onclick=()=>{
-  const cell=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;};
-  const csv='﻿'+[table.head,...table.rows].map(r=>r.map(cell).join(',')).join('\r\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='lexc-'+page+'-'+dateKey(new Date())+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ const exportRecords=kind=>{
+  const pick=id=>content.querySelector(id),chosen=id=>pick(id).selectedOptions[0]?.textContent||'All',from=pick('#report-from').value,to=pick('#report-to').value,q=pick('.search').value.trim();
+  const name={transactions:['Orders report','orders-report','Every order in the period with its total, verified payments, balance and status.'],payments:['Payments report','payments-report','Every payment attempt in the period with its method, bank reference, status and who verified it.'],revenue:['Revenue by month','revenue-by-month','Money received per month from payments LexC’s verified.']}[page];
+  exportAs(kind,csvName(name[1],from,to),{title:name[0],sheet:name[0],about:name[2],
+   details:[['Report',name[0]],['Period',periodText(from,to)],['Payment method',chosen('#report-method')],['Payment status',chosen('#report-payment-status')],['Order status',words(chosen('#report-order-status'))],['Search',q||'None'],['Records',sheet.rows.length],['Currency','Philippine peso (PHP)'],['Generated',stamp()]],
+   sections:[{columns:sheet.columns,rows:sheet.rows,totals:sheet.totals,filter:true}],
+   notes:[...sheet.notes,'Dates and times are Philippine time. Amounts are in pesos without the ₱ sign so spreadsheet programs can add them up.']});
  };
+ content.querySelectorAll('[data-export]').forEach(b=>b.onclick=()=>exportRecords(b.dataset.export));
  draw();
 }
