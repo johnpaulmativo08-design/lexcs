@@ -38,6 +38,8 @@
   }
   const action = (ic, label, act, note = '') => `<button type="button" class="pf-action" data-pf="${act}"><span class="pf-ic">${icon(ICONS[ic])}</span><span>${label}${note ? `<small>${note}</small>` : ''}</span>${icon(ICONS.chev)}</button>`;
 
+  // accounts made with Continue with Google have no password until one is set here
+  const viaGoogle = () => (window.currentUser?.app_metadata?.providers || [window.currentUser?.app_metadata?.provider]).includes('google');
   function draw() {
     const user = window.currentUser, name = profile.full_name || user.name || '', initials = (name || user.email || '?').slice(0, 2).toUpperCase();
     root().innerHTML = `<header class="pf-head"><button type="button" class="pf-round" data-pf="back" aria-label="Back">${icon(ICONS.back)}</button><h1>My Profile</h1>
@@ -51,7 +53,7 @@
         ${row('user', 'Full name', profile.full_name, 'full_name')}
         <div class="pf-row pf-pass"><span class="pf-ic">${icon('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')}</span><span class="pf-label">Password</span><span class="pf-value">••••••••</span><button type="button" class="pf-forgot" data-pf="pw" aria-expanded="${pwOpen}">${pwOpen ? 'Close' : 'Change'}</button></div>
         ${pwOpen ? `<div class="pf-pwform" data-pf-pwform>
-          <label>Current password<input type="password" name="pw_current" autocomplete="current-password"></label>
+          <label>Current password<input type="password" name="pw_current" autocomplete="current-password">${viaGoogle() ? '<small class="pf-hint">Signed up with Google and never set a password? Leave this blank.</small>' : ''}</label>
           <label>New password<input type="password" name="pw_new" autocomplete="new-password" data-pw-live></label>
           ${typeof window.passwordChecklistHTML === 'function' ? window.passwordChecklistHTML() : ''}
           <label>Confirm new password<input type="password" name="pw_confirm" autocomplete="new-password" data-pw-confirm></label>
@@ -125,20 +127,23 @@
     if (act === 'pw') { pwOpen = !pwOpen; draw(); root().querySelector('[name=pw_current]')?.focus(); return; }
     if (act === 'pwsave') {
       // no email: check the current password, then save the new one right away
+      // (a Google account that never had a password leaves Current password blank and sets one directly)
       const box = root().querySelector('[data-pf-pwform]'), msg = box.querySelector('[data-pw-msg]'), say = (t, ok) => { msg.textContent = t; msg.hidden = !t; msg.classList.toggle('is-ok', !!ok); };
       const cur = box.querySelector('[name=pw_current]').value, nw = box.querySelector('[name=pw_new]').value, cf = box.querySelector('[name=pw_confirm]').value;
-      if (!cur) return say('Enter your current password.');
+      if (!cur && !viaGoogle()) return say('Enter your current password.');
       const weak = typeof window.passwordProblem === 'function' ? window.passwordProblem(nw) : (nw.length < 8 ? 'Use at least 8 characters.' : '');
       if (weak) return say(weak);
       if (nw !== cf) return say('The new passwords do not match.');
-      if (nw === cur) return say('Choose a password different from the current one.');
+      if (cur && nw === cur) return say('Choose a password different from the current one.');
       b.disabled = true; b.textContent = 'Saving…';
       try {
-        const check = await window.LexcBackend.client.auth.signInWithPassword({ email: window.currentUser.email, password: cur });
-        if (check.error) throw new Error('Your current password is not correct.');
+        if (cur) {
+          const check = await window.LexcBackend.client.auth.signInWithPassword({ email: window.currentUser.email, password: cur });
+          if (check.error) throw new Error(viaGoogle() ? 'That is not your current password. If you have never set one, leave Current password blank.' : 'Your current password is not correct.');
+        }
         window.LexcBackend.unwrap(await window.LexcBackend.client.auth.updateUser({ password: nw }));
-        pwOpen = false; draw(); window.showToast?.('Password changed.');
-      } catch (e) { say(e.message); b.disabled = false; b.textContent = 'Save new password'; }
+        pwOpen = false; draw(); window.showToast?.(cur ? 'Password changed.' : 'Password set. You can now also log in with your email and password.');
+      } catch (e) { say(/reauthenticat/i.test(e.message) ? 'For your security, log out, sign in again with Google, then set your password right away.' : e.message); b.disabled = false; b.textContent = 'Save new password'; }
       return;
     }
     if (act === 'reset') {
