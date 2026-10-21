@@ -75,7 +75,7 @@
   // Order history, cancelled orders and payments: one compact card at a time, under Activities
   const PANELS = { orders: 'Order history', cancelled: 'Cancelled orders', payments: 'Order transactions' };
   const STATUS = { pending: 'Waiting for LexC’s', confirmed: 'Confirmed', preparing: 'Being made', ready: 'Ready', completed: 'Completed', cancelled: 'Cancelled',
-    awaiting_payment: 'Waiting for transfer', verification_pending: 'Being verified', paid: 'Verified', rejected: 'Rejected', refunded: 'Refunded' };
+    awaiting_payment: 'Waiting for transfer', verification_pending: 'Being verified', paid: 'Verified', rejected: 'Rejected', refunded: 'Refunded', cancelled: 'Cancelled' };
   const tone = (st) => ['paid', 'completed', 'ready', 'confirmed'].includes(st) ? 'ok' : ['rejected', 'cancelled'].includes(st) ? 'bad' : 'wait';
   const pill = (st) => `<em class="pf-pill is-${tone(st)}">${esc(STATUS[st] || st)}</em>`;
   const paymentURL = (id) => new URL('payment/index.html?order=' + encodeURIComponent(id), document.baseURI).href;

@@ -2,6 +2,7 @@ import {escapeHtml as e, icon, notice, panel, empty, statusIndicator, showDetail
 import {db, allRows, loadingMetrics, loadingList, loadingChart} from './backend-ui.js?v=3';
 import {connectSchedule} from './dashboard-data.js?v=6';
 import {summarizeDashboard, dateKey, dayOffset} from './dashboard-model.js?v=2';
+import {capacityByDate, capacityCalendarHTML, bindCapacityCalendar, horizonEnd, nextDays} from './capacity-calendar.js?v=4';
 
 const time = value => new Date(value).toLocaleString('en-PH', {timeZone:'Asia/Manila', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
 const orderLink = order => '#orders/detail/' + encodeURIComponent(order.id);
@@ -19,16 +20,23 @@ export async function renderOperations(content) {
     content.innerHTML=skeleton();
     try {
       const today = dateKey(new Date()), end = dayOffset(today, 7);
-      const [orders, stock, batches, movements, slots, paymentAttempts] = await Promise.all([
+      const from = today.slice(0,8)+'01', until = horizonEnd(today);
+      const [orders, stock, batches, movements, slots, paymentAttempts, entries, settings] = await Promise.all([
         allRows(() => db.client.from('orders').select('id,order_number,customer_name,status,receiving_start,receiving_end,slot_id,fulfillment_method,delivery_fee_status,created_at').order('id')),
         allRows(() => db.client.from('inventory_stock').select('*').eq('is_archived', false).order('id')),
         allRows(() => db.client.from('inventory_batches').select('id,item_id,batch_code,expires_on').order('id')),
         allRows(() => db.client.from('inventory_movements').select('id,batch_id,quantity_delta,reason,created_at').order('id')),
-        allRows(() => db.client.from('availability_slots').select('*').gte('starts_at', today+'T00:00:00+08:00').lt('starts_at', end+'T00:00:00+08:00').order('id')),
-        allRows(() => db.client.from('order_payment_attempts').select('id,order_id,amount,status,verified_at').order('id'))
+        allRows(() => db.client.from('availability_slots').select('*').gte('starts_at', today.slice(0,8)+'01T00:00:00+08:00').lt('starts_at', dayOffset(horizonEnd(today),1)+'T00:00:00+08:00').order('id')),
+        allRows(() => db.client.from('order_payment_attempts').select('id,order_id,amount,status,verified_at').order('id')),
+        // reservations per day and each date's own limit / closure: the same numbers the database checks
+        allRows(() => db.client.from('booking_entries').select('id,booking_date,status,scheduled_start').gte('booking_date', from).lte('booking_date', until).order('id')),
+        allRows(() => db.client.from('booking_date_settings').select('booking_date,capacity,is_closed').gte('booking_date', from).lte('booking_date', until).order('booking_date'))
       ]);
       if (!content.isConnected) return;
-      draw(content, summarizeDashboard({orders, stock, batches, movements, slots, paymentAttempts}), refresh);
+      // the 7-day figures use only the next 7 days; the calendar uses this month to the end of the booking horizon
+      const week = slots.filter(s => dateKey(s.starts_at) >= today && dateKey(s.starts_at) < end);
+      const days = capacityByDate(slots, entries, settings);
+      draw(content, {...summarizeDashboard({orders, stock, batches, movements, slots: week, paymentAttempts}), capacity: nextDays(days, today), days, today}, refresh);
       if(restoreFocus)content.querySelector('[data-refresh-dashboard]').focus();
     } catch (error) {
       if (!content.isConnected) return;
@@ -44,13 +52,14 @@ function draw(content, data, refresh) {
   const {todayOrders, pending, low, out, expiring, expired, production, handoffs, attention, capacity, activity, pendingPayments} = data;
   const metric = (label, value, detail, action, severity = 'neutral') => `<button class="panel ops-metric" data-metric="${action}">${statusIndicator(label, value ? severity : 'neutral')}<strong>${value}</strong><small>${e(detail)}</small><span class="ops-metric-action">View details →</span></button>`;
   const orderRows = orders => orders.map(order => `<a class="ops-row" href="${orderLink(order)}"><div><strong>#${e(order.order_number)} · ${e(order.customer_name)}</strong><small>${e(time(order.receiving_start))} · ${order.fulfillment_method === 'pickup' ? 'Pickup' : 'Delivery'}</small>${order.reason ? `<small class="ops-attention">${e(order.reason)}</small>` : ''}</div>${statusIndicator(order.status, tone(order.status))}</a>`).join('');
-  const list = (orders, description, limit=5) => `<p class="ops-caption">${e(description)} · ${orders.length} orders</p>` + (orders.length ? `<div class="ops-list">${orderRows(orders.slice(0,limit))}</div>` : empty('Nothing in this queue.'));
+  const list = (orders, description, limit=5) => `<p class="ops-caption">${e(description)} · ${orders.length} ${orders.length===1?"order":"orders"}</p>` + (orders.length ? `<div class="ops-list">${orderRows(orders.slice(0,limit))}</div>` : empty('Nothing in this queue.'));
   const section = (title, orders, description, id) => panel(title, list(orders, description), `<button class="button" data-list="${id}">${icon('eye')} View all (${orders.length})</button>`);
+  const qty = n => Number(Math.round(Number(n)*100)/100).toLocaleString('en-PH'); // 211.4290000000001 → 211.43
   const warnings = [
-    ...out.map(i=>({name:i.name, detail:`${i.stock} ${i.unit} remaining`, label:'Out of stock', tone:'danger', href:'#inventory/filter/out'})),
-    ...expired.map(i=>({name:i.name, detail:`Batch ${i.batch_code} · expired ${i.expires_on} · ${i.remaining} ${i.unit} left`, label:'Expired', tone:'danger', href:'#inventory/restock'})),
-    ...low.map(i=>({name:i.name, detail:`${i.stock} ${i.unit} left · minimum ${i.min_stock}`, label:'Low stock', tone:'warning', href:'#inventory/filter/low'})),
-    ...expiring.map(i=>({name:i.name, detail:`Batch ${i.batch_code} · expires ${i.expires_on} · ${i.remaining} ${i.unit} left`, label:'Expiring', tone:'warning', href:'#inventory/restock'}))
+    ...out.map(i=>({name:i.name, detail:`${qty(i.stock)} ${i.unit} remaining`, label:'Out of stock', tone:'danger', href:'#inventory/filter/out'})),
+    ...expired.map(i=>({name:i.name, detail:`Batch ${i.batch_code} · expired ${i.expires_on} · ${qty(i.remaining)} ${i.unit} left`, label:'Expired', tone:'danger', href:'#inventory/restock'})),
+    ...low.map(i=>({name:i.name, detail:`${qty(i.stock)} ${i.unit} left · minimum ${qty(i.min_stock)}`, label:'Low stock', tone:'warning', href:'#inventory/filter/low'})),
+    ...expiring.map(i=>({name:i.name, detail:`Batch ${i.batch_code} · expires ${i.expires_on} · ${qty(i.remaining)} ${i.unit} left`, label:'Expiring', tone:'warning', href:'#inventory/restock'}))
   ];
   const warningRows = items => items.map(i=>`<a class="ops-row" href="${i.href}"><div><strong>${e(i.name)}</strong><small>${e(i.detail)}</small></div>${statusIndicator(i.label,i.tone)}</a>`).join('');
   const hour = Number(new Date().toLocaleString('en-PH', {timeZone:'Asia/Manila', hour:'numeric', hour12:false}));
@@ -67,12 +76,17 @@ function draw(content, data, refresh) {
   const next = data.nextHandoff;
   content.innerHTML = `<div class="ops-heading"><div><h1>Dashboard</h1><p class="dash-greeting">${greeting}, LexC’s · ${e(new Date().toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric'}))}</p></div><div class="ops-actions"><span role="status">Updated ${e(new Date().toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'}))}</span><button class="button" data-refresh-dashboard>${icon('refresh')} Refresh</button></div></div>`+
     `<h2 class="dash-label">Needs you now</h2><div class="dash-actions">${action('pending','Orders to confirm',pending.length,'Waiting for your confirmation','warning','orders')}${action('payments','Payments to verify',pendingPayments,'Check the bank or e-wallet, then verify','warning','check')}${action('stock','Stock alerts',stockAlerts,stockDetail,out.length||expired.length?'danger':'warning','alert')}</div>`+
-    `<h2 class="dash-label">Today</h2><section class="panel dash-today">${todayStat('Orders today',todayOrders.length,'Pickups and deliveries scheduled')}${todayStat('Received today',peso(data.receivedTodayCentavos),'Verified payments only')}${todayStat('Next handoff',next?e(new Date(next.receiving_start).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'})):'—',next?'#'+next.order_number+' · '+(next.fulfillment_method==='pickup'?'Pickup':'Delivery')+' · '+new Date(next.receiving_start).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric'}):'Nothing scheduled')}${todayStat('Places left today',capacity[0]?.capacity?capacity[0].remaining:'—',capacity[0]?.capacity?capacity[0].booked+' of '+capacity[0].capacity+' booked':'No open slots today')}</section>`+
+    `<h2 class="dash-label">Today</h2><section class="panel dash-today">${todayStat('Orders today',todayOrders.length,'Pickups and deliveries scheduled')}${todayStat('Received today',peso(data.receivedTodayCentavos),'Verified payments only')}${todayStat('Next handoff',next?e(new Date(next.receiving_start).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'})):'—',next?'#'+next.order_number+' · '+(next.fulfillment_method==='pickup'?'Pickup':'Delivery')+' · '+new Date(next.receiving_start).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric'}):'Nothing scheduled')}${todayStat('Reservations left today',capacity[0]?.capacity?capacity[0].remaining:'—',capacity[0]?.capacity?capacity[0].booked+' of '+capacity[0].capacity+' reservations':'Closed today')}</section>`+
     `<div class="dash-grid"><div class="dash-col">${section('Orders requiring attention',attention,'Pending review, overdue handoffs, or delivery quotes','attention')}${section('Today’s production',production,'Confirmed / preparing today','production')}${section('Upcoming pickups & deliveries',handoffs,'Ready orders and future reservations','handoffs')}</div>`+
-    `<div class="dash-col">${panel('Inventory warnings', `<p class="ops-caption">${warnings.length ? warnings.length+' warnings' : 'Stock and expiry'}</p>`+(warnings.length?'<div class="ops-list">'+warningRows(warnings.slice(0,5))+'</div>':empty('No stock or expiry warnings.')), '<button class="button" data-warnings>'+icon('alert')+' View all</button>')}`+
-    `${panel('Receiving capacity',`<p class="ops-caption">Next 7 days · receiving reservations</p><div class="ops-capacity">${capacity.map(day=>`<div><div class="ops-capacity-label"><strong>${e(new Date(day.date+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'short',day:'numeric'}))}</strong><span>${day.booked} / ${day.capacity} booked</span></div><div class="slot-progress" role="meter" aria-label="${e(day.date)} open slot capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${day.percent}"><span style="width:${day.percent}%"></span></div><small>${day.closedBooked ? day.closedBooked+' reservations in closed slots · ' : ''}${day.capacity ? day.remaining+' places available' : 'No open slots'}</small></div>`).join('')}</div>`, '<button class="button" data-manage-slots>'+icon('clock')+' Manage slots</button>')}`+
+    `<div class="dash-col">${panel('Inventory warnings', `<p class="ops-caption">${warnings.length ? warnings.length+(warnings.length===1?' warning':' warnings') : 'Stock and expiry'}</p>`+(warnings.length?'<div class="ops-list">'+warningRows(warnings.slice(0,5))+'</div>':empty('No stock or expiry warnings.')), '<button class="button" data-warnings>'+icon('alert')+' View all</button>')}`+
+    `${panel('Receiving capacity',`<div class="cap-switch" role="tablist" aria-label="Capacity view"><button type="button" role="tab" data-cap-tab="calendar">Calendar</button><button type="button" role="tab" data-cap-tab="week">Next 7 days</button></div><div data-cap-pane="calendar">${capacityCalendarHTML()}</div><div data-cap-pane="week"><p class="ops-caption">Next 7 days · up to 6 reservations a day</p><div class="ops-capacity">${capacity.map(day=>`<div><div class="ops-capacity-label"><strong>${e(new Date(day.date+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'short',day:'numeric'}))}</strong><span>${day.closed ? 'Closed' : day.booked+' / '+day.capacity+' reserved'}</span></div><div class="slot-progress" role="meter" aria-label="${e(day.date)} open slot capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${day.percent}"><span style="width:${day.percent}%"></span></div><small>${day.closed ? (day.booked ? day.booked+' already reserved' : 'Not taking reservations') : day.remaining+(day.remaining===1?' reservation':' reservations')+' left'}</small></div>`).join('')}</div></div>`, '<button class="button" data-manage-slots>'+icon('clock')+' Manage slots</button>')}`+
     `${panel('Recent activity',activity.length?'<div class="ops-list">'+activity.map(item=>`<a class="ops-row" href="${e(item.href)}"><div><strong>${e(item.label)}</strong><small>${e(time(item.at))}</small></div>${icon('arrow')}</a>`).join('')+'</div>':empty('No recorded activity yet.'),link('#reports','Reports'))}</div></div>`;
   content.querySelector('[data-refresh-dashboard]').onclick = refresh;
+  // Receiving capacity: Calendar (hover a day for its slots) or the Next 7 days list; the choice is remembered
+  const CAP_KEY='lexc_dash_capacity_view';let capView='calendar';try{capView=localStorage.getItem(CAP_KEY)==='week'?'week':'calendar';}catch{}
+  const setCap=view=>{content.querySelectorAll('[data-cap-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.capTab===view)));content.querySelectorAll('[data-cap-pane]').forEach(p=>p.hidden=p.dataset.capPane!==view);try{localStorage.setItem(CAP_KEY,view);}catch{}};
+  content.querySelectorAll('[data-cap-tab]').forEach(b=>b.onclick=()=>setCap(b.dataset.capTab));setCap(capView);
+  bindCapacityCalendar(content, data.days, data.today);
   // side panels fold up with a small toggle; the choice is remembered on this device
   const FOLD_KEY='lexc_dash_folded',folded=new Set((()=>{try{return JSON.parse(localStorage.getItem(FOLD_KEY)||'[]')}catch{return []}})());
   content.querySelectorAll('.panel').forEach(sec=>{

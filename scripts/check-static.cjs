@@ -18,7 +18,7 @@ for (const source of sources) {
   if (result.status !== 0) throw new Error(source + '\n' + result.stderr);
 }
 let inlineCount = 0;
-for (const html of ['index.html', 'admin/index.html', 'admin/login.html', 'payment/index.html']) {
+for (const html of ['index.html', 'admin/index.html', 'payment/index.html']) {
   const text = fs.readFileSync(html, 'utf8');
   for (const match of text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     if (/\bsrc\s*=|\btype\s*=\s*["'](?:importmap|application\/)/i.test(match[1]) || !match[2].trim()) continue;

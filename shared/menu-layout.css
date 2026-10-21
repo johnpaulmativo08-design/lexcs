@@ -43,7 +43,7 @@
 
 /* round category picks */
 #page-shop.mx .mx-cats{max-width:1200px;margin:0 auto;padding:22px clamp(16px,5vw,48px) 4px}
-#page-shop.mx .mx-cats .filter-list{display:flex!important;flex-direction:row;gap:clamp(10px,2vw,22px);overflow-x:auto;margin:0;padding:4px 2px 10px;list-style:none;scrollbar-width:none;scroll-snap-type:x proximity}
+#page-shop.mx .mx-cats .filter-list{position:relative;display:flex!important;flex-direction:row;gap:clamp(10px,2vw,22px);overflow-x:auto;margin:0;padding:4px 2px 10px;list-style:none;scrollbar-width:none;scroll-snap-type:x proximity}
 #page-shop.mx .mx-cats .filter-list::-webkit-scrollbar{display:none}
 #page-shop.mx .mx-cats li{flex:none;list-style:none;scroll-snap-align:start}
 #page-shop.mx .mx-cats .filter-item{display:grid!important;justify-items:center;gap:8px;width:78px;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:#4a3a58;font:600 .74rem/1.2 'DM Sans',sans-serif;white-space:normal;text-align:center;cursor:pointer}
@@ -154,3 +154,5 @@
 #page-shop.mx .pd-rating .pd-star{width:14px;height:14px;fill:#f4b400;stroke:none}
 #page-shop.mx .pd-rating--none{color:#a597b2}
 #page-shop.mx .pd-rating--none .pd-star{fill:none;stroke:#cbbfd8;stroke-width:1.8}
+/* the hidden item counts sit inside the scrolling chip row, so they never widen the page (tablets zoomed out on that) */
+#page-shop.mx .mx-cats .filter-item{position:relative}

@@ -15,13 +15,15 @@
   
 </script>
 <meta name="google-site-verification" content="SFzJtpgn5ZTjbueC1Vx2ecr20aL5O64GChJi5Eg3-s4" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
 <title>LexC's Snacktime – Homemade Pastries</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;1,300;1,500&family=Nunito:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 
 *{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);overflow-x:hidden;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);overflow-x:hidden;overflow-x:clip;}
+/* nothing may widen the page sideways: after "Request desktop website" is turned off again, tablets and phones would otherwise stay zoomed out with a blank strip on the right */
+html{overflow-x:clip;}
 
 nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;height:70px;background:rgba(253,248,242,0.97);backdrop-filter:blur(14px);border-bottom:1px solid rgba(195,178,215,0.35);transition:background 0.3s,border-color 0.3s;}
 nav.dark-nav{background:rgba(10,10,26,0.97);border-bottom-color:rgba(195,178,215,0.12);}
@@ -185,6 +187,9 @@ footer{background:var(--dark);color:rgba(255,255,255,0.5);padding:60px 7vw 30px;
 .cart-overlay.open{opacity:1;pointer-events:all;}
 .cart-drawer{position:fixed;top:0;right:0;width:min(420px,100vw);height:100vh;background:var(--cream);z-index:501;transform:translateX(100%);transition:transform 0.4s cubic-bezier(0.77,0,0.175,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(92,61,110,0.18);}
 .cart-drawer.open{transform:translateX(0);}
+/* closed drawer: hidden once it has slid out, so the off-screen panel never counts toward the page width (tablets) or takes keyboard focus */
+#cartDrawer.cart-drawer:not(.open){visibility:hidden;transition:transform 260ms var(--ease-exit,ease),visibility 0s linear 260ms!important}
+#cartDrawer.cart-drawer.open{visibility:visible}
 .cart-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:22px 24px 18px;border-bottom:1px solid rgba(195,178,215,0.35);flex-shrink:0;}
 .cart-drawer-title{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--plum);}
 .cart-close-btn{background:none;border:1px solid rgba(195,178,215,0.5);color:var(--mid);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
@@ -661,13 +666,13 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 </style>
 <link rel="stylesheet" href="shared/customer-flow.css?v=40">
 <link rel="stylesheet" href="shared/product-detail.css?v=3">
-<link rel="stylesheet" href="shared/chat-widget.css?v=10">
+<link rel="stylesheet" href="shared/chat-widget.css?v=11">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=6">
 <link rel="stylesheet" href="shared/landing.css?v=13">
 <link rel="stylesheet" href="shared/bento-designer.css?v=21">
 <link rel="stylesheet" href="shared/cupcake-designer.css?v=9">
 <link rel="stylesheet" href="shared/selected-ui.css?v=3">
-<link rel="stylesheet" href="shared/menu-layout.css?v=7">
+<link rel="stylesheet" href="shared/menu-layout.css?v=8">
 <link rel="stylesheet" href="shared/motion.css?v=3">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@700&family=Pacifico&family=Lobster&family=Satisfy&family=Parisienne&family=Montserrat:wght@800&family=Poppins:wght@700&family=Fredoka:wght@600&family=Baloo+2:wght@800&family=Caveat:wght@700&family=Cinzel:wght@700&family=Grenze+Gotisch:wght@700&family=UnifrakturMaguntia&display=swap">
@@ -874,7 +879,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
     <div class="faq-list">
       <div class="faq-item">
         <button class="faq-question">How to order? <span class="faq-chevron">▾</span></button>
-        <div class="faq-answer">You can place an order using the online booking checkout, or reach us through our Facebook page — LexC's Snacktime.</div>
+        <div class="faq-answer">You can place an order using the online reservation checkout, or reach us through our Facebook page — LexC's Snacktime.</div>
       </div>
       <div class="faq-item">
         <button class="faq-question">Do you accept bulk orders? <span class="faq-chevron">▾</span></button>
@@ -2206,8 +2211,8 @@ navigate('home');
 
 <div class="dt-modal-overlay" id="dtModalOverlay" style="display:none;" onclick="closeDateTimeModal(event)">
   <div class="dt-modal" role="dialog" aria-modal="true" aria-labelledby="dtModalTitle" onclick="event.stopPropagation()">
-    <div class="dt-modal-heading"><button type="button" class="dt-modal-back" aria-label="Back to checkout" onclick="closeDateTimeModal()">←</button><div class="dt-modal-title" id="dtModalTitle">Choose Your Booking Date &amp; Time</div></div>
-    <p class="dt-modal-intro">Dates update from our live baking schedule. Fully booked and Admin-closed dates cannot be selected.</p>
+    <div class="dt-modal-heading"><button type="button" class="dt-modal-back" aria-label="Back to checkout" onclick="closeDateTimeModal()">←</button><div class="dt-modal-title" id="dtModalTitle">Choose Your Reservation Date &amp; Time</div></div>
+    <p class="dt-modal-intro">Dates update from our live baking schedule. Fully reserved and closed dates cannot be selected.</p>
     <div class="dt-modal-body">
       
       <div>
@@ -2220,7 +2225,7 @@ navigate('home');
         <div class="dt-cal-legend">
           <span><span class="dt-legend-dot dt-legend-avail"></span>Available</span>
           <span><span class="dt-legend-dot" style="background:#f0a425"></span>Almost full</span>
-          <span><span class="dt-legend-dot dt-legend-full"></span>Fully booked</span>
+          <span><span class="dt-legend-dot dt-legend-full"></span>Fully reserved</span>
           <span><span class="dt-legend-dot dt-legend-closed"></span>Admin closed</span>
         </div>
       </div>
@@ -2292,7 +2297,7 @@ async function renderDtCalendar() {
   const rangeEnd = `${dtYear}-${String(dtMonth+1).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
   const grid = document.getElementById('dtCalGrid');
   grid.setAttribute('aria-busy','true');
-  grid.innerHTML = '<div class="dt-cal-skeleton" role="status" aria-label="Loading booking dates" style="grid-column:1/-1">'+Array.from({length:35},()=>'<span class="skel" aria-hidden="true"></span>').join('')+'</div>';
+  grid.innerHTML = '<div class="dt-cal-skeleton" role="status" aria-label="Loading reservation dates" style="grid-column:1/-1">'+Array.from({length:35},()=>'<span class="skel" aria-hidden="true"></span>').join('')+'</div>';
   try {
     // one quiet retry: a dropped connection or a sign-in refresh at that moment should not stop the booking
     const load = () => LexcBackend.rpc('get_customer_booking_dates',{from_date:rangeStart,to_date:rangeEnd});
@@ -2302,7 +2307,7 @@ async function renderDtCalendar() {
   } catch (error) {
     console.warn('Booking dates could not load:', error?.code || '', error?.message || error, {from_date:rangeStart,to_date:rangeEnd});
     grid.setAttribute('aria-busy','false');
-    grid.innerHTML = '<div class="dt-slot-summary" role="alert" style="grid-column:1/-1"><strong>Booking dates could not load</strong><p>Check your connection and try again.</p><button type="button" class="btn-outline" onclick="renderDtCalendar()">Try again</button></div>';
+    grid.innerHTML = '<div class="dt-slot-summary" role="alert" style="grid-column:1/-1"><strong>Reservation dates could not load</strong><p>Check your connection and try again.</p><button type="button" class="btn-outline" onclick="renderDtCalendar()">Try again</button></div>';
     return;
   }
   let html = DAYS.map(d => `<div class="dt-cal-day-name">${d}</div>`).join('');
@@ -2328,7 +2333,7 @@ async function renderDtCalendar() {
     if (state?.is_closed) cls += ' closed';
     if (!unavailable && state.remaining_slots === 1) cls += ' almost-full';
     const onclick = isPast || unavailable ? '' : `onclick="dtSelectDate('${dateStr}')"`;
-    const reason = isPast ? 'Past dates are unavailable' : !state ? 'Availability is unavailable' : state.is_closed ? 'Admin closed this date' : state.remaining_slots<=0 ? 'This date is fully booked' : !state.has_receiving_slot ? 'No receiving time is available' : `${state.remaining_slots} booking slot${state.remaining_slots===1?'':'s'} remaining`;
+    const reason = isPast ? 'Past dates are unavailable' : !state ? 'Availability is unavailable' : state.is_closed ? 'Admin closed this date' : state.remaining_slots<=0 ? 'This date is fully reserved' : !state.has_receiving_slot ? 'No receiving time is available' : `${state.remaining_slots} reservation slot${state.remaining_slots===1?'':'s'} remaining`;
     const stateText = isPast ? 'Past' : !state ? 'Unavailable' : state.is_closed ? 'Closed' : state.remaining_slots<=0 ? 'Full' : !state.has_receiving_slot ? 'Unavailable' : state.remaining_slots===1 ? '1 left' : `${state.remaining_slots} left`;
     html += `<button class="${cls}" ${onclick} title="${reason}" ${isPast||unavailable?'disabled':''}><span>${d}</span><small class="dt-day-state">${stateText}</small></button>`;
   }
@@ -2646,8 +2651,27 @@ async function handleLogout() {
   try { await flushCustomerCart(); await LexcBackend.signOut(); currentUser=null; clearSignedInCart(); updateNavAuth(); navigate('home'); showToast('You have been logged out.'); }
   catch(error) { showToast(error.message); }
 }
-LexcBackend.identity().then(async user => {
+// A slow or briefly dropped connection (common right after leaving the payment page on a tablet) can fail the first
+// account check; try again before showing the page as signed out.
+async function loadIdentity() {
+  try { const user = await LexcBackend.identity(); if (user) return user; } catch { /* retried below */ }
+  const { data } = await LexcBackend.client.auth.getSession().catch(() => ({ data: {} }));
+  if (!data?.session) return null;
+  await new Promise(resolve => setTimeout(resolve, 900));
+  return LexcBackend.identity();
+}
+loadIdentity().then(async user => {
   currentUser = user;
+  // "View order" from the payment page: without an account loaded, ask to log in and open the order afterwards
+  if (!user && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(new URLSearchParams(location.search).get('order') || '')) { navigate('login'); showToast('Log in to see your order.'); }
+  // the admin has no log-in page of its own: /admin sends signed-out visitors here with ?login=admin, and signing in
+  // with an admin account goes back to the admin (completeCustomerLogin)
+  if (new URLSearchParams(location.search).has('login')) {
+    const u = new URL(location.href); u.searchParams.delete('login'); history.replaceState(history.state, '', u);
+    if (!user) navigate('login');
+    else if (user.role === 'admin') { location.replace('admin/'); return; }
+    else showToast('This account does not have admin access.');
+  }
   updateNavAuth();
   // back from the confirmation email link
   if (new URLSearchParams(location.search).has('confirmed')) { const u = new URL(location.href); u.searchParams.delete('confirmed'); history.replaceState(history.state, '', u); if (user) showToast('Your email is confirmed. Welcome to LexC’s Snacktime!'); }
@@ -2706,14 +2730,14 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script>
-<script src="shared/customer-backend.js?v=35"></script>
+<script src="shared/customer-backend.js?v=36"></script>
 <script src="shared/product-detail.js?v=11"></script>
-<script src="shared/menu-layout.js?v=4"></script>
+<script src="shared/menu-layout.js?v=5"></script>
 <script src="shared/fresh-feed.js?v=12"></script>
 <script src="shared/landing.js?v=4"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/inspiration.js?v=1"></script>
-<script src="shared/profile.js?v=9"></script>
+<script src="shared/profile.js?v=10"></script>
 <script src="shared/bento-designer.js?v=36"></script>
 <script src="shared/letter-pieces.js?v=3"></script>
 <script src="shared/cupcake-designer.js?v=35"></script>
@@ -2721,6 +2745,6 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/motion.js?v=3" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg> Chat <span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=29';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=31';mountChatWidget();</script>
 </body>
 </html>

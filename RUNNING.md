@@ -64,7 +64,7 @@ python -m http.server 8000 --bind 127.0.0.1
 Open:
 
 - Customer site: `http://127.0.0.1:8000/`
-- ADMIN login: `http://127.0.0.1:8000/admin/login.html`
+- ADMIN: `http://127.0.0.1:8000/admin/` (signed out, it opens the shop Log in screen; admin accounts return to the admin)
 - ADMIN dashboard after login: `http://127.0.0.1:8000/admin/`
 - Order payment (opened automatically after checkout): `http://127.0.0.1:8000/payment/index.html?order=<order-id>`
 

@@ -1,8 +1,10 @@
 // Database adapter for the existing storefront controls.
 let liveCatalog=[], liveSlots=[], selectedSlotId=null, checkoutSaving=false;
+// customers see "reservation", never "booking" — including messages that come back from the database
+const reservationWords=text=>String(text).replace(/\bfully booked\b/gi,'fully reserved').replace(/\bbookings\b/g,'reservations').replace(/\bBookings\b/g,'Reservations').replace(/\bbooking\b/g,'reservation').replace(/\bBooking\b/g,'Reservation');
 function customerActionError(error,fallback){
  const message=String(error?.message||'');
- if(/no longer available|enter a name|receiving slot|fully booked|delivery address|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp|choose (an available|a ribbon|a lettering|gold or silver)|keep the message|number topper|too many or repeated/i.test(message))return message;
+ if(/no longer available|enter a name|receiving slot|fully booked|delivery address|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp|choose (an available|a ribbon|a lettering|gold or silver)|keep the message|number topper|too many or repeated/i.test(message))return reservationWords(message);
  console.warn('Customer action failed:',error);
  return fallback;
 }
@@ -66,8 +68,8 @@ async function renderDtSlots(){
   const from=new Date(date+'T00:00:00+08:00'),to=new Date(from.getTime()+86400000);
   const slots=await LexcBackend.rpc('get_availability',{from_date:from.toISOString(),to_date:to.toISOString()});
   if(dtSelectedDate!==date)return;liveSlots=slots;
-  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>'+bookingDay.remaining_slots+' of '+bookingDay.capacity+' booking slots remaining · Pick a receiving time (9 AM–5 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Next-day order: a ₱'+RUSH_FEE+' rush fee is added.</span>':'')+'</div>';
-  list.innerHTML=slots.length?summary+slots.map(s=>'<button type="button" class="dt-slot'+(s.remaining<=0?' full':'')+'" data-slot="'+s.id+'" '+(s.remaining<=0?'disabled':'')+'><span class="dt-slot-time">'+slotLabel(s)+'</span><span class="dt-slot-status '+(s.remaining>0?'avail':'full')+'">'+(s.remaining>0?'Available':'Fully booked')+'</span></button>').join(''):summary+'<div class="dt-slot-summary">No receiving window is available for this date. Please choose another available date.</div>';
+  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>'+bookingDay.remaining_slots+' of '+bookingDay.capacity+' reservation slots remaining · Pick a receiving time (9 AM–5 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Next-day order: a ₱'+RUSH_FEE+' rush fee is added.</span>':'')+'</div>';
+  list.innerHTML=slots.length?summary+slots.map(s=>'<button type="button" class="dt-slot'+(s.remaining<=0?' full':'')+'" data-slot="'+s.id+'" '+(s.remaining<=0?'disabled':'')+'><span class="dt-slot-time">'+slotLabel(s)+'</span><span class="dt-slot-status '+(s.remaining>0?'avail':'full')+'">'+(s.remaining>0?'Available':'Fully reserved')+'</span></button>').join(''):summary+'<div class="dt-slot-summary">No receiving window is available for this date. Please choose another available date.</div>';
   list.setAttribute('aria-busy','false');
   list.querySelectorAll('[data-slot]').forEach(button=>button.onclick=()=>{
    selectedSlotId=button.dataset.slot;dtSelectedSlot=slotLabel(liveSlots.find(s=>s.id===selectedSlotId));
@@ -92,7 +94,7 @@ async function submitCheckout(){
  // name, mobile number, delivery address and notes: the same rules the database enforces (phase 43)
  const problem=window.LexcCheckoutChecks?.firstProblem();
  if(problem)return needField(problem.id,problem.message);
- if(!field('coDate')||!field('coTime'))return showToast('Choose a booking date and receiving time.');
+ if(!field('coDate')||!field('coTime'))return showToast('Choose a reservation date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
   if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
   const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,preview_top,reference_image_path,design_top_path,inspiration,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
@@ -134,7 +136,7 @@ async function submitCheckout(){
   const selectedDate=field('coDate');
   const freshAvailability=await LexcBackend.rpc('get_customer_booking_dates',{from_date:selectedDate,to_date:selectedDate});
   const selectedDay=freshAvailability[0];
-  if(!selectedDay||selectedDay.is_closed||selectedDay.remaining_slots<=0||!selectedDay.has_receiving_slot)throw new Error('This booking date is no longer available. Please choose another date.');
+  if(!selectedDay||selectedDay.is_closed||selectedDay.remaining_slots<=0||!selectedDay.has_receiving_slot)throw new Error('This reservation date is no longer available. Please choose another date.');
    const order=await LexcBackend.rpc('create_order',{payload:{request_id:request.id,name:field('coName'),phone:field('coContact'),address:field('coAddress'),notes:field('coNotes'),slot_id:document.getElementById('coDate').dataset.slotId,fulfillment:selectedDelivery==='Lalamove'?'lalamove':'pickup',payment_method:selectedPayment,items:selectedItems.map(i=>({variant_id:i.variant_id,qty:i.qty,customization:i.customization||null,reference_image_path:i.reference_image_path||null}))}});
    // Add the top-view pictures to the design card the database posted in the customer's chat.
   const topViews=selectedItems.map((item,index)=>({line:index+1,top_path:item.design_top_path})).filter(view=>view.top_path);
@@ -150,12 +152,12 @@ async function submitCheckout(){
 }
 let customerShowCancelled=false;
 async function cancelMyOrder(orderId,orderNumber){
- if(!confirm('Cancel order #'+orderNumber+'? This releases its booking date. The order stays in history for payment and seller records.'))return;
+ if(!confirm('Cancel order #'+orderNumber+'? This releases its reservation date. The order stays in history for payment and seller records.'))return;
  const button=[...document.querySelectorAll('[data-cancel-order]')].find(item=>item.dataset.cancelOrder===orderId);
  if(button)button.disabled=true;
  try{
   await LexcBackend.rpc('cancel_my_order',{order_id:orderId});
-  showToast('Order cancelled. Your booking slot is available again.');
+  showToast('Order cancelled. Your reservation slot is available again.');
    await showMyOrders();
  }catch(error){showToast(customerActionError(error,'Order cancellation could not be completed. Please try again.'));if(button)button.disabled=false;}
 }
@@ -207,7 +209,7 @@ async function cancelMyOrder(orderId,orderNumber){
     '<div class="co-pay is-'+payState+'"><span class="co-pay-dot" aria-hidden="true"></span><div><strong>'+authEscape(o.status==='cancelled'?'Order cancelled':waiting?'Waiting for LexC’s to confirm':paymentLabel(o.payment_status))+'</strong><span>'+authEscape(waiting?'You can pay once your order is confirmed':method)+'</span></div></div>'+
     '<div class="customer-order-actions"><a class="btn-primary" href="payment/index.html?order='+encodeURIComponent(o.id)+'">'+(o.payment_status==='rejected'?'Resubmit payment':payable?(o.payment_status==='partially_paid'?'Pay remaining balance':'Pay now'):'View order & payment')+'</a><a class="btn-outline" href="chat/?order='+encodeURIComponent(o.id)+'">'+icon('M4 5h16v11H8l-4 4z')+'Message LexC</a>'+(canCancel?'<button class="customer-order-cancel" type="button" data-cancel-order="'+authEscape(o.id)+'" data-order-number="'+authEscape(o.order_number)+'">Cancel order</button>':'')+(canReview(o)?'<button class="btn-outline customer-review-cta" data-review="'+authEscape(o.id)+'">★ Rate your treats</button>':'')+'</div>'+
     '<details class="customer-order-more"><summary>Order details</summary>'+details+'</details></article>';
-  }).join(''):'<div class="customer-orders-state"><h2>'+(!mine.length?'No orders yet':'No active orders')+'</h2><p>'+(!mine.length?'Your bookings and payments will appear here after checkout.':'Cancelled orders are hidden. Use “Show cancelled” to see them.')+'</p><a class="btn-primary" href="#" onclick="event.preventDefault();navigate(\'shop\')">Browse products</a></div>';
+  }).join(''):'<div class="customer-orders-state"><h2>'+(!mine.length?'No orders yet':'No active orders')+'</h2><p>'+(!mine.length?'Your reservations and payments will appear here after checkout.':'Cancelled orders are hidden. Use “Show cancelled” to see them.')+'</p><a class="btn-primary" href="#" onclick="event.preventDefault();navigate(\'shop\')">Browse products</a></div>';
   const focused=[...container.querySelectorAll('[data-order-id]')].find(item=>item.dataset.orderId===focusOrderId);
   focused?.scrollIntoView({block:'center'});
   container.querySelectorAll('[data-review]').forEach(button => button.onclick = () => showReviewForm(button.dataset.review));

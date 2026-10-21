@@ -36,7 +36,7 @@ const { chromium } = require(process.argv[2]);
   assert.equal(await page.locator('.page.active').getAttribute('id'),'page-checkout');
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('admin_logged_in')),null);
   await page.goto('http://127.0.0.1:8000/admin/');
-  await page.waitForURL('**/login.html');
+  await page.waitForURL(url => !String(url).includes('/admin/'));
   assert.deepEqual(errors,[]);
   console.log('PASS: public home/catalog/cart, checkout guard, wrong login, registration, email login, cart/quantity/price preservation, independent sessions, keyboard submit.');
  } finally {await browser.close();}
