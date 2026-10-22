@@ -2637,6 +2637,7 @@ async function forgotSetPassword() {
 async function signInWithGoogle() {
   const message = currentPage === 'register' ? registerMessage : loginMessage;
   try {
+    try { sessionStorage.setItem('lexc_google_signin', '1'); } catch {}   // back from Google: an admin account goes to the admin site
     LexcBackend.unwrap(await LexcBackend.client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }));
   } catch (problem) { message(authErrorText(problem)); }
 }
@@ -2666,6 +2667,10 @@ loadIdentity().then(async user => {
   if (!user && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(new URLSearchParams(location.search).get('order') || '')) { navigate('login'); showToast('Log in to see your order.'); }
   // the admin has no log-in page of its own: /admin sends signed-out visitors here with ?login=admin, and signing in
   // with an admin account goes back to the admin (completeCustomerLogin)
+  // just signed in with Google as the admin: open the admin site, like the email + password sign-in does
+  // (later visits to the shop while signed in as the admin stay on the shop)
+  let googleSignin = false; try { googleSignin = sessionStorage.getItem('lexc_google_signin') === '1'; sessionStorage.removeItem('lexc_google_signin'); } catch {}
+  if (googleSignin && user?.role === 'admin') { location.replace('admin/'); return; }
   // just handed admin access to another account (Admin → Profile → Transfer): sign in with that one
   let movedTo = null; try { movedTo = sessionStorage.getItem('lexc_admin_moved_to'); sessionStorage.removeItem('lexc_admin_moved_to'); } catch {}
   if (movedTo && !user) { navigate('login'); showToast('Admin access moved to ' + movedTo + '. Sign in with that account.'); }

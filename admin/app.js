@@ -24,7 +24,7 @@ const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
 let toastTimer;
-document.querySelector('.logout').addEventListener('click', () => window.LexcAdminAuth.logout());
+document.querySelector('button.logout').addEventListener('click', () => window.LexcAdminAuth.logout());
 export function notify(message) {
   const toast = document.querySelector('#toast');
   toast.textContent = message;

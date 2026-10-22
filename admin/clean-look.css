@@ -64,3 +64,7 @@ html,body{overflow-x:clip}
 #content .booking-filter-row{flex-wrap:wrap;min-width:0;max-width:100%}
 #content .booking-filter-row .booking-search{min-width:0;flex:1 1 200px}
 #content .booking-topbar{min-width:0;flex-wrap:wrap}
+
+/* sidebar: View shop sits just above Log out, same look, no gap between them */
+.sidebar .shop-link{margin-bottom:0;text-decoration:none}
+.sidebar .shop-link+.logout{margin-top:8px}
