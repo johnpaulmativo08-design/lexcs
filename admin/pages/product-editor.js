@@ -10,6 +10,11 @@ import { UNITS, GROUPS, BASES, BASIS_SHORT, recipeForProduct, conversionState, p
 
 const money = (n) => '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const newId = () => window.crypto.randomUUID();
+// Specifications the shop shows when the owner has not changed them (keep in step with shared/product-detail.js).
+// Category and sizes are always added by the shop, so they are not edited here.
+const DEFAULT_SPECS = [['Ordering', 'Made to order — choose a pickup or delivery date at checkout'], ['Fulfillment', 'Pickup or Lalamove delivery'],
+  ['Payment', '60% downpayment confirms the order'], ['Special requests', 'Add them in the order notes at checkout']].map(([label, value]) => ({ label, value }));
+const ALLERGENS = ['Milk', 'Eggs', 'Wheat / gluten', 'Soy', 'Peanuts', 'Tree nuts', 'Sesame', 'Fish', 'Shellfish'];
 const blankLine = () => ({ item_id: '', line_group: 'ingredient', quantity: '', unit: 'g', basis: 'per_batch', rounding: 'exact', condition: {}, needs_review: false, review_note: '', source_text: '' });
 
 /**
@@ -28,6 +33,8 @@ export function openProductEditor({ product, categories, packages, catalog, imag
   const locked = kind === 'customizable';   // the three frosting options are fixed by the designer
   const state = {
     variants: (product?.product_variants || []).filter((v) => v.is_active).map((v) => ({ id: v.id, code: v.code, label: v.label, price: Number(v.price) })),
+    specs: (Array.isArray(product?.specifications) ? product.specifications : DEFAULT_SPECS).map((s) => ({ ...s })),
+    allergenAuto: !product?.allergens || product.allergens.auto !== false, allergenList: [...(product?.allergens?.list || [])], allergenSuggested: null,
     cat: null, recipe: null, draft: null, recipeDirty: false, productSaved: !isNew, saving: false, editing: null, photoURL: null
   };
   if (!state.variants.length) state.variants = [{ id: newId(), code: 'option-' + newId(), label: 'Standard', price: '' }];
@@ -46,6 +53,15 @@ export function openProductEditor({ product, categories, packages, catalog, imag
             <label class="form-field"><span>Category</span><select name="category_id"><option value="">None</option>${categories.map((c) => `<option value="${attr(c.id)}" ${product?.category_id === c.id ? 'selected' : ''}>${e(c.name)}</option>`).join('')}</select></label>
           </div>
           <label class="form-field"><span>Description</span><textarea name="description" rows="3" maxlength="1000" placeholder="Shown on the product page">${e(product?.description || '')}</textarea></label>
+          <div class="pe-sub"><h4>Specifications</h4></div>
+          <p class="pe-hint">Shown in the product's Specifications tab. Category and sizes are added automatically.</p>
+          <div class="pe-specs" data-specs></div>
+          <button type="button" class="button button--small pe-add" data-add-spec>${icon('plus')} Add row</button>
+          <div class="pe-sub"><h4>Allergens</h4></div>
+          <label class="pe-check"><input type="checkbox" data-allergen-auto ${state.allergenAuto ? 'checked' : ''}><span>Work them out from the recipe</span></label>
+          <p class="pe-hint" data-allergen-hint>Checking the recipe…</p>
+          <fieldset class="pe-allergens" data-allergen-list><legend class="sr-only">Allergens in this product</legend>${ALLERGENS.map((a) => `<label><input type="checkbox" value="${attr(a)}"><span>${e(a)}</span></label>`).join('')}</fieldset>
+          <label class="form-field"><span>Allergen note for customers <small>(optional)</small></span><input name="allergen_note" maxlength="300" value="${attr(product?.allergens?.note || '')}" placeholder="e.g. A nut-free batch is possible on request"></label>
           ${kind === 'package' ? `<label class="form-field"><span>Package contents <small>(one per line)</small></span><textarea name="contents" rows="4">${e((product?.package_contents || []).join('\n'))}</textarea></label>` : ''}
         </div>
       </details>
@@ -94,6 +110,44 @@ export function openProductEditor({ product, categories, packages, catalog, imag
     form.querySelector('[data-photo-frame]').innerHTML = `<img src="${state.photoURL}" alt="">`;
     form.querySelector('[data-photo-pick]').textContent = 'Replace photo';
   };
+
+  // ------------------------------------------------------------------ specifications & allergens
+  const specRow = (s, i) => `<div class="pe-variant pe-spec" data-spec="${i}">
+      <label><span>Label</span><input data-s="label" maxlength="60" value="${attr(s.label)}" placeholder="e.g. Shelf life"></label>
+      <label><span>Details</span><input data-s="value" maxlength="300" value="${attr(s.value)}" placeholder="e.g. Best eaten within 3 days"></label>
+      <button type="button" class="stock-icon-button pe-variant__remove" data-remove-spec="${i}" aria-label="Remove ${attr(s.label || 'row ' + (i + 1))}">${icon('trash')}</button>
+    </div>`;
+  const drawSpecs = () => { form.querySelector('[data-specs]').innerHTML = state.specs.length ? state.specs.map(specRow).join('') : '<p class="stock-quiet">No extra rows — customers see the category and sizes only.</p>'; };
+  form.querySelector('[data-specs]').addEventListener('input', (event) => { const s = state.specs[event.target.closest('[data-spec]')?.dataset.spec]; if (s) s[event.target.dataset.s] = event.target.value; });
+  form.querySelector('[data-specs]').addEventListener('click', (event) => { const b = event.target.closest('[data-remove-spec]'); if (!b) return; state.specs.splice(Number(b.dataset.removeSpec), 1); drawSpecs(); });
+  form.querySelector('[data-add-spec]').onclick = () => {
+    if (state.specs.length >= 12) { toast('Up to 12 rows.'); return; }
+    state.specs.push({ label: '', value: '' }); drawSpecs(); form.querySelector('.pe-spec:last-child [data-s="label"]').focus();
+  };
+  // Allergens: either worked out from the active recipe (get_product_allergens) or ticked by hand.
+  const drawAllergens = () => {
+    const ticked = new Set(state.allergenAuto ? (state.allergenSuggested || []) : state.allergenList);
+    form.querySelectorAll('[data-allergen-list] input').forEach((box) => { box.checked = ticked.has(box.value); box.disabled = state.allergenAuto; });
+    const hint = form.querySelector('[data-allergen-hint]'), s = state.allergenSuggested;
+    hint.textContent = s === null ? 'Checking the recipe…' : s === false ? 'No active recipe yet, so nothing can be worked out. Untick the box above to choose them by hand.'
+      : state.allergenAuto ? (s.length ? 'From the recipe: ' + s.join(', ') + '. Updates by itself when the recipe changes.' : 'The recipe has none of the common allergens.')
+      : 'Chosen by hand.' + (s.length ? ' The recipe suggests: ' + s.join(', ') + '.' : '');
+  };
+  form.querySelector('[data-allergen-auto]').onchange = (event) => {
+    state.allergenAuto = event.target.checked;
+    if (!state.allergenAuto && !state.allergenList.length && Array.isArray(state.allergenSuggested)) state.allergenList = [...state.allergenSuggested];
+    drawAllergens();
+  };
+  form.querySelector('[data-allergen-list]').onchange = () => {
+    if (state.allergenAuto) return;
+    state.allergenList = [...form.querySelectorAll('[data-allergen-list] input:checked')].map((box) => box.value);
+  };
+  if (isNew) state.allergenSuggested = false;
+  else db.rpc('get_product_allergens', { target_product: productId })
+    .then((r) => { state.allergenSuggested = r?.has_recipe ? (r.allergens || []).map((a) => a.name) : false; })
+    .catch(() => { state.allergenSuggested = false; })
+    .finally(() => { if (form.isConnected) drawAllergens(); });
+  drawSpecs(); drawAllergens();
 
   // ------------------------------------------------------------------ sizes & prices
   const variantRow = (v, i) => `<div class="pe-variant" data-variant="${attr(v.id)}">
@@ -367,6 +421,12 @@ export function openProductEditor({ product, categories, packages, catalog, imag
         variants: state.variants.map((v, i) => ({ id: v.id, code: v.code, label: String(v.label).trim(), price: Number(Number(v.price).toFixed(2)), is_active: true, sort_order: i }))
       } });
       state.productSaved = true;
+      say('Saving specifications and allergens…');
+      const specs = state.specs.map((s) => ({ label: s.label.trim(), value: s.value.trim() })).filter((s) => s.label && s.value);
+      const sameAsDefault = specs.length === DEFAULT_SPECS.length && specs.every((s, i) => s.label === DEFAULT_SPECS[i].label && s.value === DEFAULT_SPECS[i].value);
+      const note = form.elements.allergen_note.value.trim();
+      await db.rpc('save_product_details', { target_product: productId, specs: sameAsDefault ? null : specs,
+        allergen_info: state.allergenAuto && !note ? null : { auto: state.allergenAuto, list: state.allergenAuto ? [] : state.allergenList, note } });
       let recipeNote = '';
       if (state.draft && state.recipeDirty) {
         stage = 'recipe'; say('Saving recipe…');

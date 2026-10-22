@@ -233,3 +233,10 @@ html.pd-lock { overflow: hidden; }
   .pd-card, .pd-dialog[open], .pd-dialog.is-closing, .pd-panel, .pd-fav .pd-icon { animation: none !important; }
   .pd-card, .pd-card__media img { transition: none; }
 }
+
+/* Allergens tab: one row per allergen, where it comes from underneath */
+.pd-allergens { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.pd-allergen { display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; background: var(--product-surface); font-size: 14px; color: var(--product-text); }
+.pd-allergen--skeleton { margin-bottom: 6px; gap: 8px; }
+.pd-allergen-note { margin-top: 12px !important; }
+.pd-allergen-own { margin-top: 10px !important; padding: 10px 14px; border-left: 3px solid var(--product-primary); border-radius: 0 12px 12px 0; background: var(--product-surface); }
