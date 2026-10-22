@@ -189,3 +189,6 @@
 .pe-allergens label:has(input:checked){border-color:var(--admin-purple,#6d4bd8);background:var(--admin-purple-soft,#eee9ff)}
 .pe-allergens label:has(input:disabled){cursor:default;opacity:.8}
 @media (max-width:560px){.pe-spec{grid-template-columns:minmax(0,1fr) 40px}.pe-spec label:nth-child(2){grid-column:1/2}.pe-spec .pe-variant__remove{grid-row:1/3;grid-column:2}}
+/* hidden labels (sr-only, position:absolute) stay inside the scrolling body; otherwise they make the whole drawer scroll and shift */
+.pe-drawer .stock-drawer__body{position:relative}
+.pe-allergens{position:relative;min-inline-size:0}
