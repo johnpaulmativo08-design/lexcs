@@ -312,7 +312,8 @@ nav[aria-label="Breadcrumb"] a:hover{text-decoration:underline;text-underline-of
 .proof-preview-name{display:grid;min-width:0}
 .proof-preview-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.86rem}
 .proof-preview-name small{color:#6d6278}
-.proof-preview-actions{display:flex;gap:12px}
+.proof-preview-actions{display:flex;align-items:center;gap:12px}
+.proof-preview-actions .text-button{flex:none;width:auto;white-space:nowrap}
 @media(max-width:520px){.proof-preview{grid-template-columns:48px minmax(0,1fr)}.proof-preview img{width:48px;height:48px}.proof-preview-actions{grid-column:1/-1;justify-content:flex-end}}
 
 /* additional price waiting for the customer (phase 51) */

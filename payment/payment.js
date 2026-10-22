@@ -168,7 +168,10 @@ function render(){
   root.querySelector('#proof-form')?.addEventListener('submit',submitPayment);
   const proofForm=root.querySelector('#proof-form');
   if(proofForm){
-    const update=()=>{proofForm.querySelector('button[type=submit]').disabled=!/^[A-Za-z0-9 _./-]{6,100}$/.test(proofForm.elements.reference.value.trim())||!proofForm.elements.proof.files.length;};
+    const ref=proofForm.elements.reference;
+    // reference numbers are digits only; anything else typed or pasted (spaces, dashes, letters) is dropped
+    ref.addEventListener('input',()=>{const digits=ref.value.replace(/\D/g,'');if(digits!==ref.value)ref.value=digits;});
+    const update=()=>{proofForm.querySelector('button[type=submit]').disabled=!/^\d{6,30}$/.test(ref.value)||!proofForm.elements.proof.files.length;};
     proofForm.addEventListener('input',update);proofForm.addEventListener('change',update);update();
   }
   root.querySelector('#copy-amount')?.addEventListener('click',async()=>{
@@ -218,7 +221,7 @@ function paymentForm(attempt){
     '<div class="compact-payment-core"><div class="qr-panel"><div class="qr-image-wrap"><span class="skel qr-image-skeleton" aria-hidden="true"></span><img class="qr-image" src="../'+e(qr)+'" alt="'+e(method?.display_name||'Manual payment')+' receiving QR"></div><div class="qr-actions"><a class="button secondary" href="../'+e(qr)+'" download="lexc-'+e(method?.code||'payment')+'-qr.'+(qr.toLowerCase().endsWith('.png')?'png':'jpg')+'">Save QR</a><a class="button secondary" href="../'+e(qr)+'" target="_blank" rel="noopener">View larger</a></div></div><div class="compact-payment-info"><div class="pay-amount"><span>Send exactly</span><strong>'+money(attempt.amount)+'</strong><button class="button secondary" id="copy-amount" type="button">Copy amount</button></div><div class="recipient"><span>RECIPIENT</span><strong>'+e(method?.account_name)+'</strong><small>'+e(method?.masked_account)+'</small></div><p class="compact-qr-note">Check the recipient and enter the amount in your banking app. A fixed QR may not include it; transfer fees are separate.</p></div></div>'+
     '<p class="change-payment">Paying '+e(kindName[kindOf(attempt)].toLowerCase())+' by '+e(method?.display_name||'QR')+'. <button class="text-button" id="change-payment" type="button">Change amount or account</button></p>'+
     '<p class="same-phone"><strong>Using one phone?</strong> Save the QR, then import it in your bank or wallet app if supported. Otherwise scan from another screen.</p>'+
-    '<details class="proof-disclosure" id="proof-disclosure"><summary><span>Already paid? Upload receipt <small>Only after your bank confirms the transfer</small></span><span aria-hidden="true">⌄</span></summary><div class="proof-intro">Use the transaction reference from your banking app—not your LexC order number.</div><form id="proof-form"><label class="field">Bank transaction reference<input type="text" name="reference" minlength="6" maxlength="100" pattern="[A-Za-z0-9 _./-]{6,100}" required autocomplete="off" placeholder="Shown on your successful transfer"></label><label class="field">Transfer receipt <small>JPG, PNG, or WEBP · up to 5 MB</small><input type="file" name="proof" accept="image/jpeg,image/png,image/webp" required><span id="selected-proof" class="selected-proof">No receipt selected</span></label><button type="submit">Send proof for verification</button></form><p class="fine-print">Proof submission does not mark the order paid. Admin verifies the incoming transfer. Do not send another transfer while verification is pending.</p></details></section>';
+    '<details class="proof-disclosure" id="proof-disclosure"><summary><span>Already paid? Upload receipt <small>Only after your bank confirms the transfer</small></span><span aria-hidden="true">⌄</span></summary><div class="proof-intro">Use the transaction reference from your banking app—not your LexC order number.</div><form id="proof-form"><label class="field">Bank transaction reference<input type="text" name="reference" inputmode="numeric" minlength="6" maxlength="30" pattern="[0-9]{6,30}" required autocomplete="off" placeholder="Numbers only, e.g. 1234567890123"></label><label class="field">Transfer receipt <small>JPG, PNG, or WEBP · up to 5 MB</small><input type="file" name="proof" accept="image/jpeg,image/png,image/webp" required><span id="selected-proof" class="selected-proof">No receipt selected</span></label><button type="submit">Send proof for verification</button></form><p class="fine-print">Proof submission does not mark the order paid. Admin verifies the incoming transfer. Do not send another transfer while verification is pending.</p></details></section>';
 }
 function history(){
   if(!attempts.length)return '';
@@ -240,8 +243,8 @@ async function submitPayment(event){
   button.disabled=true;button.classList.add('mo-busy');button.textContent='Checking and uploading proof…';
   try{
     const file=form.elements.proof.files[0];await validImage(file);
-    const reference=form.elements.reference.value.trim();
-    if(!/^[A-Za-z0-9 _./-]{6,100}$/.test(reference))throw new Error('Enter a valid bank transaction reference.');
+    const reference=form.elements.reference.value.replace(/\D/g,'');
+    if(!/^\d{6,30}$/.test(reference))throw new Error('Enter a valid bank transaction reference (numbers only, at least 6 digits).');
     const uploadBody=new FormData();uploadBody.append('paymentId',attempt.id);uploadBody.append('file',file);
     const {data:uploaded,error:uploadError}=await backend.client.functions.invoke('upload-payment-proof',{body:uploadBody});
     if(uploadError||!uploaded?.path)throw new Error(uploaded?.error||'Proof upload failed. Please try again.');
