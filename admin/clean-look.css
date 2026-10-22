@@ -64,3 +64,14 @@ html,body{overflow-x:clip}
 #content .booking-filter-row{flex-wrap:wrap;min-width:0;max-width:100%}
 #content .booking-filter-row .booking-search{min-width:0;flex:1 1 200px}
 #content .booking-topbar{min-width:0;flex-wrap:wrap}
+
+/* Profile: forgot password → code + new password, finished on this page */
+#content .profile-reset{margin:0 28px 28px;padding-top:18px;border-top:1px solid #efeaf8}
+@media(max-width:600px){#content .profile-reset{margin:0 20px 20px}}
+#content .profile-reset .profile-reset-form{padding:16px}
+#content .profile-reset .profile-forgot{margin:0}
+#content .profile-reset-form{margin-top:14px;border-radius:12px;background:#faf8ff}
+#content .profile-reset-sent{margin:0;color:#5d5670;font-size:.9rem}
+#content .profile-reset-form input[name=code]{max-width:12ch;letter-spacing:.35em;font-size:1.15rem;font-weight:700}
+#content .profile-reset-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+#content .profile-reset-done{margin:10px 0 0;color:#1f7a4d;font-weight:600}
