@@ -1,5 +1,5 @@
 import { renderDashboard } from './pages/dashboard.js?v=16';
-import { renderProducts } from './pages/products.js?v=11';
+import { renderProducts } from './pages/products.js?v=12';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=26';
 import { renderReports } from './pages/reports.js?v=18';
 import { renderOrders } from './pages/orders.js?v=36';

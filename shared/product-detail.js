@@ -150,7 +150,7 @@
   }
 
   // ---- Product Detail ----
-  const state = { id: null, img: 0, size: 0, qty: 1, tab: 'description', pushed: false, scrollY: 0, reviews: new Map() };
+  const state = { id: null, img: 0, size: 0, qty: 1, tab: 'description', pushed: false, scrollY: 0, reviews: new Map(), allergens: new Map() };
   let dialog;
 
   function ensureDialog() {
@@ -215,6 +215,7 @@
     dialog.querySelector('.pd-scroll').scrollTop = 0;
     dialog.querySelector('[data-close]').focus({ preventScroll: true });
     loadReviews(p);
+    loadAllergens(p);
   };
 
   function closeDetail(fromPopstate = false) {
@@ -247,10 +248,12 @@
     const specs = [
       category && ['Category', category],
       ['Options', p.sizes.map((s) => `${s.label} — ${money(s.price)}`).join('<br>')],
-      ['Ordering', 'Made to order — choose a pickup or delivery date at checkout'],
-      ['Fulfillment', 'Pickup or Lalamove delivery'],
-      ['Payment', '60% downpayment confirms the order'],
-      ['Special requests', 'Add them in the order notes at checkout']
+      // the owner's own rows (Admin → Products → Edit product), else the standard ones (same as admin DEFAULT_SPECS)
+      ...(Array.isArray(p.specs) ? p.specs.map((s) => [s.label, s.value]) : [
+        ['Ordering', 'Made to order — choose a pickup or delivery date at checkout'],
+        ['Fulfillment', 'Pickup or Lalamove delivery'],
+        ['Payment', '60% downpayment confirms the order'],
+        ['Special requests', 'Add them in the order notes at checkout']])
     ].filter(Boolean);
     return `<div class="pd-scroll">
       <section class="pd-gallery" aria-label="Product images">
@@ -294,7 +297,7 @@
       </div>
       <section class="pd-more">
         <div class="pd-tabs" role="tablist" aria-label="Product information">
-          ${[['description', 'Description'], ['specifications', 'Specifications'], ['ingredients', 'Ingredients'], ['reviews', `Reviews${r && r.count ? ` (${r.count})` : ''}`]].map(([key, label]) => `<button type="button" role="tab" id="pd-tab-${key}" aria-controls="pd-panel-${key}" aria-selected="${key === 'description'}" tabindex="${key === 'description' ? 0 : -1}" data-tab="${key}">${label}</button>`).join('')}
+          ${[['description', 'Description'], ['specifications', 'Specifications'], ['allergens', 'Allergens'], ['reviews', `Reviews${r && r.count ? ` (${r.count})` : ''}`]].map(([key, label]) => `<button type="button" role="tab" id="pd-tab-${key}" aria-controls="pd-panel-${key}" aria-selected="${key === 'description'}" tabindex="${key === 'description' ? 0 : -1}" data-tab="${key}">${label}</button>`).join('')}
         </div>
         <div class="pd-panel is-active" id="pd-panel-description" role="tabpanel" aria-labelledby="pd-tab-description">
           <h3>Description</h3><p>${esc(p.desc || 'Freshly made by LexC’s Snacktime.')}</p>
@@ -302,10 +305,11 @@
         <div class="pd-panel" id="pd-panel-specifications" role="tabpanel" aria-labelledby="pd-tab-specifications">
           <h3>Specifications</h3><dl class="pd-specs">${specs.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v.includes('<br>') ? v.split('<br>').map(esc).join('<br>') : esc(v)}</dd></div>`).join('')}</dl>
         </div>
-        <div class="pd-panel" id="pd-panel-ingredients" role="tabpanel" aria-labelledby="pd-tab-ingredients">
-          <h3>Ingredients</h3>
-          <p class="pd-muted">A full ingredient list for this pastry isn’t published online yet. For allergens or dietary questions, message us before ordering.</p>
-          <button type="button" class="pd-link" data-chat>${icon('chat')} Ask about ingredients</button>
+        <div class="pd-panel" id="pd-panel-allergens" role="tabpanel" aria-labelledby="pd-tab-allergens">
+          <h3>Allergens</h3>
+          <div data-allergens><div class="pd-allergen pd-allergen--skeleton" aria-hidden="true"><span class="skel skel-line"></span><span class="skel skel-line skel-line--long"></span></div><div class="pd-allergen pd-allergen--skeleton" aria-hidden="true"><span class="skel skel-line"></span><span class="skel skel-line skel-line--long"></span></div></div>
+          <p class="pd-muted pd-allergen-note">Everything is baked in one home kitchen, so traces of other allergens are possible. For a serious allergy, message us before ordering.</p>
+          <button type="button" class="pd-link" data-chat>${icon('chat')} Ask about allergens</button>
         </div>
         <div class="pd-panel" id="pd-panel-reviews" role="tabpanel" aria-labelledby="pd-tab-reviews">
           <h3>Reviews ${r && r.count ? `<span class="pd-muted">(${r.count})</span>` : ''}</h3>
@@ -399,6 +403,32 @@
       console.info('Reviews unavailable:', error?.message || error);
       box.innerHTML = '<p class="pd-muted">Reviews could not load right now.</p><button type="button" class="pd-link" data-retry-reviews>Try again</button>';
       box.querySelector('[data-retry-reviews]').onclick = () => loadReviews(p);
+    }
+  }
+
+  // Allergens: the owner's own list, or worked out from the product's active recipe (phase 73).
+  async function loadAllergens(p) {
+    const own = p.allergens && p.allergens.auto === false, note = p.allergens?.note || '';
+    const draw = (data) => {
+      const box = dialog.querySelector('[data-allergens]'); if (!box || state.id !== p.id) return;
+      const noteHtml = note ? `<p class="pd-allergen-own">${esc(note)}</p>` : '';
+      if (own) { box.innerHTML = (p.allergens.list.length ? `<p>Contains:</p><ul class="pd-allergens">${p.allergens.list.map((a) => `<li class="pd-allergen"><strong>${esc(a)}</strong></li>`).join('')}</ul>` : '<p>None of the common allergens are in this pastry.</p>') + noteHtml; return; }
+      const list = data?.allergens || [];
+      if (!data?.has_recipe) { box.innerHTML = '<p class="pd-muted">The allergen list for this pastry isn’t ready yet.</p>' + noteHtml; return; }
+      if (!list.length) { box.innerHTML = '<p>None of the common allergens (milk, eggs, wheat, soy, peanuts, tree nuts) are in this recipe.</p>' + noteHtml; return; }
+      box.innerHTML = `<p>Contains:</p><ul class="pd-allergens">${list.map((a) => `<li class="pd-allergen"><strong>${esc(a.name)}</strong><span class="pd-muted">from ${esc((a.from || []).join(', '))}${a.always ? '' : ' · only in some sizes or flavors'}</span></li>`).join('')}</ul>` + noteHtml;
+    };
+    if (own) return draw(null);
+    if (state.allergens.has(p.product_id)) return draw(state.allergens.get(p.product_id));
+    try {
+      const data = await LexcBackend.rpc('get_product_allergens', { target_product: p.product_id });
+      state.allergens.set(p.product_id, data);
+      draw(data);
+    } catch (error) {
+      const box = dialog.querySelector('[data-allergens]'); if (!box || state.id !== p.id) return;
+      console.info('Allergens unavailable:', error?.message || error);
+      box.innerHTML = '<p class="pd-muted">The allergen list could not load right now.</p><button type="button" class="pd-link" data-retry-allergens>Try again</button>';
+      box.querySelector('[data-retry-allergens]').onclick = () => loadAllergens(p);
     }
   }
 
