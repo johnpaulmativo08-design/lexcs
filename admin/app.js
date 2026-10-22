@@ -5,7 +5,7 @@ import { renderReports } from './pages/reports.js?v=18';
 import { renderOrders } from './pages/orders.js?v=36';
 import { renderBookings } from './pages/bookings.js?v=12';
 import { renderDesignOptions } from './pages/design-options.js?v=12';
-import { renderProfile } from './pages/profile.js?v=7';
+import { renderProfile } from './pages/profile.js?v=11';
 import { mountChat } from '../shared/chat.js?v=33';
 import { mountChatWidget } from '../shared/chat-widget.js?v=31';
 import { renderUpdates } from './pages/updates.js?v=2';
@@ -24,7 +24,7 @@ const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
 let toastTimer;
-document.querySelector('.logout').addEventListener('click', () => window.LexcAdminAuth.logout());
+document.querySelector('button.logout').addEventListener('click', () => window.LexcAdminAuth.logout());
 export function notify(message) {
   const toast = document.querySelector('#toast');
   toast.textContent = message;

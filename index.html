@@ -664,7 +664,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'DM Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=40">
+<link rel="stylesheet" href="shared/customer-flow.css?v=41">
 <link rel="stylesheet" href="shared/product-detail.css?v=3">
 <link rel="stylesheet" href="shared/chat-widget.css?v=11">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=6">
@@ -2637,6 +2637,7 @@ async function forgotSetPassword() {
 async function signInWithGoogle() {
   const message = currentPage === 'register' ? registerMessage : loginMessage;
   try {
+    try { sessionStorage.setItem('lexc_google_signin', '1'); } catch {}   // back from Google: an admin account goes to the admin site
     LexcBackend.unwrap(await LexcBackend.client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }));
   } catch (problem) { message(authErrorText(problem)); }
 }
@@ -2666,6 +2667,13 @@ loadIdentity().then(async user => {
   if (!user && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(new URLSearchParams(location.search).get('order') || '')) { navigate('login'); showToast('Log in to see your order.'); }
   // the admin has no log-in page of its own: /admin sends signed-out visitors here with ?login=admin, and signing in
   // with an admin account goes back to the admin (completeCustomerLogin)
+  // just signed in with Google as the admin: open the admin site, like the email + password sign-in does
+  // (later visits to the shop while signed in as the admin stay on the shop)
+  let googleSignin = false; try { googleSignin = sessionStorage.getItem('lexc_google_signin') === '1'; sessionStorage.removeItem('lexc_google_signin'); } catch {}
+  if (googleSignin && user?.role === 'admin') { location.replace('admin/'); return; }
+  // just handed admin access to another account (Admin → Profile → Transfer): sign in with that one
+  let movedTo = null; try { movedTo = sessionStorage.getItem('lexc_admin_moved_to'); sessionStorage.removeItem('lexc_admin_moved_to'); } catch {}
+  if (movedTo && !user) { navigate('login'); showToast('Admin access moved to ' + movedTo + '. Sign in with that account.'); }
   if (new URLSearchParams(location.search).has('login')) {
     const u = new URL(location.href); u.searchParams.delete('login'); history.replaceState(history.state, '', u);
     if (!user) navigate('login');
@@ -2737,7 +2745,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/landing.js?v=4"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/inspiration.js?v=1"></script>
-<script src="shared/profile.js?v=10"></script>
+<script src="shared/profile.js?v=11"></script>
 <script src="shared/bento-designer.js?v=36"></script>
 <script src="shared/letter-pieces.js?v=3"></script>
 <script src="shared/cupcake-designer.js?v=35"></script>
