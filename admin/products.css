@@ -192,3 +192,13 @@
 /* hidden labels (sr-only, position:absolute) stay inside the scrolling body; otherwise they make the whole drawer scroll and shift */
 .pe-drawer .stock-drawer__body{position:relative}
 .pe-allergens{position:relative;min-inline-size:0}
+
+/* Sizes & prices: a discount line under each size (phase 75) */
+.pe-discount{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.2fr);gap:8px;align-items:end;padding-top:8px;border-top:1px dashed #e6dff3}
+.pe-discount label{display:grid;gap:4px;min-width:0;font-size:12.5px;font-weight:700;color:var(--admin-muted)}
+.pe .pe-discount input,.pe .pe-discount select{min-width:0;width:100%;padding-left:9px;padding-right:6px}
+.pe-discount label small{font-weight:500}
+.pe-discount input:disabled{background:#f6f4fa;color:#a59fb3}
+.pe-discount__note{grid-column:1/-1;margin:0;font-size:12.5px;color:#4b4170}
+.pe-discount__note s{color:#9a93ad;margin-left:4px}
+@media (max-width:560px){.pe-discount{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}

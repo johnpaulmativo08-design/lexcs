@@ -1,5 +1,14 @@
 // Database adapter for the existing storefront controls.
 let liveCatalog=[], liveSlots=[], selectedSlotId=null, checkoutSaving=false;
+// Discounts (phase 75): each size's price becomes today's selling price and its full price is kept as regular_price,
+// so cards, the product page, cart and designers all follow. Same rule as private.variant_price_now; the database
+// prices the order itself, this is only what the shop shows. Admin pages load the catalog separately (full prices).
+const manilaToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila'}).format(new Date());
+function withSalePrices(catalog){const today=manilaToday();return catalog.map(p=>({...p,product_variants:(p.product_variants||[]).map(v=>{
+ const full=Number(v.price),off=Number(v.discount_value);let now=full;
+ if(v.discount_type&&off>0&&!(v.discount_starts&&today<v.discount_starts)&&!(v.discount_ends&&today>v.discount_ends)){
+  if(v.discount_type==='percent'&&off>=1&&off<=95)now=Math.round(full*(100-off))/100;else if(v.discount_type==='amount'&&off<full)now=Math.round((full-off)*100)/100;}
+ return {...v,price:now,regular_price:full,sale:now<full?{type:v.discount_type,value:off,ends:v.discount_ends||null}:null};})}));}
 // customers see "reservation", never "booking" — including messages that come back from the database
 const reservationWords=text=>String(text).replace(/\bfully booked\b/gi,'fully reserved').replace(/\bbookings\b/g,'reservations').replace(/\bBookings\b/g,'Reservations').replace(/\bbooking\b/g,'reservation').replace(/\bBooking\b/g,'Reservation');
 function customerActionError(error,fallback){
@@ -23,14 +32,14 @@ async function loadStorefront(){
  const packageContainer=document.querySelector('#page-packages .pkg-grid');
  if(packageContainer)packageContainer.innerHTML=Array.from({length:3},()=>'<div class="pkg-card pkg-card-skeleton" aria-hidden="true"><span class="skel skel-title"></span><span class="skel skel-line skel-line--short"></span><span class="skel skel-value"></span><span class="skel skel-button"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-line"></span></div>').join('');
  try{
-  const [catalog,categories,methods]=await Promise.all([LexcBackend.catalog(),LexcBackend.categories(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
+  const [catalog,categories,methods]=await Promise.all([LexcBackend.catalog().then(withSalePrices),LexcBackend.categories(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
   liveCatalog=catalog.filter(p=>p.status==='active');
   const methodRoot=document.getElementById('checkoutPaymentMethods');
   methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'" aria-pressed="false"><span class="co-option-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span><span>'+authEscape(m.display_name)+'</span></button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
   methodRoot.querySelectorAll('[data-payment-code]').forEach(button=>button.onclick=()=>selectPayment(button,button.dataset.paymentCode));
   products.splice(0,products.length,...liveCatalog.filter(p=>p.kind==='standard').map((p,index)=>({
    id:p.legacy_id||10000+index,product_id:p.id,name:p.name,desc:p.description,cat:p.categories?.slug||'',emoji:p.emoji||'🧁',badge:p.badge_label,stars:'',specs:p.specifications,allergens:p.allergens,
-   sizes:p.product_variants.filter(v=>v.is_active).map(v=>({id:v.id,label:v.label,price:Number(v.price)}))
+   sizes:p.product_variants.filter(v=>v.is_active).map(v=>({id:v.id,label:v.label,price:Number(v.price),regular:Number(v.regular_price),sale:v.sale}))
   })).filter(p=>p.sizes.length).map(p=>({...p,price:p.sizes[0].price})));
   for(const p of products){const db=liveCatalog.find(d=>d.id===p.product_id);if(db.image_path)PRODUCT_IMAGES[p.id]=LexcBackend.mediaURL(db.image_path);}
   const filters=document.getElementById('catFilters'),all=filters.querySelector('[data-cat=all]')?.outerHTML||'';
@@ -103,7 +112,7 @@ async function submitCheckout(){
  localStorage.setItem('lexc_checkout_request',JSON.stringify(request));checkoutSaving=true;
  const submitButton=document.getElementById('placeOrderButton');submitButton.disabled=true;submitButton.textContent='Creating your order…';
  try{
-  const latest = await LexcBackend.catalog();
+  const latest = withSalePrices(await LexcBackend.catalog());
   let priceChanged = false;
    for (const item of selectedItems) {
     const product = latest.find(product => product.id === item.product_id);
@@ -116,6 +125,7 @@ async function submitCheckout(){
       const quote = await LexcBackend.rpc(quoteFn, { p_product_id: item.product_id, p_design: item.customization });
       expected += Number(quote.extra); item.base_price = Number(variant.price); item.extras = Number(quote.extra);
     }
+    item.regular_price = Number(variant.regular_price) + (expected - Number(variant.price));
     if (Number(item.price) !== expected) { item.price = expected; priceChanged = true; }
   }
   if (priceChanged) {

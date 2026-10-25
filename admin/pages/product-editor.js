@@ -15,6 +15,16 @@ const newId = () => window.crypto.randomUUID();
 const DEFAULT_SPECS = [['Ordering', 'Made to order — choose a pickup or delivery date at checkout'], ['Fulfillment', 'Pickup or Lalamove delivery'],
   ['Payment', '60% downpayment confirms the order'], ['Special requests', 'Add them in the order notes at checkout']].map(([label, value]) => ({ label, value }));
 const ALLERGENS = ['Milk', 'Eggs', 'Wheat / gluten', 'Soy', 'Peanuts', 'Tree nuts', 'Sesame', 'Fish', 'Shellfish'];
+// A size's discount (phase 75): percent or peso off, optional start/end dates in Manila time. Same rule as the database.
+const manilaToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+const salePrice = (v) => {
+  const price = Number(v.price), value = Number(v.discount_value), today = manilaToday();
+  if (!v.discount_type || !(value > 0) || !(price > 0)) return null;
+  if (v.discount_starts && today < v.discount_starts) return { later: true };
+  if (v.discount_ends && today > v.discount_ends) return { ended: true };
+  if (v.discount_type === 'percent') return value >= 1 && value <= 95 ? { now: Math.round(price * (100 - value)) / 100 } : null;
+  return value < price ? { now: Math.round((price - value) * 100) / 100 } : null;
+};
 const blankLine = () => ({ item_id: '', line_group: 'ingredient', quantity: '', unit: 'g', basis: 'per_batch', rounding: 'exact', condition: {}, needs_review: false, review_note: '', source_text: '' });
 
 /**
@@ -32,7 +42,8 @@ export function openProductEditor({ product, categories, packages, catalog, imag
   const kind = product?.kind || (packages ? 'package' : 'standard');
   const locked = kind === 'customizable';   // the three frosting options are fixed by the designer
   const state = {
-    variants: (product?.product_variants || []).filter((v) => v.is_active).map((v) => ({ id: v.id, code: v.code, label: v.label, price: Number(v.price) })),
+    variants: (product?.product_variants || []).filter((v) => v.is_active).map((v) => ({ id: v.id, code: v.code, label: v.label, price: Number(v.price),
+      discount_type: v.discount_type || '', discount_value: v.discount_value ?? '', discount_starts: v.discount_starts || '', discount_ends: v.discount_ends || '' })),
     specs: (Array.isArray(product?.specifications) ? product.specifications : DEFAULT_SPECS).map((s) => ({ ...s })),
     allergenAuto: !product?.allergens || product.allergens.auto !== false, allergenList: [...(product?.allergens?.list || [])], allergenSuggested: null,
     cat: null, recipe: null, draft: null, recipeDirty: false, productSaved: !isNew, saving: false, editing: null, photoURL: null
@@ -150,16 +161,39 @@ export function openProductEditor({ product, categories, packages, catalog, imag
   drawSpecs(); drawAllergens();
 
   // ------------------------------------------------------------------ sizes & prices
+  const discountNote = (v) => {
+    const sale = salePrice(v); if (!v.discount_type) return 'No discount';
+    if (!sale) return 'Enter an amount';
+    if (sale.later) return `Starts ${v.discount_starts}`;
+    if (sale.ended) return 'Ended — full price again';
+    return `Today: ${money(sale.now)} <s>${money(v.price)}</s>`;
+  };
+  const discountRow = (v) => `<div class="pe-discount">
+      <label><span>Discount</span><select data-v="discount_type"><option value="" ${!v.discount_type ? 'selected' : ''}>None</option><option value="percent" ${v.discount_type === 'percent' ? 'selected' : ''}>% off</option><option value="amount" ${v.discount_type === 'amount' ? 'selected' : ''}>₱ off</option></select></label>
+      <label><span>${v.discount_type === 'amount' ? 'Peso off' : 'Percent off'}</span><input data-v="discount_value" type="number" min="${v.discount_type === 'amount' ? '0.01' : '1'}" max="${v.discount_type === 'amount' ? '' : '95'}" step="${v.discount_type === 'amount' ? '0.01' : '1'}" inputmode="decimal" value="${attr(v.discount_value)}" ${v.discount_type ? '' : 'disabled'} placeholder="${v.discount_type === 'amount' ? 'e.g. 50' : 'e.g. 10'}"></label>
+      <label><span>From <small>(optional)</small></span><input data-v="discount_starts" type="date" value="${attr(v.discount_starts)}" ${v.discount_type ? '' : 'disabled'}></label>
+      <label><span>Until <small>(optional)</small></span><input data-v="discount_ends" type="date" value="${attr(v.discount_ends)}" ${v.discount_type ? '' : 'disabled'}></label>
+      <p class="pe-discount__note" data-discount-note>${discountNote(v)}</p>
+    </div>`;
   const variantRow = (v, i) => `<div class="pe-variant" data-variant="${attr(v.id)}">
       <label><span>Size / option</span><input data-v="label" maxlength="60" value="${attr(v.label)}" placeholder="e.g. 6 pcs"></label>
       <label><span>Price (₱)</span><input data-v="price" type="number" min="0" step="0.01" inputmode="decimal" value="${attr(v.price)}" placeholder="0.00"></label>
       ${locked ? '' : `<button type="button" class="stock-icon-button pe-variant__remove" data-remove-variant="${attr(v.id)}" aria-label="Remove ${attr(v.label || 'size ' + (i + 1))}" ${state.variants.length === 1 ? 'disabled' : ''}>${icon('trash')}</button>`}
+    ${discountRow(v)}
     </div>`;
   const drawVariants = () => { form.querySelector('[data-variants]').innerHTML = state.variants.map(variantRow).join(''); summarize(); drawPieces(); };
   form.querySelector('[data-variants]').addEventListener('input', (event) => {
     const row = event.target.closest('[data-variant]'), v = state.variants.find((x) => x.id === row?.dataset.variant); if (!v) return;
     v[event.target.dataset.v] = event.target.dataset.v === 'price' ? event.target.value : event.target.value;
     event.target.removeAttribute('aria-invalid'); summarize(); drawPieces(true);
+    const note = row.querySelector('[data-discount-note]'); if (note) note.innerHTML = discountNote(v);
+  });
+  form.querySelector('[data-variants]').addEventListener('change', (event) => {
+    if (event.target.dataset.v !== 'discount_type') return;
+    const row = event.target.closest('[data-variant]'), v = state.variants.find((x) => x.id === row?.dataset.variant); if (!v) return;
+    if (!v.discount_type) { v.discount_value = ''; v.discount_starts = ''; v.discount_ends = ''; }
+    row.querySelector('.pe-discount').outerHTML = discountRow(v);
+    row.querySelector('[data-v="discount_value"]')?.focus();
   });
   form.querySelector('[data-variants]').addEventListener('click', (event) => {
     const b = event.target.closest('[data-remove-variant]'); if (!b || state.variants.length === 1) return;
@@ -385,6 +419,12 @@ export function openProductEditor({ product, categories, packages, catalog, imag
       else if (labels.has(String(v.label).trim().toLowerCase())) { problems.push(`Two sizes are called “${v.label}”.`); row?.querySelector('[data-v="label"]').setAttribute('aria-invalid', 'true'); open('sizes'); }
       labels.add(String(v.label).trim().toLowerCase());
       if (v.price === '' || !(Number(v.price) >= 0) || Number(v.price) > 1000000) { problems.push(`Enter a valid price for ${v.label || 'each size'}.`); row?.querySelector('[data-v="price"]').setAttribute('aria-invalid', 'true'); open('sizes'); }
+      if (v.discount_type) {
+        const d = Number(v.discount_value), bad = (field, text) => { problems.push(text); row?.querySelector(`[data-v="${field}"]`)?.setAttribute('aria-invalid', 'true'); open('sizes'); };
+        if (v.discount_type === 'percent' && !(d >= 1 && d <= 95)) bad('discount_value', `Percent off for ${v.label || 'a size'} must be from 1 to 95.`);
+        if (v.discount_type === 'amount' && !(d > 0 && d < Number(v.price))) bad('discount_value', `Peso off for ${v.label || 'a size'} must be above 0 and below its price.`);
+        if (v.discount_starts && v.discount_ends && v.discount_ends < v.discount_starts) bad('discount_ends', `The discount for ${v.label || 'a size'} ends before it starts.`);
+      }
     });
     if (state.editing !== null) { problems.push('Finish the ingredient you are editing (press Done or Cancel).'); open('recipe'); }
     if (state.draft && state.recipeDirty) {
@@ -421,6 +461,9 @@ export function openProductEditor({ product, categories, packages, catalog, imag
         variants: state.variants.map((v, i) => ({ id: v.id, code: v.code, label: String(v.label).trim(), price: Number(Number(v.price).toFixed(2)), is_active: true, sort_order: i }))
       } });
       state.productSaved = true;
+      say('Saving discounts…');
+      await db.rpc('save_variant_discounts', { target_product: productId, items: state.variants.map((v) => ({ variant_id: v.id, type: v.discount_type || 'none',
+        value: v.discount_type ? Number(v.discount_value) : null, starts: v.discount_type ? v.discount_starts || null : null, ends: v.discount_type ? v.discount_ends || null : null })) });
       say('Saving specifications and allergens…');
       const specs = state.specs.map((s) => ({ label: s.label.trim(), value: s.value.trim() })).filter((s) => s.label && s.value);
       const sameAsDefault = specs.length === DEFAULT_SPECS.length && specs.every((s, i) => s.label === DEFAULT_SPECS[i].label && s.value === DEFAULT_SPECS[i].value);
