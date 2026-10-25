@@ -539,6 +539,9 @@ input[type=range]{width:100%;accent-color:var(--plum);}
 .auth-remember{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem;}
 .auth-remember label{display:flex;align-items:center;gap:7px;font-size:0.8rem;color:var(--mid);cursor:pointer;}
 .auth-remember input[type=checkbox]{accent-color:var(--plum);width:15px;height:15px;cursor:pointer;}
+/* Google's own sign-in button (when it loads, it replaces ours; see setupGoogleButton) */
+.auth-google-gis{display:flex;justify-content:center;min-height:44px}
+html:not(.gis-on) .auth-google-gis,html.gis-on .auth-google{display:none!important}
 .auth-forgot{font-size:0.8rem;color:var(--plum);text-decoration:none;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0;}
 .auth-forgot:hover{text-decoration:underline;}
 .auth-btn{width:100%;padding:14px;border-radius:12px;background:var(--plum);color:white;font-size:0.9rem;font-weight:700;letter-spacing:0.04em;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s,transform 0.15s,box-shadow 0.2s;box-shadow:0 4px 20px rgba(92,61,110,0.3);margin-bottom:1.2rem;}
@@ -1081,7 +1084,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           </div>
           <button class="auth-btn" onclick="handleLogin()">Sign in</button>
           <div class="auth-or" data-google-only hidden><span>or</span></div>
-          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button>
+          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button><div class="auth-google-gis" data-google-only data-gis-slot hidden></div>
           <div class="auth-switch">New to LexC’s Snacktime? <a onclick="navigate('register')">Create an account</a></div>
         </div>
         <!-- Forgot password: email → 6-digit code → new password → done -->
@@ -1166,7 +1169,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           <label class="reg-agree"><input type="checkbox" id="regAgree"> <span>I agree to the <button type="button" class="auth-inline-link" onclick="openTermsDialog()">Terms and Conditions</button></span></label>
           <button class="auth-btn" type="button" onclick="handleRegister()">Create account</button>
           <div class="auth-or" data-google-only hidden><span>or sign up with</span></div>
-          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button>
+          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button><div class="auth-google-gis" data-google-only data-gis-slot hidden></div>
           <p class="auth-legal" data-google-only hidden>Continuing with Google means you agree to our <button type="button" class="auth-inline-link" onclick="openTermsDialog()">Terms and Conditions</button>.</p>
         </div>
         <!-- 2. 6-digit code from the confirmation email -->
@@ -2647,6 +2650,38 @@ async function signInWithGoogle() {
     const settings = await (await fetch(url + '/auth/v1/settings', { headers: { apikey: key } })).json();
     if (settings?.external?.google) document.querySelectorAll('[data-google-only]').forEach(el => { el.hidden = false; });
   } catch { /* leave Google hidden; email sign-in still works */ }
+})();
+// ---- Google's own sign-in button (Google Identity Services → Supabase signInWithIdToken).
+// Google's window then names this site instead of the Supabase address. It needs googleClientId in
+// shared/supabase-config.js and this site's address under "Authorized JavaScript origins" of that Google client.
+// If Google's script cannot load, the redirect button (signInWithGoogle) stays as it was.
+let gisNonce = '';
+async function gisInit() {
+  const raw = crypto.randomUUID() + crypto.randomUUID();
+  const hashed = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)))].map(b => b.toString(16).padStart(2, '0')).join('');
+  gisNonce = raw;
+  google.accounts.id.initialize({ client_id: window.LexcSupabaseConfig.googleClientId, nonce: hashed, callback: gisSignedIn, ux_mode: 'popup', auto_select: false, itp_support: true });
+}
+async function gisSignedIn({ credential }) {
+  const message = currentPage === 'register' ? registerMessage : loginMessage;
+  try {
+    LexcBackend.unwrap(await LexcBackend.client.auth.signInWithIdToken({ provider: 'google', token: credential, nonce: gisNonce }));
+    const user = await LexcBackend.identity();
+    if (!user) throw new Error('Signed in, but your account could not be loaded. Please try again.');
+    await completeCustomerLogin(user);   // admins go to the admin site, like the other sign-in methods
+  } catch (problem) {
+    message(/banned/i.test(problem?.message || '') ? 'This Google account can no longer sign in here. Use another account, or message LexC’s if you think this is a mistake.' : authErrorText(problem));
+  } finally { gisInit(); }   // a fresh nonce for the next try
+}
+(async function setupGoogleButton() {
+  if (!window.LexcSupabaseConfig?.googleClientId || !window.crypto?.subtle) return;
+  try {
+    await new Promise((resolve, reject) => { const tag = Object.assign(document.createElement('script'), { src: 'https://accounts.google.com/gsi/client', async: true, onload: resolve, onerror: reject }); document.head.append(tag); setTimeout(reject, 10000); });
+    await gisInit();
+    const width = Math.round(Math.min(400, Math.max(220, window.innerWidth - 72)));
+    document.querySelectorAll('[data-gis-slot]').forEach(slot => google.accounts.id.renderButton(slot, { type: 'standard', theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', width }));
+    document.documentElement.classList.add('gis-on');
+  } catch { /* Google's script unavailable: the redirect button stays */ }
 })();
 async function handleLogout() {
   try { await flushCustomerCart(); await LexcBackend.signOut(); currentUser=null; clearSignedInCart(); updateNavAuth(); navigate('home'); showToast('You have been logged out.'); }

@@ -13,7 +13,11 @@ const parsed = new URL(url);
 if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co') || parsed.username || parsed.password) {
   throw new Error('Use your HTTPS Supabase project URL.');
 }
-fs.writeFileSync(path.join(root, 'shared/supabase-config.js'), '// Generated public configuration. Never put service-role secrets here.\nwindow.LexcSupabaseConfig = Object.freeze(' + JSON.stringify({ url: parsed.origin, key }) + ');\n');
+// Optional: the public Google OAuth client ID (the same one as in Supabase Auth → Google). It turns on Google's own
+// sign-in button, which names this site instead of the Supabase address. Client IDs are public; the secret never goes here.
+const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+if (googleClientId && !/^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(googleClientId)) throw new Error('GOOGLE_CLIENT_ID must look like 123-abc.apps.googleusercontent.com.');
+fs.writeFileSync(path.join(root, 'shared/supabase-config.js'), '// Generated public configuration. Never put service-role secrets here.\nwindow.LexcSupabaseConfig = Object.freeze(' + JSON.stringify({ url: parsed.origin, key, ...(googleClientId ? { googleClientId } : {}) }) + ');\n');
 fs.mkdirSync(path.join(root, 'shared/vendor'), { recursive: true });
 fs.copyFileSync(path.join(root, 'node_modules/@supabase/supabase-js/dist/umd/supabase.js'), path.join(root, 'shared/vendor/supabase.js'));
 console.log('Generated public config and pinned Supabase browser bundle.');
