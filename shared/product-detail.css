@@ -242,3 +242,13 @@ html.pd-lock { overflow: hidden; }
 .pd-allergen-own { margin-top: 10px !important; padding: 10px 14px; border-left: 3px solid var(--product-primary); border-radius: 0 12px 12px 0; background: var(--product-surface); }
 .pd-buy__add.is-open-cart { background: var(--product-text, #2b1d40); }
 .pd-buy__add.is-open-cart:hover { background: var(--product-text, #2b1d40); opacity: .92; }
+
+/* Discounts (phase 75): old price crossed out, a small sale tag */
+.pd-was { color: var(--product-text-secondary); font-size: .82em; font-weight: 500; text-decoration-thickness: 1px; }
+.pd-price .pd-was { font-size: 12px; margin-left: 2px; }
+.pd-price-row .pd-was { font: 500 17px var(--pd-sans); }
+.pd-sale-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; background: #fde7ee; color: #b3264f; font: 700 11px var(--pd-sans); letter-spacing: .01em; white-space: nowrap; }
+.pd-price .pd-sale-tag { margin-left: 4px; }
+.pd-sale-until { margin: -4px 0 8px; font-size: 12.5px; color: #b3264f; }
+.pd-option small s { color: var(--product-text-secondary); opacity: .8; }
+[data-was][hidden], [data-sale-tag][hidden], [data-sale-until][hidden] { display: none !important; }

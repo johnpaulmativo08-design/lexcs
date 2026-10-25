@@ -67,7 +67,11 @@
     return list;
   };
   const catalogRow = (p) => (typeof liveCatalog !== 'undefined' ? liveCatalog.find((d) => d.id === p.product_id) : null);
-  const priceLabel = (p) => `${p.sizes.length > 1 ? '<small>from</small>' : ''}<strong>${money(Math.min(...p.sizes.map((s) => s.price)))}</strong>`;
+  // Discounts (phase 75): sizes carry today's price, the full price (regular) and the sale, if any.
+  const saleText = (s) => s?.sale ? (s.sale.type === 'percent' ? `−${Number(s.sale.value)}%` : `₱${Number(s.sale.value).toLocaleString('en-PH')} off`) : '';
+  const wasPrice = (s) => s && s.regular > s.price ? `<s class="pd-was">${money(s.regular)}</s>` : '';
+  const priceLabel = (p) => { const s = p.sizes.reduce((a, b) => (b.price < a.price ? b : a));
+    return `${p.sizes.length > 1 ? '<small>from</small>' : ''}<strong>${money(s.price)}</strong>${wasPrice(s)}${p.sizes.some((x) => x.sale) ? `<span class="pd-sale-tag">${p.sizes.length > 1 && !s.sale ? 'Sale' : saleText(s)}</span>` : ''}`; };
 
   // ---- Product grid (same filters/search/sort as before, new card design). ----
   window.renderShop = function renderShop() {
@@ -247,7 +251,7 @@
       : `<span class="pd-emoji pd-emoji--hero" role="img" aria-label="${esc(p.name)}">${esc(p.emoji)}</span>`;
     const specs = [
       category && ['Category', category],
-      ['Options', p.sizes.map((s) => `${s.label} — ${money(s.price)}`).join('<br>')],
+      ['Options', p.sizes.map((s) => `${s.label} — ${money(s.price)}${s.sale ? ` (was ${money(s.regular)})` : ''}`).join('<br>')],
       // the owner's own rows (Admin → Products → Edit product), else the standard ones (same as admin DEFAULT_SPECS)
       ...(Array.isArray(p.specs) ? p.specs.map((s) => [s.label, s.value]) : [
         ['Ordering', 'Made to order — choose a pickup or delivery date at checkout'],
@@ -273,9 +277,10 @@
         ${p.badge ? `<div class="pd-badges"><span class="pd-chip pd-chip--hot">${esc(p.badge)}</span>${category ? `<span class="pd-chip pd-chip--soft">${esc(category)}</span>` : ''}</div>` : category ? `<div class="pd-badges"><span class="pd-chip pd-chip--soft">${esc(category)}</span></div>` : ''}
         <h2 class="pd-title" id="pd-title">${esc(p.name)}</h2>
         <div class="pd-rating-row">${r && r.count ? `${icon('star', 'pd-star')}<b>${r.avg.toFixed(1)}</b><span>(${r.count} review${r.count === 1 ? '' : 's'})</span>` : '<span class="pd-muted">No reviews yet</span>'}</div>
-        <div class="pd-price-row"><strong data-price>${money(size.price)}</strong>${p.sizes.length > 1 ? `<span class="pd-muted" data-size-label>${esc(size.label)}</span>` : ''}</div>
+        <div class="pd-price-row"><strong data-price>${money(size.price)}</strong><s class="pd-was" data-was ${size.sale ? '' : 'hidden'}>${money(size.regular)}</s><span class="pd-sale-tag" data-sale-tag ${size.sale ? '' : 'hidden'}>${saleText(size)}</span>${p.sizes.length > 1 ? `<span class="pd-muted" data-size-label>${esc(size.label)}</span>` : ''}</div>
+        <p class="pd-sale-until" data-sale-until ${size.sale?.ends ? '' : 'hidden'}>${size.sale?.ends ? 'Sale until ' + esc(new Date(size.sale.ends + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric' })) : ''}</p>
         <p class="pd-short">${esc(short)}</p>
-        ${p.sizes.length > 1 ? `<div class="pd-options" role="radiogroup" aria-label="Choose an option">${p.sizes.map((s, i) => `<button type="button" role="radio" class="pd-option${i === 0 ? ' is-active' : ''}" data-size="${i}" aria-checked="${i === 0}"><span>${esc(s.label)}</span><small>${money(s.price)}</small></button>`).join('')}</div>` : ''}
+        ${p.sizes.length > 1 ? `<div class="pd-options" role="radiogroup" aria-label="Choose an option">${p.sizes.map((s, i) => `<button type="button" role="radio" class="pd-option${i === 0 ? ' is-active' : ''}" data-size="${i}" aria-checked="${i === 0}"><span>${esc(s.label)}</span><small>${money(s.price)}${s.sale ? ` <s>${money(s.regular)}</s>` : ''}</small></button>`).join('')}</div>` : ''}
         <ul class="pd-highlights">
           <li>${icon('clock')}<span>Made to Order</span></li>
           <li>${icon('chef')}<span>Baked from Scratch</span></li>
@@ -352,6 +357,10 @@
     state.size = index;
     dialog.querySelectorAll('[data-size]').forEach((b, i) => { b.classList.toggle('is-active', i === index); b.setAttribute('aria-checked', String(i === index)); });
     dialog.querySelector('[data-price]').textContent = money(s.price);
+    const was = dialog.querySelector('[data-was]'), tag = dialog.querySelector('[data-sale-tag]'), until = dialog.querySelector('[data-sale-until]');
+    if (was) { was.hidden = !s.sale; was.textContent = money(s.regular); }
+    if (tag) { tag.hidden = !s.sale; tag.textContent = saleText(s); }
+    if (until) { until.hidden = !s.sale?.ends; until.textContent = s.sale?.ends ? 'Sale until ' + new Date(s.sale.ends + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric' }) : ''; }
     const label = dialog.querySelector('[data-size-label]'); if (label) label.textContent = s.label;
   }
   // Phones: once added, the bottom button turns into "Open cart"; picking another size or quantity turns it back.
