@@ -8,7 +8,7 @@ const pwChecks=()=>'<ul class="pw-checks" data-pw-checks aria-live="polite">'+PW
 // confirmed email. This page re-checks the password first so that 5-minute window is fresh.
 function renderTransfer(content,user,head,card){
  content.innerHTML=head+'<div class="profile-layout">'+card+'<section class="profile-form panel"><h2>Transfer Admin Access</h2><form class="form-body" data-transfer>'+
-  '<p class="profile-forgot">Move the admin role to another account you own, for example your Gmail. That account becomes the admin. This one (<strong>'+e(user.email)+'</strong>) is retired: it can never sign in again and its email stops belonging to any account. Past records still show it as who did them, and orders, payments, stock and chats stay exactly as they are.</p>'+
+  '<p class="profile-forgot">Move the admin role to another account you own, for example your Gmail. That account becomes the admin. This one (<strong>'+e(user.email)+'</strong>) only loses admin access: it becomes a normal customer account, keeps its email, can still sign in and shop, and keeps its own orders. Past records still show it as who did them, and orders, payments, stock and chats stay exactly as they are.</p>'+
   '<p class="notice">Before you start: sign up on the shop with the new email and confirm it with the 6-digit code (or use Continue with Google). Only an account with a confirmed email can receive admin access.</p>'+
   field('target','New admin email','','email','required autocomplete="off" placeholder="name@gmail.com"')+
   field('password','Your current password','','password','required autocomplete="current-password"')+
@@ -24,9 +24,8 @@ function renderTransfer(content,user,head,card){
   try{
    try{await db.signIn(user.email,form.elements.password.value);}catch(error){throw new Error(/invalid login credentials/i.test(error.message)?'Your current password is incorrect.':error.message);}
    await db.rpc('transfer_admin',{target_email:target});
-   form.outerHTML='<div class="form-body"><p class="notice">Done. <strong>'+e(target)+'</strong> is now the admin. This account is retired. Signing you out…</p></div>';
-   try{sessionStorage.setItem('lexc_admin_moved_to',target);}catch{}
-   setTimeout(async()=>{try{await db.client.auth.signOut({scope:'local'});}catch{}location.replace('../');},2500);   // its sessions were already ended in the database
+   form.outerHTML='<div class="form-body"><p class="notice">Done. <strong>'+e(target)+'</strong> is now the admin. This account is a customer account now (phase 74). Taking you to the shop…</p></div>';
+   setTimeout(()=>location.replace('../'),2500);   // still signed in, now as a customer
   }catch(error){button.disabled=false;alert.textContent=/transfer_admin|schema cache|could not find the function/i.test(error.message)?'Transferring needs a one-time database update: run database/phase72-transfer-admin-access.sql in the Supabase SQL editor.':error.message;}
  };
 }
