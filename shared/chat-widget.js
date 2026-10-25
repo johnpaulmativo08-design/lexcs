@@ -21,7 +21,7 @@ export async function mountChatWidget({admin=false}={}){
   const inboxSkeleton=()=>`<div class="lcw-skeleton-list" aria-hidden="true">${Array.from({length:5},()=>`<div class="lcw-skeleton-row"><span class="skel skel-circle"></span><span>${skeletonLine('medium')}${skeletonLine('wide')}</span><span class="skel skel-badge"></span></div>`).join('')}</div>`;
   const messageSkeleton=()=>`<div class="lcw-skeleton-thread" aria-hidden="true"><div>${skeletonLine('wide')}${skeletonLine('medium')}</div><div class="mine">${skeletonLine('medium')}${skeletonLine('short')}</div><div>${skeletonLine('wide')}${skeletonLine('short')}</div></div>`;
   const active=id=>popupIds.includes(id)&&!minimized.has(id)&&(admin?(!mobile()||drawer&&current()===id):drawer);
-  function badge(){const n=admin?conversations.filter(c=>unread(c.id)).length:unreadRows.length;const node=trigger.querySelector('[data-chat-count]');if(node){node.textContent=n;node.hidden=!n;}trigger.setAttribute('aria-label',admin?`Chats${n?`, ${n} unread`:''}`:`Chat with LexC’s Admin${n?`, ${n} unread`:''}`);}
+  function badge(){const n=admin?conversations.filter(c=>unread(c.id)).length:unreadRows.length;trigger.classList.toggle('has-unread',!!n);const node=trigger.querySelector('[data-chat-count]');if(node){node.textContent=n;node.hidden=!n;}trigger.setAttribute('aria-label',admin?`Chats${n?`, ${n} unread`:''}`:`Chat with LexC’s Admin${n?`, ${n} unread`:''}`);}
   async function refresh(){
     const token=++request;
     const rows=await Promise.all([
@@ -61,7 +61,7 @@ export async function mountChatWidget({admin=false}={}){
       const id=popupIds[0],c=conversation(id),isOpen=drawer;
       root.classList.toggle('is-expanded',expanded);
       root.innerHTML=isOpen?`<div class="lcw-tray">${c?threadView(id):`<section class="lcw-thread"><header><span class="lcw-avatar">L</span><span class="lcw-title"><strong>LexC’s Admin</strong><small>LexC’s Snacktime</small></span><button type="button" data-action="minimize" aria-label="Minimize chat">—</button><button type="button" data-action="close" aria-label="Close chat">×</button></header><div class="lcw-stream"><p class="lcw-empty">Hi! Ask us about your order, pickup, delivery, or treats.</p></div>${identity?composer('new'):adminOnStore?'<p class="lcw-signin">Use the <a href="/admin/#dashboard">Admin Chats</a> workspace to reply to customers.</p>':'<p class="lcw-signin">Please <a href="/?return=chat">sign in</a> to message us.</p>'}</section>`}</div>${error?`<p class="lcw-error" role="alert">${esc(error)}</p>`:''}`:'';
-      trigger.hidden=isOpen;trigger.classList.toggle('lcw-minimized',minimized.size>0&&!isOpen);trigger.innerHTML=(minimized.size&&!isOpen?'<span class="lcw-avatar">L</span>':'<svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span>Chat</span>')+'<span data-chat-count hidden></span>';
+      trigger.hidden=isOpen;trigger.classList.toggle('lcw-minimized',minimized.size>0&&!isOpen);trigger.innerHTML=(minimized.size&&!isOpen?'<span class="lcw-avatar">L</span>':'<svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="lcw-label">Chat</span>')+'<span data-chat-count hidden></span>';
       badge();
     }
     hydrateDesignImages(root);
@@ -70,6 +70,19 @@ export async function mountChatWidget({admin=false}={}){
   }
   async function open(id){capture();error='';if(mobile()&&admin){popupIds=[id];drawer=true;}else{popupIds=popupIds.filter(x=>x!==id);popupIds.push(id);while(popupIds.length>maxPopups())popupIds.shift();drawer=false;}minimized.delete(id);draw();await loadThread(id);}
   async function send(id,body){const pending=pendingFor(id);if(sending.has(id)||(!body.trim()&&!pending.length)||!identity)return;sending.add(id);error='';draw();try{let target=id;if(id==='new'){const c=await ensureCustomerChat({userId:identity.id});conversations.unshift(c);target=c.id;popupIds=[target];drafts.delete('new');}if(pending.length){await sendChatPictures({conversationId:target,userId:identity.id,pending,caption:body.trim(),folder:admin?conversations.find(c=>c.id===target)?.customer_id:identity.id});}else await sendChatMessage({conversationId:target,userId:identity.id,admin,body});const field=root.querySelector(`form[data-compose="${id}"] textarea`);if(field)field.value='';drafts.delete(target);await refresh();await loadThread(target);}catch(err){error=err.message;draw();}finally{sending.delete(id);draw();}}
+  // Customer bubble: untouched for 5 s it fades and slides to the screen edge as an icon only (no "Chat", no count).
+  // A tap brings it back out (that tap does not open the chat); it stays out while the chat is open.
+  if(!admin){
+    let tuckTimer=0,wasOpen=false;
+    const isOpen=()=>trigger.getAttribute('aria-expanded')==='true';
+    const schedule=()=>{clearTimeout(tuckTimer);tuckTimer=setTimeout(()=>{if(isOpen()||trigger.matches(':hover,:focus-visible'))return schedule();trigger.classList.add('is-tucked');},5000);};
+    const untuck=()=>{trigger.classList.remove('is-tucked');schedule();};
+    window.addEventListener('click',event=>{if(trigger.classList.contains('is-tucked')&&event.target.closest?.('#customer-chat-toggle')){event.preventDefault();event.stopPropagation();untuck();}},true);
+    trigger.addEventListener('pointerenter',()=>{if(!trigger.classList.contains('is-tucked'))schedule();});
+    trigger.addEventListener('focus',()=>{if(trigger.matches(':focus-visible'))untuck();});
+    new MutationObserver(()=>{const open=isOpen();if(open===wasOpen)return;wasOpen=open;if(open){clearTimeout(tuckTimer);trigger.classList.remove('is-tucked');}else schedule();}).observe(trigger,{attributes:true,attributeFilter:['aria-expanded']});
+    schedule();
+  }
   trigger.addEventListener('click',async()=>{error='';if(admin){drawer=!drawer;draw();}else{drawer=true;minimized.clear();draw();if(popupIds[0])await loadThread(popupIds[0]);}trigger.setAttribute('aria-expanded',String(drawer));});
   root.addEventListener('click',async e=>{const button=e.target.closest('button');if(!button)return;capture();if(button.dataset.filter){filter=button.dataset.filter;draw();return;}if(button.dataset.open){await open(button.dataset.open);return;}switch(button.dataset.action){case 'retry':loading=true;error='';draw();await connect();break;case 'drawer-close':drawer=false;draw();break;case 'back':popupIds=[];draw();break;case 'minimize':if(admin){const id=button.dataset.id;minimized.has(id)?minimized.delete(id):minimized.add(id);}else{drawer=false;minimized.add(popupIds[0]||'new');}draw();break;case 'close':if(admin){popupIds=popupIds.filter(id=>id!==button.dataset.id);minimized.delete(button.dataset.id);}else{drawer=false;expanded=false;minimized.clear();}draw();break;case 'expand':expanded=!expanded;draw();break;case 'attach':root.querySelector(`input[data-pick="${CSS.escape(button.dataset.id)}"]`)?.click();break;}if(button.dataset.unpick){const list=pendingFor(button.dataset.unpick),[p]=list.splice(Number(button.dataset.index),1);if(p)URL.revokeObjectURL(p.url);draw();}});
   root.addEventListener('change',e=>{const input=e.target.closest?.('input[data-pick]');if(!input)return;capture();const note=pickPictures(input,pendingFor(input.dataset.pick));error=note;draw();root.querySelector(`form[data-compose="${CSS.escape(input.dataset.pick)}"] textarea`)?.focus();});

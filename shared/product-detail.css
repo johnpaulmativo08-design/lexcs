@@ -240,3 +240,5 @@ html.pd-lock { overflow: hidden; }
 .pd-allergen--skeleton { margin-bottom: 6px; gap: 8px; }
 .pd-allergen-note { margin-top: 12px !important; }
 .pd-allergen-own { margin-top: 10px !important; padding: 10px 14px; border-left: 3px solid var(--product-primary); border-radius: 0 12px 12px 0; background: var(--product-surface); }
+.pd-buy__add.is-open-cart { background: var(--product-text, #2b1d40); }
+.pd-buy__add.is-open-cart:hover { background: var(--product-text, #2b1d40); opacity: .92; }

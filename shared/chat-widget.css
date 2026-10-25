@@ -104,3 +104,11 @@
 
 /* DIY designers have their own "send to LexC's chat"; the floating button would cover their controls (tablets especially) */
 body[data-customer-page=bento] #customer-chat-toggle,body[data-customer-page=cupcake] #customer-chat-toggle,body[data-customer-page=donut] #customer-chat-toggle,body[data-customer-page=cakepop] #customer-chat-toggle{display:none!important}
+
+/* customer bubble tucks away after 5 s untouched: fades, slides to the edge, icon only; a tap brings it back */
+#customer-chat-toggle{transition:right .35s cubic-bezier(.2,.8,.2,1),opacity .35s ease,padding .3s ease,gap .3s ease,border-radius .3s ease,transform .35s cubic-bezier(.2,.8,.2,1)}
+#customer-chat-toggle.is-tucked{right:0;gap:0;padding:8px 22px 8px 13px;border-radius:24px 0 0 24px;opacity:.55;transform:translateX(8px)}
+#customer-chat-toggle.is-tucked .lcw-label,#customer-chat-toggle.is-tucked [data-chat-count]{display:none!important}
+#customer-chat-toggle.is-tucked.has-unread::after{content:'';position:absolute;top:7px;left:9px;width:8px;height:8px;border-radius:50%;background:#e2557e;box-shadow:0 0 0 2px #7551aa}
+#customer-chat-toggle.is-tucked:hover,#customer-chat-toggle.is-tucked:focus-visible{opacity:.85}
+@media(prefers-reduced-motion:reduce){#customer-chat-toggle{transition:opacity .2s ease}}
