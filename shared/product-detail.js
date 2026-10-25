@@ -348,12 +348,20 @@
   }
   function chooseSize(index) {
     const p = current(); const s = p.sizes[index]; if (!s) return;
+    resetBuy();
     state.size = index;
     dialog.querySelectorAll('[data-size]').forEach((b, i) => { b.classList.toggle('is-active', i === index); b.setAttribute('aria-checked', String(i === index)); });
     dialog.querySelector('[data-price]').textContent = money(s.price);
     const label = dialog.querySelector('[data-size-label]'); if (label) label.textContent = s.label;
   }
+  // Phones: once added, the bottom button turns into "Open cart"; picking another size or quantity turns it back.
+  const PHONE = window.matchMedia('(max-width: 639px), (max-height: 480px) and (pointer: coarse)');
+  function resetBuy() {
+    const button = dialog?.querySelector('[data-buy]'); if (!button || button.dataset.mode !== 'cart') return;
+    delete button.dataset.mode; button.classList.remove('is-open-cart'); button.querySelector('span').textContent = 'Add to Cart';
+  }
   function setQty(value) {
+    resetBuy();
     state.qty = Math.min(99, Math.max(1, value));
     dialog.querySelector('[data-qty]').textContent = state.qty;
     dialog.querySelector('[data-less]').disabled = state.qty <= 1;
@@ -361,10 +369,14 @@
   }
   function addFromDetail() {
     const button = dialog.querySelector('[data-buy]');
+    if (button.dataset.mode === 'cart') { closeDetail(); setTimeout(() => window.openCart?.(), 180); return; }
     button.disabled = true;
     const ok = addToCartById(state.id, state.size, state.qty);
     button.disabled = false;
-    if (ok) { button.classList.remove('is-added'); void button.offsetWidth; button.classList.add('is-added'); }
+    if (ok) {
+      button.classList.remove('is-added'); void button.offsetWidth; button.classList.add('is-added');
+      if (PHONE.matches) { button.dataset.mode = 'cart'; button.classList.add('is-open-cart'); button.querySelector('span').textContent = 'Open cart'; }
+    }
   }
   function setTab(key) {
     state.tab = key;

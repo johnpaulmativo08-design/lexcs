@@ -688,3 +688,6 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 .cart-empty .btn-primary{margin-top:4px;min-height:44px;padding:0 22px;display:inline-flex;align-items:center;border-radius:12px}
 /* hint under Current password for Google accounts that never set one */
 .pf-pwform .pf-hint{display:block;margin-top:4px;font-size:12px;font-weight:500;color:var(--mid,#7a5d8a);text-transform:none;letter-spacing:0}
+
+/* cart quantity: keep the number in the middle of its box (it sat at the top on phones) */
+.cart-qty-ctrl .qty-num{display:inline-flex;align-items:center;justify-content:center;line-height:1;box-sizing:border-box}
