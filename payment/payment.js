@@ -118,7 +118,7 @@ function render(){
   const before=lastSeenStatus(),verifiedNow=before==='verification_pending'&&['partially_paid','paid'].includes(status);
   if(verifiedNow&&remaining===0)paymentArea=paymentArea.replace('<section class="card state-card"><span class="state-icon paid-icon" aria-hidden="true">✓</span>','<section class="card state-card mo-success">'+successMark());
   const verifiedFlash=verifiedNow&&remaining!==0?'<div class="verified-flash" role="status">'+successMark(true)+'<span><strong>'+(status==='paid'?'Payment verified':'Downpayment verified')+'</strong> LexC’s matched your transfer.</span></div>':'';
-  root.innerHTML=orderStrip+'<div class="layout"><div class="payment-main">'+verifiedFlash+paymentArea+history()+'</div>'+orderSummary+'</div>';
+  root.innerHTML=orderStrip+'<div class="layout"><div class="payment-main">'+verifiedFlash+paymentArea+paymentHistory()+'</div>'+orderSummary+'</div>';
   if(justSubmitted&&active?.status==='verification_pending')pageTitle.textContent='Payment submitted';
   if(placedFresh&&awaitingConfirmation())pageTitle.textContent='Order received';
   justSubmitted=false;placedFresh=false;rememberStatus();
@@ -223,7 +223,8 @@ function paymentForm(attempt){
     '<p class="same-phone"><strong>Using one phone?</strong> Save the QR, then import it in your bank or wallet app if supported. Otherwise scan from another screen.</p>'+
     '<details class="proof-disclosure" id="proof-disclosure"><summary><span>Already paid? Upload receipt <small>Only after your bank confirms the transfer</small></span><span aria-hidden="true">⌄</span></summary><div class="proof-intro">Use the transaction reference from your banking app—not your LexC order number.</div><form id="proof-form"><label class="field">Bank transaction reference<input type="text" name="reference" inputmode="numeric" minlength="6" maxlength="30" pattern="[0-9]{6,30}" required autocomplete="off" placeholder="Numbers only, e.g. 1234567890123"></label><label class="field">Transfer receipt <small>JPG, PNG, or WEBP · up to 5 MB</small><input type="file" name="proof" accept="image/jpeg,image/png,image/webp" required><span id="selected-proof" class="selected-proof">No receipt selected</span></label><button type="submit">Send proof for verification</button></form><p class="fine-print">Proof submission does not mark the order paid. Admin verifies the incoming transfer. Do not send another transfer while verification is pending.</p></details></section>';
 }
-function history(){
+// named paymentHistory, not history: a global function called history hides the browser's history object
+function paymentHistory(){
   if(!attempts.length)return '';
   return '<details class="card history"><summary>Payment history <span aria-hidden="true">⌄</span></summary><div class="history-body">'+attempts.map(attempt=>'<div class="attempt"><strong>'+e(when(attempt.created_at))+' · '+e(kindName[kindOf(attempt)])+' · '+money(attempt.amount)+'</strong> <span class="status '+e(attempt.status)+'">'+e(statusName[attempt.status]||attempt.status)+'</span><br>'+e(methodFor(attempt)?.display_name||'Manual QR')+(attempt.transaction_reference?'<br>Reference: '+e(attempt.transaction_reference):'')+(attempt.rejection_reason?'<br>Reason: '+e(attempt.rejection_reason):'')+(attempt.proof_storage_path?'<br><button type="button" class="button secondary" data-proof="'+e(attempt.proof_storage_path)+'">View my proof</button>':'')+'</div>').join('')+'</div></details>';
 }
