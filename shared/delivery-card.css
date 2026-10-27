@@ -1,0 +1,33 @@
+/* Lalamove delivery card for customers (My Orders and the order chat) — phase 79 */
+.lx-dlv{display:grid;gap:10px;margin:10px 0;padding:14px 16px;border:1px solid #e5dcf3;border-radius:16px;background:#fbf9ff;color:#2f2149;text-align:left}
+.lx-dlv.is-picked_up{background:#f7f3ff;border-color:#d8c9f5}
+.lx-dlv.is-delivered{background:#f3faf6;border-color:#cfe9da}
+.lx-dlv.is-failed{background:#fdf5f5;border-color:#f0d3d3}
+.lx-dlv-top{display:flex;align-items:center;gap:11px}
+.lx-dlv-top strong{display:block;font-size:.98rem;line-height:1.3}
+.lx-dlv-top small{display:block;margin-top:1px;color:#7a6c94;font-size:.78rem}
+.lx-dlv-icon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:#ece4fb;color:#5b38b8}
+.lx-dlv.is-delivered .lx-dlv-icon{background:#dcf1e5;color:#1e6b43}
+.lx-dlv.is-failed .lx-dlv-icon{background:#f8dede;color:#9b2c2c}
+.lx-dlv-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lx-dlv.is-picked_up .lx-dlv-icon svg{animation:lx-dlv-ride 1.6s ease-in-out infinite}
+@keyframes lx-dlv-ride{50%{transform:translateX(2px)}}
+.lx-dlv-line{margin:0;color:#5f5674;font-size:.86rem;line-height:1.5}
+.lx-dlv-track{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:2px 0 0;padding:0;list-style:none;font-size:.74rem;font-weight:700;color:#9a8fb0}
+.lx-dlv-track li{display:grid;gap:5px}
+.lx-dlv-track li span{height:5px;border-radius:99px;background:#e7def5}
+.lx-dlv-track li.is-done,.lx-dlv-track li.is-now{color:#4b2fa0}
+.lx-dlv-track li.is-done span{background:#7a55d6}
+.lx-dlv-track li.is-now span{background:linear-gradient(90deg,#7a55d6 50%,#e7def5 50%)}
+.lx-dlv.is-delivered .lx-dlv-track li span{background:#3f9b6a}.lx-dlv.is-delivered .lx-dlv-track li{color:#1e6b43}
+.lx-dlv-info{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;padding-top:8px;border-top:1px solid #ece4f6;font-size:.84rem}
+.lx-dlv-info dt{color:#7a6c94}.lx-dlv-info dd{margin:0;font-weight:700}.lx-dlv-info small{color:#7a6c94;font-weight:600}
+.lx-dlv-info a{color:#5b38b8;text-decoration:none}
+.lx-dlv-live{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;background:#5b38b8;color:#fff;font-weight:800;font-size:.9rem;text-decoration:none;transition:background .18s,transform .18s}
+.lx-dlv-live:hover{background:#4a2c99}.lx-dlv-live:active{transform:scale(.98)}
+.lx-dlv-pulse{width:8px;height:8px;border-radius:50%;background:#b8f0cf;box-shadow:0 0 0 0 rgba(184,240,207,.7);animation:lx-dlv-pulse 1.8s infinite}
+@keyframes lx-dlv-pulse{70%{box-shadow:0 0 0 8px rgba(184,240,207,0)}100%{box-shadow:0 0 0 0 rgba(184,240,207,0)}}
+.lx-dlv.is-compact{gap:8px;margin:8px 0 2px;padding:11px 12px}
+.lx-dlv.is-compact .lx-dlv-icon{width:34px;height:34px}.lx-dlv.is-compact .lx-dlv-icon svg{width:19px;height:19px}
+.lx-dlv.is-compact .lx-dlv-live{min-height:38px;font-size:.84rem}
+@media(prefers-reduced-motion:reduce){.lx-dlv-icon svg,.lx-dlv-pulse{animation:none!important}.lx-dlv-live{transition:none}}

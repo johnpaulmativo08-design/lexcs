@@ -22,7 +22,7 @@ export async function renderOperations(content) {
       const today = dateKey(new Date()), end = dayOffset(today, 7);
       const from = today.slice(0,8)+'01', until = horizonEnd(today);
       const [orders, stock, batches, movements, slots, paymentAttempts, entries, settings] = await Promise.all([
-        allRows(() => db.client.from('orders').select('id,order_number,customer_name,status,receiving_start,receiving_end,slot_id,fulfillment_method,delivery_fee_status,created_at').order('id')),
+        allRows(() => db.client.from('orders').select('id,order_number,customer_name,status,receiving_start,receiving_end,slot_id,fulfillment_method,delivery_fee_status,created_at,total_amount,amount_paid').order('id')),
         allRows(() => db.client.from('inventory_stock').select('*').eq('is_archived', false).order('id')),
         allRows(() => db.client.from('inventory_batches').select('id,item_id,batch_code,expires_on').order('id')),
         allRows(() => db.client.from('inventory_movements').select('id,batch_id,quantity_delta,reason,created_at').order('id')),
@@ -36,7 +36,11 @@ export async function renderOperations(content) {
       // the 7-day figures use only the next 7 days; the calendar uses this month to the end of the booking horizon
       const week = slots.filter(s => dateKey(s.starts_at) >= today && dateKey(s.starts_at) < end);
       const days = capacityByDate(slots, entries, settings);
-      draw(content, {...summarizeDashboard({orders, stock, batches, movements, slots: week, paymentAttempts}), capacity: nextDays(days, today), days, today}, refresh);
+      // remaining balances: confirmed (not pending, not cancelled) orders whose total is not fully paid yet, soonest handoff first
+      const balances = orders.filter(o => !['pending','cancelled'].includes(o.status) && o.total_amount !== null && Number(o.amount_paid) < Number(o.total_amount))
+        .map(o => ({...o, balanceCentavos: Math.round(Number(o.total_amount)*100) - Math.round(Number(o.amount_paid)*100)}))
+        .sort((a,b) => String(a.receiving_start||'').localeCompare(String(b.receiving_start||'')));
+      draw(content, {...summarizeDashboard({orders, stock, batches, movements, slots: week, paymentAttempts}), capacity: nextDays(days, today), days, today, balances}, refresh);
       if(restoreFocus)content.querySelector('[data-refresh-dashboard]').focus();
     } catch (error) {
       if (!content.isConnected) return;
@@ -74,11 +78,14 @@ function draw(content, data, refresh) {
   const stockDetail = [out.length && out.length+' out', low.length && low.length+' low', expiring.length && expiring.length+' expiring', expired.length && expired.length+' expired'].filter(Boolean).join(' · ');
   const todayStat = (label, value, detail) => `<div class="dash-stat"><span>${e(label)}</span><strong>${value}</strong><small>${e(detail)}</small></div>`;
   const next = data.nextHandoff;
+  const balanceTotal = data.balances.reduce((sum, o) => sum + o.balanceCentavos, 0);
+  const balanceRows = orders => orders.map(o => `<a class="ops-row" href="${orderLink(o)}"><div><strong>#${e(o.order_number)} · ${e(o.customer_name)}</strong><small>Paid ${peso(Math.round(Number(o.amount_paid)*100))} of ${peso(Math.round(Number(o.total_amount)*100))}${o.receiving_start ? ' · '+e(time(o.receiving_start)) : ''}</small></div><strong class="dash-balance">${peso(o.balanceCentavos)}</strong></a>`).join('');
+  const balancePanel = panel('Remaining balances', `<p class="ops-caption">${data.balances.length ? peso(balanceTotal)+' still to be paid · '+data.balances.length+(data.balances.length===1?' order':' orders') : 'Confirmed orders not fully paid'}</p>`+(data.balances.length ? '<div class="ops-list">'+balanceRows(data.balances.slice(0,5))+'</div>' : empty('Every confirmed order is fully paid.')), `<button class="button" data-balances>${icon('eye')} View all (${data.balances.length})</button>`);
   content.innerHTML = `<div class="ops-heading"><div><h1>Dashboard</h1><p class="dash-greeting">${greeting}, LexC’s · ${e(new Date().toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric'}))}</p></div><div class="ops-actions"><span role="status">Updated ${e(new Date().toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'}))}</span><button class="button" data-refresh-dashboard>${icon('refresh')} Refresh</button></div></div>`+
     `<h2 class="dash-label">Needs you now</h2><div class="dash-actions">${action('pending','Orders to confirm',pending.length,'Waiting for your confirmation','warning','orders')}${action('payments','Payments to verify',pendingPayments,'Check the bank or e-wallet, then verify','warning','check')}${action('stock','Stock alerts',stockAlerts,stockDetail,out.length||expired.length?'danger':'warning','alert')}</div>`+
     `<h2 class="dash-label">Today</h2><section class="panel dash-today">${todayStat('Orders today',todayOrders.length,'Pickups and deliveries scheduled')}${todayStat('Received today',peso(data.receivedTodayCentavos),'Verified payments only')}${todayStat('Next handoff',next?e(new Date(next.receiving_start).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'})):'—',next?'#'+next.order_number+' · '+(next.fulfillment_method==='pickup'?'Pickup':'Delivery')+' · '+new Date(next.receiving_start).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric'}):'Nothing scheduled')}${todayStat('Reservations left today',capacity[0]?.capacity?capacity[0].remaining:'—',capacity[0]?.capacity?capacity[0].booked+' of '+capacity[0].capacity+' reservations':'Closed today')}</section>`+
     `<div class="dash-grid"><div class="dash-col">${section('Orders requiring attention',attention,'Pending review, overdue handoffs, or delivery quotes','attention')}${section('Today’s production',production,'Confirmed / preparing today','production')}${section('Upcoming pickups & deliveries',handoffs,'Ready orders and future reservations','handoffs')}</div>`+
-    `<div class="dash-col">${panel('Inventory warnings', `<p class="ops-caption">${warnings.length ? warnings.length+(warnings.length===1?' warning':' warnings') : 'Stock and expiry'}</p>`+(warnings.length?'<div class="ops-list">'+warningRows(warnings.slice(0,5))+'</div>':empty('No stock or expiry warnings.')), '<button class="button" data-warnings>'+icon('alert')+' View all</button>')}`+
+    `<div class="dash-col">${balancePanel}${panel('Inventory warnings', `<p class="ops-caption">${warnings.length ? warnings.length+(warnings.length===1?' warning':' warnings') : 'Stock and expiry'}</p>`+(warnings.length?'<div class="ops-list">'+warningRows(warnings.slice(0,5))+'</div>':empty('No stock or expiry warnings.')), '<button class="button" data-warnings>'+icon('alert')+' View all</button>')}`+
     `${panel('Receiving capacity',`<div class="cap-switch" role="tablist" aria-label="Capacity view"><button type="button" role="tab" data-cap-tab="calendar">Calendar</button><button type="button" role="tab" data-cap-tab="week">Next 7 days</button></div><div data-cap-pane="calendar">${capacityCalendarHTML()}</div><div data-cap-pane="week"><p class="ops-caption">Next 7 days · up to 6 reservations a day</p><div class="ops-capacity">${capacity.map(day=>`<div><div class="ops-capacity-label"><strong>${e(new Date(day.date+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'short',day:'numeric'}))}</strong><span>${day.closed ? 'Closed' : day.booked+' / '+day.capacity+' reserved'}</span></div><div class="slot-progress" role="meter" aria-label="${e(day.date)} open slot capacity used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${day.percent}"><span style="width:${day.percent}%"></span></div><small>${day.closed ? (day.booked ? day.booked+' already reserved' : 'Not taking reservations') : day.remaining+(day.remaining===1?' reservation':' reservations')+' left'}</small></div>`).join('')}</div></div>`, '<button class="button" data-manage-slots>'+icon('clock')+' Manage slots</button>')}`+
     `${panel('Recent activity',activity.length?'<div class="ops-list">'+activity.map(item=>`<a class="ops-row" href="${e(item.href)}"><div><strong>${e(item.label)}</strong><small>${e(time(item.at))}</small></div>${icon('arrow')}</a>`).join('')+'</div>':empty('No recorded activity yet.'),link('#reports','Reports'))}</div></div>`;
   content.querySelector('[data-refresh-dashboard]').onclick = refresh;
@@ -91,7 +98,7 @@ function draw(content, data, refresh) {
   const FOLD_KEY='lexc_dash_folded',folded=new Set((()=>{try{return JSON.parse(localStorage.getItem(FOLD_KEY)||'[]')}catch{return []}})());
   content.querySelectorAll('.panel').forEach(sec=>{
     const h=sec.querySelector(':scope>.panel-title'),name=h?.firstElementChild?.textContent.trim();
-    if(!h||!['Inventory warnings','Receiving capacity','Recent activity'].includes(name))return;
+    if(!h||!['Remaining balances','Inventory warnings','Receiving capacity','Recent activity'].includes(name))return;
     const btn=document.createElement('button');btn.type='button';btn.className='dash-fold';
     const set=on=>{sec.classList.toggle('is-folded',on);btn.setAttribute('aria-expanded',String(!on));btn.setAttribute('aria-label',(on?'Show ':'Hide ')+name);};
     btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
@@ -110,6 +117,7 @@ function draw(content, data, refresh) {
     else if(key==='expiring') showDetails('Expiring batches · next 7 days',warningRows(warnings.filter(i=>i.label==='Expiring'))||empty('No stocked batches expire in this period.'),b);
     else showOrders(key,b);
   });
+  content.querySelector('[data-balances]').onclick=event=>showDetails('Remaining balances',`<p class="ops-caption">${peso(balanceTotal)} still to be paid · confirmed orders, soonest handoff first</p>`+(data.balances.length?'<div class="ops-list">'+balanceRows(data.balances)+'</div>':empty('Every confirmed order is fully paid.'))+link('#orders','Open Orders'),event.currentTarget);
   content.querySelector('[data-warnings]').onclick=event=>showDetails('Inventory warnings',warningRows(warnings)||empty('No stock or expiry warnings.'),event.currentTarget);
   connectSchedule(content, refresh);
   content.querySelectorAll('.ops-capacity [role="meter"]').forEach(meter=>{

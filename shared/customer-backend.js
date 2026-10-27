@@ -177,7 +177,8 @@ async function cancelMyOrder(orderId,orderNumber){
   const container=document.getElementById('shoppingOrdersList');
  container.innerHTML='<div class="customer-orders-skeleton" role="status" aria-label="Loading your orders" aria-busy="true">'+Array.from({length:3},()=>'<article class="customer-order-card" aria-hidden="true"><span class="skel skel-line skel-line--short"></span><span class="skel skel-badge"></span><span class="skel skel-title"></span><span class="skel skel-line skel-line--long"></span><span class="skel skel-button"></span></article>').join('')+'</div>';
  try{
-  const [orders,bookings,payments,methods]=await Promise.all([LexcBackend.orders(),LexcBackend.rpc('get_my_bookings',{}),LexcBackend.client.from('order_payment_attempts').select('*').order('created_at',{ascending:false}).then(LexcBackend.unwrap),LexcBackend.client.from('payment_methods').select('id,display_name').then(LexcBackend.unwrap)]);
+  const [orders,bookings,payments,methods,deliveries]=await Promise.all([LexcBackend.orders(),LexcBackend.rpc('get_my_bookings',{}),LexcBackend.client.from('order_payment_attempts').select('*').order('created_at',{ascending:false}).then(LexcBackend.unwrap),LexcBackend.client.from('payment_methods').select('id,display_name').then(LexcBackend.unwrap),
+   LexcBackend.client.from('order_deliveries').select('*').then(LexcBackend.unwrap).catch(()=>[])]);
    if(!document.getElementById('cartDrawer').classList.contains('open'))return;
   const mine=orders.filter(order => order.customer_id === currentUser.id), bookingByOrder=new Map(bookings.map(booking=>[booking.order_id,booking]));
   const cancelledCount=mine.filter(order=>order.status==='cancelled').length;
@@ -187,6 +188,7 @@ async function cancelMyOrder(orderId,orderNumber){
   const visibleOrders=mine.filter(order=>customerShowCancelled||order.status!=='cancelled'||order.id===focusOrderId);
   const paymentByOrder=new Map();payments.forEach(payment=>{if(!paymentByOrder.has(payment.order_id))paymentByOrder.set(payment.order_id,payment);});
   const methodById=new Map(methods.map(method=>[method.id,method.display_name]));
+  const deliveryByOrder=new Map(deliveries.map(d=>[d.order_id,d]));
   const typeLabel=value=>value==='lalamove'?'Delivery':'Pickup';
   const paymentLabel=value=>({unpaid:'Awaiting Payment',verification_pending:'Verification Pending',rejected:'Rejected',partially_paid:'Downpayment Paid',paid:'Fully Paid',failed:'Payment Failed',refunded:'Refunded'}[value]||String(value||'Unpaid').replaceAll('_',' '));
   const moneyValue=value=>value===null||value===undefined?'Pending delivery quote':'₱'+Number(value).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -216,6 +218,7 @@ async function cancelMyOrder(orderId,orderNumber){
    return '<article class="customer-order-card co-card'+(o.status==='cancelled'?' is-cancelled':'')+(o.id===focusOrderId?' is-focused':'')+'" data-order-id="'+authEscape(o.id)+'">'+
     '<div class="customer-order-top"><div><span class="customer-order-number">Order #'+authEscape(o.order_number)+'</span><span class="customer-order-date">Placed '+authEscape(phDate(o.created_at))+'</span></div><span class="customer-order-pills"><span class="customer-order-status'+statusClass+'">'+authEscape(bookingStatus.replaceAll('_',' '))+'</span>'+payPill(o)+'</span></div>'+track+
     '<div class="co-main"><span class="co-thumb" aria-hidden="true">'+authEscape((products[0]||'L').slice(0,1))+'</span><div class="co-info"><p class="customer-order-product">'+productSummary+'</p><p class="customer-order-schedule">'+when+authEscape(schedule||'Schedule pending')+'</p>'+(count?'<span class="co-count">'+count+' item'+(count===1?'':'s')+'</span>':'')+'</div><div class="co-amount"><small>Total</small><strong>'+moneyValue(o.total_amount)+'</strong></div></div>'+
+    (o.status!=='cancelled'&&window.LexcDelivery?window.LexcDelivery.card(deliveryByOrder.get(o.id)):'')+
     '<div class="co-pay is-'+payState+'"><span class="co-pay-dot" aria-hidden="true"></span><div><strong>'+authEscape(o.status==='cancelled'?'Order cancelled':waiting?'Waiting for LexC’s to confirm':paymentLabel(o.payment_status))+'</strong><span>'+authEscape(waiting?'You can pay once your order is confirmed':method)+'</span></div></div>'+
     '<div class="customer-order-actions"><a class="btn-primary" href="payment/index.html?order='+encodeURIComponent(o.id)+'">'+(o.payment_status==='rejected'?'Resubmit payment':payable?(o.payment_status==='partially_paid'?'Pay remaining balance':'Pay now'):'View order & payment')+'</a><a class="btn-outline" href="chat/?order='+encodeURIComponent(o.id)+'">'+icon('M4 5h16v11H8l-4 4z')+'Message LexC</a>'+(canCancel?'<button class="customer-order-cancel" type="button" data-cancel-order="'+authEscape(o.id)+'" data-order-number="'+authEscape(o.order_number)+'">Cancel order</button>':'')+(canReview(o)?'<button class="btn-outline customer-review-cta" data-review="'+authEscape(o.id)+'">★ Rate your treats</button>':'')+'</div>'+
     '<details class="customer-order-more"><summary>Order details</summary>'+details+'</details></article>';

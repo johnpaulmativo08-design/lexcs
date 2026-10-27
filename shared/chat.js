@@ -158,7 +158,7 @@ export function subscribeChatChanges(onChange,onStatus=()=>{}){
 }
 
 export async function mountChat(root,{admin=false,orderId=null}={}){
-  const pendingPictures=[];let user,conversations=[],selected=null,messages=[],orders=[],orderItems=[],products=[],payments=[],profiles=[],inboxMessages=[],search='',filter='all',fallbackTimer,mobileListOpen=false;
+  const pendingPictures=[];let user,conversations=[],selected=null,messages=[],orders=[],orderItems=[],products=[],payments=[],deliveries=[],profiles=[],inboxMessages=[],search='',filter='all',fallbackTimer,mobileListOpen=false;
   const line=(size='')=>'<span class="skel skel-line '+(size==='wide'?'skel-line--long':size==='short'?'skel-line--short':'')+'"></span>';
   const threadSkeleton=()=>'<div class="chat-stream chat-stream-loading" aria-busy="true"><div aria-hidden="true" class="chat-skeleton-messages"><div class="chat-skeleton-bubble">'+line('wide')+line('medium')+'</div><div class="chat-skeleton-bubble mine">'+line('medium')+line('short')+'</div><div class="chat-skeleton-bubble">'+line('wide')+line('short')+'</div></div></div>';
   const pageSkeleton=()=>'<div class="chat-workspace chat-workspace-loading" aria-busy="true"><aside class="chat-inbox"><header><div><h1>'+(admin?'Customer conversations':'Messages')+'</h1><p>'+(admin?'Customer support and order conversations':'Chat with LexC’s Snacktime')+'</p></div></header><div class="chat-search">'+line('wide')+'</div><div class="chat-filters">'+line('medium')+line('short')+'</div><div class="chat-rows" aria-hidden="true">'+Array.from({length:5},()=>'<div class="chat-skeleton-row"><span class="skel skel-circle"></span><span>'+line('medium')+line('wide')+line('short')+'</span></div>').join('')+'</div></aside><section class="chat-thread"><header><div>'+line('medium')+line('short')+'</div></header>'+threadSkeleton()+'<div class="chat-compose" aria-hidden="true">'+line('wide')+'<span class="skel skel-button"></span></div></section><aside class="chat-context"><h2>Conversation details</h2><div aria-hidden="true" class="chat-skeleton-context">'+Array.from({length:6},()=>line('wide')+line('short')).join('')+'</div></aside></div>';
@@ -186,6 +186,9 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
         db.client.from('order_payment_attempts').select('id,order_id,amount,status,payment_kind,transaction_reference,proof_storage_path,submitted_at,verified_at,rejected_at,rejection_reason').in('order_id',missing).order('created_at',{ascending:false}).then(db.unwrap)]);
       orders.push(...more);payments.push(...morePayments.filter(x=>!payments.some(y=>y.id===x.id)));
     }
+    // Lalamove delivery details for delivery orders (phase 79; read-only here, empty until the table exists)
+    const delivering=orders.filter(o=>o.fulfillment_method==='lalamove').map(o=>o.id).slice(0,200);
+    deliveries=delivering.length?await db.client.from('order_deliveries').select('*').in('order_id',delivering).then(db.unwrap).catch(()=>[]):[];
     const startGeneral=!admin&&new URLSearchParams(location.search).has('new');
     if(startGeneral){history.replaceState(null,'',location.pathname);}
     if(!preserve||!selected||!conversations.some(c=>c.id===selected.id))selected=orderId?(conversations.find(c=>c.order_id===orderId)||null):startGeneral?(conversations.find(c=>!c.order_id)||null):admin?(conversations.find(c=>c.state!=='resolved')||null):(conversations.find(c=>!c.order_id)||conversations[0]||null);
@@ -363,6 +366,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const eventClass=m.message_type!=='text'?' chat-event '+escapeHtml(m.message_type):'';
     return '<article data-mid="'+escapeHtml(m.id)+'" class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(sender(m))+'</small><p>'+escapeHtml(m.body)+'</p>'+designCardHTML(m)+
       (p&&['payment_proof','payment_verified','payment_rejected'].includes(m.message_type)?paymentCard(m,p):'')+(m.message_type==='status_update'?statusCard(m,conversations.find(c=>c.id===m.conversation_id)||selected):'')+
+      (m.message_type==='delivery_update'&&window.LexcDelivery?window.LexcDelivery.card(deliveries.find(d=>d.order_id===m.order_id),{compact:true,step:m.attachments?.step}):'')+
       '<time>'+escapeHtml(stamp(m.created_at))+'</time></div></article>';
   }
   function draw(){
