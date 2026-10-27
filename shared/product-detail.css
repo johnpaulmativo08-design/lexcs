@@ -131,7 +131,8 @@ html.pd-lock { overflow: hidden; }
 .pd-qty { display: inline-flex; align-items: center; gap: 2px; padding: 4px; border-radius: 14px; background: var(--product-surface); border: 1px solid var(--product-border); }
 .pd-qty button { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--product-text); cursor: pointer; }
 .pd-qty button:disabled { color: #c3c0d2; cursor: default; }
-.pd-qty output { min-width: 38px; height: 36px; display: grid; place-items: center; border-radius: 9px; background: #fff; font: 700 15px var(--pd-sans); box-shadow: 0 1px 3px rgba(37, 28, 79, .08); }
+.pd-qty input { width: 42px; height: 36px; padding: 0; border: 1.5px solid transparent; border-radius: 9px; background: #fff; color: var(--product-text); font: 700 15px var(--pd-sans); text-align: center; box-shadow: 0 1px 3px rgba(37, 28, 79, .08); }
+.pd-qty input:focus { outline: none; border-color: var(--product-primary); }
 .pd-buy__add { flex: 1; min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 14px; background: var(--product-primary); color: #fff; font: 600 16px var(--pd-sans); cursor: pointer; box-shadow: 0 8px 20px rgba(116, 101, 216, .32); transition: background .18s, transform .18s var(--pd-ease); }
 .pd-buy__add:hover { background: var(--product-primary-hover); }
 .pd-buy__add:active { transform: scale(.98); }

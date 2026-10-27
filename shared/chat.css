@@ -228,3 +228,33 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .chat-thread header .chat-archive{flex:none;margin-left:auto;min-height:34px;padding:6px 14px;border:0;border-radius:999px;background:#f3effc;color:#5b3fc0;font:700 13px inherit;cursor:pointer}
 .chat-thread header .chat-archive:hover:not(:disabled){background:#e9e1fb}
 .chat-thread header .chat-archive:disabled{opacity:.6;cursor:default}
+
+/* Payment and order event cards in order chats */
+.chat-proof span b{color:#3a2467;font-weight:700;margin-right:2px}
+.chat-proof .chat-proof-mark{display:inline-grid;place-items:center;width:18px;height:18px;margin-right:6px;border-radius:50%;background:#1f8a5b;color:#fff;font-size:.7rem;vertical-align:-3px}
+.chat-proof.is-received{border-color:#bfe3cf!important;background:#f5fbf7!important}
+.chat-proof.is-received strong{color:#17643f}
+.chat-proof.is-rejected{border-color:#efc6cf!important;background:#fff8f9!important}
+.chat-proof.is-rejected strong{color:#a3324b}
+.chat-proof-next{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin-top:2px;padding:8px 10px;border-radius:9px;background:#fff;border:1px solid #ece4f6}
+.chat-proof-next.is-done{background:#eaf7f0;border-color:#cbe9d8;color:#17643f;font-weight:700}
+.chat-proof-next a,.chat-status-link{color:#5d349e;font-weight:700;text-decoration:none}
+.chat-proof-next a:hover,.chat-status-link:hover{text-decoration:underline}
+.chat-statuscard{display:grid;gap:8px;margin:10px 0 2px;padding:11px 12px;border:1px solid #e6d8f6;border-radius:12px;background:#fdfaff;font-size:.78rem}
+.chat-statuscard strong{color:#3a2467;font-size:.82rem}
+.chat-statuscard.is-cancelled{border-color:#efc6cf;background:#fff8f9}.chat-statuscard.is-cancelled strong{color:#a3324b}
+.chat-steps{display:flex;gap:4px;margin:0;padding:0;list-style:none}
+.chat-steps li{flex:1;min-width:0;padding-top:6px;border-top:3px solid #e7def3;color:#9a8fae;font-size:.68rem;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-steps li.is-done{border-color:#b9a2e3;color:#6a5490}
+.chat-steps li.is-now{border-color:#7551aa;color:#3a2467;font-weight:700}
+
+/* Admin chat: one customer = all their chats; dividers between chats and a reply-target picker */
+.chat-thread-divider{display:flex;align-items:center;gap:10px;margin:14px 0 6px;color:#7a6c94;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+.chat-thread-divider::before,.chat-thread-divider::after{content:'';flex:1;height:1px;background:#e7def3}
+.chat-reply-in{display:inline-flex;align-items:center;gap:6px;margin:2px 0;font-size:.76rem;color:#6b5d84}
+.chat-reply-in select{min-height:30px;padding:3px 8px;border:1px solid #d9cdeb;border-radius:8px;background:#fff;color:#3a2467;font:inherit;font-weight:700}
+
+/* Chat order panel (admin): remaining balance */
+.chat-balance{display:grid;gap:2px;margin:8px 0 12px;padding:10px 12px;border:1px solid #f0d7a8;border-radius:12px;background:#fff8ec}
+.chat-balance span{font-size:.74rem;font-weight:700;color:#8a5a12}.chat-balance strong{font-size:1.2rem;color:#6b430b}.chat-balance small{font-size:.72rem;color:#8a6a3a}
+.chat-balance.is-paid{border-color:#bfe3cf;background:#f3fbf6}.chat-balance.is-paid span{color:#2f7a52}.chat-balance.is-paid strong{color:#17643f;font-size:1rem}

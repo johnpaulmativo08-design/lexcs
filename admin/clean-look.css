@@ -75,3 +75,10 @@ html,body{overflow-x:clip}
 #content .profile-reset-form input[name=code]{max-width:12ch;letter-spacing:.35em;font-size:1.15rem;font-weight:700}
 #content .profile-reset-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
 #content .profile-reset-done{margin:10px 0 0;color:#1f7a4d;font-weight:600}
+
+/* Order details: what the customer still owes */
+.balance-card{display:grid;gap:2px;margin:10px 0 14px;padding:12px 14px;border:1px solid #f0d7a8;border-radius:12px;background:#fff8ec}
+.balance-card span{font-size:12.5px;font-weight:700;color:#8a5a12}
+.balance-card strong{font-size:22px;color:#6b430b}
+.balance-card small{font-size:12px;color:#8a6a3a}
+.balance-card.is-paid{border-color:#bfe3cf;background:#f3fbf6}.balance-card.is-paid span,.balance-card.is-paid small{color:#2f7a52}.balance-card.is-paid strong{color:#17643f;font-size:18px}

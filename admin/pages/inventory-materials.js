@@ -5,7 +5,7 @@ import {
   attr, icon, qty, dateTime, dateOnly, stockStatus, movementBadge, delta, sectionTabs, pageHead,
   skeletonSummary, skeletonRows, skeletonPanel, errorState, emptyState, openDrawer, toast, requestId
 } from '../inventory-ui.js?v=3';
-import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=26';
+import { renderStockForm, refreshInventoryNotificationBadge } from './inventory.js?v=27';
 
 // Show conversions the natural way round: "1 pcs = 225 g" instead of "1 g = 0.004444 pcs".
 const perStockUnit = (factor) => Number((1 / Number(factor)).toPrecision(5));
@@ -16,7 +16,7 @@ const compatibleUnits = (unit) => Object.values(UNIT_GROUPS).find((group) => gro
 
 export async function renderMaterials(content, preset = '') {
   const state = {
-    search: '', category: '', type: '', status: { low: 'Low Stock', running: 'Running Low', out: 'Out of Stock', expiring: 'Expiring Soon' }[preset] || '',
+    search: '', category: '', type: '', status: { low: 'Low Stock', out: 'Out of Stock', expiring: 'Expiring Soon' }[preset] || '',
     updated: '', data: null
   };
   const shell = (body) => `<section class="inventory-page stock-page">${pageHead('Inventory', 'Manage ingredients, supplies and stock movements.', `<button class="button button--primary" type="button" data-add-stock>${icon('plus')} Add stock</button>`)}${sectionTabs('materials')}${body}</section>`;
@@ -25,6 +25,8 @@ export async function renderMaterials(content, preset = '') {
     content.innerHTML = shell(`<div class="stock-toolbar" aria-hidden="true"><span class="skel skel-line" style="height:42px;width:min(420px,100%)"></span></div>${skeletonSummary()}${skeletonRows(['Material', 'Category', 'Current stock', 'Minimum', 'Status', 'Last updated', ''])}`);
     try {
       state.data = await db.rpc('inventory_overview', {});
+      // "Running low" is no longer used: those materials simply count as available
+      (state.data?.items || []).forEach((item) => { if (item.status === 'Running Low') item.status = 'In Stock'; });
       if (!content.isConnected) return;
       render();
       const focus = sessionStorage.getItem('lexc-inventory-focus-item');
@@ -62,11 +64,11 @@ export async function renderMaterials(content, preset = '') {
         <div class="stock-filters">
           <label><span class="sr-only">Category</span><select data-filter="category"><option value="">All categories</option>${categories.map((c) => `<option ${state.category === c ? 'selected' : ''}>${e(c)}</option>`).join('')}</select></label>
           <label><span class="sr-only">Type</span><select data-filter="type"><option value="">All types</option><option value="ingredient" ${state.type === 'ingredient' ? 'selected' : ''}>Ingredients</option><option value="packaging" ${state.type === 'packaging' ? 'selected' : ''}>Packaging</option></select></label>
-          <label><span class="sr-only">Status</span><select data-filter="status"><option value="">All statuses</option>${['In Stock', 'Running Low', 'Low Stock', 'Out of Stock', 'Expiring Soon'].map((s) => `<option value="${s}" ${state.status === s ? 'selected' : ''}>${s === 'In Stock' ? 'Available' : s}</option>`).join('')}</select></label>
+          <label><span class="sr-only">Status</span><select data-filter="status"><option value="">All statuses</option>${['In Stock', 'Low Stock', 'Out of Stock', 'Expiring Soon'].map((s) => `<option value="${s}" ${state.status === s ? 'selected' : ''}>${s === 'In Stock' ? 'Available' : s}</option>`).join('')}</select></label>
           <label><span class="sr-only">Last updated</span><select data-filter="updated"><option value="">Any date</option><option value="1" ${state.updated === '1' ? 'selected' : ''}>Updated today</option><option value="7" ${state.updated === '7' ? 'selected' : ''}>Last 7 days</option><option value="30" ${state.updated === '30' ? 'selected' : ''}>Last 30 days</option></select></label>
         </div>
       </div>
-      <div class="stock-summary">${tile('Total materials', items.length, '', 'neutral')}${tile('Running low', count('Running Low'), 'Running Low', 'warning')}${tile('Low stock', count('Low Stock'), 'Low Stock', 'warning')}${tile('Out of stock', count('Out of Stock'), 'Out of Stock', 'danger')}${tile('Expiring soon', count('Expiring Soon'), 'Expiring Soon', 'info')}</div>
+      <div class="stock-summary">${tile('Total materials', items.length, '', 'neutral')}${tile('Low stock', count('Low Stock'), 'Low Stock', 'warning')}${tile('Out of stock', count('Out of Stock'), 'Out of Stock', 'danger')}${tile('Expiring soon', count('Expiring Soon'), 'Expiring Soon', 'info')}</div>
       <p class="stock-count" aria-live="polite">${rows.length} of ${items.length} materials</p>
       ${rows.length ? `
       <div class="panel stock-table-panel"><table class="data-table stock-table">
@@ -148,8 +150,8 @@ export async function openItemDrawer(itemId, { onChange } = {}) {
           <h3 class="stock-subhead">Active batches</h3>
           ${usable.length ? `<ul class="stock-batches">${usable.map((b) => `<li><span><code>${e(b.batch_code)}</code><small>Stock-in ${dateOnly(b.stock_in_date)} · ${b.expires_on ? `expires ${dateOnly(b.expires_on)}` : 'no expiry'}</small></span><span class="stock-batch-end"><strong>${qty(b.remaining_quantity, b.unit)}</strong><button class="stock-icon-button stock-batch-edit" type="button" data-edit-batch="${attr(b.batch_id)}" aria-label="Edit batch ${attr(b.batch_code)}" title="Edit batch">${icon('edit')}</button></span></li>`).join('')}</ul>` : emptyState('No active batches', 'Add stock to create a batch.')}
           <h3 class="stock-subhead">Recent activity</h3>${activityList(detail.movements.slice(0, 5))}
-          <h3 class="stock-subhead">Used in recipes</h3>
-          ${detail.recipes.length ? `<ul class="stock-chips">${detail.recipes.map((r) => `<li>${r.product_id ? `<a href="#products/edit/${attr(r.product_id)}">${e(r.name)} · v${r.version}</a>` : `<span>${e(r.name)} · v${r.version}</span>`} <small>${e(r.status)}</small></li>`).join('')}</ul><p class="stock-quiet">Recipes are edited in Products → Edit product → Recipe.</p>` : '<p class="stock-quiet">Not used in any recipe yet. Add it to a product recipe in Products.</p>'}
+          <details class="stock-recipes"><summary><span class="stock-subhead">Used in recipes</span><small>${detail.recipes.length ? `${detail.recipes.filter((r) => r.status === 'active').length} active · ${detail.recipes.length} in all` : 'none'}</small></summary>
+          ${detail.recipes.length ? `<ul class="stock-chips">${[...detail.recipes].sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || a.name.localeCompare(b.name)).map((r) => `<li>${r.product_id ? `<a href="#products/edit/${attr(r.product_id)}">${e(r.name)} · v${r.version}</a>` : `<span>${e(r.name)} · v${r.version}</span>`} <small>${e(r.status)}</small></li>`).join('')}</ul><p class="stock-quiet">Recipes are edited in Products → Edit product → Recipe.</p>` : '<p class="stock-quiet">Not used in any recipe yet. Add it to a product recipe in Products.</p>'}</details>
           ${detail.conversions.length ? `<h3 class="stock-subhead">Unit conversions</h3><ul class="stock-batches">${detail.conversions.map((c) => `<li><span>${e(conversionText(c, item.unit))}<small>${e(c.note || '')}</small></span>${c.is_verified ? '<span class="status-chip status-chip--success">Verified</span>' : '<span class="status-chip status-chip--warning">Needs verification</span>'}</li>`).join('')}</ul>` : ''}`;
       } else {
         target.innerHTML = activityList(moves) + `<a class="button stock-full-history" href="#inventory/movements" data-full-history>${icon('history')} View full history</a>`;
@@ -160,7 +162,7 @@ export async function openItemDrawer(itemId, { onChange } = {}) {
     };
     body.querySelectorAll('[data-tab]').forEach((tab) => { tab.onclick = () => showTab(tab.dataset.tab); });
     showTab('overview');
-    body.querySelector('[data-act="restock"]').onclick = () => { drawer.close(); renderStockForm({ items: [{ id: item.id, name: item.name, unit: item.unit }], preset: item.id, onSuccess: async () => { await onChange?.(); openItemDrawer(itemId, { onChange }); } }); };
+    body.querySelector('[data-act="restock"]').onclick = () => { drawer.close(); renderStockForm({ items: [{ id: item.id, name: item.name, unit: item.unit, inventory_type: item.inventory_type }], preset: item.id, onSuccess: async () => { await onChange?.(); openItemDrawer(itemId, { onChange }); } }); };
     body.querySelector('[data-act="adjust"]').onclick = () => adjustForm(item, async () => { await load(); await onChange?.(); });
     body.querySelector('[data-act="settings"]').onclick = () => settingsForm(item, async () => { await load(); await onChange?.(); });
   };
@@ -226,7 +228,7 @@ function batchForm(batch, item, onSuccess) {
         <label class="form-field"><span>Quantity received (${e(item.unit)})</span><input name="quantity_received" type="number" min="0" step="any" inputmode="decimal" value="${attr(Number(batch.quantity_received))}"></label>
         <label class="form-field"><span>Purchase price (₱, optional)</span><input name="purchase_price" type="number" min="0" step="any" inputmode="decimal" value="${attr(batch.purchase_price ?? '')}" placeholder="Not recorded"></label>
         <label class="form-field"><span>Stock-in date</span><input name="stock_in_date" type="date" value="${attr(batch.stock_in_date || '')}" max="${attr(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }))}"></label>
-        <label class="form-field"><span>Expiry date</span><input name="expires_on" type="date" value="${attr(batch.expires_on || '')}"><small class="stock-quiet">Leave empty for no expiry.</small></label>
+        ${item.inventory_type === 'packaging' ? '' : `<label class="form-field"><span>Expiry date <em>*</em></span><input name="expires_on" type="date" value="${attr(batch.expires_on || '')}"><small class="stock-quiet">A past date is allowed.</small></label>`}
       </div>
       <p class="stock-batch-diff" data-diff hidden></p>
       <label class="form-field"><span>Reason for the correction <em>*</em></span><textarea name="reason" rows="2" maxlength="300" placeholder="e.g. Supplier receipt says 6 kg, not 5 kg"></textarea></label>
@@ -253,15 +255,17 @@ function batchForm(batch, item, onSuccess) {
     if (f.purchase_price.value !== '' && !(Number(f.purchase_price.value) >= 0)) bad(f.purchase_price, 'The purchase price cannot be negative.');
     if (!f.stock_in_date.value) bad(f.stock_in_date, 'Choose the stock-in date.');
     else if (f.stock_in_date.value > today) bad(f.stock_in_date, 'The stock-in date cannot be in the future.');
-    if (f.expires_on.value && f.stock_in_date.value && f.expires_on.value < f.stock_in_date.value) bad(f.expires_on, 'The expiry date cannot be before the stock-in date.');
+    const expiry = f.expires_on ? f.expires_on.value : '';
+    if (f.expires_on && !expiry) bad(f.expires_on, 'Enter the expiry date.');
+    else if (expiry && f.stock_in_date.value && expiry < f.stock_in_date.value) bad(f.expires_on, 'The expiry date cannot be before the stock-in date.');
     if (f.reason.value.trim().length < 3) bad(f.reason, 'Write why you are correcting this batch.');
-    const changed = amount !== Number(batch.quantity_received) || f.stock_in_date.value !== (batch.stock_in_date || '') || f.expires_on.value !== (batch.expires_on || '') || (f.purchase_price.value === '' ? null : Number(f.purchase_price.value)) !== (batch.purchase_price == null ? null : Number(batch.purchase_price));
+    const changed = amount !== Number(batch.quantity_received) || f.stock_in_date.value !== (batch.stock_in_date || '') || expiry !== (batch.expires_on || '') || (f.purchase_price.value === '' ? null : Number(f.purchase_price.value)) !== (batch.purchase_price == null ? null : Number(batch.purchase_price));
     if (!problems.length && !changed) problems.push('Nothing changed yet.');
     if (problems.length) { errorBox.innerHTML = problems.map(e).join('<br>'); errorBox.hidden = false; form.querySelector('[aria-invalid]')?.focus(); return; }
     errorBox.hidden = true;
     const submit = form.querySelector('[type=submit]'); submit.disabled = true; submit.textContent = 'Saving correction…';
     try {
-      const result = await db.rpc('correct_inventory_batch', { payload: { batch_id: batch.batch_id, quantity_received: amount, stock_in_date: f.stock_in_date.value, expires_on: f.expires_on.value, purchase_price: f.purchase_price.value, reason: f.reason.value.trim(), request_id: requestId() } });
+      const result = await db.rpc('correct_inventory_batch', { payload: { batch_id: batch.batch_id, quantity_received: amount, stock_in_date: f.stock_in_date.value, expires_on: expiry, purchase_price: f.purchase_price.value, reason: f.reason.value.trim(), request_id: requestId() } });
       dialog.close();
       toast(Number(result?.difference) ? `Batch corrected · ${Number(result.difference) > 0 ? '+' : ''}${qty(result.difference, item.unit)} recorded in history.` : 'Batch details corrected.');
       await onSuccess(); refreshInventoryNotificationBadge();
@@ -274,8 +278,6 @@ function settingsForm(item, onSuccess) {
     <form class="inventory-form stock-form" data-settings>
       <div class="form-grid"><label class="form-field"><span>Minimum stock (${e(item.unit)})</span><input name="min_stock" type="number" min="0" step="any" value="${attr(item.min_stock)}" required></label>
         <label class="form-field"><span>Estimated cost per ${e(item.unit)} (₱)</span><input name="estimated_unit_cost" type="number" min="0" step="any" value="${attr(item.estimated_unit_cost ?? '')}"></label></div>
-      <label class="form-field"><span>Early warning (${e(item.unit)} above the minimum)</span><input name="warning_margin" type="number" min="0" step="any" value="${attr(item.warning_margin ?? 5)}" required>
-        <small class="stock-quiet">“Running low” shows when stock is at or below ${e(qty(Number(item.min_stock) + Number(item.warning_margin ?? 5), item.unit))} (minimum + this amount).</small></label>
       <label class="form-field"><span>Category</span><input name="category" maxlength="80" value="${attr(item.category)}"></label>
       <p class="form-error" role="alert" hidden></p>
       <div class="dialog-actions"><button class="button button--quiet" type="button" data-close>Cancel</button><button class="button button--primary" type="submit">Save settings</button></div>
@@ -285,7 +287,7 @@ function settingsForm(item, onSuccess) {
     event.preventDefault();
     const submit = form.querySelector('[type=submit]'); submit.disabled = true;
     try {
-      await db.rpc('save_inventory_item_settings', { payload: { item_id: item.id, min_stock: form.elements.min_stock.value, warning_margin: form.elements.warning_margin.value, estimated_unit_cost: form.elements.estimated_unit_cost.value, category: form.elements.category.value } });
+      await db.rpc('save_inventory_item_settings', { payload: { item_id: item.id, min_stock: form.elements.min_stock.value, warning_margin: item.warning_margin ?? 5, estimated_unit_cost: form.elements.estimated_unit_cost.value, category: form.elements.category.value } });
       dialog.close(); toast('Material settings saved.'); await onSuccess();
     } catch (error) { const box = form.querySelector('[role=alert]'); box.textContent = error.message; box.hidden = false; submit.disabled = false; }
   });
