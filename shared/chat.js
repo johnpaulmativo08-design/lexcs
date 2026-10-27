@@ -172,7 +172,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
       db.client.from('orders').select(ORDER_COLS).order('created_at',{ascending:false}).limit(admin?150:50).then(db.unwrap),
       db.client.from('order_items').select('order_id,line_number,product_id,name_snapshot,variant_label_snapshot,quantity,line_total').order('line_number',{ascending:true}).limit(admin?500:200).then(db.unwrap),
       db.client.from('products').select('id,image_path').limit(150).then(db.unwrap),
-      db.client.from('order_payment_attempts').select('id,order_id,amount,status,transaction_reference,proof_storage_path,submitted_at,rejection_reason').order('created_at',{ascending:false}).limit(admin?150:50).then(db.unwrap),
+      db.client.from('order_payment_attempts').select('id,order_id,amount,status,payment_kind,transaction_reference,proof_storage_path,submitted_at,verified_at,rejected_at,rejection_reason').order('created_at',{ascending:false}).limit(admin?150:50).then(db.unwrap),
       db.client.from('chat_messages').select('conversation_id,sender_type,body,read_at,created_at').order('created_at',{ascending:false}).limit(500).then(db.unwrap),
       db.client.from('profiles').select('id,full_name,phone').limit(admin?500:1).then(db.unwrap)
     ]);
@@ -183,7 +183,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     if(missing.length){
       const [more,morePayments]=await Promise.all([
         db.client.from('orders').select(ORDER_COLS).in('id',missing).then(db.unwrap),
-        db.client.from('order_payment_attempts').select('id,order_id,amount,status,transaction_reference,proof_storage_path,submitted_at,rejection_reason').in('order_id',missing).order('created_at',{ascending:false}).then(db.unwrap)]);
+        db.client.from('order_payment_attempts').select('id,order_id,amount,status,payment_kind,transaction_reference,proof_storage_path,submitted_at,verified_at,rejected_at,rejection_reason').in('order_id',missing).order('created_at',{ascending:false}).then(db.unwrap)]);
       orders.push(...more);payments.push(...morePayments.filter(x=>!payments.some(y=>y.id===x.id)));
     }
     const startGeneral=!admin&&new URLSearchParams(location.search).has('new');
@@ -310,11 +310,43 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     if(admin){if(m.sender_type==='admin')return 'You · LexC staff';const o=orders.find(x=>x.id===selected?.order_id);return profiles.find(x=>x.id===selected?.customer_id)?.full_name||o?.customer_name||'Customer';}
     return m.sender_type==='admin'?'LexC staff':'You';
   }
+  // Event cards in an order chat. Payment cards read the payment row; the status card reads the status from the
+  // message itself, so older messages keep showing the status they announced.
+  const KIND={downpayment:'Downpayment',full:'Full payment',balance:'Remaining balance'};
+  const STEPS=[['pending','Placed'],['confirmed','Confirmed'],['preparing','Preparing'],['ready','Ready'],['completed','Done']];
+  const when=value=>value?new Date(value).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'Asia/Manila'}):'';
+  const orderOf=id=>orders.find(o=>o.id===id);
+  const payLink=o=>'../payment/index.html?order='+encodeURIComponent(o.id);
+  function paymentCard(m,p){
+    const o=orderOf(p.order_id),balance=o&&o.total_amount!==null?Math.max(0,Number(o.total_amount)-Number(o.amount_paid||0)):null;
+    const row=(label,value)=>value?'<span><b>'+escapeHtml(label)+'</b> '+escapeHtml(value)+'</span>':'';
+    const receipt=p.proof_storage_path?'<button type="button" data-proof="'+escapeHtml(p.id)+'">View receipt</button>':'';
+    const order=o?row('Order','#'+o.order_number):'';
+    if(m.message_type==='payment_verified'){
+      const next=balance===null?'':balance>0?'<div class="chat-proof-next"><span>Remaining balance <b>'+money(balance)+'</b></span>'+(!admin&&o.status!=='cancelled'?'<a href="'+payLink(o)+'">Pay the balance →</a>':'')+'</div>':'<div class="chat-proof-next is-done"><span>Order fully paid ✓</span></div>';
+      return '<div class="chat-proof is-received"><strong><span class="chat-proof-mark" aria-hidden="true">✓</span>Payment received · '+money(p.amount)+'</strong>'+row('For',KIND[p.payment_kind]||'')+order+row('Reference',p.transaction_reference||'—')+row('Received',when(p.verified_at||m.created_at))+next+receipt+'</div>';
+    }
+    if(m.message_type==='payment_rejected'){
+      return '<div class="chat-proof is-rejected"><strong>Receipt not accepted · '+money(p.amount)+'</strong>'+row('For',KIND[p.payment_kind]||'')+order+row('Reference',p.transaction_reference||'—')+row('Reason',p.rejection_reason||'See the payment page.')+
+        (!admin&&o&&o.status!=='cancelled'?'<div class="chat-proof-next"><a href="'+payLink(o)+'">Upload a corrected receipt →</a></div>':'')+receipt+'</div>';
+    }
+    const state=p.status==='verification_pending'?'Being checked by LexC':p.status==='paid'?'Received ✓':p.status==='rejected'?'New receipt needed':p.status.replaceAll('_',' ');
+    return '<div class="chat-proof"><strong>Payment proof · '+money(p.amount)+'</strong>'+row('For',KIND[p.payment_kind]||'')+order+row('Reference',p.transaction_reference||'—')+row('Status',state)+receipt+proofReview(p)+'</div>';
+  }
+  function statusCard(m,conversation){
+    const o=orderOf(conversation?.order_id);if(!o)return '';
+    const said=/confirmed your order/i.test(m.body)?'confirmed':(String(m.body).match(/changed to ([a-z ]+)\./i)||[])[1]?.trim().replaceAll(' ','_').toLowerCase();
+    if(!said)return '';
+    if(said==='cancelled')return '<div class="chat-statuscard is-cancelled"><strong>Order #'+escapeHtml(o.order_number)+' · Cancelled</strong></div>';
+    const at=STEPS.findIndex(([k])=>k===said);if(at<0)return '';
+    return '<div class="chat-statuscard"><strong>Order #'+escapeHtml(o.order_number)+' · '+escapeHtml(STEPS[at][1])+'</strong><ol class="chat-steps">'+STEPS.map(([,label],i)=>'<li class="'+(i<at?'is-done':i===at?'is-now':'')+'">'+escapeHtml(label)+'</li>').join('')+'</ol>'+
+      (!admin&&said==='confirmed'&&o.status!=='cancelled'?'<a class="chat-status-link" href="'+payLink(o)+'">Open payment →</a>':!admin&&said==='ready'?'<a class="chat-status-link" href="'+payLink(o)+'">View order →</a>':'')+'</div>';
+  }
   function messageCard(m){
     const p=payments.find(row=>row.id===m.payment_id);
     const eventClass=m.message_type!=='text'?' chat-event '+escapeHtml(m.message_type):'';
     return '<article data-mid="'+escapeHtml(m.id)+'" class="chat-message '+escapeHtml(m.sender_type)+eventClass+'"><div class="chat-bubble"><small>'+escapeHtml(sender(m))+'</small><p>'+escapeHtml(m.body)+'</p>'+designCardHTML(m)+
-      (p&&m.message_type==='payment_proof'?'<div class="chat-proof"><strong>Payment proof · '+money(p.amount)+'</strong><span>Reference: '+escapeHtml(p.transaction_reference||'—')+'</span><span>Current status: '+escapeHtml(p.status.replaceAll('_',' '))+'</span>'+(p.proof_storage_path?'<button type="button" data-proof="'+escapeHtml(p.id)+'">View receipt</button>':'')+proofReview(p)+'</div>':'')+
+      (p&&['payment_proof','payment_verified','payment_rejected'].includes(m.message_type)?paymentCard(m,p):'')+(m.message_type==='status_update'?statusCard(m,conversations.find(c=>c.id===m.conversation_id)||selected):'')+
       '<time>'+escapeHtml(stamp(m.created_at))+'</time></div></article>';
   }
   function draw(){
