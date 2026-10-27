@@ -247,3 +247,14 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .chat-steps li{flex:1;min-width:0;padding-top:6px;border-top:3px solid #e7def3;color:#9a8fae;font-size:.68rem;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-steps li.is-done{border-color:#b9a2e3;color:#6a5490}
 .chat-steps li.is-now{border-color:#7551aa;color:#3a2467;font-weight:700}
+
+/* Admin chat: one customer = all their chats; dividers between chats and a reply-target picker */
+.chat-thread-divider{display:flex;align-items:center;gap:10px;margin:14px 0 6px;color:#7a6c94;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+.chat-thread-divider::before,.chat-thread-divider::after{content:'';flex:1;height:1px;background:#e7def3}
+.chat-reply-in{display:inline-flex;align-items:center;gap:6px;margin:2px 0;font-size:.76rem;color:#6b5d84}
+.chat-reply-in select{min-height:30px;padding:3px 8px;border:1px solid #d9cdeb;border-radius:8px;background:#fff;color:#3a2467;font:inherit;font-weight:700}
+
+/* Chat order panel (admin): remaining balance */
+.chat-balance{display:grid;gap:2px;margin:8px 0 12px;padding:10px 12px;border:1px solid #f0d7a8;border-radius:12px;background:#fff8ec}
+.chat-balance span{font-size:.74rem;font-weight:700;color:#8a5a12}.chat-balance strong{font-size:1.2rem;color:#6b430b}.chat-balance small{font-size:.72rem;color:#8a6a3a}
+.chat-balance.is-paid{border-color:#bfe3cf;background:#f3fbf6}.chat-balance.is-paid span{color:#2f7a52}.chat-balance.is-paid strong{color:#17643f;font-size:1rem}

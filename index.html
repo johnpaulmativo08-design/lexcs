@@ -669,7 +669,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
 <link rel="stylesheet" href="shared/customer-flow.css?v=42">
-<link rel="stylesheet" href="shared/product-detail.css?v=6">
+<link rel="stylesheet" href="shared/product-detail.css?v=7">
 <link rel="stylesheet" href="shared/chat-widget.css?v=12">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=6">
 <link rel="stylesheet" href="shared/landing.css?v=13">
@@ -1339,9 +1339,10 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           <div id="checkoutOrderList" class="checkout-order-list"></div>
           <div class="checkout-total-row"><span>Subtotal</span><span id="checkoutSubtotal">₱0</span></div>
           <div class="checkout-total-row checkout-rush-row" id="checkoutRushRow" hidden><span>⚡ Rush fee (next-day order)</span><span>₱200.00</span></div>
+          <div class="checkout-total-row"><span>VAT (12%)</span><span id="checkoutVat">₱0.00</span></div>
           <div class="checkout-total-row" id="checkoutDeliveryRow" style="display:none;"><span>Lalamove fee</span><span id="checkoutDeliveryFee">₱0</span></div>
           <div class="checkout-total-row checkout-grand"><span>Order total</span><span id="checkoutGrandTotal">₱0</span></div>
-          <div class="checkout-total-row checkout-due-row"><span id="checkoutRequiredLabel">Required downpayment (60%)</span><strong id="checkoutRequired">₱0.00</strong></div>
+          <div class="checkout-total-row checkout-due-row"><span id="checkoutRequiredLabel">First payment (60% + all VAT)</span><strong id="checkoutRequired">₱0.00</strong></div>
           <div class="checkout-total-row"><span>Balance after verified payment</span><span id="checkoutBalance">₱0.00</span></div>
         </section>
 
@@ -1574,7 +1575,7 @@ function renderCheckout() {
   document.getElementById('checkoutSubtotal').textContent = checkoutMoney(subtotalCentavos / 100);
   document.getElementById('checkoutGrandTotal').textContent = checkoutMoney(subtotalCentavos / 100);
   const requiredCentavos = Math.round(subtotalCentavos * 0.6);
-  document.getElementById('checkoutRequiredLabel').textContent = 'Required downpayment (60%)';
+  document.getElementById('checkoutRequiredLabel').textContent = 'First payment (60% + all VAT)';
   document.getElementById('checkoutRequired').textContent = checkoutMoney(requiredCentavos / 100);
   document.getElementById('checkoutBalance').textContent = checkoutMoney((subtotalCentavos - requiredCentavos) / 100);
   document.getElementById('checkoutCustomerEmail').textContent = currentUser?.email ? `Signed in as ${currentUser.email}` : '';
@@ -1600,6 +1601,7 @@ function selectDelivery(el, val) {
   updateCheckoutDelivery();
 }
 
+const VAT_RATE = 0.12;
 function updateCheckoutDelivery() {
   const deliveryRow = document.getElementById('checkoutDeliveryRow');
   const deliveryFeeEl = document.getElementById('checkoutDeliveryFee');
@@ -1612,11 +1614,14 @@ function updateCheckoutDelivery() {
   // the Lalamove fee is paid to the rider directly, so delivery orders are priced like pickup (phase 52)
   if (selectedDelivery === 'Lalamove') { deliveryRow.style.display = 'flex'; deliveryFeeEl.textContent = 'Paid to the rider'; }
   else { deliveryRow.style.display = 'none'; }
-  grandEl.textContent = checkoutMoney(subtotal);
+  // 12% VAT on top, all of it in the first payment; the balance is VAT-free (phase 77 — the database does the same)
+  const vat = Math.round(subtotal * 100 * VAT_RATE);
+  document.getElementById('checkoutVat').textContent = checkoutMoney(vat / 100);
+  grandEl.textContent = checkoutMoney(subtotal + vat / 100);
   {
-    const required = Math.round(subtotal * 100 * 0.6);
+    const required = Math.round(subtotal * 100 * 0.6) + vat;
     document.getElementById('checkoutRequired').textContent = checkoutMoney(required / 100);
-    document.getElementById('checkoutBalance').textContent = checkoutMoney(subtotal - required / 100);
+    document.getElementById('checkoutBalance').textContent = checkoutMoney(subtotal + vat / 100 - required / 100);
     document.getElementById('checkoutStickyDue').textContent = checkoutMoney(required / 100);
   }
 }
@@ -2775,7 +2780,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 
 <script src="shared/checkout-checks.js?v=2"></script>
 <script src="shared/customer-backend.js?v=38"></script>
-<script src="shared/product-detail.js?v=15"></script>
+<script src="shared/product-detail.js?v=16"></script>
 <script src="shared/menu-layout.js?v=5"></script>
 <script src="shared/fresh-feed.js?v=12"></script>
 <script src="shared/landing.js?v=4"></script>
@@ -2789,6 +2794,6 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/motion.js?v=3" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="lcw-label">Chat</span><span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=34';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=36';mountChatWidget();</script>
 </body>
 </html>

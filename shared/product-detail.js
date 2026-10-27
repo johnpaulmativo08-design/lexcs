@@ -181,6 +181,13 @@
       if (t.closest('[data-chat]')) { closeDetail(); document.querySelector('#customer-chat-toggle')?.click(); }
       if (t.closest('[data-design]')) { const kind = t.closest('[data-design]').dataset.design, id = t.closest('[data-design]').dataset.productId; closeDetail(); setTimeout(() => (kind === 'cupcake' ? window.LexcCupcake?.open({ productId: id }) : kind === 'donut' ? window.LexcDonut?.open({ productId: id }) : kind === 'cakepop' ? window.LexcCakePop?.open({ productId: id }) : window.LexcBento?.open()), 200); }
     });
+    // the quantity can be typed (1–99); letters are dropped while typing, an empty box goes back to 1 when left
+    dialog.addEventListener('input', (event) => {
+      const box = event.target.closest('[data-qty]'); if (!box) return;
+      const digits = box.value.replace(/\D/g, '').slice(0, 2); if (digits !== box.value) box.value = digits;
+      if (digits) setQty(Number(digits));
+    });
+    dialog.addEventListener('focusout', (event) => { const box = event.target.closest?.('[data-qty]'); if (box) { if (!box.value || Number(box.value) < 1) setQty(1); box.value = state.qty; } });
     dialog.addEventListener('keydown', (event) => {
       if (event.target.closest('[role=tablist]') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
         const tabs = [...dialog.querySelectorAll('[data-tab]')]; const i = tabs.findIndex((x) => x.dataset.tab === state.tab);
@@ -294,7 +301,7 @@
       <div class="pd-buy">
         <div class="pd-qty" role="group" aria-label="Quantity">
           <button type="button" data-less aria-label="Decrease quantity" disabled>${icon('minus')}</button>
-          <output data-qty aria-live="polite">1</output>
+          <input data-qty type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="1" aria-label="Quantity" autocomplete="off">
           <button type="button" data-more aria-label="Increase quantity">${icon('plus')}</button>
         </div>
         <button type="button" class="pd-buy__add" data-buy>${icon('cart')}<span>Add to Cart</span></button>
@@ -372,7 +379,7 @@
   function setQty(value) {
     resetBuy();
     state.qty = Math.min(99, Math.max(1, value));
-    dialog.querySelector('[data-qty]').textContent = state.qty;
+    const box = dialog.querySelector('[data-qty]'); if (document.activeElement !== box || Number(box.value) !== state.qty) box.value = state.qty;
     dialog.querySelector('[data-less]').disabled = state.qty <= 1;
     dialog.querySelector('[data-more]').disabled = state.qty >= 99;
   }

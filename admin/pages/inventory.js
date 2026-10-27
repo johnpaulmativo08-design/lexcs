@@ -1,7 +1,7 @@
 import { escapeHtml, empty, showDetails } from '../components.js?v=3';
 import { db, loadingTable, loadingList } from '../backend-ui.js?v=3';
 import { sectionTabs } from '../inventory-ui.js?v=3';
-import { renderMaterials } from './inventory-materials.js?v=7';
+import { renderMaterials } from './inventory-materials.js?v=8';
 import { renderHistory } from './inventory-history.js?v=3';
 import { renderRecipes } from './recipes.js?v=9';
 
@@ -124,16 +124,32 @@ export async function getInventorySnapshot() {
     items: snapshot.items || [],
     batches: (snapshot.batches || []).map((batch) => ({ ...batch, id: batch.batch_id, item_name: batch.name })),
     movements: snapshot.movements || [],
-    notifications: (snapshot.notifications || []).map((notification) => ({ ...notification, message: notification.detail }))
+    notifications: (snapshot.notifications || []).filter((notification) => notificationCondition(notification) !== 'running_low').map((notification) => ({ ...notification, message: notification.detail }))
   };
 }
 
+// Payment alerts for the bell, worked out from open orders (nothing to mark read: they clear when the money is in).
+const peso = (n) => '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export async function getPaymentAlerts() {
+  const rows = await db.client.from('orders').select('id,order_number,customer_name,status,payment_status,total_amount,amount_paid,receiving_start')
+    .in('status', ['confirmed', 'preparing', 'ready']).neq('payment_status', 'paid').order('receiving_start', { ascending: true }).limit(100).then(db.unwrap);
+  const soon = Date.now() + 3 * 86400000, alerts = [];
+  for (const o of rows) {
+    const paid = Number(o.amount_paid || 0), balance = o.total_amount === null ? null : Math.max(0, Number(o.total_amount) - paid);
+    const due = o.receiving_start ? new Date(o.receiving_start).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' }) : '';
+    const near = o.receiving_start && new Date(o.receiving_start).getTime() <= soon;
+    if (o.payment_status === 'verification_pending') alerts.push({ kind: 'proof', tone: 'info', icon: 'clock', order: o, title: `Payment proof to check · #${o.order_number}`, message: `${o.customer_name || 'Customer'} sent a receipt. Check the bank credit, then accept or send it back.` });
+    else if (paid === 0 && balance) alerts.push({ kind: 'unpaid', tone: near ? 'danger' : 'warning', icon: 'alert', order: o, title: `Not paid yet · #${o.order_number}`, message: `Confirmed but no payment yet (${peso(balance)}).${due ? ` Scheduled ${due}.` : ''}` });
+    else if (balance > 0) alerts.push({ kind: 'balance', tone: near ? 'danger' : 'warning', icon: 'alert', order: o, title: `Balance unpaid · #${o.order_number}`, message: `${peso(balance)} still to pay of ${peso(o.total_amount)}.${due ? ` Scheduled ${due}${near ? ' — soon' : ''}.` : ''}` });
+  }
+  return alerts;
+}
 export async function refreshInventoryNotificationBadge() {
   const badge = document.querySelector('#notification-count');
   if (!badge) return;
   try {
-    const snapshot = await getInventorySnapshot();
-    const unread = (snapshot.notifications || []).filter((item) => !item.is_read).length;
+    const [snapshot, payments] = await Promise.all([getInventorySnapshot(), getPaymentAlerts().catch(() => [])]);
+    const unread = (snapshot.notifications || []).filter((item) => !item.is_read).length + payments.length;
     badge.textContent = unread > 99 ? '99+' : String(unread);
     badge.hidden = unread === 0;
   } catch {
@@ -150,14 +166,20 @@ export async function openInventoryNotifications(opener) {
   popover.setAttribute('aria-label', 'Inventory notifications');
   popover.innerHTML='<section class="inventory-notifications"><div class="inventory-notifications__head"><strong>Notifications</strong></div>'+loadingList(4)+'</section>';
   document.body.append(popover);
-  let snapshot;
-  try { snapshot = await getInventorySnapshot(); }
+  let snapshot, payments = [];
+  try { [snapshot, payments] = await Promise.all([getInventorySnapshot(), getPaymentAlerts().catch((error) => { console.warn('Payment alerts:', error); return []; })]); }
   catch (error) { console.warn('Notifications could not load:',error);popover.innerHTML='<section class="inventory-notifications" role="alert"><div class="inventory-notifications__head"><strong>Notifications</strong></div><p>Notifications could not load.</p><button class="button" type="button" data-retry>Try again</button></section>';popover.querySelector('[data-retry]').onclick=()=>{popover.remove();openInventoryNotifications(opener)};return; }
   if(!popover.isConnected)return;
   const notifications = snapshot.notifications || [];
   const visibleNotifications = notifications.slice(0, 4);
   popover.innerHTML = `<section class="inventory-notifications">
       <div class="inventory-notifications__head"><strong>Notifications</strong><button class="text-button" data-mark-all ${notifications.some((item) => !item.is_read) ? '' : 'disabled'}>Mark all as read</button></div>
+      ${payments.length ? `<h4 class="inventory-notifications__group">Payments <small>${payments.length}</small></h4>${payments.slice(0, 5).map((item) => `
+        <article class="inventory-notification inventory-notification--unread">
+          <span class="inventory-notification__icon status-chip--${item.tone}">${icon(item.icon)}</span>
+          <div class="inventory-notification__copy"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.message)}</p></div>
+          <div class="inventory-notification__actions"><a class="text-button" href="#orders/detail/${escapeHtml(item.order.id)}" data-close-popover>Open order →</a></div>
+        </article>`).join('')}${payments.length > 5 ? `<a class="inventory-notifications__all" href="#orders" data-close-popover>${payments.length - 5} more payment item${payments.length - 5 === 1 ? '' : 's'} in Orders →</a>` : ''}<h4 class="inventory-notifications__group">Inventory</h4>` : ''}
       ${visibleNotifications.length ? visibleNotifications.map((item) => `
         <article class="inventory-notification ${item.is_read ? '' : 'inventory-notification--unread'}">
           <span class="inventory-notification__icon status-chip--${notificationTone(item)}">${icon(notificationIcon(item))}</span>
@@ -173,6 +195,7 @@ export async function openInventoryNotifications(opener) {
     const read = event.target.closest('[data-mark-read]');
     const all = event.target.closest('[data-mark-all]');
     const view = event.target.closest('[data-view-batch]');
+    if (event.target.closest('[data-close-popover]')) { popover.remove(); return; }
     try {
       if (read || all) {
         await db.rpc('read_inventory_notifications', { notification_id: read?.dataset.markRead || null, mark_all: Boolean(all) });
@@ -201,7 +224,7 @@ export function renderStockForm({ batch, items, onSuccess, preset = '' }) {
         <div class="form-grid"><label class="form-field"><span>Unit</span><select name="new_unit">${unitOptions.map((unit) => `<option>${unit}</option>`).join('')}</select></label><label class="form-field"><span>Low-stock threshold</span><input name="min_stock" type="number" min="0" step="0.01" value="1"></label></div>
       </div>
       <div class="form-grid"><label class="form-field"><span>Quantity received <em>*</em></span><input name="quantity" type="number" min="0.01" step="0.01" required></label><label class="form-field"><span>Unit</span><input name="unit" value="${escapeAttr(batch?.unit || '')}" placeholder="Auto from item" readonly></label></div>
-      <div class="form-grid"><label class="form-field"><span>Date bought / stock-in <em>*</em></span><input name="received_at" type="date" value="${today()}" required></label><label class="form-field"><span>Expiry date</span><input name="expires_on" type="date"></label></div>
+      <div class="form-grid"><label class="form-field"><span>Date bought / stock-in <em>*</em></span><input name="received_at" type="date" value="${today()}" required></label><label class="form-field" data-expiry-field><span>Expiry date <em>*</em></span><input name="expires_on" type="date"></label></div>
       <label class="form-field"><span>Purchase price <small>(optional)</small></span><input name="purchase_price" type="number" min="0" step="0.01" placeholder="0.00"></label>
       <label class="form-field"><span>Notes <small>(optional)</small></span><textarea name="note" maxlength="500" rows="2" placeholder="Supplier, delivery note, or other detail"></textarea></label>
       <div class="dialog-actions"><button class="button button--quiet" type="button" data-close>Cancel</button><button class="button button--primary" type="submit">Add stock</button></div>
@@ -211,27 +234,32 @@ export function renderStockForm({ batch, items, onSuccess, preset = '' }) {
     const selected = items.find((item) => item.id === form.elements.item_id.value);
     form.elements.unit.value = selected?.unit || (form.elements.item_id.value === '__new' ? form.elements.new_unit.value : '');
   };
+  // packaging has no expiry; every ingredient batch needs one (a past date is allowed, e.g. stock found already expired)
+  const isPackaging = () => (form.elements.item_id.value === '__new' ? form.elements.inventory_type.value : items.find((item) => item.id === form.elements.item_id.value)?.inventory_type) === 'packaging';
+  const syncExpiry = () => { const hide = isPackaging(); form.querySelector('[data-expiry-field]').hidden = hide; if (hide) form.elements.expires_on.value = ''; };
   form?.addEventListener('change', (event) => {
     if (event.target.name === 'item_id') dialog.querySelector('.inventory-new-item').hidden = event.target.value !== '__new';
     if (event.target.name === 'item_id' || event.target.name === 'new_unit') setUnit();
+    if (event.target.name === 'item_id' || event.target.name === 'inventory_type') syncExpiry();
   });
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(form); const itemId = data.get('item_id');
     if (itemId === '__new' && !String(data.get('item_name')).trim()) { notify('Enter a name for the new inventory item.'); return; }
+    if (!isPackaging() && !data.get('expires_on')) { notify('Enter the expiry date of this batch.'); form.elements.expires_on.focus(); return; }
     const payload = {
       action: 'restock', request_id: requestId(), item_id: itemId === '__new' ? null : itemId,
       item_name: itemId === '__new' ? String(data.get('item_name')).trim() : null,
       inventory_type: data.get('inventory_type'), category: String(data.get('category')).trim() || null,
       unit: itemId === '__new' ? data.get('new_unit') : data.get('unit'), min_stock: Number(data.get('min_stock') || 0),
-      quantity: Number(data.get('quantity')), received_at: `${data.get('received_at')}T12:00:00+08:00`, expires_on: data.get('expires_on') || null,
+      quantity: Number(data.get('quantity')), received_at: `${data.get('received_at')}T12:00:00+08:00`, expires_on: isPackaging() ? null : data.get('expires_on') || null,
       purchase_price: data.get('purchase_price') ? Number(data.get('purchase_price')) : null, note: String(data.get('note')).trim() || null
     };
     const button = form.querySelector('[type=submit]'); button.disabled = true;
     try { await db.rpc('inventory_action', { payload }); dialog.close(); notify('New batch added to inventory.'); await onSuccess(); }
     catch (error) { notify(error.message || 'Could not add stock.'); button.disabled = false; }
   });
-  setUnit();
+  setUnit(); syncExpiry();
 }
 
 function renderUsageForm(batch, onSuccess, initialAction = 'stock_usage') {
@@ -430,7 +458,7 @@ async function renderBatches(content, subpage = '') {
   const inventoryItems = () => {
     const deduplicated = new Map();
     (state.snapshot?.items || []).forEach((item) => deduplicated.set(item.id, item));
-    (state.snapshot?.batches || []).filter((batch) => !batch.archived_at).forEach((batch) => deduplicated.set(batch.item_id, { id: batch.item_id, name: batch.item_name, unit: batch.unit }));
+    (state.snapshot?.batches || []).filter((batch) => !batch.archived_at).forEach((batch) => deduplicated.set(batch.item_id, { id: batch.item_id, name: batch.item_name, unit: batch.unit, inventory_type: batch.inventory_type }));
     return [...deduplicated.values()].sort((a, b) => a.name.localeCompare(b.name));
   };
   try { await load(); }
