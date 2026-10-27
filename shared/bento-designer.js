@@ -545,7 +545,7 @@
       <div class="bd-surprise-row"><button type="button" class="bd-surprise" data-bd-surprise><span class="bd-dice" aria-hidden="true">🎲</span> Surprise me</button><span class="bd-note">Rolls a random design you can change</span></div>
       <fieldset class="bd-group"><legend>Flavor <small>Same size and weight</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Flavor">${product.product_variants.filter((v) => v.is_active).map((v) =>
-          `<button type="button" role="radio" class="bd-card" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === s.variant_id}"><strong>${esc(v.label === 'Minimalist' ? 'Plain' : v.label)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>
+          `<button type="button" role="radio" class="bd-card" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === s.variant_id}"><strong>${esc(v.label === 'Minimalist' ? 'Vanilla' : v.label)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>
       <fieldset class="bd-group"><legend>Presets <small>Optional · all editable</small></legend>
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
@@ -586,7 +586,7 @@
     return `
       ${reviewChecklist()}
       <ul class="bd-summary" aria-label="Your design">
-        <li><span>Cake</span><strong>${esc(product.name)} · ${esc(v?.label === 'Minimalist' ? 'Plain' : v?.label)} ${money(v?.price || 0)}</strong></li>
+        <li><span>Cake</span><strong>${esc(product.name)} · ${esc(v?.label === 'Minimalist' ? 'Vanilla' : v?.label)} ${money(v?.price || 0)}</strong></li>
         <li><span>Frosting</span><strong>${esc(opt('color', s.frosting_color)?.label)}</strong></li>
         <li><span>Border</span><strong>${s.border.length ? s.border.map((c) => esc(opt('border', c).label.replace('Shell border — ', 'Shell '))).join(', ') : 'None'}</strong></li>
         <li><span>Decorations</span><strong>${s.accents.length ? s.accents.map((c) => esc(opt('accent', c).label) + (c === 'ribbon_bows' ? ' (' + esc(opt('color', s.bow_color)?.label) + ')' : '')).join(', ') : 'None'}</strong></li>
@@ -659,7 +659,7 @@
     const box = root.querySelector('#bd-breakdown'); if (!box) return;
     const v = variant(), lines = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : localExtras().lines;
     box.innerHTML = `<p class="bd-breakdown-title">Price per cake</p><ul>
-      <li><span>${esc(v?.label === 'Minimalist' ? 'Plain' : v?.label || 'Cake')} bento</span><b>${money(v?.price || 0)}</b></li>
+      <li><span>${esc(v?.label === 'Minimalist' ? 'Vanilla' : v?.label || 'Cake')} bento</span><b>${money(v?.price || 0)}</b></li>
       ${lines.map(([l, p]) => `<li><span>${esc(l)}</span><b>+${money(p)}</b></li>`).join('') || '<li><span>No extras</span><b>—</b></li>'}
       <li class="is-total"><span>${state.qty} × ${money(unitPrice())}</span><b>${money(unitPrice() * state.qty)}</b></li></ul>
       <p class="bd-note">${quote.status === 'ok' ? 'Confirmed by LexC’s — this is what checkout will charge.' : 'Checking the price…'}</p>`;
@@ -796,7 +796,7 @@
     const v = variant(); const d = design();
     const item = {
       id: 'bento-' + crypto.randomUUID(), product_id: product.id, variant_id: v.id, name: product.name, emoji: '🎂',
-      sizeLabel: `${v.label === 'Minimalist' ? 'Plain' : v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra,
+      sizeLabel: `${v.label === 'Minimalist' ? 'Vanilla' : v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra,
       base_price: Number(v.price), extras: quote.extra, qty: state.qty, selected: true, customization: d, inspiration: [...(state.inspiration || [])], preview: scene ? scene.snapshot(400) : '', preview_top: scene ? scene.snapshot(400, 'top') : ''
     };
     if (editIndex !== null && cart[editIndex]?.customization?.designer === 'bento') { item.id = cart[editIndex].id; cart[editIndex] = item; }
