@@ -148,7 +148,10 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
   const value=sum(cur.orders,'total_amount'),valueBefore=sum(old.orders,'total_amount');
   const avg=cur.orders.length?value/cur.orders.length:0,avgBefore=old.orders.length?valueBefore/old.orders.length:0;
   const addOns=sum(cur.orders,'customization_total'),addOnsBefore=sum(old.orders,'customization_total');
-  const owed=total(orders.filter(o=>live(o)&&o.total_amount!==null).map(o=>Math.max(0,Number(o.total_amount)-Number(o.amount_paid))));
+  // remaining balance: confirmed orders (not pending, not cancelled) whose total is not fully paid yet, any date
+  const left=o=>Math.round(Number(o.total_amount)*100-Number(o.amount_paid)*100)/100;
+  const unpaid=orders.filter(o=>live(o)&&o.status!=='pending'&&o.total_amount!==null&&left(o)>0).sort((a,b)=>String(a.receiving_start||'').localeCompare(String(b.receiving_start||'')));
+  const owed=total(unpaid.map(left));
   const kpi=(label,val,delta,note)=>'<section class="panel rep-kpi"><span>'+e(label)+'</span><strong>'+val+'</strong>'+delta+(note?'<small>'+e(note)+'</small>':'')+'</section>';
   // sales chart: per day, or per week for long periods
   const weekly=span>45,buckets=new Map();
@@ -190,13 +193,14 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
    '<div class="rep-period"><div class="rep-period-buttons" role="group" aria-label="Period">'+PERIODS.map(([k,l])=>'<button type="button" data-period="'+k+'" aria-pressed="'+(state.choice===k)+'">'+l+'</button>').join('')+'</div>'+
    (state.choice==='custom'?'<label>From <input type="date" data-from value="'+e(range[0])+'"></label><label>To <input type="date" data-to value="'+e(range[1])+'"></label>':'')+
    '<span class="rep-range">'+e(phDate(range[0]+'T12:00:00+08:00'))+' – '+e(phDate(range[1]+'T12:00:00+08:00'))+'</span><span class="rep-export"><button class="button" type="button" data-overview-export="xlsx">'+icon('save')+' Download Excel</button></span></div>'+
-   '<div class="rep-kpis">'+kpi('Sales received',peso(received),change(received,receivedBefore),'Verified payments')+kpi('Orders',String(cur.orders.length),change(cur.orders.length,old.orders.length),'Not cancelled')+kpi('Average order',peso(avg),change(avg,avgBefore),'Order value ÷ orders')+kpi('Design add-ons',peso(addOns),change(addOns,addOnsBefore),'Extras from the designers')+kpi('Balances owed',peso(owed),'<span class="rep-delta">Right now</span>','Unpaid parts of open orders')+'</div>'+
+   '<div class="rep-kpis">'+kpi('Sales received',peso(received),change(received,receivedBefore),'Verified payments')+kpi('Orders',String(cur.orders.length),change(cur.orders.length,old.orders.length),'Not cancelled')+kpi('Average order',peso(avg),change(avg,avgBefore),'Order value ÷ orders')+kpi('Design add-ons',peso(addOns),change(addOns,addOnsBefore),'Extras from the designers')+kpi('Remaining balance',peso(owed),'<span class="rep-delta">Right now</span>',unpaid.length+' confirmed order'+(unpaid.length===1?'':'s')+' not fully paid')+'</div>'+
    '<section class="panel rep-card rep-money"><header class="rep-money-head"><div><h2>Money received</h2><p>Verified payments collected '+(weekly?'per week ':'per day ')+'during this period</p></div><strong>'+e(peso2(received))+'</strong></header>'+(received?chart:none('No verified payments in this period.'))+'</section>'+
    '<div class="rep-masonry">'+
     card('Best sellers',best.length?bars(best.map(([n,s])=>[n,s.sales,s.qty+' sold']),peso):none('No orders in this period.'))+
     card('Custom designs',designed.length?'<p class="rep-note">'+designed.length+' of '+items.length+' order lines were designed ('+Math.round(designed.length/Math.max(1,items.length)*100)+'%)</p>'+bars([...byDesigner].map(([k,v])=>[designerName[k]||k,v]),v=>v+' ordered')+'<h3 class="rep-sub">Most-picked choices</h3>'+(picks.size?bars([...picks].sort((a,b)=>b[1]-a[1]).slice(0,8),v=>v+'×'):none('No choices recorded.')):none('No designed orders in this period.'))+
     card('Payments by method',byMethodSum.size?bars([...byMethodSum],peso):none('No verified payments in this period.'))+
     card('Busy days',cur.orders.length?bars(WEEKDAYS.map((d,i)=>[d,weekday[i]]),v=>v+' orders')+'<p class="rep-note">Pickup '+pickup+' · Delivery '+delivery+'</p>':none('No orders in this period.'))+
+    card('Remaining balances',unpaid.length?'<p class="rep-note">'+peso(owed)+' still to be paid on '+unpaid.length+' confirmed order'+(unpaid.length===1?'':'s')+', soonest handoff first.</p><div class="rep-list">'+unpaid.slice(0,8).map(o=>'<a class="rep-list-row" href="#orders/detail/'+encodeURIComponent(o.id)+'"><span><strong>#'+e(o.order_number)+' · '+e(o.customer_name)+'</strong><small>Paid '+peso(o.amount_paid)+' of '+peso(o.total_amount)+(o.receiving_start?' · '+e(phDate(o.receiving_start)):'')+'</small></span><strong>'+peso(left(o))+'</strong></a>').join('')+'</div>'+(unpaid.length>8?'<p class="rep-note">+'+(unpaid.length-8)+' more in the Excel download.</p>':''):none('Every confirmed order is fully paid. 🎉'))+
     card('Late balances',late.length?'<p class="rep-note">Unpaid more than 3 hours after pickup or delivery (the ₱50 late-fee rule).</p><div class="rep-list">'+late.slice(0,8).map(o=>'<a class="rep-list-row" href="#orders/detail/'+encodeURIComponent(o.id)+'"><span><strong>#'+e(o.order_number)+' · '+e(o.customer_name)+'</strong><small>Due '+e(phDate(o.receiving_end))+'</small></span><strong>'+peso(Number(o.total_amount)-Number(o.amount_paid))+'</strong></a>').join('')+'</div>':none('No late balances. 🎉'))+
     card('Ingredients',(usedTop.length?'<h3 class="rep-sub">Most used</h3>'+bars(usedTop.map(([n,q,u])=>[n,q,u]),v=>v.toLocaleString('en-PH')):none('No ingredient use recorded in this period.'))+'<p class="rep-note">Waste and expired stock: <strong>'+peso(wasteValue)+'</strong>'+(wasteUnpriced?' (+'+wasteUnpriced+' without a purchase price)':'')+'</p>')+
    '</div>';
@@ -213,19 +217,22 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
       ['Orders',cur.orders.length,old.orders.length,pct(cur.orders.length,old.orders.length),'Orders placed, not cancelled'],
       ['Average order (PHP)',pesos(avg),pesos(avgBefore),pct(avg,avgBefore),'Order value ÷ number of orders'],
       ['Design add-ons (PHP)',pesos(addOns),pesos(addOnsBefore),pct(addOns,addOnsBefore),'Extra charges from the DIY designers'],
-      ['Balances owed (PHP)',pesos(owed),'','','Unpaid parts of open orders right now, any date']]},
-     {heading:'2. Money received '+(weekly?'per week':'per day'),columns:[weekly?'Week starting':'Date','Verified payments','Amount received (PHP)'],
+      ['Remaining balance (PHP)',pesos(owed),'','','Still to be paid on confirmed orders right now, any date']]},
+     {heading:'2. Remaining balances (right now, any date)',columns:['Order no.','Customer','Status','Receiving date','Order total (PHP)','Paid (PHP)','Remaining (PHP)'],
+      rows:unpaid.map(o=>[o.order_number,o.customer_name||'',words(o.status),day(o.receiving_start),pesos(o.total_amount),pesos(o.amount_paid),pesos(left(o))]),
+      totals:['Total','','','',pesos(total(unpaid.map(o=>o.total_amount))),pesos(total(unpaid.map(o=>o.amount_paid))),pesos(owed)]},
+     {heading:'3. Money received '+(weekly?'per week':'per day'),columns:[weekly?'Week starting':'Date','Verified payments','Amount received (PHP)'],
       rows:[...buckets].map(([k,c])=>[k,counts.get(k)||0,pesos(c/100)]),totals:['Total',cur.paid.length,pesos(received)]},
-     {heading:'3. Best sellers',columns:['Product and size','Quantity sold','Sales (PHP)'],
+     {heading:'4. Best sellers',columns:['Product and size','Quantity sold','Sales (PHP)'],
       rows:[...seller].sort((a,b)=>b[1].sales-a[1].sales).map(([n,s])=>[n,s.qty,pesos(s.sales)]),totals:['Total',items.reduce((a,i)=>a+Number(i.quantity),0),pesos(total(items.map(i=>i.line_total)))]},
-     {heading:'4. Custom designs ('+designed.length+' of '+items.length+' order lines were designed)',columns:['Designer','Items ordered'],rows:[...byDesigner].map(([k,v])=>[designerName[k]||k,v])},
-     {heading:'5. Most-picked design choices',columns:['Choice','Times picked'],rows:[...picks].sort((a,b)=>b[1]-a[1])},
-     {heading:'6. Payments by method',columns:['Payment method','Amount received (PHP)'],rows:[...byMethodSum].map(([n,v])=>[n,pesos(v)]),totals:['Total',pesos(received)]},
-     {heading:'7. Busy days (by receiving date)',columns:['Day','Orders'],rows:WEEKDAYS.map((d,i)=>[d,weekday[i]]),totals:['Total',weekday.reduce((a,b)=>a+b,0)]},
-     {heading:'8. Pickup or delivery',columns:['Method','Orders'],rows:cur.orders.length?[['Pickup',pickup],['Delivery',delivery]]:[]},
-     {heading:'9. Late balances (any date)',columns:['Order no.','Customer','Due on','Due at','Balance (PHP)'],rows:late3,totals:['Total','','','',pesos(total(late.map(o=>Number(o.total_amount)-Number(o.amount_paid))))]},
-     {heading:'10. Ingredients used',columns:['Ingredient','Quantity used','Unit'],rows:[...used].sort((a,b)=>b[1]-a[1]).map(([id,q])=>[itemName.get(id)?.name||'Item',Math.round(q*100)/100,itemName.get(id)?.unit||''])},
-     {heading:'11. Waste and expired stock',columns:['Measure','Value'],rows:[['Value of wasted or expired stock (PHP)',pesos(wasteValue)],['Movements without a purchase price',wasteUnpriced]]}],
+     {heading:'5. Custom designs ('+designed.length+' of '+items.length+' order lines were designed)',columns:['Designer','Items ordered'],rows:[...byDesigner].map(([k,v])=>[designerName[k]||k,v])},
+     {heading:'6. Most-picked design choices',columns:['Choice','Times picked'],rows:[...picks].sort((a,b)=>b[1]-a[1])},
+     {heading:'7. Payments by method',columns:['Payment method','Amount received (PHP)'],rows:[...byMethodSum].map(([n,v])=>[n,pesos(v)]),totals:['Total',pesos(received)]},
+     {heading:'8. Busy days (by receiving date)',columns:['Day','Orders'],rows:WEEKDAYS.map((d,i)=>[d,weekday[i]]),totals:['Total',weekday.reduce((a,b)=>a+b,0)]},
+     {heading:'9. Pickup or delivery',columns:['Method','Orders'],rows:cur.orders.length?[['Pickup',pickup],['Delivery',delivery]]:[]},
+     {heading:'10. Late balances (any date)',columns:['Order no.','Customer','Due on','Due at','Balance (PHP)'],rows:late3,totals:['Total','','','',pesos(total(late.map(o=>Number(o.total_amount)-Number(o.amount_paid))))]},
+     {heading:'11. Ingredients used',columns:['Ingredient','Quantity used','Unit'],rows:[...used].sort((a,b)=>b[1]-a[1]).map(([id,q])=>[itemName.get(id)?.name||'Item',Math.round(q*100)/100,itemName.get(id)?.unit||''])},
+     {heading:'12. Waste and expired stock',columns:['Measure','Value'],rows:[['Value of wasted or expired stock (PHP)',pesos(wasteValue)],['Movements without a purchase price',wasteUnpriced]]}],
     notes:['Dates and times are Philippine time. Amounts are in pesos without the ₱ sign so spreadsheet programs can add them up.','Change (%) compares this period with the same number of days just before it; "New" means the previous period had none.','Late balances: unpaid more than 3 hours after pickup or delivery.','Waste value uses each batch’s purchase price divided by the quantity received.']});
   };
   content.querySelectorAll('[data-overview-export]').forEach(b=>b.onclick=()=>exportOverview(b.dataset.overviewExport));

@@ -386,3 +386,12 @@ main{overflow-wrap:anywhere}
 
 /* nothing may widen the page sideways (tablets stayed zoomed out after "Request desktop website" was turned off) */
 html,body{overflow-x:clip}
+
+/* "Different amount": the customer types how much to pay now (phase 78) */
+.plan-custom{grid-column:1/-1}
+.plan-custom>span{flex:1;min-width:0}
+.plan-amount{display:flex;align-items:center;gap:6px;max-width:240px;margin:10px 0 6px;padding:0 12px;border:1.5px solid #d9cdee;border-radius:10px;background:#fff;color:#3d2670;font-size:1.15rem;font-weight:800}
+.plan-amount:focus-within{border-color:#6545a3;box-shadow:0 0 0 3px #e6dcfa}
+.plan-amount input{flex:1;min-width:0;height:44px;padding:0;border:0;outline:0;background:transparent;color:inherit;font:inherit}
+.plan-custom .plan-hint{margin-top:2px}
+.plan-amount input:focus,.plan-amount input:focus-visible{outline:none}

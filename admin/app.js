@@ -1,13 +1,13 @@
-import { renderDashboard } from './pages/dashboard.js?v=16';
+import { renderDashboard } from './pages/dashboard.js?v=17';
 import { renderProducts } from './pages/products.js?v=13';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=27';
-import { renderReports } from './pages/reports.js?v=18';
-import { renderOrders } from './pages/orders.js?v=38';
+import { renderReports } from './pages/reports.js?v=19';
+import { renderOrders } from './pages/orders.js?v=39';
 import { renderBookings } from './pages/bookings.js?v=12';
 import { renderDesignOptions } from './pages/design-options.js?v=12';
 import { renderProfile } from './pages/profile.js?v=13';
-import { mountChat } from '../shared/chat.js?v=36';
-import { mountChatWidget } from '../shared/chat-widget.js?v=36';
+import { mountChat } from '../shared/chat.js?v=37';
+import { mountChatWidget } from '../shared/chat-widget.js?v=37';
 import { renderUpdates } from './pages/updates.js?v=2';
 import { icon } from './components.js?v=3';
 

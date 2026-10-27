@@ -669,6 +669,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
 <link rel="stylesheet" href="shared/customer-flow.css?v=42">
+<link rel="stylesheet" href="shared/delivery-card.css?v=1">
 <link rel="stylesheet" href="shared/product-detail.css?v=7">
 <link rel="stylesheet" href="shared/chat-widget.css?v=12">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=6">
@@ -2779,7 +2780,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script>
-<script src="shared/customer-backend.js?v=38"></script>
+<script src="shared/delivery-card.js?v=1"></script><script src="shared/customer-backend.js?v=39"></script>
 <script src="shared/product-detail.js?v=16"></script>
 <script src="shared/menu-layout.js?v=5"></script>
 <script src="shared/fresh-feed.js?v=12"></script>
@@ -2794,6 +2795,6 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/motion.js?v=3" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="lcw-label">Chat</span><span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=36';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=37';mountChatWidget();</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import {readChatThread,markChatRead,sendChatMessage,ensureCustomerChat,subscribeChatChanges,designCardHTML,hydrateDesignImages,CHAT_PICTURE_MAX,pickPictures,pendingPicturesHTML,sendChatPictures} from './chat.js?v=36';
+import {readChatThread,markChatRead,sendChatMessage,ensureCustomerChat,subscribeChatChanges,designCardHTML,hydrateDesignImages,CHAT_PICTURE_MAX,pickPictures,pendingPicturesHTML,sendChatPictures} from './chat.js?v=37';
 
 const db=window.LexcBackend;
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));

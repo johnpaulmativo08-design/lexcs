@@ -685,3 +685,36 @@ main .operations-dashboard .cap-pop{border:0;box-shadow:0 18px 44px rgba(46,34,9
 /* Bell: payment alerts grouped above inventory alerts */
 .inventory-notifications__group{margin:0;padding:10px 18px 4px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#6b6480}
 .inventory-notifications__group small{margin-left:6px;padding:1px 7px;border-radius:999px;background:#eee9ff;color:#4720bd;font-size:11px;letter-spacing:0}
+.ops-row .dash-balance{flex-shrink:0;color:#6f53bc;font-size:16px;font-weight:800;white-space:nowrap}
+/* Lalamove delivery card in order details (phase 79): tap-a-step tracker + details copied from the Lalamove app */
+.dlv{display:grid;gap:12px;margin:12px 0 6px;padding:16px 18px;border:1px solid #e3d9f0;border-radius:16px;background:#fff}
+.dlv-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dlv-title{display:inline-flex;align-items:center;gap:8px;color:#3a2467;font-weight:800;font-size:15px}.dlv-title .admin-icon{width:20px;height:20px;color:#6a43ce}
+.dlv-pill{padding:4px 11px;border-radius:999px;background:#f3eff8;color:#5f5674;font-size:12px;font-weight:800;white-space:nowrap}
+.dlv-pill.is-booked{background:#efe9fd;color:#4b2fa0}.dlv-pill.is-picked_up{background:#e7f1fd;color:#1d4f8f}.dlv-pill.is-delivered{background:#e3f4ea;color:#1e6b43}.dlv-pill.is-failed{background:#fdeaea;color:#9b2c2c}
+.dlv-skel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.dlv-skel span{height:58px;border-radius:12px;background:linear-gradient(90deg,#f4eff9 25%,#faf7fd 50%,#f4eff9 75%);background-size:200% 100%;animation:dlv-shine 1.2s linear infinite}
+@keyframes dlv-shine{to{background-position:-200% 0}}
+.dlv-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.dlv-steps button{display:grid;justify-items:start;gap:2px;width:100%;min-height:66px;padding:10px 12px;border:1.5px dashed #d9cdee;border-radius:12px;background:#fff;color:#5f5674;text-align:left;transition:border-color .18s,background .18s,transform .18s}
+.dlv-steps button:hover:not(:disabled){border-color:#8264ba;background:#faf7ff}.dlv-steps button:active:not(:disabled){transform:scale(.98)}
+.dlv-steps b{color:#3a2467;font-size:14px}.dlv-steps small{color:#7a6c94;font-size:12px;min-height:16px}
+.dlv-dot{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#efe9f8;color:#6a43ce;font-size:12px;font-weight:800}
+.dlv-steps button.is-done{border-style:solid;border-color:#cdbdf0;background:#f8f5ff}.dlv-steps button.is-done .dlv-dot{background:#6a43ce;color:#fff}
+.dlv-steps button.is-now{border-color:#6a43ce;box-shadow:0 0 0 1px #6a43ce inset}
+.dlv-steps button.is-busy{opacity:.6}
+.dlv-failed-note{display:grid;gap:2px;margin:0;padding:10px 12px;border-radius:12px;background:#fdf1f1;color:#7c2d2d;font-size:13px}
+.dlv-form{display:grid;gap:10px}
+.dlv-field{display:grid;gap:4px;font-size:13px;font-weight:700;color:#5f5674}.dlv-field small{font-weight:600;color:#8a7da0}
+.dlv-field input{min-height:40px;padding:8px 11px;border:1px solid #d9cdeb;border-radius:10px;background:#fff;color:#2c1d4d;font-weight:600}
+.dlv-field input:focus{outline:none;border-color:#6a43ce;box-shadow:0 0 0 3px #ece4fb}
+.dlv-link-row{display:flex;gap:6px}.dlv-link-row input{flex:1;min-width:0}.dlv-link-row .button{min-height:40px;padding:0 12px;text-decoration:none}
+.dlv-hint{min-height:0;font-size:12px;font-weight:600;color:#7a6c94}.dlv-hint.is-ok{color:#1e6b43}.dlv-hint.is-warn{color:#8a5a0c}.dlv-hint.is-error{color:#a03030}
+.dlv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dlv-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.dlv-fail-form{display:grid;gap:8px;padding:12px;border-radius:12px;background:#fdf6f6}
+.dlv-fail-link{color:#9b2c2c}
+.dlv-status{margin:0;min-height:18px;font-size:13px;font-weight:700;color:#5f5674}.dlv-status.is-error{color:#a03030}
+.dlv-note,.dlv-foot{margin:0;color:#7a6c94;font-size:12.5px;line-height:1.5}
+@media(max-width:560px){.dlv{padding:14px}.dlv-grid{grid-template-columns:1fr}.dlv-steps{gap:6px}.dlv-steps button{padding:9px 8px;min-height:72px}.dlv-steps b{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.dlv-skel span{animation:none}.dlv-steps button{transition:none}}
+.dlv .button--danger{background:#b23a3a;border-color:#b23a3a;color:#fff}.dlv .button--danger:hover:not(:disabled){background:#8f2c2c}.dlv .text-button{grid-column:auto;justify-self:auto}
