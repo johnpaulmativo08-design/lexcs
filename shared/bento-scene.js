@@ -5,9 +5,11 @@ import * as THREE from 'three';
 import { createSet } from './scene-set.js?v=2';
 
 const MODEL_URL = new URL('../assets/3d/bento.glb?v=1', import.meta.url).href;
-const R = 1.0;                     // cake radius (4" bento, 1 unit = 2")
+let R = 1.0;                       // cake (top tier) radius: the 4" bento is 1 (1 unit = 2")
+// Petite and Mini Tiered cakes (setShape): RB = bottom tier radius, TIER_Y = where the top tier starts.
+let RB = 1.0, TIER_Y = 0, shapeKey = 'bento', shapeSig = '', MODEL_H = null;
 let H = 1.05;                      // cake top height; replaced by the model's real height when it loads
-const TEXT_R = 0.74;               // writing area radius on the top
+let TEXT_R = 0.74;               // writing area radius on the top
 
 function seeded(seed) { let s = seed >>> 0 || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 const shade = (hex, amt) => { const c = new THREE.Color(hex); const hsl = {}; c.getHSL(hsl); return new THREE.Color().setHSL(hsl.h, hsl.s, Math.max(0, Math.min(1, hsl.l + amt))); };
@@ -194,6 +196,7 @@ function stickerTexture() {
 }
 
 export function createBentoScene(host, { reducedMotion = false, onPick = null, onHover = null, onMove = null } = {}) {
+  R = RB = 1; TIER_Y = 0; shapeKey = 'bento'; shapeSig = ''; H = MODEL_H ?? 1.05; TEXT_R = 0.74;   // every new preview starts as the bento
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -223,7 +226,9 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   const disposables = new Set();
   const track = (o) => { disposables.add(o); return o; };
   const mat = (color, rough = 0.62, metal = 0) => track(new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal }));
-  const world = new THREE.Group(); scene.add(world);
+  // "fit" scales bigger cakes down a little so every size stays framed by the same camera.
+  const fit = new THREE.Group(); scene.add(fit);
+  const world = new THREE.Group(); fit.add(world);
 
   // --- fixed parts: box, gingham paper, cake body -------------------------------------------------
   const fixed = new THREE.Group(); world.add(fixed);
@@ -239,11 +244,21 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   paper.rotation.x = -Math.PI / 2; paper.rotation.z = 0.08; paper.position.y = 0.005; paper.receiveShadow = true; fixed.add(paper);
   fixed.children.forEach((o) => { o.visible = false; });   // no box while designing; the fallback shows the cake only
 
-  const profile = [new THREE.Vector2(0, 0), new THREE.Vector2(R * 0.985, 0), new THREE.Vector2(R, 0.03)];
-  for (let i = 0; i <= 10; i++) { const a = (i / 10) * Math.PI / 2; profile.push(new THREE.Vector2(R - 0.06 + 0.06 * Math.cos(a), H - 0.06 + 0.06 * Math.sin(a))); }
-  profile.push(new THREE.Vector2(0, H));
+  // Cake body from simple shapes: one lathe per tier ({r, h} in scene units, bottom tier first).
   const cakeMat = track(M.frosting(0xffffff));
-  const cake = new THREE.Mesh(track(new THREE.LatheGeometry(profile, 96)), cakeMat); cake.userData.pick = 'frosting'; cake.castShadow = true; cake.receiveShadow = true; fixed.add(cake);
+  const body = new THREE.Group(); fixed.add(body);
+  function buildBody(tiers) {
+    body.traverse((o) => { if (o.isMesh) o.geometry.dispose(); }); body.clear();
+    let y = 0;
+    for (const { r, h } of tiers) {
+      const profile = [new THREE.Vector2(0, y), new THREE.Vector2(r * 0.985, y), new THREE.Vector2(r, y + 0.03)];
+      for (let i = 0; i <= 10; i++) { const a = (i / 10) * Math.PI / 2; profile.push(new THREE.Vector2(r - 0.06 + 0.06 * Math.cos(a), y + h - 0.06 + 0.06 * Math.sin(a))); }
+      profile.push(new THREE.Vector2(0, y + h));
+      const tier = new THREE.Mesh(new THREE.LatheGeometry(profile, 96), cakeMat); tier.userData.pick = 'frosting'; tier.castShadow = true; tier.receiveShadow = true; body.add(tier);
+      y += h;
+    }
+  }
+  buildBody([{ r: R, h: H }]);
 
   // The cake (model + decorations) sits in "lift" so the packing animation can raise and lower it.
   const lift = new THREE.Group(); world.add(lift);
@@ -370,7 +385,8 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     }
     root.updateMatrixWorld(true);
     const yTop = (o) => (o ? new THREE.Box3().setFromObject(o).max.y : null);
-    H = Math.max(yTop(parts.top_frosting), yTop(parts.cake));
+    MODEL_H = Math.max(yTop(parts.top_frosting), yTop(parts.cake));
+    if (shapeKey === 'bento') H = MODEL_H;
     // Bakery materials in place of the model's plain ones (base colours kept; frosting parts are recoloured later).
     const swap = (o, make) => o && forEachMesh(o, (m) => { const old = m.material; m.material = make(old.color.clone()); old.dispose(); });
     for (const name of ['cake', 'top_frosting']) swap(parts[name], M.frosting);
@@ -379,7 +395,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     swap(parts.drip, M.glaze); swap(parts.box_clamshell, M.pulp); swap(parts.gingham_paper, (c) => M.cloth(c));
     for (const name of ['flower_piped', 'leaf_piped']) if (templates[name]) swap(templates[name], M.piped);
     model = { root, parts, templates, bow, topShellY: yTop(parts.border_top_shell), bottomShellY: yTop(parts.border_bottom_shell), pack: buildPack(parts) };
-    fixed.visible = false; lift.add(root);
+    lift.add(root); showBody();
     if (lastDesign) update(lastDesign, lastPalette); else request();
   }
   // --- packaging ---------------------------------------------------------------------------------
@@ -418,7 +434,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   function pack() {
     if (packing) return packing;
     packing = (async () => {
-      const P = model?.pack; if (!P) return;
+      const P = shapeKey === 'bento' ? model?.pack : null; if (!P) return;
       finishPiping(); clearTimeout(spinTimer); spin = false; spinAllowed = false; anims.clear();
       const toppers = []; decor.traverse((o) => { if (o.userData.topper) toppers.push(o); });
       P.group.visible = true; P.group.position.set(0, 0, -7); P.hinge.rotation.x = 0; P.sticker.visible = false;
@@ -472,7 +488,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     lastDesign = design; lastPalette = palette; messagePlane = null;
     finishPiping();
     try { build(design, palette); } finally { currentPick = null; }
-    if (!prev || prev === design || !model || packing) return;
+    if (!prev || prev === design || !model || packing || shapeKey !== 'bento') return;
     // Piping animations for what was just added (not while typing the message letter by letter).
     const before = new Set(prev.border || []), frost = palette[design.frosting_color] || '#ffffff';
     for (const [code, part, radius, y] of [['shell_top', 'border_top_shell', R - 0.06, model.topShellY], ['shell_bottom', 'border_bottom_shell', R + 0.07, model.bottomShellY]])
@@ -487,7 +503,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const frost = hexOf(design.frosting_color);
     fadeColor(cakeMat, frost);
     clearDecor();
-    if (model) return updateModel(design, palette, hexOf, frost);
+    if (model && shapeKey === 'bento') return updateModel(design, palette, hexOf, frost);
     const rand = seeded(97);
     const accents = new Set(design.accents || []); const borders = new Set(design.border || []);
     const frostMat = M.piped(shade(frost, 0.03));
@@ -501,8 +517,9 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
       }
     };
     currentPick = 'border';
-    if (borders.has('shell_top')) shell(R - 0.05, H + 0.01, 26, [0.95, 0.8, 1.55]);
-    if (borders.has('shell_bottom')) shell(R + 0.03, 0.08, 30, [1.0, 0.85, 1.6]);
+    if (borders.has('shell_top')) shell(R - 0.05, H + 0.01, Math.round(26 * R), [0.95, 0.8, 1.55]);
+    if (borders.has('shell_bottom')) shell(RB + 0.03, 0.08, Math.round(30 * RB), [1.0, 0.85, 1.6]);
+    if (borders.has('shell_bottom') && TIER_Y > 0) shell(R + 0.03, TIER_Y + 0.08, Math.round(30 * R), [1.0, 0.85, 1.6]);   // where the tiers meet
 
     currentPick = 'drip';
     if (accents.has('drip')) {
@@ -521,7 +538,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
       const pm = pearl(accents.has('pearls_gold') ? '#d4af37' : '#e4e7ec'); const g = new THREE.SphereGeometry(0.028, 14, 10);
       for (let i = 0; i < 26; i++) { const a = ((i + 0.5) / 26) * Math.PI * 2; const m = new THREE.Mesh(i ? g.clone() : g, pm); m.position.set(Math.cos(a) * (R - 0.05), H + 0.1, Math.sin(a) * (R - 0.05)); decor.add(m); }
       for (let i = 0; i < 18; i++) { const a = rand() * Math.PI * 2, r = TEXT_R + 0.04 + rand() * (R - TEXT_R - 0.2); const m = new THREE.Mesh(g.clone(), pm); m.position.set(Math.cos(a) * r, H + 0.02, Math.sin(a) * r); decor.add(m); }
-      if (borders.has('shell_bottom')) for (let i = 0; i < 30; i++) { const a = ((i + 0.5) / 30) * Math.PI * 2; const m = new THREE.Mesh(g.clone(), pm); m.position.set(Math.cos(a) * (R + 0.1), 0.17, Math.sin(a) * (R + 0.1)); decor.add(m); }
+      if (borders.has('shell_bottom')) { const n = Math.round(30 * RB); for (let i = 0; i < n; i++) { const a = ((i + 0.5) / n) * Math.PI * 2; const m = new THREE.Mesh(g.clone(), pm); m.position.set(Math.cos(a) * (RB + 0.1), 0.17, Math.sin(a) * (RB + 0.1)); decor.add(m); } }
     }
 
     currentPick = 'bows';
@@ -573,7 +590,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     currentPick = 'gold_leaf';
     if (accents.has('gold_leaf')) {
       const gm = M.goldLeaf();
-      for (let i = 0; i < 26; i++) { const a = rand() * Math.PI * 2, y = 0.18 + rand() * (H - 0.35); const m = new THREE.Mesh(new THREE.CircleGeometry(0.03 + rand() * 0.035, 5), gm); m.position.set(Math.cos(a) * (R + 0.004), y, Math.sin(a) * (R + 0.004)); m.lookAt(Math.cos(a) * 3, y, Math.sin(a) * 3); m.rotation.z = rand() * 3; decor.add(m); }
+      for (let i = 0; i < 26; i++) { const a = rand() * Math.PI * 2, y = TIER_Y + 0.18 + rand() * (H - TIER_Y - 0.35); const m = new THREE.Mesh(new THREE.CircleGeometry(0.03 + rand() * 0.035, 5), gm); m.position.set(Math.cos(a) * (R + 0.004), y, Math.sin(a) * (R + 0.004)); m.lookAt(Math.cos(a) * 3, y, Math.sin(a) * 3); m.rotation.z = rand() * 3; decor.add(m); }
     }
 
     currentPick = 'message';
@@ -800,7 +817,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   };
   el.addEventListener('pointerup', endDrag); el.addEventListener('pointercancel', endDrag);
   function setArrange(on) {
-    arranging = !!on && !!model; dragging = null; onHover?.(null);
+    arranging = !!on && !!model && shapeKey === 'bento'; dragging = null; onHover?.(null);
     if (arranging) { clearTimeout(spinTimer); spin = false; spinAllowed = false; setView('arrange'); }
     else { spinAllowed = !reducedMotion; idle(); }
     return arranging;
@@ -846,10 +863,33 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     alive = false; tableSet.dispose(); clearTimeout(spinTimer); anims.clear(); spin = false; cancelAnimationFrame(frame); ro.disconnect(); clearDecor();
     if (model?.pack) forEachMesh(model.pack.group, (m) => m.geometry.dispose());
     if (model) forEachMesh(model.root, (m) => { m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => { x.map?.dispose(); x.dispose(); }); });
+    body.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
     envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
   }
+  // Which cake to draw. tiers: [{ d, h }] in inches, bottom tier first (Petite 6x4 = [{d:6,h:4}];
+  // Mini Tiered 6x4 = [{d:6,h:2},{d:4,h:2}]). The bento keeps its detailed model; other cakes use shapes.
+  function showBody() {
+    const useModel = !!model && shapeKey === 'bento';
+    if (model) model.root.visible = useModel;
+    fixed.visible = !useModel;
+  }
+  function setShape(next = {}) {
+    const key = next.key && next.key !== 'bento' ? next.key : 'bento';
+    const tiers = key === 'bento' ? [{ r: 1, h: 1.05 }] : (next.tiers || []).map((t) => ({ r: Number(t.d) / 4, h: Number(t.h) / 2 })).filter((t) => t.r > 0 && t.h > 0);
+    if (!tiers.length) return;
+    const sig = key + JSON.stringify(tiers); if (sig === shapeSig) return; shapeSig = sig; shapeKey = key;
+    if (key === 'bento') { R = RB = 1; TIER_Y = 0; H = MODEL_H ?? 1.05; }
+    else { RB = tiers[0].r; R = tiers[tiers.length - 1].r; TIER_Y = tiers.slice(0, -1).reduce((sum, t) => sum + t.h, 0); H = TIER_Y + tiers[tiers.length - 1].h; }
+    TEXT_R = 0.74 * R;
+    buildBody(tiers);
+    stand.scale.set(RB, 1, RB);
+    fit.scale.setScalar(1 / Math.max(1, RB * 0.8, H * 0.72));
+    if (arranging) setArrange(false);
+    showBody();
+    if (lastDesign) update(lastDesign, lastPalette); else request();
+  }
   idle();
-  return { update, resetView, setView, setAutoRotate: (on) => { spinAllowed = on && !reducedMotion && !arranging; idle(); }, snapshot, pack, unpack, spinOnce, setArrange, hasMovable, setScene, dispose, canvas: renderer.domElement };
+  return { update, setShape, resetView, setView, setAutoRotate: (on) => { spinAllowed = on && !reducedMotion && !arranging; idle(); }, snapshot, pack, unpack, spinOnce, setArrange, hasMovable, setScene, dispose, canvas: renderer.domElement };
 }
 
 // Shared with the cupcake preview (cupcake-scene.js).
