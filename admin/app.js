@@ -1,6 +1,6 @@
 import { renderDashboard } from './pages/dashboard.js?v=17';
 import { renderProducts } from './pages/products.js?v=13';
-import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=27';
+import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=35';
 import { renderReports } from './pages/reports.js?v=19';
 import { renderOrders } from './pages/orders.js?v=39';
 import { renderBookings } from './pages/bookings.js?v=12';
@@ -129,6 +129,8 @@ async function renderRoute() {
   else if (current === 'designs') await renderDesignOptions(content);
   else if (current === 'updates') renderUpdates(content);
   else if (current === 'profile') await renderProfile(content, subpage);
+  // a tab strip that scrolls sideways on phones shows its current tab (e.g. Inventory → Conversions)
+  content.querySelectorAll('.stock-tabs').forEach(nav => { const strip = nav.closest('.stock-tabrow') || nav, on = nav.querySelector('.is-active'); if (on && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = on.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft - (strip.clientWidth - on.offsetWidth) / 2; });
   await refreshInventoryNotificationBadge();
 }
 window.addEventListener('hashchange', renderRoute);

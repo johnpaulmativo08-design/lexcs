@@ -1,0 +1,107 @@
+/* Log in / sign up / code screens — layout and motion modelled on the reference videos, in LexC's colours.
+   Phone: a curved plum header sweeps in over the form. Buttons morph while working: the log-in pill shrinks to a
+   two-dot loader; the code Confirm button turns into a spinner, then a red ✕ (boxes shake) or a green ✓ that widens. */
+
+/* ---- curved header (phones only; desktop keeps the photo panel) */
+.auth-curve{display:none}
+@media(max-width:760px){
+  #page-login .auth-form-side,#page-register .auth-form-side{position:relative;justify-content:flex-start;padding-top:0;overflow:hidden}
+  #page-login .auth-logo,#page-register .auth-logo{display:none}
+  .auth-curve{display:block;position:relative;width:calc(100% + 40px);margin:0 -20px 6px;height:228px;pointer-events:none}
+  .auth-curve svg{position:absolute;inset:0;width:100%;height:100%;transform-origin:top center;animation:auth-sweep .9s cubic-bezier(.65,0,.25,1) both}
+  .auth-curve-text{position:relative;padding:calc(env(safe-area-inset-top) + 74px) 26px 0;color:#fff;animation:auth-rise .5s .55s ease both}
+  .auth-curve-brand{font-family:'Playfair Display',serif;font-size:1.65rem;font-weight:700;letter-spacing:.01em;line-height:1.1}
+  .auth-curve-brand span{color:#f3d9a4;font-style:italic}
+  .auth-curve-text p{margin:6px 0 0;font-size:.82rem;color:rgba(255,255,255,.78)}
+  #page-login .auth-card,#page-register .auth-card{animation:auth-rise .5s .65s ease both}
+}
+@keyframes auth-sweep{0%{transform:scaleY(4.2)}55%{transform:scaleY(1.06)}100%{transform:scaleY(1)}}
+@keyframes auth-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---- fields: plain sentence-case labels, soft filled inputs */
+#page-login .auth-label,#page-register .auth-label{text-transform:none;letter-spacing:0;font-size:.8rem;color:#3a2840;font-weight:700;margin-bottom:6px}
+#page-login .auth-heading,#page-register .auth-heading{font-size:1.75rem;margin-bottom:.25rem}
+#page-login .auth-sub,#page-register .auth-sub{margin-bottom:1.4rem}
+#page-login .auth-field,#page-register .auth-field{margin-bottom:1rem}
+#page-login .auth-input,#page-register .auth-input{background:#faf7fd;border-color:#eadff4;border-radius:12px}
+#page-login .auth-input:focus,#page-register .auth-input:focus{background:#fff}
+.auth-under{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.auth-check{display:flex;align-items:center;gap:7px;font-size:.8rem;color:#7a5d8a;cursor:pointer}
+.auth-check input{accent-color:#5c3d6e;width:15px;height:15px}
+.auth-under .auth-forgot{font-weight:700;font-size:.8rem}
+
+/* the eye toggles come from motion.js (.mo-pass-toggle) */
+#page-login .mo-pass-wrap,#page-register .mo-pass-wrap{display:block}
+
+/* ---- morphing buttons */
+.auth-morph{position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-left:auto;margin-right:auto;border-radius:999px!important;overflow:hidden;transition:width .42s cubic-bezier(.65,0,.25,1),background-color .3s,border-radius .3s,opacity .2s,transform .15s}
+.auth-morph>span{transition:opacity .18s}
+.auth-morph .auth-dots,.auth-morph .auth-spin,.auth-morph .auth-mark{position:absolute;inset:0;display:grid;place-items:center;opacity:0;pointer-events:none}
+.auth-morph.is-idle{background:#cdbfdc;color:#fff}
+.auth-morph.is-idle:hover{background:#c2b2d4;transform:none}
+.auth-morph.is-loading,.auth-morph.is-error,.auth-morph.is-success{cursor:default;transform:none!important}
+.auth-morph.is-loading .auth-btn-label,.auth-morph.is-error .auth-btn-label,.auth-morph.is-success .auth-btn-label{opacity:0}
+/* log in: a short pill with two dots that swap places */
+.auth-morph[data-morph="pill"].is-loading{width:92px}
+.auth-morph[data-morph="pill"].is-loading .auth-dots{opacity:1}
+.auth-dots i{position:absolute;top:50%;width:13px;height:13px;margin-top:-6.5px;border-radius:50%;background:#fff}
+.auth-dots i:first-child{left:calc(50% - 15px);animation:auth-dot-a .9s ease-in-out infinite}
+.auth-dots i:last-child{left:calc(50% + 2px);background:rgba(255,255,255,.55);animation:auth-dot-b .9s ease-in-out infinite}
+@keyframes auth-dot-a{50%{transform:translateX(17px) scale(.75)}}
+@keyframes auth-dot-b{50%{transform:translateX(-17px) scale(1.15)}}
+.auth-morph.is-shake{animation:auth-shake .42s ease}
+/* code confirm: circle spinner → red ✕ or green ✓ (then the ✓ widens to the full bar) */
+.auth-morph[data-morph="circle"].is-loading,.auth-morph[data-morph="circle"].is-error,.auth-morph[data-morph="circle"].is-success{width:52px}
+.auth-morph[data-morph="circle"].is-success.is-wide{width:100%}
+.auth-morph.is-loading .auth-spin{opacity:1}
+.auth-spin::after{content:'';width:22px;height:22px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:auth-spin .7s linear infinite}
+@keyframes auth-spin{to{transform:rotate(360deg)}}
+.auth-morph.is-error{background:#c4485b!important}
+.auth-morph.is-success{background:#3f9a6b!important}
+.auth-morph.is-error .auth-mark,.auth-morph.is-success .auth-mark{opacity:1}
+.auth-mark svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.auth-mark .mk-ok,.auth-morph.is-success .mk-no{display:none}.auth-morph.is-success .mk-ok{display:block}
+.auth-morph.is-error .auth-mark svg,.auth-morph.is-success .auth-mark svg{animation:auth-pop .32s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes auth-pop{from{transform:scale(.3);opacity:0}}
+
+/* ---- "Or" + round social button */
+#page-login .auth-or,#page-register .auth-or{margin:20px 0 14px}
+.auth-social{display:flex;justify-content:center;gap:14px;margin-bottom:22px}
+.auth-social[hidden]{display:none}
+.auth-social .auth-google{width:52px;height:52px;min-height:0;margin:0;padding:0;border-radius:50%;box-shadow:0 2px 10px rgba(92,61,110,.08)}
+.auth-social .auth-google span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.auth-social .auth-google svg{width:22px;height:22px}
+.auth-social .auth-google-gis{min-height:44px}
+.auth-google-gis svg{width:18px!important;height:18px!important;min-width:18px}
+#page-login .auth-switch,#page-register .auth-switch{margin-top:6px}
+
+/* ---- code screens */
+.auth-change{border:0;background:none;padding:0 0 0 4px;color:#5c3d6e;font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.otp{margin-bottom:12px}
+.otp input{background:#faf7fd;border-color:#e6dcf2;transition:border-color .2s,box-shadow .2s,background .2s,color .2s,transform .2s}
+.otp input:not(:placeholder-shown),.otp input.has-digit{background:#fff;border-color:#cdbde4}
+.otp input:focus{border-color:#5c3d6e;background:#fff;box-shadow:0 0 0 3px rgba(92,61,110,.14)}
+.otp.is-checking input{opacity:.75}
+.otp.is-bad input{border-color:#d9727f;color:#a3374a;background:#fff6f7}
+.otp.is-good input{border-color:#5fb58a;color:#25744d;background:#f3fbf6}
+.otp.is-shake{animation:auth-shake .42s ease}
+.otp.is-good input{animation:auth-pop-in .35s ease both}
+.otp.is-good input:nth-child(2){animation-delay:.04s}.otp.is-good input:nth-child(3){animation-delay:.08s}.otp.is-good input:nth-child(4){animation-delay:.12s}.otp.is-good input:nth-child(5){animation-delay:.16s}.otp.is-good input:nth-child(6){animation-delay:.2s}
+@keyframes auth-pop-in{50%{transform:scale(1.08)}}
+@keyframes auth-shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.otp-status{display:flex;align-items:center;justify-content:center;gap:6px;min-height:0;margin:0 0 4px;font-size:.8rem;font-weight:700;text-align:center}
+.otp-status:empty{display:none}
+.otp-status.is-bad{color:#b23d50}.otp-status.is-good{color:#2f8a5c}
+.otp-status::before{content:'';flex:none;width:15px;height:15px;border-radius:50%;background:currentColor;-webkit-mask:var(--ic) center/100% no-repeat;mask:var(--ic) center/100% no-repeat}
+.otp-status.is-bad{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='none' stroke='black' stroke-width='1.6'/%3E%3Cpath d='M8 4.5v4.2M8 11.2v.3' stroke='black' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E")}
+.otp-status.is-good{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8'/%3E%3Cpath d='M4.6 8.2l2.2 2.2 4.6-4.8' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.otp-timer{margin:0 0 18px;text-align:center;font-size:.8rem;color:#7d7089}
+.otp-timer b{color:#3a2840;font-variant-numeric:tabular-nums}
+.otp-timer:empty{display:none}
+[data-login-view="code"] .auth-resend,[data-reg-step="2"] .auth-resend{margin:18px 0 0}
+
+@media(prefers-reduced-motion:reduce){
+  .auth-curve svg,.auth-curve-text,#page-login .auth-card,#page-register .auth-card,.otp.is-shake,.otp.is-good input,.auth-morph.is-shake,.auth-mark svg{animation:none!important}
+  .auth-morph{transition:none}
+  .auth-dots i{animation-duration:1.8s}
+}

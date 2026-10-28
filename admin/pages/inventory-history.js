@@ -2,6 +2,7 @@
 import { escapeHtml as e } from '../components.js?v=3';
 import { db } from '../backend-ui.js?v=3';
 import { attr, icon, qty, dateTime, movementBadge, movementLabel, delta, sectionTabs, pageHead, skeletonRows, errorState, emptyState, csv, download, toast } from '../inventory-ui.js?v=3';
+import { xlsxBlob } from '../xlsx.js?v=3';
 
 const KINDS = [['all', 'All movements'], ['orders', 'Orders'], ['restocks', 'Restocks'], ['adjustments', 'Adjustments'], ['reversals', 'Reversals'], ['wastage', 'Wastage'], ['expiry', 'Expiry']];
 const COLUMNS = ['Date', 'Order', 'Material', 'Movement', 'Before', 'Change', 'After', 'By'];
@@ -17,8 +18,8 @@ export async function renderHistory(content) {
     const items = state.lookups?.items || [];
     const products = state.lookups?.products || [];
     content.innerHTML = `<section class="inventory-page stock-page">
-      ${pageHead('Inventory', 'Every stock change with its reason, order link and before/after quantities.', `<button class="button" type="button" data-export>${icon('download')} Export CSV</button>`)}
-      ${sectionTabs('movements')}
+      ${pageHead('Inventory', 'Every stock change with its reason, order link and before/after quantities.')}
+      <div class="stock-tabrow">${sectionTabs('movements')}</div>
       <div class="stock-kinds" role="group" aria-label="Movement type">${KINDS.map(([key, label]) => `<button type="button" class="stock-kind${state.kind === key ? ' is-active' : ''}" data-kind="${key}" aria-pressed="${state.kind === key}">${label}</button>`).join('')}</div>
       <form class="stock-history-filters" data-filters>
         <label><span>Material</span><select name="item_id"><option value="">All materials</option>${items.map((i) => `<option value="${attr(i.id)}" ${state.item_id === i.id ? 'selected' : ''}>${e(i.name)}</option>`).join('')}</select></label>
@@ -27,7 +28,7 @@ export async function renderHistory(content) {
         <label><span>From</span><input type="date" name="from" value="${attr(state.from)}"></label>
         <label><span>To</span><input type="date" name="to" value="${attr(state.to)}"></label>
         <label><span>Sort</span><select name="sort"><option value="newest" ${state.sort === 'newest' ? 'selected' : ''}>Newest first</option><option value="oldest" ${state.sort === 'oldest' ? 'selected' : ''}>Oldest first</option></select></label>
-        <button class="text-button" type="reset">Clear</button>
+        <div class="stock-history-export"><button class="button stock-add-mini" type="button" data-export="xlsx">${icon('download')} Export Excel</button></div>
       </form>
       <div data-results>${skeletonRows(COLUMNS, 8)}</div>
     </section>`;
@@ -129,13 +130,14 @@ export async function renderHistory(content) {
     const form = content.querySelector('[data-filters]');
     form.addEventListener('change', () => { Object.assign(state, Object.fromEntries(new FormData(form)), { offset: 0 }); load(); });
     form.addEventListener('input', (event) => { if (event.target.name !== 'order_number') return; clearTimeout(bind.t); bind.t = setTimeout(() => { state.order_number = event.target.value; state.offset = 0; load(); }, 350); });
-    form.addEventListener('reset', () => setTimeout(() => { Object.assign(state, { item_id: '', product_id: '', order_number: '', from: '', to: '', sort: 'newest', offset: 0 }); load(); }));
     form.addEventListener('submit', (event) => event.preventDefault());
-    content.querySelector('[data-export]').onclick = exportCsv;
+    content.querySelectorAll('[data-export]').forEach((button) => { button.onclick = exportFile; });
   };
 
-  const exportCsv = async (event) => {
-    const button = event.currentTarget; button.disabled = true; button.lastChild.textContent = ' Exporting…';
+  // the movements shown by the current filters, as CSV (any program) or Excel (.xlsx with widths and borders)
+  const exportFile = async (event) => {
+    const button = event.currentTarget, kind = button.dataset.export, label = button.lastChild.textContent;
+    button.disabled = true; button.lastChild.textContent = ' Exporting…';
     try {
       const all = [];
       for (let offset = 0; offset < 20000; offset += 500) {
@@ -145,10 +147,15 @@ export async function renderHistory(content) {
       }
       const lines = [['Date (Asia/Manila)', 'Order', 'Material', 'Batch', 'Movement', 'Before', 'Change', 'After', 'Unit', 'Recipe', 'Note', 'Reference', 'By']]
         .concat(all.map((r) => [dateTime(r.created_at), r.order_number ? `#${r.order_number}` : '', r.item_name, r.batch_code, movementLabel(r.movement_type), r.stock_before ?? '', r.quantity_delta, r.stock_after ?? '', r.unit, r.recipe || '', r.note || '', r.reference || '', r.actor_kind === 'system' ? `System via ${r.actor_name}` : r.actor_name]));
-      download(`lexc-inventory-history-${new Date().toISOString().slice(0, 10)}.csv`, csv(lines));
+      const name = `lexc-inventory-history-${new Date().toISOString().slice(0, 10)}`;
+      if (kind === 'xlsx') {
+        const blob = xlsxBlob({ title: 'Inventory history', sheet: 'History', about: 'Every stock change with its reason, order link and before/after quantities.',
+          details: [['Movements', all.length], ['Generated', dateTime(new Date().toISOString())]], sections: [{ heading: 'Movements', columns: lines[0], rows: lines.slice(1) }] });
+        const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name + '.xlsx' }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      } else download(name + '.csv', csv(lines));
       toast(`Exported ${all.length} movements.`);
     } catch (error) { toast(error.message || 'Export failed.'); }
-    finally { button.disabled = false; button.lastChild.textContent = ' Export CSV'; }
+    finally { button.disabled = false; button.lastChild.textContent = label; }
   };
 
   frame();

@@ -1,9 +1,9 @@
 import { escapeHtml, empty, showDetails } from '../components.js?v=3';
 import { db, loadingTable, loadingList } from '../backend-ui.js?v=3';
 import { sectionTabs } from '../inventory-ui.js?v=3';
-import { renderMaterials } from './inventory-materials.js?v=8';
-import { renderHistory } from './inventory-history.js?v=3';
-import { renderRecipes } from './recipes.js?v=9';
+import { renderMaterials } from './inventory-materials.js?v=9';
+import { renderHistory } from './inventory-history.js?v=6';
+import { renderRecipes } from './recipes.js?v=11';
 
 const priority = { 'Out of Stock': 0, 'Low Stock': 1, 'Expiring Soon': 2, 'In Stock': 3, Expired: 4 };
 const activeStatuses = ['Out of Stock', 'Low Stock', 'Expiring Soon', 'In Stock'];
@@ -284,7 +284,51 @@ function renderUsageForm(batch, onSuccess, initialAction = 'stock_usage') {
   });
 }
 
-function renderItemDetails(batch, allBatches) {
+// Adjust Quantity on one batch: Remove (an adjustment out of this batch) or Add (this batch's received amount goes up,
+// recorded as a batch correction in History). Both need a reason.
+function renderAdjustForm(batch, onSuccess) {
+  const left = Number(batch.remaining_quantity), unit = escapeHtml(batch.unit);
+  const dialog = showDetails(`Adjust Quantity — ${batch.item_name}`, `
+    <form class="inventory-form" data-adjust-form novalidate>
+      <div class="inventory-readonly"><span>Batch</span><strong>${escapeHtml(batch.batch_code)}</strong><small>${quantity(left)} ${unit} currently available</small></div>
+      <div class="inv-adjust-dir" role="radiogroup" aria-label="Add or remove">
+        <label><input type="radio" name="direction" value="increase" checked><span>${icon('plus')} Add</span></label>
+        <label><input type="radio" name="direction" value="decrease" ${left > 0 ? '' : 'disabled'}><span>− Remove</span></label>
+      </div>
+      <div class="form-grid"><label class="form-field"><span data-qty-label>Quantity to add <em>*</em></span><input name="quantity" type="number" min="0.01" step="any" inputmode="decimal" required></label><label class="form-field"><span>Unit</span><input value="${escapeAttr(batch.unit)}" readonly></label></div>
+      <p class="inv-adjust-preview" data-preview hidden></p>
+      <label class="form-field"><span>Reason <em>*</em></span><input name="note" maxlength="300" placeholder="e.g. Counted 2 kg more than recorded" autocomplete="off" required></label>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button class="button button--quiet" type="button" data-close>Cancel</button><button class="button button--primary" type="submit">Save adjustment</button></div>
+    </form>`);
+  dialog?.querySelector('.dialog-footer')?.remove();
+  const form = dialog?.querySelector('[data-adjust-form]'); if (!form) return;
+  const f = form.elements, error = form.querySelector('[role=alert]'), preview = form.querySelector('[data-preview]');
+  const adding = () => f.direction.value === 'increase';
+  const update = () => {
+    form.querySelector('[data-qty-label]').innerHTML = `Quantity to ${adding() ? 'add' : 'remove'} <em>*</em>`;
+    f.quantity.max = adding() ? '' : String(left);
+    const amount = Number(f.quantity.value);
+    preview.hidden = !(amount > 0);
+    if (!preview.hidden) { const next = adding() ? left + amount : left - amount; preview.textContent = `${quantity(left)} → ${quantity(Math.max(0, next))} ${batch.unit}`; preview.classList.toggle('is-bad', next < 0); }
+  };
+  form.addEventListener('input', update); form.addEventListener('change', update); update();
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const amount = Number(f.quantity.value), note = f.note.value.trim();
+    const problem = !(amount > 0) ? 'Enter a quantity above 0.' : !adding() && amount > left ? `You can remove at most ${quantity(left)} ${batch.unit} from this batch.` : note.length < 3 ? 'Write a short reason.' : '';
+    if (problem) { error.textContent = problem; error.hidden = false; (note.length < 3 && amount > 0 ? f.note : f.quantity).focus(); return; }
+    error.hidden = true;
+    const button = form.querySelector('[type=submit]'); button.disabled = true; button.textContent = 'Saving…';
+    try {
+      if (adding()) await db.rpc('correct_inventory_batch', { payload: { batch_id: batch.id, quantity_received: Math.round((Number(batch.quantity_received) + amount) * 1000) / 1000, reason: note, request_id: requestId() } });
+      else await db.rpc('inventory_action', { payload: { action: 'adjustment_negative', request_id: requestId(), batch_id: batch.id, quantity: amount, reference: null, note } });
+      dialog.close(); notify(`${adding() ? 'Added' : 'Removed'} ${quantity(amount)} ${batch.unit} · recorded in History.`); await onSuccess();
+    } catch (problemError) { error.textContent = problemError.message || 'Could not save the adjustment.'; error.hidden = false; button.disabled = false; button.textContent = 'Save adjustment'; }
+  });
+}
+
+function renderItemDetails(batch, allBatches, onSaved) {
   const groups = allBatches.filter((entry) => entry.item_id === batch.item_id);
   const usable = groups.filter((entry) => !entry.archived_at).reduce((sum, entry) => sum + Number(entry.remaining_quantity || 0), 0);
   const active = groups.filter((entry) => !entry.archived_at);
@@ -301,10 +345,106 @@ function renderItemDetails(batch, allBatches) {
   showDetails(`${batch.item_name} — Details`, `
     <section class="inventory-details">
       <div class="inventory-details__summary"><div><span>Total usable stock</span><strong>${quantity(usable)} ${escapeHtml(batch.unit)}</strong></div><div><span>Inventory condition</span><strong>${escapeHtml(active.length > 1 ? `Mixed — ${conditions}` : conditions)}</strong></div><div><span>Category</span><strong>${escapeHtml(batch.category || 'Uncategorised')}</strong></div></div>
-      <h3>Batch breakdown</h3><div class="table-wrap"><table class="data-table inventory-table"><thead><tr><th>Batch ID</th><th>Quantity</th><th>Expiry</th><th>Status</th></tr></thead><tbody>${groups.map((entry) => `<tr><td><strong>${escapeHtml(entry.batch_code)}</strong></td><td>${quantity(entry.remaining_quantity)} ${escapeHtml(entry.unit)}</td><td>${formatDate(entry.expires_on)}</td><td>${statusChip(entry.status)}</td></tr>`).join('')}</tbody></table></div>
+      <h3>Batch breakdown</h3><div class="table-wrap"><table class="data-table inventory-table"><thead><tr><th>Batch ID</th><th>Quantity</th><th>Expiry</th><th>Status</th></tr></thead><tbody>${groups.map((entry) => `<tr><td><strong>${escapeHtml(entry.batch_code)}</strong></td><td>${quantity(entry.remaining_quantity)} ${escapeHtml(entry.unit)}</td><td>${entry.archived_at || entry.inventory_type === 'packaging' ? formatDate(entry.expires_on) : `<button type="button" class="inv-exp-edit" data-exp-edit="${escapeAttr(entry.id)}" title="Change the expiry date">${entry.expires_on ? formatDate(entry.expires_on) : '<span class="inv-exp-add">Add date</span>'}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg></button>`}</td><td>${statusChip(entry.status)}</td></tr>`).join('')}</tbody></table></div>
       <h3>Item information</h3><dl class="inventory-details__facts"><div><dt>Average price</dt><dd>${averagePrice === null ? 'Not recorded' : `₱${quantity(averagePrice)}`}</dd></div><div><dt>Last restocked</dt><dd>${formatDate(lastRestocked)}</dd></div><div><dt>Active batches</dt><dd>${active.length}</dd></div></dl>
       <div class="dialog-actions"><button class="button button--quiet" data-close>Close</button></div>
     </section>`);
+  // tap an expiry date (or "Add date") to change it right here; saved as a batch correction with a reason in History
+  const dialog = [...document.querySelectorAll('dialog[open]')].pop();
+  dialog?.querySelectorAll('[data-exp-edit]').forEach((button) => button.addEventListener('click', () => editExpiry(button)));
+  function editExpiry(button) {
+    const entry = groups.find((item) => item.id === button.dataset.expEdit); if (!entry) return;
+    const cell = button.closest('td');
+    cell.innerHTML = `<form class="inv-exp-form"><input type="date" name="exp" value="${escapeAttr(entry.expires_on || '')}" min="${escapeAttr(entry.stock_in_date || '')}" aria-label="Expiry date for ${escapeAttr(entry.batch_code)}" required><button class="button button--primary button--small" type="submit">Save</button><button class="text-button" type="button" data-cancel>Cancel</button><small class="inv-exp-error" role="alert"></small></form>`;
+    const form = cell.querySelector('form'), input = form.elements.exp, error = form.querySelector('[role=alert]');
+    const restore = () => { cell.innerHTML = `<button type="button" class="inv-exp-edit" data-exp-edit="${escapeAttr(entry.id)}" title="Change the expiry date">${entry.expires_on ? formatDate(entry.expires_on) : '<span class="inv-exp-add">Add date</span>'}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg></button>`; cell.querySelector('button').addEventListener('click', (event) => editExpiry(event.currentTarget)); };
+    input.focus(); try { input.showPicker?.(); } catch { /* some browsers only open it on a direct tap */ }
+    form.querySelector('[data-cancel]').onclick = restore;
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      if (!input.value) { error.textContent = 'Choose a date.'; return; }
+      if (entry.stock_in_date && input.value < entry.stock_in_date) { error.textContent = 'It cannot be before the stock-in date.'; return; }
+      if (input.value === (entry.expires_on || '')) { restore(); return; }
+      const submit = form.querySelector('[type=submit]'); submit.disabled = true; submit.textContent = 'Saving…'; error.textContent = '';
+      try {
+        await db.rpc('correct_inventory_batch', { payload: { batch_id: entry.id, expires_on: input.value, reason: entry.expires_on ? 'Expiry date changed from item details' : 'Expiry date added from item details', request_id: requestId() } });
+        entry.expires_on = input.value; restore(); notify('Expiry date saved for ' + entry.batch_code + '.'); onSaved?.();
+      } catch (problem) { error.textContent = problem.message || 'Could not save the date.'; submit.disabled = false; submit.textContent = 'Save'; }
+    };
+  }
+}
+
+// ---- Archive / restore / delete a material (phase 80). The database re-checks everything; these screens warn first.
+const plural = (n, word, many = word + 's') => `${n} ${Number(n) === 1 ? word : many}`;
+const materialBlockers = (u) => {
+  const out = [], recipes = u.active_recipes || [];
+  if (recipes.length) out.push(`It is an ingredient in the active recipe of ${recipes.join(', ')}.`);
+  else if (Number(u.other_recipes)) out.push(`It is still listed in ${plural(u.other_recipes, 'draft or older recipe version')}.`);
+  if (Number(u.batches)) out.push(`It has ${plural(u.batches, 'stock batch', 'stock batches')}; their history must be kept.`);
+  if (Number(u.order_uses)) out.push(`Past orders used it ${plural(u.order_uses, 'time')}.`);
+  if (Number(u.movements) && !Number(u.batches)) out.push(`It has ${plural(u.movements, 'stock movement')} in History.`);
+  return out;
+};
+const openDialog = () => [...document.querySelectorAll('dialog[open]')].pop();
+async function archiveMaterial(itemId, onDone) {
+  let u;
+  try { u = await db.rpc('inventory_item_usage', { target: itemId }); } catch (error) { notify(error.message || 'Could not check this material.'); return; }
+  const recipes = u.active_recipes || [], stock = Number(u.stock || 0);
+  showDetails(`Archive ${u.name}?`, `<section class="inv-archive-dialog">
+      ${recipes.length ? `<div class="inv-warn is-strong">${icon('alert')}<div><strong>Used as an ingredient in ${plural(recipes.length, 'active recipe')}:</strong><ul>${recipes.map((name) => `<li>${escapeHtml(name)}</li>`).join('')}</ul><p>Start making on those products will keep taking it from the batches it still has, but it can't be restocked while archived. If you stopped using it, replace it in those recipes first (Products → Edit product → Recipe).</p></div></div>` : ''}
+      ${stock > 0 ? `<div class="inv-warn">${icon('info')}<div><strong>${quantity(stock)} ${escapeHtml(u.unit)} is still in stock.</strong> It stays in its batches.</div></div>` : ''}
+      <p class="inv-archive-note">Archived materials are hidden from restock lists and stock pages. You can restore it any time from <strong>Batches → Archive &amp; expired</strong>, and delete it there if it was never used.</p>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button class="button button--quiet" type="button" data-close>Cancel</button><button class="button button--primary" type="button" data-confirm-archive>${recipes.length ? 'Archive anyway' : 'Archive material'}</button></div>
+    </section>`);
+  const dialog = openDialog(); dialog.querySelector('.dialog-footer')?.remove();
+  const button = dialog.querySelector('[data-confirm-archive]'), error = dialog.querySelector('[role=alert]'), label = button.textContent;
+  button.onclick = async () => {
+    button.disabled = true; button.textContent = 'Archiving…'; error.hidden = true;
+    try { await db.rpc('set_inventory_item_archived', { target: itemId, archive: true }); dialog.close(); notify(`${u.name} archived.`); await onDone?.(); }
+    catch (problem) { error.textContent = problem.message || 'Could not archive it.'; error.hidden = false; button.disabled = false; button.textContent = label; }
+  };
+}
+async function renderArchivedMaterials(box, onDone) {
+  if (!box) return;
+  let list;
+  try { list = await db.rpc('archived_inventory_items', {}); }
+  catch (error) { box.innerHTML = '<h2 class="panel-title">Archived materials</h2><p class="inv-archive-note">Archived materials can’t be shown yet (database phase 80 is not applied).</p>'; return; }
+  if (!box.isConnected) return;
+  box.innerHTML = '<h2 class="panel-title">Archived materials</h2>' + (list.length ? `<ul class="inv-archived-list">${list.map((u) => {
+    const kept = materialBlockers(u).length > 0;
+    return `<li><div><strong>${escapeHtml(u.name)}</strong><small>${escapeHtml(u.category || (u.inventory_type === 'packaging' ? 'Packaging' : 'Ingredient'))} · ${escapeHtml(u.unit)}${Number(u.stock) > 0 ? ` · ${quantity(u.stock)} ${escapeHtml(u.unit)} in stock` : ''} · ${kept ? 'kept for history' : 'never used'}</small></div><div class="inv-archived-actions"><button class="button button--small" type="button" data-restore="${escapeAttr(u.id)}">Restore</button><button class="button button--small inv-delete" type="button" data-delete="${escapeAttr(u.id)}">${icon('waste')} Delete</button></div></li>`;
+  }).join('')}</ul>` : '<p class="inv-archive-note">No archived materials. Archive one from a batch’s Adjust Stock menu.</p>');
+  box.querySelectorAll('[data-restore]').forEach((button) => { button.onclick = async () => {
+    const u = list.find((x) => x.id === button.dataset.restore); button.disabled = true;
+    try { await db.rpc('set_inventory_item_archived', { target: u.id, archive: false }); notify(`${u.name} restored.`); await onDone?.(); }
+    catch (error) { notify(error.message || 'Could not restore it.'); button.disabled = false; }
+  }; });
+  box.querySelectorAll('[data-delete]').forEach((button) => { button.onclick = () => deleteMaterial(list.find((x) => x.id === button.dataset.delete), onDone); });
+}
+// Delete: checks first (recipes, batches, history, past orders). If anything still needs it, explain why and offer no
+// delete button; otherwise a final "can't be undone" confirmation. The database checks the same things again.
+async function deleteMaterial(listed, onDone) {
+  let u = listed;
+  try { u = await db.rpc('inventory_item_usage', { target: listed.id }); } catch { /* use what the list showed */ }
+  const blockers = materialBlockers(u);
+  if (!u.is_archived) blockers.unshift('It is not archived. Archive it first.');
+  showDetails(`Delete ${u.name}?`, `<section class="inv-archive-dialog">${blockers.length
+    ? `<div class="inv-warn is-strong">${icon('alert')}<div><strong>${escapeHtml(u.name)} can’t be deleted:</strong><ul>${blockers.map((b) => `<li>${escapeHtml(b)}</li>`).join('')}</ul><p>It stays archived, so it is hidden everywhere and past orders, recipes and stock history stay correct.</p></div></div><div class="dialog-actions"><button class="button button--quiet" type="button" data-close>Close</button></div>`
+    : `<p class="inv-archive-note">${escapeHtml(u.name)} was never stocked or used in a recipe or order, so it can be removed completely, with its unit conversions and alerts.</p>
+       <label class="inv-confirm-check"><input type="checkbox" data-sure> I understand this can’t be undone</label>
+       <p class="form-error" role="alert" hidden></p>
+       <div class="dialog-actions"><button class="button button--quiet" type="button" data-close>Cancel</button><button class="button inv-delete-confirm" type="button" data-confirm-delete disabled>${icon('waste')}<span> Delete permanently</span></button></div>`}</section>`);
+  const dialog = openDialog(); dialog.querySelector('.dialog-footer')?.remove();
+  const sure = dialog.querySelector('[data-sure]'), button = dialog.querySelector('[data-confirm-delete]'), error = dialog.querySelector('[role=alert]');
+  if (!button) return;
+  sure.onchange = () => { button.disabled = !sure.checked; };
+  button.onclick = async () => {
+    if (!sure.checked) return;
+    const text = button.querySelector('span'); button.disabled = true; text.textContent = ' Deleting…'; error.hidden = true;
+    try { await db.rpc('delete_inventory_item', { target: u.id }); dialog.close(); notify(`${u.name} deleted.`); await onDone?.(); }
+    catch (problem) { error.textContent = problem.message || 'Could not delete it. It stays archived.'; error.hidden = false; text.textContent = ' Delete permanently'; button.disabled = !sure.checked; }
+  };
 }
 
 function renderBatchHistory(batch, movements) {
@@ -379,13 +519,12 @@ async function renderBatches(content, subpage = '') {
     const offset = (state.page - 1) * state.pageSize;
     const entries = groups.slice(offset, offset + state.pageSize);
     const isOpen = (group) => state.open.has(group.key) || state.search.trim() !== '';
-    const allOpen = entries.length > 0 && entries.every(isOpen);
     const categories = [...new Set((state.snapshot?.batches || []).filter((batch) => state.archive ? batch.archived_at : !batch.archived_at && batch.inventory_type === state.type).map((batch) => batch.category).filter(Boolean))].sort();
     const rangeLabel = state.dateFrom || state.dateTo ? `${state.dateFrom ? formatDate(state.dateFrom) : 'Any'} – ${state.dateTo ? formatDate(state.dateTo) : 'Any'}` : 'All stock-in dates';
     content.innerHTML = `
       <section class="inventory-page">
         <header class="inventory-head"><div><h1>Inventory</h1><p>Batches by stock-in date and expiry. Order deductions use the earliest-expiring batch first.</p></div><button class="button button--primary" data-add-stock>＋ Add New Item / Stock</button></header>
-        ${sectionTabs('batches')}${batchTabs(state)}
+        ${sectionTabs('batches')}${batchTabs(state)}${state.archive ? `<section class="panel inv-archived" data-archived-items><h2 class="panel-title">Archived materials</h2>${loadingList(2)}</section>` : ''}
         <div class="inventory-filters">
           <label class="inventory-search">${icon('search')}<span class="sr-only">Search inventory</span><input class="search" type="search" value="${escapeAttr(state.search)}" placeholder="Search batch ID, item name, or category…" aria-label="Search inventory"></label>
           <details class="inventory-sort-menu">
@@ -398,9 +537,8 @@ async function renderBatches(content, subpage = '') {
               <div class="stock-date-fields"><span>Stock-in Date · ${escapeHtml(rangeLabel)}</span><label>From<input type="date" data-date-from value="${state.dateFrom}"></label><label>To<input type="date" data-date-to value="${state.dateTo}"></label><button class="text-button" type="button" data-clear-dates>Clear range</button></div>
             </div>
           </details>
-          <button type="button" class="button button--quiet inv-expand" data-expand-items="${allOpen ? 'close' : 'open'}" ${entries.length ? '' : 'disabled'}>${allOpen ? 'Close all items' : 'Open all items'}</button>
         </div>
-        <section class="panel inventory-table-panel"><div class="table-wrap"><table class="data-table inventory-table inventory-grouped"><thead><tr><th>Item · Batch ID</th><th>Category</th><th>In-stock</th><th>Unit</th><th>Expiry Date</th><th>Stock-in Date</th><th>Status</th><th>Action</th></tr></thead><tbody>${entries.length ? entries.map((group) => `<tr class="inv-item-row${isOpen(group) ? ' is-open' : ''}"><td><button type="button" class="inv-item-toggle" data-item-toggle="${escapeAttr(group.key)}" aria-expanded="${isOpen(group)}"><span class="inv-caret" aria-hidden="true">${icon('chevron')}</span><strong>${escapeHtml(group.name)}</strong><span class="inv-count">${group.batches.length} batch${group.batches.length === 1 ? '' : 'es'}</span></button></td><td>${escapeHtml(group.category)}</td><td><strong>${quantity(group.total)}</strong></td><td>${escapeHtml(group.unit)}</td><td>${formatDate(group.expiry)}</td><td>${formatDate(group.stockIn)}</td><td>${statusChip(group.status)}</td><td><span class="inv-row-hint">${isOpen(group) ? '' : 'Open for batches'}</span></td></tr>${group.batches.map((batch, index) => `<tr class="inv-batch-row" data-batch-row="${batch.id}" data-of="${escapeAttr(group.key)}" ${isOpen(group) ? '' : 'hidden'}><td><span class="inv-batch-no">${index + 1}.</span><code>${escapeHtml(batch.batch_code)}</code></td><td>${escapeHtml(batch.category || typeLabel(batch.inventory_type))}</td><td>${quantity(batch.remaining_quantity)}</td><td>${escapeHtml(batch.unit)}</td><td>${formatDate(batch.expires_on)}</td><td>${formatDate(batch.stock_in_date || String(batch.received_at || '').slice(0, 10))}</td><td>${statusChip(batch.status)}</td><td><details class="inventory-action-menu"><summary>Adjust Stock ${icon('chevron')}</summary><div><button data-batch-action="${batch.id}" data-action="restock">${icon('plus')} Stock In</button>${batch.archived_at ? '' : `<button data-batch-action="${batch.id}" data-action="adjust">${icon('pencil')} Adjust Quantity</button><button data-batch-action="${batch.id}" data-action="waste">${icon('waste')} Record Waste</button>`}<button data-batch-action="${batch.id}" data-action="details">${icon('file')} View Batch Details</button><button data-batch-action="${batch.id}" data-action="history">${icon('clock')} View Batch History</button></div></details></td></tr>`).join('')}`).join('') : `<tr><td colspan="8">${empty(state.archive ? 'No archived batches' : 'No matching batches')}</td></tr>`}</tbody></table></div>
+        <section class="panel inventory-table-panel"><div class="table-wrap"><table class="data-table inventory-table inventory-grouped"><thead><tr><th>Item · Batch ID</th><th>Category</th><th>In-stock</th><th>Unit</th><th>Expiry Date</th><th>Stock-in Date</th><th>Status</th><th>Action</th></tr></thead><tbody>${entries.length ? entries.map((group) => `<tr class="inv-item-row${isOpen(group) ? ' is-open' : ''}"><td><button type="button" class="inv-item-toggle" data-item-toggle="${escapeAttr(group.key)}" aria-expanded="${isOpen(group)}"><strong>${escapeHtml(group.name)}</strong><span class="inv-count">${group.batches.length} batch${group.batches.length === 1 ? '' : 'es'}</span></button></td><td>${escapeHtml(group.category)}</td><td><strong>${quantity(group.total)}</strong></td><td>${escapeHtml(group.unit)}</td><td>${formatDate(group.expiry)}</td><td>${formatDate(group.stockIn)}</td><td>${statusChip(group.status)}</td><td><span class="inv-row-hint">${isOpen(group) ? '' : 'Open for batches'}</span></td></tr>${group.batches.map((batch, index) => `<tr class="inv-batch-row" data-batch-row="${batch.id}" data-of="${escapeAttr(group.key)}" ${isOpen(group) ? '' : 'hidden'}><td><span class="inv-batch-no">${index + 1}.</span><code>${escapeHtml(batch.batch_code)}</code></td><td>${escapeHtml(batch.category || typeLabel(batch.inventory_type))}</td><td>${quantity(batch.remaining_quantity)}</td><td>${escapeHtml(batch.unit)}</td><td>${formatDate(batch.expires_on)}</td><td>${formatDate(batch.stock_in_date || String(batch.received_at || '').slice(0, 10))}</td><td>${statusChip(batch.status)}</td><td><details class="inventory-action-menu"><summary>Adjust Stock ${icon('chevron')}</summary><div><button data-batch-action="${batch.id}" data-action="restock">${icon('plus')} Stock In</button>${batch.archived_at ? '' : `<button data-batch-action="${batch.id}" data-action="adjust">${icon('pencil')} Adjust Quantity</button><button data-batch-action="${batch.id}" data-action="waste">${icon('waste')} Record Waste</button>`}<button data-batch-action="${batch.id}" data-action="details">${icon('file')} View Batch Details</button><button data-batch-action="${batch.id}" data-action="history">${icon('clock')} View Batch History</button><button data-batch-action="${batch.id}" data-action="archive-item" class="inv-menu-archive">${icon('archive')} Archive material</button></div></details></td></tr>`).join('')}`).join('') : `<tr><td colspan="8">${empty(state.archive ? 'No archived batches' : 'No matching batches')}</td></tr>`}</tbody></table></div>
           <footer class="inventory-table-footer"><span>Showing ${groups.length ? offset + 1 : 0}–${Math.min(offset + state.pageSize, groups.length)} of ${groups.length} item${groups.length === 1 ? '' : 's'} · ${filtered.length} batch${filtered.length === 1 ? '' : 'es'}</span><div class="inventory-pagination"><label>Rows per page <select data-page-size><option value="10" ${state.pageSize === 10 ? 'selected' : ''}>10</option><option value="25" ${state.pageSize === 25 ? 'selected' : ''}>25</option><option value="50" ${state.pageSize === 50 ? 'selected' : ''}>50</option></select></label><button class="button button--quiet button--small" data-page-prev ${state.page <= 1 ? 'disabled' : ''} aria-label="Previous page">‹</button><span>Page ${state.page} of ${totalPages}</span><button class="button button--quiet button--small" data-page-next ${state.page >= totalPages ? 'disabled' : ''} aria-label="Next page">›</button></div></footer></section>
         ${renderActivity(state.snapshot?.movements || [])}
       </section>`;
@@ -433,11 +571,7 @@ async function renderBatches(content, subpage = '') {
       const hint = button.closest('tr').querySelector('.inv-row-hint'); if (hint) hint.textContent = open ? '' : 'Open for batches';
       content.querySelectorAll('tr[data-of]').forEach((row) => { if (row.dataset.of === key) row.hidden = !open; });
     }));
-    content.querySelector('[data-expand-items]')?.addEventListener('click', (event) => {
-      const open = event.currentTarget.dataset.expandItems === 'open';
-      content.querySelectorAll('[data-item-toggle]').forEach((button) => open ? state.open.add(button.dataset.itemToggle) : state.open.delete(button.dataset.itemToggle));
-      render();
-    });
+    if (state.archive) renderArchivedMaterials(content.querySelector('[data-archived-items]'), load);
     const focusBatch = sessionStorage.getItem('lexc-inventory-focus-batch');
     if (focusBatch) {
       sessionStorage.removeItem('lexc-inventory-focus-batch');
@@ -449,10 +583,11 @@ async function renderBatches(content, subpage = '') {
       button.closest('details')?.removeAttribute('open');
       if (!batch || !action) return;
       if (action === 'restock') renderStockForm({ batch, items: inventoryItems(), onSuccess: load });
-      if (action === 'adjust') renderUsageForm(batch, load, 'adjustment_negative');
+      if (action === 'adjust') renderAdjustForm(batch, load);
       if (action === 'waste') renderUsageForm(batch, load, 'waste');
-      if (action === 'details') renderItemDetails(batch, state.snapshot.batches);
+      if (action === 'details') renderItemDetails(batch, state.snapshot.batches, load);
       if (action === 'history') renderBatchHistory(batch, state.snapshot.movements || []);
+      if (action === 'archive-item') archiveMaterial(batch.item_id, load);
     }));
   };
   const inventoryItems = () => {

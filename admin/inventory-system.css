@@ -330,3 +330,82 @@ details.stock-order__group>ul li:last-child{border-bottom:0}
 .stock-recipes>summary small{margin-left:auto;color:var(--admin-muted,#6b6480);font-size:12px}
 .stock-recipes>.stock-chips,.stock-recipes>.stock-quiet{margin:0 12px 12px}
 @media (prefers-reduced-motion:reduce){.stock-recipes>summary::after{transition:none}}
+/* Materials: a small "Add stock" sits first, on the same line as the section tabs */
+.stock-tabrow{display:flex;align-items:center;gap:8px;margin:0 0 16px}
+#content .stock-tabrow .stock-tabs{margin:0;flex:0 1 auto;min-width:0}
+#content .stock-tabrow .stock-add-mini{flex:none;width:auto;min-height:36px;margin:0;padding:0 12px;gap:5px;font-size:13px}
+#content .stock-tabrow .stock-add-mini svg{width:15px;height:15px}
+/* History / Conversions: their button sits last, on the same line as the tabs */
+#content .stock-tabrow .stock-tabrow-end{margin-left:auto;text-decoration:none}
+/* the button and the tabs scroll sideways together on narrow screens (one strip, not a fixed button) */
+#content .stock-tabrow{overflow-x:auto;scrollbar-width:none;padding:4px;margin:-4px -4px 12px}
+#content .stock-tabrow::-webkit-scrollbar{display:none}
+#content .stock-tabrow .stock-tabs{flex:none;width:max-content;max-width:none;overflow:visible}
+@media(max-width:700px){
+  /* History filters: two even columns that never spill out of the card */
+  #content .stock-history-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #content .stock-history-filters label{min-width:0}
+  #content .stock-history-filters :is(input,select),#content .stock-history-filters input[name=order_number]{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+  #content .stock-history-filters input[type=date]{-webkit-appearance:none;appearance:none;padding-right:8px}
+  #content .stock-history-filters>:is(button,.text-button){grid-column:1/-1;justify-self:center}
+  /* Unit conversions header: text on top, then the count, the button and the arrow on one line */
+  #content .stock-drop>summary{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px}
+  #content .stock-drop>summary .stock-drop__count{margin-left:0}
+  #content .stock-drop>summary>div{flex:1 1 100%;min-width:0}
+  #content .stock-drop>summary .button{margin-left:auto}
+  #content .stock-drop>summary::after{margin-left:4px}
+}
+/* History: CSV / Excel exports sit where Clear was, at the end of the filters */
+.stock-history-export{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-left:auto}
+#content .stock-history-export .stock-add-mini{min-height:40px;margin:0}
+@media(max-width:700px){#content .stock-history-export{grid-column:1/-1;justify-content:center;margin:2px 0 0}}
+/* Conversions: one "Go to Products" button instead of the long note */
+#content .stock-goto{display:flex;width:fit-content;margin:0 auto 16px;text-decoration:none}
+/* Batches: smaller sub-tab text so "Archive & expired" stays on one line; the item name itself opens its batches */
+.stock-subtabs a{font-size:13px;white-space:nowrap}
+@media(max-width:700px){.stock-subtabs{gap:14px}}
+#content .inv-item-toggle strong,#content .inv-item-toggle:hover strong{text-decoration:none}
+#content .inv-item-toggle[aria-expanded=true] strong{color:#4b2d6e}
+/* Item details: tap an expiry date (or "Add date") to change it in place */
+.inv-exp-edit{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;margin:-4px -8px;border:1px dashed transparent;border-radius:8px;background:none;color:inherit;font:inherit;cursor:pointer}
+.inv-exp-edit svg{width:14px;height:14px;fill:none;stroke:#8d7ca3;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
+.inv-exp-edit:hover,.inv-exp-edit:focus-visible{border-color:#cdbde4;background:#f6f2fc;outline:none}
+.inv-exp-add{color:#6f4fa8;font-weight:700}
+.inv-exp-form{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:220px}
+.inv-exp-form input{min-height:34px;padding:4px 8px;border:1px solid #cdbde4;border-radius:8px;font:inherit}
+.inv-exp-form .button{min-height:32px;padding:0 12px}
+.inv-exp-error{flex-basis:100%;color:#a03030;font-weight:600}
+.inv-exp-error:empty{display:none}
+
+/* Archive / restore / delete materials (phase 80) */
+.inventory-action-menu .inv-menu-archive{border-top:1px solid #efe9f6;color:#8a3d50}
+#content .inv-archived{margin:0 0 16px;padding:0 0 6px}
+.inv-archived-list{margin:0;padding:0 18px 8px;list-style:none}
+.inv-archived-list li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid #f0ebf6}
+.inv-archived-list li:first-child{border-top:0}
+.inv-archived-list strong{display:block;color:#23142a}.inv-archived-list small{color:#6e6274;font-size:12.5px}
+.inv-archived-actions{display:flex;gap:6px}
+#content .inv-delete,.inv-delete-confirm{background:#fbeef0!important;color:#9b2c3e!important;border-color:transparent!important}
+.inv-delete-confirm:not(:disabled){background:#b23a4d!important;color:#fff!important}
+.inv-delete-confirm:disabled{opacity:.55;cursor:not-allowed}
+.inv-archive-dialog{display:grid;gap:12px}
+.inv-warn{display:flex;gap:10px;padding:12px 14px;border-radius:12px;background:#f7f3fc;color:#3b2c4a;font-size:14px;line-height:1.5}
+.inv-warn.is-strong{background:#fdf3e7;color:#6b4614}
+.inv-warn svg{flex:none;width:20px;height:20px;margin-top:1px}
+.inv-warn ul{margin:6px 0;padding-left:18px}.inv-warn p{margin:4px 0 0}
+.inv-archive-note{margin:0;padding:0 18px;color:#6e6274;font-size:13.5px;line-height:1.5}
+.inv-archive-dialog .inv-archive-note{padding:0}
+.inv-confirm-check{display:flex;align-items:center;gap:8px;font-weight:600;color:#3b2c4a}
+.inv-confirm-check input{width:17px;height:17px;accent-color:#b23a4d}
+
+/* Adjust Quantity: Add / Remove switch and a before → after preview */
+.inv-adjust-dir{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;margin:4px 0 12px;border-radius:12px;background:#f3eefa}
+.inv-adjust-dir label{position:relative;cursor:pointer}
+.inv-adjust-dir input{position:absolute;opacity:0;pointer-events:none}
+.inv-adjust-dir span{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border-radius:9px;color:#5f5674;font-weight:700}
+.inv-adjust-dir span svg{width:16px;height:16px}
+.inv-adjust-dir input:checked+span{background:#fff;color:#2b1530;box-shadow:0 1px 4px rgba(43,21,48,.12)}
+.inv-adjust-dir input:focus-visible+span{outline:2px solid #6f4fa8;outline-offset:1px}
+.inv-adjust-dir input:disabled+span{opacity:.45;cursor:not-allowed}
+.inv-adjust-preview{margin:-4px 0 10px;font-weight:700;color:#4b2d6e}
+.inv-adjust-preview.is-bad{color:#a03030}
