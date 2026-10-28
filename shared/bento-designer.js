@@ -54,7 +54,7 @@
   const money = (v) => checkoutMoney(v).replace('.00', '');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  let root = null, product = null, options = null, palette = {}, scene = null, sceneLoading = null;
+  let root = null, product = null, options = null, palette = {}, scene = null, sceneLoading = null, cakes = [], optionsByProduct = {};
   let state = null, step = 'style', past = [], future = [], editIndex = null, quote = { status: 'idle' }, quoteTimer = 0, quoteSeq = 0;
   let textTimer = 0, view3d = true, packed = false;
 
@@ -69,6 +69,23 @@
   const opt = (group, code) => options[group]?.find((o) => o.code === code);
   const variant = () => product.product_variants.find((v) => v.id === state.variant_id && v.is_active);
   const cfg = () => product.customization_config || {};
+  // Bento, Petite and Mini Tiered cakes share this designer (products with designer 'bento'; cake_shape says which).
+  // Sizes come from variant labels like "6x4 Vanilla" = 6" wide × 4" tall; the bento's variants are flavours (4" × 2").
+  const SIZE_RE = /^(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)\s+(.+)$/i;
+  const flavorName = (label) => (label === 'Minimalist' ? 'Vanilla' : String(label || ''));
+  const parseVariant = (v) => { const m = SIZE_RE.exec(String(v?.label || '')); return m ? { size: `${m[1]}x${m[2]}`, d: Number(m[1]), h: Number(m[2]), flavor: flavorName(m[3]) } : { size: '4x2', d: 4, h: 2, flavor: flavorName(v?.label) }; };
+  const sizeText = (size) => size.replace('x', '" × ') + '"';
+  const activeVariants = (p) => (p?.product_variants || []).filter((v) => v.is_active);
+  const cakeKind = (p) => p?.customization_config?.cake_shape || 'bento';
+  const cakeLabel = (p) => ({ petite: 'Petite cake', tiered: 'Mini tiered cake' })[cakeKind(p)] || 'Bento cake';
+  // What the 3D preview draws: the tiered cake is two 2"-ish tiers, the top one about two-thirds as wide.
+  function cakeShape(p, v) {
+    const { d, h } = parseVariant(v);
+    if (cakeKind(p) === 'tiered') return { key: 'tiered', tiers: [{ d, h: h / 2 }, { d: Math.round(d * 2 / 3 * 4) / 4, h: h / 2 }] };
+    if (cakeKind(p) === 'petite') return { key: 'petite', tiers: [{ d, h }] };
+    return { key: 'bento' };
+  }
+  const cakeLine = (v) => { const pv = parseVariant(v); return `${sizeText(pv.size)} · ${pv.flavor}`; };
 
   // Price shown immediately from the same option table; confirmed by the server quote below.
   function localExtras() {
@@ -108,11 +125,20 @@
   }
 
   // ---- data -------------------------------------------------------------------------------------
-  function bentoProduct() { return (typeof liveCatalog !== 'undefined' ? liveCatalog : []).find((p) => p.customization_config?.designer === 'bento'); }
+  function allCakes() {
+    const order = { bento: 0, petite: 1, tiered: 2 };
+    return (typeof liveCatalog !== 'undefined' ? liveCatalog : []).filter((p) => p.customization_config?.designer === 'bento' && activeVariants(p).length)
+      .sort((a, b) => (order[cakeKind(a)] ?? 9) - (order[cakeKind(b)] ?? 9));
+  }
   async function loadOptions() {
-    const rows = LexcBackend.unwrap(await LexcBackend.client.from('design_options').select('group_key,code,label,price,hex,sort_order').eq('product_id', product.id).order('sort_order'));
+    const rows = LexcBackend.unwrap(await LexcBackend.client.from('design_options').select('product_id,group_key,code,label,price,hex,sort_order').in('product_id', cakes.map((p) => p.id)).order('sort_order'));
+    optionsByProduct = {};
+    rows.forEach((r) => { (optionsByProduct[r.product_id] ||= []).push(r); });
+    useOptions();
+  }
+  function useOptions() {
     options = {}; palette = {};
-    rows.forEach((r) => { (options[r.group_key] ||= []).push(r); if (r.group_key === 'color') palette[r.code] = r.hex; });
+    (optionsByProduct[product.id] || []).forEach((r) => { (options[r.group_key] ||= []).push(r); if (r.group_key === 'color') palette[r.code] = r.hex; });
     if (!options.color?.length) throw new Error('No design options');
   }
 
@@ -125,6 +151,8 @@
     afterChange();
   }
   function normalise() {
+    const owner = cakes.find((p) => activeVariants(p).some((v) => v.id === state.variant_id));
+    if (owner && owner !== product) { const was = product; product = owner; try { useOptions(); } catch { product = was; useOptions(); } }
     const max = Number(cfg().max_accents || 6);
     state.accents = [...new Set(state.accents)].filter((c) => opt('accent', c)).slice(0, max);
     state.border = [...new Set(state.border)].filter((c) => opt('border', c));
@@ -320,7 +348,10 @@
     const top = root.querySelector('[data-bd-top]');
     top.hidden = view3d && !!scene;
     if (!top.hidden) top.innerHTML = topViewSvg();
-    if (scene) { scene.update(design(), palette); scene.canvas.setAttribute('aria-label', 'Rotatable 3D preview. ' + summaryText()); }
+    const heading = root.querySelector('h1'), back = root.querySelector('.bd-back-text');
+    if (heading) heading.textContent = cakeKind(product) === 'bento' ? 'Design your bento' : `Design your ${cakeLabel(product).toLowerCase()}`;
+    if (back) { back.textContent = product.name; root.querySelector('[data-bd-exit]')?.setAttribute('aria-label', `Back to ${product.name}`); }
+    if (scene) { scene.setShape?.(cakeShape(product, variant())); scene.update(design(), palette); scene.canvas.setAttribute('aria-label', 'Rotatable 3D preview. ' + summaryText()); }
     box.querySelector('.bd-skeleton')?.toggleAttribute('hidden', !!scene || !view3d || !sceneLoading);
   }
   async function ensureScene() {
@@ -330,7 +361,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=26');
+        const mod = await import('./bento-scene.js?v=27');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -537,15 +568,33 @@
     return `<div class="bd-warning" role="status">${icon('warn')}<span>${esc(opt('color', s.lettering_color)?.label)} letters may be hard to read on ${esc(opt('color', s.frosting_color)?.label.toLowerCase())} frosting.</span>
       ${best ? `<button type="button" class="bd-link" data-bd-set="lettering_color" data-value="${best}">Use ${esc(opt('color', best)?.label.toLowerCase())}</button>` : ''}</div>`;
   }
+  function cakePicker() {
+    const cur = parseVariant(variant()), vs = activeVariants(product);
+    const sizes = [...new Set(vs.map((v) => parseVariant(v).size))];
+    const ofSize = vs.filter((v) => parseVariant(v).size === cur.size);
+    const cakeCards = cakes.length > 1 ? `<fieldset class="bd-group"><legend>Cake <small>Width × height</small></legend>
+        <div class="bd-cards bd-cakes" role="radiogroup" aria-label="Cake">${cakes.map((p) => { const pvs = activeVariants(p), sz = [...new Set(pvs.map((v) => parseVariant(v).size))];
+          return `<button type="button" role="radio" class="bd-card" data-bd-cake="${p.id}" aria-checked="${p.id === product.id}"><strong>${esc(cakeLabel(p))}</strong><span>${esc(sz.map(sizeText).join(' · '))}</span><small>from ${money(Math.min(...pvs.map((v) => Number(v.price))))}</small></button>`; }).join('')}</div></fieldset>` : '';
+    const sizeCards = sizes.length > 1 ? `<fieldset class="bd-group"><legend>Size <small>Inches · width × height</small></legend>
+        <div class="bd-cards" role="radiogroup" aria-label="Size">${sizes.map((size) => { const price = Math.min(...vs.filter((v) => parseVariant(v).size === size).map((v) => Number(v.price)));
+          return `<button type="button" role="radio" class="bd-card" data-bd-size="${size}" aria-checked="${size === cur.size}"><strong>${esc(sizeText(size))}</strong><span>${money(price)}</span></button>`; }).join('')}</div></fieldset>` : '';
+    return cakeCards + sizeCards + `<fieldset class="bd-group"><legend>Flavor <small>${sizes.length > 1 ? 'Same price' : 'Same size and weight'}</small></legend>
+        <div class="bd-cards" role="radiogroup" aria-label="Flavor">${ofSize.map((v) =>
+          `<button type="button" role="radio" class="bd-card" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === state.variant_id}"><strong>${esc(parseVariant(v).flavor)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>`;
+  }
+  // a cake or size choice keeps the flavour when it can
+  function pickVariant(p, size) {
+    const flavor = parseVariant(variant()).flavor, vs = activeVariants(p);
+    const pool = size ? vs.filter((v) => parseVariant(v).size === size) : vs;
+    return (pool.find((v) => parseVariant(v).flavor === flavor) || pool[0])?.id;
+  }
   const priceTag = (o) => Number(o.price) > 0 ? `<small>+${money(o.price)}</small>` : '<small>Free</small>';
 
   function bodyMarkup() {
     const s = state, max = Number(cfg().max_accents || 6);
     if (step === 'style') return `
       <div class="bd-surprise-row"><button type="button" class="bd-surprise" data-bd-surprise><span class="bd-dice" aria-hidden="true">🎲</span> Surprise me</button><span class="bd-note">Rolls a random design you can change</span></div>
-      <fieldset class="bd-group"><legend>Flavor <small>Same size and weight</small></legend>
-        <div class="bd-cards" role="radiogroup" aria-label="Flavor">${product.product_variants.filter((v) => v.is_active).map((v) =>
-          `<button type="button" role="radio" class="bd-card" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === s.variant_id}"><strong>${esc(v.label === 'Minimalist' ? 'Vanilla' : v.label)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>
+      ${cakePicker()}
       <fieldset class="bd-group"><legend>Presets <small>Optional · all editable</small></legend>
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
@@ -586,7 +635,7 @@
     return `
       ${reviewChecklist()}
       <ul class="bd-summary" aria-label="Your design">
-        <li><span>Cake</span><strong>${esc(product.name)} · ${esc(v?.label === 'Minimalist' ? 'Vanilla' : v?.label)} ${money(v?.price || 0)}</strong></li>
+        <li><span>Cake</span><strong>${esc(product.name)} · ${esc(cakeLine(v))} ${money(v?.price || 0)}</strong></li>
         <li><span>Frosting</span><strong>${esc(opt('color', s.frosting_color)?.label)}</strong></li>
         <li><span>Border</span><strong>${s.border.length ? s.border.map((c) => esc(opt('border', c).label.replace('Shell border — ', 'Shell '))).join(', ') : 'None'}</strong></li>
         <li><span>Decorations</span><strong>${s.accents.length ? s.accents.map((c) => esc(opt('accent', c).label) + (c === 'ribbon_bows' ? ' (' + esc(opt('color', s.bow_color)?.label) + ')' : '')).join(', ') : 'None'}</strong></li>
@@ -659,7 +708,7 @@
     const box = root.querySelector('#bd-breakdown'); if (!box) return;
     const v = variant(), lines = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : localExtras().lines;
     box.innerHTML = `<p class="bd-breakdown-title">Price per cake</p><ul>
-      <li><span>${esc(v?.label === 'Minimalist' ? 'Vanilla' : v?.label || 'Cake')} bento</span><b>${money(v?.price || 0)}</b></li>
+      <li><span>${esc(cakeLabel(product))} · ${esc(cakeLine(v))}</span><b>${money(v?.price || 0)}</b></li>
       ${lines.map(([l, p]) => `<li><span>${esc(l)}</span><b>+${money(p)}</b></li>`).join('') || '<li><span>No extras</span><b>—</b></li>'}
       <li class="is-total"><span>${state.qty} × ${money(unitPrice())}</span><b>${money(unitPrice() * state.qty)}</b></li></ul>
       <p class="bd-note">${quote.status === 'ok' ? 'Confirmed by LexC’s — this is what checkout will charge.' : 'Checking the price…'}</p>`;
@@ -689,6 +738,8 @@
       root.classList.remove('is-typing');
       if (t.dataset.bdStep) return goStep(t.dataset.bdStep);
       if (t.dataset.bdSet) { const f = t.dataset.bdSet, v = t.dataset.value; return commit((s) => { s[f] = v; }); }
+      if (t.dataset.bdCake) { const p = cakes.find((c) => c.id === t.dataset.bdCake), id = p && pickVariant(p); if (id) commit((s) => { s.variant_id = id; }); return; }
+      if (t.dataset.bdSize) { const id = pickVariant(product, t.dataset.bdSize); if (id) commit((s) => { s.variant_id = id; }); return; }
       if (t.dataset.bdToggle) {
         const f = t.dataset.bdToggle, v = t.dataset.value;
         return commit((s) => {
@@ -796,7 +847,7 @@
     const v = variant(); const d = design();
     const item = {
       id: 'bento-' + crypto.randomUUID(), product_id: product.id, variant_id: v.id, name: product.name, emoji: '🎂',
-      sizeLabel: `${v.label === 'Minimalist' ? 'Vanilla' : v.label} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra,
+      sizeLabel: `${cakeLine(v)} · ${quote.clean.summary}`, price: Number(v.price) + quote.extra,
       base_price: Number(v.price), extras: quote.extra, qty: state.qty, selected: true, customization: d, inspiration: [...(state.inspiration || [])], preview: scene ? scene.snapshot(400) : '', preview_top: scene ? scene.snapshot(400, 'top') : ''
     };
     if (editIndex !== null && cart[editIndex]?.customization?.designer === 'bento') { item.id = cart[editIndex].id; cart[editIndex] = item; }
@@ -832,9 +883,14 @@
     root = document.getElementById('page-bento');
     if (!root.dataset.bound) { root.dataset.bound = '1'; shell(); bind(); }
   }
-  async function start({ fromCart = null, shared = null } = {}) {
+  async function start({ fromCart = null, shared = null, productId = null } = {}) {
     ensureRoot();
-    product = bentoProduct();
+    cakes = allCakes();
+    let draft = null; try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch {}
+    const cartItem = fromCart !== null ? cart[fromCart] : null;
+    const ownerOf = (variantId) => cakes.find((p) => activeVariants(p).some((v) => v.id === variantId));
+    product = (productId && cakes.find((p) => p.id === productId)) || (cartItem && ownerOf(cartItem.variant_id)) || (shared && ownerOf(shared.v))
+      || (draft && cakes.find((p) => p.id === draft.product_id)) || cakes[0];
     if (!product) { showToast('The bento designer is not available right now.'); navigate('shop'); return; }
     root.querySelector('#bd-body').innerHTML = '<div class="skel skel-title" style="margin:8px 0 16px"></div><div class="skel skel-line"></div><div class="skel skel-line skel-line--long" style="margin-top:10px"></div>';
     try { await loadOptions(); }
@@ -858,7 +914,6 @@
       if (!state.bow_color) state.bow_color = 'pink'; if (!state.lettering) state.lettering = 'piped'; if (!state.lettering_color) state.lettering_color = 'purple';
       step = 'review'; showToast('Opened a shared design — change anything you like.');
     } else {
-      let draft = null; try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch {}
       state = draft?.product_id === product.id ? { ...blank(), ...draft.state } : blank();
       step = draft?.product_id === product.id && STEPS.some(([k]) => k === draft.step) ? draft.step : 'style';
       if (draft?.product_id === product.id) showToast('Your saved design was restored.');
@@ -886,7 +941,7 @@
   // inspiration photos (shared/inspiration.js): kept in the design state and the cart item, never in the design itself
   window.LexcInspiration?.register('bento', () => state?.inspiration || [], (paths) => { if (!state) return; state.inspiration = paths; saveDraft(); if (step === 'decorate') renderBody(); }, saveDraft);
   window.LexcBento = Object.freeze({
-    open(shared = null) { whenReady(() => { navigate('bento'); start({ shared }); }); },
+    open(shared = null, productId = null) { whenReady(() => { navigate('bento'); start({ shared, productId }); }); },
     edit(index) { window.closeCart?.(); whenReady(() => { navigate('bento'); start({ fromCart: index }); }); },
     isDesignable: (productId) => (typeof liveCatalog !== 'undefined' ? liveCatalog : []).some((p) => p.id === productId && p.customization_config?.designer === 'bento')
   });
