@@ -10,7 +10,7 @@ const chip = (status) => `<span class="status-chip status-chip--${STATUS[status]
 
 export async function renderRecipes(content) {
   const state = { catalog: null };
-  const shell = (body) => `<section class="inventory-page stock-page">${pageHead('Inventory', 'Unit conversions for recipes. Recipes themselves are edited in Products.', '<a class="button" href="#products">' + icon('recipe') + ' Open Products</a>')}${sectionTabs('recipes')}${body}</section>`;
+  const shell = (body) => `<section class="inventory-page stock-page">${pageHead('Inventory', 'Unit conversions for recipes. Recipes themselves are edited in Products.')}<div class="stock-tabrow">${sectionTabs('recipes')}</div>${body}</section>`;
 
   const load = async () => {
     content.innerHTML = shell(skeletonPanel(6));
@@ -26,7 +26,7 @@ export async function renderRecipes(content) {
     const recipes = [...latest.values()].filter((r) => r.status !== 'archived').sort((a, b) => a.name.localeCompare(b.name));
     const unverified = cat.conversions.filter((c) => !c.is_verified);
     content.innerHTML = shell(`
-      <div class="stock-callout">${icon('recipe')}<div><strong>Recipes moved to Products.</strong> Open a product and use <em>Edit product → Recipe</em> to choose its ingredients from Inventory. Only active recipes deduct stock, when you press Start making on a paid order — exactly as before.</div></div>
+      <a class="button button--primary stock-goto" href="#products" title="Recipes are edited in Edit product → Recipe">${icon('recipe')} Go to Products</a>
       <details class="panel stock-conversions stock-drop">
         <summary class="panel__head"><div><h2>Unit conversions</h2><p>Tells the system how one unit changes into another, so recipes take the right amount from stock. For example, if 1 butter block is 225 g, a recipe that needs 450 g of butter uses 2 blocks.</p></div><span class="stock-drop__count">${cat.conversions.length}</span><button class="button" type="button" data-add-conversion>${icon('plus')} Add conversion</button></summary>
         ${cat.conversions.length ? `<div class="table-scroll"><table class="data-table stock-table"><thead><tr><th scope="col">Material</th><th scope="col">Conversion</th><th scope="col">Source / note</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>${cat.conversions.map((c) => `<tr>

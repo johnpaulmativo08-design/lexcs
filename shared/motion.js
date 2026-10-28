@@ -266,6 +266,7 @@
     const original = window[name];
     window[name] = async function authMotion(...args) {
       const button = document.querySelector(`[onclick^="${name}"]`);
+      if (button?.classList.contains('auth-morph')) return original.apply(this, args);   // the log-in pill animates itself
       const error = document.getElementById(errorId);
       const label = button?.textContent;
       if (button && !button.disabled) { button.disabled = true; button.textContent = busyText; }

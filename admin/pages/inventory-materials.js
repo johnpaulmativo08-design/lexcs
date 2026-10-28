@@ -19,7 +19,7 @@ export async function renderMaterials(content, preset = '') {
     search: '', category: '', type: '', status: { low: 'Low Stock', out: 'Out of Stock', expiring: 'Expiring Soon' }[preset] || '',
     updated: '', data: null
   };
-  const shell = (body) => `<section class="inventory-page stock-page">${pageHead('Inventory', 'Manage ingredients, supplies and stock movements.', `<button class="button button--primary" type="button" data-add-stock>${icon('plus')} Add stock</button>`)}${sectionTabs('materials')}${body}</section>`;
+  const shell = (body) => `<section class="inventory-page stock-page">${pageHead('Inventory', 'Manage ingredients, supplies and stock movements.')}<div class="stock-tabrow"><button class="button button--primary stock-add-mini" type="button" data-add-stock>${icon('plus')} Add stock</button>${sectionTabs('materials')}</div>${body}</section>`;
 
   const load = async () => {
     content.innerHTML = shell(`<div class="stock-toolbar" aria-hidden="true"><span class="skel skel-line" style="height:42px;width:min(420px,100%)"></span></div>${skeletonSummary()}${skeletonRows(['Material', 'Category', 'Current stock', 'Minimum', 'Status', 'Last updated', ''])}`);

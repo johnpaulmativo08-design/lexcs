@@ -669,6 +669,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
 <link rel="stylesheet" href="shared/customer-flow.css?v=42">
+<link rel="stylesheet" href="shared/auth-flow.css?v=4">
 <link rel="stylesheet" href="shared/delivery-card.css?v=1">
 <link rel="stylesheet" href="shared/product-detail.css?v=7">
 <link rel="stylesheet" href="shared/chat-widget.css?v=12">
@@ -1065,6 +1066,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
     </div>
     
     <div class="auth-form-side">
+      <div class="auth-curve" aria-hidden="true"><svg viewBox="0 0 400 228" preserveAspectRatio="none"><path fill="#5c3d6e" d="M0 0H400V46C366 150 270 214 160 212C96 211 40 196 0 172Z"/><path fill="#6b4a80" opacity=".55" d="M170 0H400V46C380 104 342 146 296 170C330 110 300 40 170 0Z"/></svg><div class="auth-curve-text"><div class="auth-curve-brand">LexC’s <span>Snacktime</span></div><p>Homemade pastries, baked to order.</p></div></div>
       <div class="auth-logo" onclick="navigate('home')">LexC's <span>Snacktime</span></div>
       <div class="auth-card">
         <div class="auth-error" id="loginError"></div>
@@ -1078,16 +1080,15 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
             <input class="auth-input" id="loginName" type="email" placeholder="you@email.com" autocomplete="email">
           </div>
           <div class="auth-field">
-            <div class="auth-label-row"><label class="auth-label">Password</label><button type="button" class="auth-forgot" onclick="forgotStart()">Forgot password?</button></div>
+            <label class="auth-label">Password</label>
             <input class="auth-input" id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password">
+            <div class="auth-under"><label class="auth-check"><input type="checkbox" id="loginRemember"> Remember me</label><button type="button" class="auth-forgot" onclick="forgotStart()">Forgot password?</button></div>
           </div>
-          <div class="auth-remember">
-            <label><input type="checkbox" id="loginRemember"> Remember my email</label>
-          </div>
-          <button class="auth-btn" onclick="handleLogin()">Sign in</button>
-          <div class="auth-or" data-google-only hidden><span>or</span></div>
-          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button><div class="auth-google-gis" data-google-only data-gis-slot hidden></div>
-          <div class="auth-switch">New to LexC’s Snacktime? <a onclick="navigate('register')">Create an account</a></div>
+          <button class="auth-btn auth-morph is-idle" id="loginBtn" data-morph="pill" onclick="handleLogin()"><span class="auth-btn-label">Log in</span><span class="auth-dots" aria-hidden="true"><i></i><i></i></span></button>
+          <div class="auth-or" data-google-only hidden><span>Or</span></div>
+          <div class="auth-social" data-google-only hidden>
+          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span>Continue with Google</span></button><div class="auth-google-gis" data-google-only data-gis-slot hidden></div></div>
+          <div class="auth-switch">Don’t have an account? <a onclick="navigate('register')">Sign up</a></div>
         </div>
         <!-- Forgot password: email → 6-digit code → new password → done -->
         <div data-login-view="forgot" hidden>
@@ -1101,12 +1102,13 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           <button class="auth-back" type="button" onclick="loginView('signin')">← Back to log in</button>
         </div>
         <div data-login-view="code" hidden>
-          <h1 class="auth-heading">Enter the code</h1>
-          <p class="auth-sub">We sent a 6-digit code to <strong id="forgotSentTo"></strong>. It may take a minute to arrive.</p>
+          <h1 class="auth-heading">Verify it’s you</h1>
+          <p class="auth-sub">We sent a 6-digit code to your email <strong id="forgotSentTo"></strong><button type="button" class="auth-change" onclick="loginView('forgot')">Change</button></p>
           <div class="otp" data-otp="forgotVerify"></div>
-          <button class="auth-btn" type="button" data-auth-primary onclick="forgotVerify()">Continue</button>
-          <p class="auth-resend">Didn’t receive the code? <button type="button" id="forgotResend" onclick="forgotSend(true)">Send again</button></p>
-          <button class="auth-back" type="button" onclick="loginView('forgot')">← Use a different email</button>
+          <p class="otp-status" data-otp-status role="status" aria-live="polite"></p>
+          <p class="otp-timer" data-otp-timer="forgotResend"></p>
+          <button class="auth-btn auth-morph" type="button" data-morph="circle" data-auth-primary onclick="forgotVerify()"><span class="auth-btn-label">Confirm</span><span class="auth-spin" aria-hidden="true"></span><span class="auth-mark" aria-hidden="true"><svg class="mk-no" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg><svg class="mk-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button>
+          <p class="auth-resend">Didn’t receive a code? <button type="button" id="forgotResend" onclick="forgotSend(true)">Resend</button></p>
         </div>
         <div data-login-view="newpw" hidden>
           <h1 class="auth-heading">Set a new password</h1>
@@ -1143,6 +1145,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
     </div>
     
     <div class="auth-form-side">
+      <div class="auth-curve" aria-hidden="true"><svg viewBox="0 0 400 228" preserveAspectRatio="none"><path fill="#5c3d6e" d="M0 0H400V46C366 150 270 214 160 212C96 211 40 196 0 172Z"/><path fill="#6b4a80" opacity=".55" d="M170 0H400V46C380 104 342 146 296 170C330 110 300 40 170 0Z"/></svg><div class="auth-curve-text"><div class="auth-curve-brand">LexC’s <span>Snacktime</span></div><p>Fresh treats are a few taps away.</p></div></div>
       <div class="auth-logo" onclick="navigate('home')">LexC's <span>Snacktime</span></div>
       <div class="auth-card">
         <div class="auth-error" id="registerError"></div>
@@ -1170,18 +1173,20 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           </div>
           <label class="reg-agree"><input type="checkbox" id="regAgree"> <span>I agree to the <button type="button" class="auth-inline-link" onclick="openTermsDialog()">Terms and Conditions</button></span></label>
           <button class="auth-btn" type="button" onclick="handleRegister()">Create account</button>
-          <div class="auth-or" data-google-only hidden><span>or sign up with</span></div>
-          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button><div class="auth-google-gis" data-google-only data-gis-slot hidden></div>
+          <div class="auth-or" data-google-only hidden><span>Or sign up with</span></div>
+          <div class="auth-social" data-google-only hidden>
+          <button class="auth-google" type="button" data-google-only hidden onclick="signInWithGoogle()"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span>Continue with Google</span></button><div class="auth-google-gis" data-google-only data-gis-slot hidden></div></div>
           <p class="auth-legal" data-google-only hidden>Continuing with Google means you agree to our <button type="button" class="auth-inline-link" onclick="openTermsDialog()">Terms and Conditions</button>.</p>
         </div>
         <!-- 2. 6-digit code from the confirmation email -->
         <div data-reg-step="2" hidden>
           <h1 class="auth-heading">Verify your email</h1>
-          <p class="auth-sub">Enter the 6-digit code we sent to <strong id="regSentTo"></strong>. You can also tap the link in that email.</p>
+          <p class="auth-sub">We sent a 6-digit code to your email <strong id="regSentTo"></strong><button type="button" class="auth-change" onclick="registerStep(1)">Change</button></p>
           <div class="otp" data-otp="verifyRegisterCode"></div>
-          <button class="auth-btn" type="button" data-auth-primary onclick="verifyRegisterCode()">Continue</button>
-          <p class="auth-resend">Didn’t receive the code? Check your spam folder, or <button type="button" id="regResend" onclick="resendRegisterCode()">send again</button></p>
-          <button class="auth-back" type="button" onclick="registerStep(1)">← Use a different email</button>
+          <p class="otp-status" data-otp-status role="status" aria-live="polite"></p>
+          <p class="otp-timer" data-otp-timer="regResend"></p>
+          <button class="auth-btn auth-morph" type="button" data-morph="circle" data-auth-primary onclick="verifyRegisterCode()"><span class="auth-btn-label">Confirm</span><span class="auth-spin" aria-hidden="true"></span><span class="auth-mark" aria-hidden="true"><svg class="mk-no" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg><svg class="mk-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button>
+          <p class="auth-resend">Didn’t receive a code? Check spam, or <button type="button" id="regResend" onclick="resendRegisterCode()">Resend</button></p>
         </div>
         <!-- 3. done -->
         <div data-reg-step="3" hidden class="auth-done">
@@ -2405,9 +2410,11 @@ async function completeCustomerLogin(user) {
 }
 async function handleLogin() {
   if (authBusy) return;
-  authBusy = true;
-  const error = document.getElementById('loginError');
+  const error = document.getElementById('loginError'), button = document.getElementById('loginBtn');
   error.classList.remove('show');
+  if (!document.getElementById('loginName').value.trim() || !document.getElementById('loginPassword').value) { error.textContent = 'Enter your email and password.'; error.classList.add('show'); authShake(button); return; }
+  authBusy = true;
+  authMorph(button, 'loading');
   try {
     const email = document.getElementById('loginName').value.trim();
     const user = await LexcBackend.signIn(email, document.getElementById('loginPassword').value);
@@ -2415,19 +2422,54 @@ async function handleLogin() {
     if (document.getElementById('loginRemember').checked) localStorage.setItem('lexc_login_hint',email);
     else localStorage.removeItem('lexc_login_hint');
     await completeCustomerLogin(user);
+    authMorph(button, null); loginReady();
   } catch (problem) {
     // signed up but never entered the code: send a fresh code and open the code screen
     if (/email not confirmed/i.test(problem?.message || '')) {
       const email = document.getElementById('loginName').value.trim();
-      document.getElementById('regEmail').value = email; document.getElementById('regSentTo').textContent = email;
-      navigate('register'); registerStep(2);
+      document.getElementById('regEmail').value = email; document.getElementById('regSentTo').textContent = maskEmail(email);
+      authMorph(button, null); navigate('register'); registerStep(2);
       try { LexcBackend.unwrap(await LexcBackend.client.auth.resend({ type: 'signup', email })); registerMessage('Your email isn’t verified yet. We sent a new 6-digit code to ' + email + '.', true); resendCooldown('regResend'); }
       catch (resendProblem) { registerMessage(authErrorText(resendProblem)); }
       return;
     }
+    authMorph(button, null); authShake(button);
     error.textContent = problem.message; error.classList.add('show');
   }
   finally { authBusy = false; }
+}
+// ---- Reference-video interactions: morphing buttons, masked email, code checks with ✕ / ✓
+const authWait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function authMorph(button, state) {
+  if (!button) return;
+  button.classList.remove('is-loading', 'is-error', 'is-success', 'is-wide');
+  if (state) button.classList.add('is-' + state);
+  button.disabled = Boolean(state); button.setAttribute('aria-busy', String(state === 'loading'));
+}
+function authShake(el) { if (!el) return; el.classList.remove('is-shake'); void el.offsetWidth; el.classList.add('is-shake'); setTimeout(() => el.classList.remove('is-shake'), 450); }
+function maskEmail(email) { const [name, domain] = String(email).split('@'); return domain ? name.slice(0, Math.min(2, name.length)) + '*****@' + domain : email; }
+// the log-in button stays soft until both boxes have something in them
+function loginReady() { document.getElementById('loginBtn')?.classList.toggle('is-idle', !(document.getElementById('loginName').value.trim() && document.getElementById('loginPassword').value)); }
+document.addEventListener('input', (event) => { if (event.target.id === 'loginName' || event.target.id === 'loginPassword') loginReady(); });
+function otpSay(view, text, tone) { const line = view.querySelector('[data-otp-status]'); if (!line) return; line.textContent = text || ''; line.className = 'otp-status' + (tone ? ' is-' + tone : ''); }
+// Confirm → spinner → ✓ (boxes turn green, button widens) then next(); or ✕ (boxes shake red, then clear for another try)
+async function otpCheck(viewSelector, verify, next) {
+  const view = document.querySelector(viewSelector), otp = view.querySelector('[data-otp]'), button = view.querySelector('[data-auth-primary]');
+  if (authBusy) return;
+  if (otpValue(otp).length < 6) { otpProblem(otp); authShake(otp); return otpSay(view, 'Enter all 6 digits of the code.', 'bad'); }
+  authBusy = true; otpSay(view, ''); authMorph(button, 'loading'); otp.classList.add('is-checking');
+  try {
+    await verify(otpValue(otp));
+    otp.classList.remove('is-checking'); otp.classList.add('is-good'); authMorph(button, 'success'); otpSay(view, 'Verified successfully', 'good');
+    await authWait(380); button.classList.add('is-wide'); await authWait(850);
+    authMorph(button, null); next();
+  } catch (problem) {
+    otp.classList.remove('is-checking'); otp.classList.add('is-bad'); authShake(otp); authMorph(button, 'error');
+    const text = authErrorText(problem);
+    otpSay(view, /code is wrong or has expired/.test(text) ? 'Wrong or expired code, please try again' : text, 'bad');
+    await authWait(1100); authMorph(button, null);
+    await authWait(350); otpReset(otp); otp.querySelector('input').focus();
+  } finally { authBusy = false; }
 }
 // Live password checklist: any new-password box with data-pw-live updates the list right after it as you type;
 // a confirm box with data-pw-confirm shows whether both match.
@@ -2492,13 +2534,13 @@ const authButton = (scope) => document.querySelector(scope + ' [data-auth-primar
 
 // ---- 6-digit code boxes: type, paste the whole code, backspace/arrows move between boxes; a full code submits.
 function otpValue(root) { return [...root.querySelectorAll('input')].map((input) => input.value).join(''); }
-function otpReset(root) { root.querySelectorAll('input').forEach((input) => { input.value = ''; }); root.classList.remove('is-bad'); }
+function otpReset(root) { root.querySelectorAll('input').forEach((input) => { input.value = ''; input.classList.remove('has-digit'); }); root.classList.remove('is-bad', 'is-good', 'is-checking'); }
 function initOtp(root) {
   root.setAttribute('role', 'group'); root.setAttribute('aria-label', '6-digit code');
   root.innerHTML = Array.from({ length: 6 }, (_, i) => '<input inputmode="numeric" pattern="[0-9]*" maxlength="6" aria-label="Digit ' + (i + 1) + ' of 6" autocomplete="' + (i === 0 ? 'one-time-code' : 'off') + '">').join('');
   const boxes = [...root.querySelectorAll('input')];
   const fill = (from, digits) => { digits.split('').forEach((d, k) => { if (boxes[from + k]) boxes[from + k].value = d; }); boxes[Math.min(from + digits.length, 5)].focus(); };
-  const maybeSubmit = () => { root.classList.remove('is-bad'); if (otpValue(root).length === 6 && typeof window[root.dataset.otp] === 'function') window[root.dataset.otp](); };
+  const maybeSubmit = () => { boxes.forEach((b) => b.classList.toggle('has-digit', !!b.value)); if (root.classList.contains('is-bad')) { root.classList.remove('is-bad'); const view = root.closest('[data-login-view],[data-reg-step]'); if (view) otpSay(view, ''); } if (authBusy) return; if (otpValue(root).length === 6 && typeof window[root.dataset.otp] === 'function') window[root.dataset.otp](); };
   boxes.forEach((box, i) => {
     box.addEventListener('input', () => {
       const digits = box.value.replace(/\D/g, '');
@@ -2525,10 +2567,11 @@ function otpProblem(root) {
 const resendTimers = {};
 function resendCooldown(id, seconds = 60) {
   const button = document.getElementById(id); if (!button) return;
-  const label = button.dataset.label || (button.dataset.label = button.textContent);
+  const timer = document.querySelector('[data-otp-timer="' + id + '"]');
+  const show = (left) => { if (timer) timer.innerHTML = left > 0 ? 'You can request a new code in <b>' + String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0') + '</b>' : ''; };
   clearInterval(resendTimers[id]);
-  let left = seconds; button.disabled = true; button.textContent = label + ' (' + left + 's)';
-  resendTimers[id] = setInterval(() => { left--; if (left <= 0) { clearInterval(resendTimers[id]); button.disabled = false; button.textContent = label; } else button.textContent = label + ' (' + left + 's)'; }, 1000);
+  let left = seconds; button.disabled = true; show(left);
+  resendTimers[id] = setInterval(() => { left--; show(left); if (left <= 0) { clearInterval(resendTimers[id]); button.disabled = false; } }, 1000);
 }
 
 // ---- Sign-up
@@ -2536,7 +2579,7 @@ function registerStep(n) {
   document.querySelectorAll('[data-reg-step]').forEach(step => { step.hidden = Number(step.dataset.regStep) !== n; });
   document.querySelector('[data-reg-switch]').hidden = n === 3;
   registerMessage('');
-  if (n === 2) { const otp = document.querySelector('[data-reg-step="2"] [data-otp]'); otpReset(otp); setTimeout(() => otp.querySelector('input').focus(), 50); }
+  if (n === 2) { const step = document.querySelector('[data-reg-step="2"]'), otp = step.querySelector('[data-otp]'); otpReset(otp); otpSay(step, ''); setTimeout(() => otp.querySelector('input').focus(), 50); }
 }
 function openTermsDialog() { document.getElementById('regTermsDialog').showModal(); }
 function agreeToTerms() { document.getElementById('regAgree').checked = true; document.getElementById('regTermsDialog').close(); registerMessage(''); }
@@ -2555,22 +2598,16 @@ async function handleRegister() {
     if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) return registerMessage('This email already has an account. Log in instead, or use “Forgot password?” on the log-in page.');
     document.getElementById('regPassword').value = ''; document.getElementById('regConfirm').value = '';
     if (data.session) { registerStep(3); return; }
-    document.getElementById('regSentTo').textContent = email;
+    document.getElementById('regSentTo').textContent = maskEmail(email);
     registerStep(2);
     resendCooldown('regResend');
   } catch (problem) { registerMessage(authErrorText(problem)); }
   finally { authBusy = false; }
 }
 async function verifyRegisterCode() {
-  const otp = document.querySelector('[data-reg-step="2"] [data-otp]');
-  if (otpProblem(otp)) return registerMessage('Enter all 6 digits of the code.');
   const email = document.getElementById('regEmail').value.trim();
-  await authAction(authButton('[data-reg-step="2"]'), 'Checking code…', async () => {
-    try {
-      LexcBackend.unwrap(await LexcBackend.client.auth.verifyOtp({ email, token: otpValue(otp), type: 'signup' }));
-      registerStep(3);
-    } catch (problem) { otp.classList.add('is-bad'); registerMessage(authErrorText(problem)); }
-  });
+  registerMessage('');
+  await otpCheck('[data-reg-step="2"]', async (token) => LexcBackend.unwrap(await LexcBackend.client.auth.verifyOtp({ email, token, type: 'signup' })), () => registerStep(3));
 }
 async function resendRegisterCode() {
   const email = document.getElementById('regEmail').value.trim();
@@ -2595,7 +2632,7 @@ function loginView(name) {
   document.querySelectorAll('[data-login-view]').forEach(view => { view.hidden = view.dataset.loginView !== name; });
   loginMessage('');
   const view = document.querySelector('[data-login-view="' + name + '"]');
-  const otp = view.querySelector('[data-otp]'); if (otp) otpReset(otp);
+  const otp = view.querySelector('[data-otp]'); if (otp) { otpReset(otp); otpSay(view, ''); }
   if (currentPage === 'login') setTimeout(() => view.querySelector('input')?.focus(), 50);
 }
 function forgotStart() {
@@ -2609,7 +2646,7 @@ async function forgotSend(again) {
   const run = async () => {
     try {
       LexcBackend.unwrap(await LexcBackend.client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }));
-      document.getElementById('forgotSentTo').textContent = email;
+      document.getElementById('forgotSentTo').textContent = maskEmail(email);
       if (!again) loginView('code');
       if (again) loginMessage('A new code was sent to ' + email + '.', true);
       resendCooldown('forgotResend');
@@ -2619,15 +2656,12 @@ async function forgotSend(again) {
   await authAction(authButton('[data-login-view="forgot"]'), 'Sending code…', run);
 }
 async function forgotVerify() {
-  const otp = document.querySelector('[data-login-view="code"] [data-otp]');
-  if (otpProblem(otp)) return loginMessage('Enter all 6 digits of the code.');
-  await authAction(authButton('[data-login-view="code"]'), 'Checking code…', async () => {
+  loginMessage('');
+  await otpCheck('[data-login-view="code"]', async (token) => {
     codeRecovery = true;
-    try {
-      LexcBackend.unwrap(await LexcBackend.client.auth.verifyOtp({ email: document.getElementById('forgotEmail').value.trim(), token: otpValue(otp), type: 'recovery' }));
-      loginView('newpw');
-    } catch (problem) { codeRecovery = false; otp.classList.add('is-bad'); loginMessage(authErrorText(problem)); }
-  });
+    try { LexcBackend.unwrap(await LexcBackend.client.auth.verifyOtp({ email: document.getElementById('forgotEmail').value.trim(), token, type: 'recovery' })); }
+    catch (problem) { codeRecovery = false; throw problem; }
+  }, () => loginView('newpw'));
 }
 async function forgotSetPassword() {
   const password = document.getElementById('forgotPassword').value;
@@ -2685,8 +2719,7 @@ async function gisSignedIn({ credential }) {
   try {
     await new Promise((resolve, reject) => { const tag = Object.assign(document.createElement('script'), { src: 'https://accounts.google.com/gsi/client', async: true, onload: resolve, onerror: reject }); document.head.append(tag); setTimeout(reject, 10000); });
     await gisInit();
-    const width = Math.round(Math.min(400, Math.max(220, window.innerWidth - 72)));
-    document.querySelectorAll('[data-gis-slot]').forEach(slot => google.accounts.id.renderButton(slot, { type: 'standard', theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center', width }));
+    document.querySelectorAll('[data-gis-slot]').forEach(slot => google.accounts.id.renderButton(slot, { type: 'icon', theme: 'outline', size: 'large', shape: 'circle' }));
     document.documentElement.classList.add('gis-on');
   } catch { /* Google's script unavailable: the redirect button stays */ }
 })();
@@ -2777,6 +2810,7 @@ document.getElementById('loginName').placeholder = 'Email';
 document.getElementById('loginName').type = 'email';
 document.getElementById('loginName').value = localStorage.getItem('lexc_login_hint') || '';
 document.getElementById('loginRemember').checked = Boolean(localStorage.getItem('lexc_login_hint'));
+loginReady();
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script>
@@ -2792,7 +2826,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 <script src="shared/letter-pieces.js?v=3"></script>
 <script src="shared/cupcake-designer.js?v=35"></script>
 <script src="shared/treat-designer.js?v=25"></script>
-<script src="shared/motion.js?v=3" defer></script>
+<script src="shared/motion.js?v=4" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="lcw-label">Chat</span><span data-chat-count hidden></span></button>
 <script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=37';mountChatWidget();</script>
