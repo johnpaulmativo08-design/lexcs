@@ -260,7 +260,8 @@ function onlineForm(attempt){
   if(qr&&Date.now()<qr.expires)return head+
     '<div class="compact-payment-core online-qr"><div class="qr-panel"><div class="qr-image-wrap"><img class="qr-image is-loaded" src="'+e(qr.src)+'" alt="QR Ph code to pay '+money(attempt.amount)+'"></div><div class="qr-actions"><a class="button secondary" href="'+e(qr.src)+'" download="lexc-order-'+e(order.order_number)+'-qrph.png">Download QR</a></div></div>'+
     '<div class="compact-payment-info"><div class="pay-amount"><span>Scan and pay exactly</span><strong>'+money(attempt.amount)+'</strong></div><p class="qr-timer" role="timer">Code expires in <b data-qr-left>'+qrLeft(qr)+'</b></p>'+
-    '<ol class="qr-steps"><li>Open <strong>GCash</strong>, Maya or your bank app.</li><li>Choose <strong>Scan QR / Pay QR</strong> and scan this code.<br><small>On this same phone? Download the QR, then upload it in the app.</small></li><li>Stay on this page — it updates by itself once paid.</li></ol></div></div>'+
+    (qr.gcash?'<ol class="qr-steps"><li>Open the <strong>GCash</strong> app.</li><li>Tap <strong>Pay QR</strong> and scan this code.<br><small>On this same phone? Download the QR, then in GCash tap Pay QR → Upload QR.</small></li><li>Stay on this page — it updates by itself once paid.</li></ol></div></div>':
+    '<ol class="qr-steps"><li>Open <strong>GCash</strong>, Maya or your bank app.</li><li>Choose <strong>Scan QR / Pay QR</strong> and scan this code.<br><small>On this same phone? Download the QR, then upload it in the app.</small></li><li>Stay on this page — it updates by itself once paid.</li></ol></div></div>')+
     '<p class="fine-print">The amount is already in the code. LexC’s confirms the payment after PayMongo reports it.</p>'+tail;
   return head+(qr?'<p class="reject-note" role="status"><span aria-hidden="true">!</span><span><strong>That QR code expired.</strong> Nothing was charged. Get a new one below.</span></p>':'')+
     '<div class="pay-amount"><span>You will pay</span><strong>'+money(attempt.amount)+'</strong></div>'+
@@ -283,7 +284,7 @@ async function payOnline(event){
     const {data,error}=await backend.client.functions.invoke('paymongo-checkout',{body:{paymentId:attempt.id,returnUrl:location.origin+location.pathname,mode}});
     if(error||!(data?.url||data?.qr))throw new Error(data?.error||(await error?.context?.json?.().catch(()=>null))?.error||'PayMongo could not start the payment. Please try again.');
     if(data.url){location.assign(data.url);return;}
-    liveQR={attemptId:attempt.id,src:data.qr,expires:Math.min(Date.parse(data.expiresAt)||Infinity,Date.now()+1800000)};
+    liveQR={attemptId:attempt.id,src:data.qr,expires:Math.min(Date.parse(data.expiresAt)||Infinity,Date.now()+1800000),gcash:!!data.forGcash};
     onlineSince=Date.now();submitting=false;render();tickQR();
   }catch(error){say(error.message||'PayMongo could not start the payment. Please try again.',true);button.disabled=false;button.classList.remove('mo-busy');button.innerHTML=label;submitting=false;}
 }
