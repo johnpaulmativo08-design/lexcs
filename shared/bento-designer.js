@@ -59,15 +59,17 @@
   let textTimer = 0, view3d = true, packed = false;
 
   const blank = () => ({ variant_id: product.product_variants.filter((v) => v.is_active)[0]?.id, frosting_color: 'white', border: [], accents: [], bow_color: 'pink',
-    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {}, drip_color: '', font: 'rounded', inspiration: [] });
+    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {}, drip_color: '', shell_color: '', font: 'rounded', inspiration: [] });
   const design = () => ({ designer: 'bento', frosting_color: state.frosting_color, border: [...state.border], accents: [...state.accents],
     bow_color: state.accents.includes('ribbon_bows') ? state.bow_color : null, message: state.message.trim(),
     lettering: state.message.trim() ? state.lettering : null, lettering_color: state.message.trim() ? state.lettering_color : null,
     topper: state.topper, topper_text: state.topper === 'number' ? state.topper_text : '', layout: JSON.parse(JSON.stringify(state.layout || {})),
     drip_color: state.accents.includes('drip') && state.drip_color ? state.drip_color : null, font: state.message.trim() ? state.font : null,
+    shell_color: state.border.length && state.shell_color ? state.shell_color : null,
     lower: isTiered() && state.lower ? tierOut(state.lower) : undefined, middle: tierCount() === 3 && state.middle ? tierOut(state.middle) : undefined });
   const tierOut = (t) => ({ frosting_color: t.frosting_color, border: [...t.border], accents: [...t.accents],
-    bow_color: t.accents.includes('ribbon_bows') ? t.bow_color : null, drip_color: t.accents.includes('drip') && t.drip_color ? t.drip_color : null });
+    bow_color: t.accents.includes('ribbon_bows') ? t.bow_color : null, drip_color: t.accents.includes('drip') && t.drip_color ? t.drip_color : null,
+    shell_color: t.border.length && t.shell_color ? t.shell_color : null });
   const hasLayout = () => Object.keys(state.layout || {}).length > 0;
   const opt = (group, code) => options[group]?.find((o) => o.code === code);
   const variant = () => product.product_variants.find((v) => v.id === state.variant_id && v.is_active);
@@ -104,7 +106,7 @@
   const sub = (s) => (tier === 'bottom' && s.lower) || (tier === 'middle' && s.middle) || s;   // the tier being edited
   const onLower = () => isTiered() && sub(state) !== state;
   const TIER_NAMES = { top: 'Top tier', middle: 'Middle tier', bottom: 'Bottom tier' };
-  const TIER_FIELDS = new Set(['frosting_color', 'bow_color', 'drip_color', 'border', 'accents']);
+  const TIER_FIELDS = new Set(['frosting_color', 'bow_color', 'drip_color', 'shell_color', 'border', 'accents']);
   const cakeLine = (v) => { const pv = parseVariant(v); return `${sizeText(pv.size)} · ${pv.flavor}`; };
 
   // Price shown immediately from the same option table; confirmed by the server quote below.
@@ -185,6 +187,7 @@
     if (!opt('topper', state.topper)) state.topper = 'none';
     if (!opt('lettering', state.lettering)) state.lettering = 'piped';
     if (state.drip_color && !palette[state.drip_color]) state.drip_color = '';
+    if (state.shell_color && !palette[state.shell_color]) state.shell_color = '';
     if (!opt('font', state.font)) state.font = opt('font', 'rounded') ? 'rounded' : (options.font?.[0]?.code || 'rounded');
     state.topper_text = String(state.topper_text || '').replace(/\D/g, '').slice(0, 3);
     state.qty = Math.min(20, Math.max(1, Number(state.qty) || 1));
@@ -194,7 +197,8 @@
       const acc = [...new Set(t.accents || [])].filter((c) => opt('accent', c)).slice(0, max);
       if (acc.includes('pearls_gold') && acc.includes('pearls_silver')) acc.splice(acc.indexOf('pearls_silver'), 1);
       return { frosting_color: palette[t.frosting_color] ? t.frosting_color : state.frosting_color, border: [...new Set(t.border || [])].filter((c) => opt('border', c)),
-        accents: acc, bow_color: palette[t.bow_color] ? t.bow_color : 'pink', drip_color: t.drip_color && palette[t.drip_color] ? t.drip_color : '' };
+        accents: acc, bow_color: palette[t.bow_color] ? t.bow_color : 'pink', drip_color: t.drip_color && palette[t.drip_color] ? t.drip_color : '',
+        shell_color: t.shell_color && palette[t.shell_color] ? t.shell_color : '' };
     };
     if (isTiered()) state.lower = cleanTier(state.lower); else { delete state.lower; tier = 'top'; }
     if (tierCount() === 3) state.middle = cleanTier(state.middle || state.lower);   // a new middle tier starts like the bottom one
@@ -398,7 +402,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=35');
+        const mod = await import('./bento-scene.js?v=36');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -464,7 +468,8 @@
   const POPULAR = {
     frosting_color: ['white', 'blush', 'baby_pink', 'lavender', 'lilac', 'baby_blue', 'mint', 'butter'],
     bow_color: ['pink', 'hot_pink', 'red', 'white', 'lavender', 'baby_blue', 'burgundy', 'black'],
-    drip_color: ['chocolate', 'white', 'pink', 'red', 'lavender', 'butter', 'burgundy', 'black']
+    drip_color: ['chocolate', 'white', 'pink', 'red', 'lavender', 'butter', 'burgundy', 'black'],
+    shell_color: ['white', 'pink', 'lavender', 'baby_blue', 'mint', 'butter', 'chocolate', 'red']
   };
   const expandedColors = new Set();
   function swatches(field, current, label, { full = false } = {}) {
@@ -480,7 +485,7 @@
     const extra = options.color.filter((c) => !known.has(c.code)); if (extra.length) groups.push(['More', extra]);
     return `<div role="radiogroup" aria-label="${label}">${groups.filter(([, list]) => list.length).map(([name, list]) =>
       `<p class="bd-swatch-group" aria-hidden="true">${name}</p><div class="bd-swatches">${list.map((c) => swatch(field, current, c)).join('')}</div>`).join('')}</div>
-      <div class="bd-swatch-row"><p class="bd-swatch-name" aria-hidden="true">Selected: <b>${esc(opt('color', current)?.label || (field === 'drip_color' ? 'Matching' : ''))}</b></p>
+      <div class="bd-swatch-row"><p class="bd-swatch-name" aria-hidden="true">Selected: <b>${esc(opt('color', current)?.label || (field === 'drip_color' || field === 'shell_color' ? 'Matching' : ''))}</b></p>
       ${popular && !full ? `<button type="button" class="bd-more-colors" data-bd-more="${field}" aria-expanded="true">Fewer colors</button>` : ''}</div>`;
   }
   // ---- Sheets: Font and Lettering color open from compact buttons in the Message step ---------------
@@ -659,6 +664,9 @@
       ${tierSwitch()}
       <fieldset class="bd-group"><legend>Border <small>Piped shells</small></legend>
         <div class="bd-chips">${(options.border || []).map((o) => `<button type="button" class="bd-chip" data-bd-toggle="border" data-value="${o.code}" aria-pressed="${s.border.includes(o.code)}">${esc(o.label.replace('Shell border — ', 'Shell '))} ${priceTag(o)}</button>`).join('')}</div></fieldset>
+      ${s.border.length ? `<fieldset class="bd-group"><legend>Shell color <small>Free</small></legend>
+        <div class="bd-chips" style="margin-bottom:10px"><button type="button" class="bd-chip" role="radio" data-bd-set="shell_color" data-value="" aria-checked="${!s.shell_color}">Matching (${esc(opt('color', s.frosting_color)?.label.toLowerCase() || 'frosting')})</button></div>
+        ${swatches('shell_color', s.shell_color, 'Shell color')}</fieldset>` : ''}
       <fieldset class="bd-group"><legend>Decorations <small>${count} of ${max} chosen</small></legend>
         <p class="bd-note">Pick gold or silver pearls, not both.</p>
         <div class="bd-chips">${(options.accent || []).map((o) => { const on = s.accents.includes(o.code); return `<button type="button" class="bd-chip" data-bd-toggle="accents" data-value="${o.code}" aria-pressed="${on}" ${!on && count >= max ? 'disabled' : ''}>${esc(o.label)} ${priceTag(o)}</button>`; }).join('')}</div></fieldset>
@@ -694,7 +702,7 @@
         <li><span>Layers</span><strong>${esc(layersText())}</strong></li>
         <li><span>Frosting</span><strong>${esc(opt('color', s.frosting_color)?.label)}${isTiered() ? ' (top tier)' : ''}</strong></li>
         ${[[tierCount() === 3 && s.middle, 'Middle tier'], [isTiered() && s.lower, 'Bottom tier']].map(([t, name]) => t ? `<li><span>${name}</span><strong>${esc(opt('color', t.frosting_color)?.label)} frosting${[...t.border.map((c) => opt('border', c)?.label.replace('Shell border — ', 'Shell ')), ...t.accents.map((c) => opt('accent', c)?.label)].filter(Boolean).map((l) => ', ' + esc(l)).join('')}</strong></li>` : '').join('')}
-        <li><span>Border</span><strong>${s.border.length ? s.border.map((c) => esc(opt('border', c).label.replace('Shell border — ', 'Shell '))).join(', ') : 'None'}</strong></li>
+        <li><span>Border</span><strong>${s.border.length ? s.border.map((c) => esc(opt('border', c).label.replace('Shell border — ', 'Shell '))).join(', ') + (s.shell_color ? ' (' + esc(opt('color', s.shell_color)?.label) + ')' : '') : 'None'}</strong></li>
         <li><span>Decorations</span><strong>${s.accents.length ? s.accents.map((c) => esc(opt('accent', c).label) + (c === 'ribbon_bows' ? ' (' + esc(opt('color', s.bow_color)?.label) + ')' : '')).join(', ') : 'None'}</strong></li>
         <li><span>Message</span><strong>${s.message.trim() ? '“' + esc(s.message.trim()) + '”\n' + esc(opt('lettering', s.lettering)?.label) + ', ' + esc(opt('color', s.lettering_color)?.label) : 'None'}</strong></li>
         <li><span>Topper</span><strong>${esc(opt('topper', s.topper)?.label)}${s.topper === 'number' ? ' ' + esc(s.topper_text) : ''}</strong></li>
