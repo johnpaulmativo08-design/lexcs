@@ -12,6 +12,10 @@ let user,order,methods=[],attempts=[],changing=false,justSubmitted=false;
 // Arriving straight from checkout (?placed=1) shows the 'Order received' moment once; a refresh does not replay it.
 let placedFresh=new URLSearchParams(location.search).get('placed')==='1';
 if(placedFresh){const url=new URL(location.href);url.searchParams.delete('placed');history.replaceState(history.state,'',url);}
+// Back from PayMongo's checkout (?online=paid or cancelled). The page waits for PayMongo's own report (webhook), never the URL.
+let onlineReturn=new URLSearchParams(location.search).get('online'),onlineSince=Date.now();
+if(onlineReturn){const url=new URL(location.href);url.searchParams.delete('online');history.replaceState(history.state,'',url);}
+const isOnline=method=>method?.code==='paymongo';
 const SPARKS=[[-46,-30,'#d9c4f6'],[44,-34,'#f6c8de'],[-52,18,'#cfe6f9'],[50,22,'#d9c4f6'],[-18,-52,'#f6dcb8'],[22,48,'#f6c8de']];
 function successMark(small){return '<div class="mo-check'+(small?' mo-check--small':'')+'" aria-hidden="true"><svg viewBox="0 0 84 84"><circle class="mo-ring" cx="42" cy="42" r="38"/><path class="mo-tick" d="M26 43l11 11 21-22"/></svg>'+(small?'':SPARKS.map(([x,y,c])=>'<span class="mo-sparkle" style="--dx:'+x+'px;--dy:'+y+'px;--c:'+c+'"></span>').join(''))+'</div>';}
 const seenKey=()=>'lexc_pay_seen_'+order.id;
@@ -28,7 +32,7 @@ function orderState(active,last,remaining){
   if(order.status==='cancelled')return ['cancelled','Order cancelled','×'];
   if(awaitingConfirmation()&&!active)return ['pending','Awaiting confirmation','⋯'];
   if(order.total_amount===null)return ['pending','Waiting for quote','⋯'];
-  if(active?.status==='verification_pending')return ['review','Proof under review','◷'];
+  if(active?.status==='verification_pending')return ['review',active.provider_payment_id?'Paid online · being confirmed':'Proof under review','◷'];
   if(remaining===0)return ['verified','Paid · verified','✓'];
   if(last?.status==='rejected'&&!active)return ['rejected','Proof not accepted','!'];
   if(order.payment_status==='partially_paid')return ['partial','Downpayment verified','✓'];
@@ -114,8 +118,9 @@ function render(){
   else if(awaitingConfirmation()&&!active)paymentArea='<section class="card state-card"><span class="state-icon pending-icon" aria-hidden="true">⋯</span><span class="eyebrow">STEP 1 OF 4</span><h2>Waiting for LexC’s to confirm your order</h2><p>Your order and reservation date are saved. LexC’s checks the order first'+'. Once it is confirmed, you can pay the downpayment or the full amount here, and you will get a message in chat.</p><p class="note">Please do not transfer money yet.</p><div class="state-actions"><button class="button" type="button" id="state-refresh">Check again</button><a class="button secondary" href="../chat/?order='+encodeURIComponent(order.id)+'">Message LexC’s</a></div></section>';
   else if(order.total_amount===null)paymentArea='<section class="card state-card"><span class="state-icon pending-icon" aria-hidden="true">⋯</span><h2>Waiting for your delivery quote</h2><p>Your order and reservation are saved. The exact payable amount will appear here after LexC’s sets the delivery fee. Please do not transfer yet.</p><button class="button" type="button" id="state-refresh">Check for quote</button><a class="text-link" href="'+e(ordersURL)+'">Return to My Orders</a></section>';
   else if(active?.status==='verification_pending'&&justSubmitted)paymentArea='<section class="card state-card mo-success pay-submitted">'+successMark()+'<h2 class="mo-rise-1">Payment submitted</h2><p class="mo-rise-1">Your payment proof has been received.</p><div class="receipt-card mo-rise"><small>'+e((kindName[kindOf(active)]||'Payment').toUpperCase())+' · '+e(methodFor(active)?.display_name||'QR')+'</small><strong>'+money(active.amount)+'</strong><span>Order #'+e(order.order_number)+'</span></div><span class="status verification_pending mo-rise">Waiting for LexC’s to verify</span><p class="note mo-rise">We will message you once LexC’s matches it to the incoming transfer. Please do not send it again.</p><div class="state-actions mo-rise"><a class="button" href="'+e(ordersURL)+'">View cart</a><a class="button secondary" href="../">Continue shopping</a></div></section>';
+  else if(active?.status==='verification_pending'&&active.provider_payment_id)paymentArea='<section class="card state-card mo-success pay-submitted">'+successMark()+'<h2 class="mo-rise-1">Payment received</h2><p class="mo-rise-1">PayMongo received your '+e((kindName[kindOf(active)]||'payment').toLowerCase())+' of '+money(active.provider_amount||active.amount)+(active.provider_method?' by '+e(active.provider_method==='qrph'?'QR Ph':active.provider_method==='gcash'?'GCash':active.provider_method):'')+'.</p><span class="status verification_pending mo-rise">Waiting for LexC’s to confirm</span><p class="note mo-rise">LexC’s will confirm it shortly and message you. Please do not pay again.</p><div class="state-actions mo-rise"><a class="button" href="'+e(ordersURL)+'">View My Orders</a><a class="button secondary" href="../chat/?order='+encodeURIComponent(order.id)+'">Message LexC’s</a></div></section>';
   else if(active?.status==='verification_pending')paymentArea='<section class="card state-card proof-success"><span class="state-icon pending-icon" aria-hidden="true">✓</span><h2>Proof received</h2><span class="status verification_pending">Awaiting Admin verification</span><p>We saved your proof for '+money(active.amount)+' sent through '+e(methodFor(active)?.display_name||'manual QR')+'. Keep your bank receipt. Please do not transfer again while LexC’s checks it.</p><p class="note">Proof submission is not payment confirmation. Admin must match it to the actual incoming transfer.</p><a class="button" href="'+e(ordersURL)+'">View My Orders</a><button class="button secondary" type="button" id="state-refresh">Refresh status</button></section>';
-  else if(active?.status==='awaiting_payment'&&!changing)paymentArea=paymentForm(active);
+  else if(active?.status==='awaiting_payment'&&!changing)paymentArea=isOnline(methodFor(active))?onlineForm(active):paymentForm(active);
   else if(remaining===0)paymentArea='<section class="card state-card"><span class="state-icon paid-icon" aria-hidden="true">✓</span><span class="eyebrow">PAYMENT COMPLETE</span><h2>Payment verified</h2><span class="status paid">Paid</span><p>LexC’s verified '+money(order.amount_paid)+' received for this order.</p><a class="button" href="'+e(ordersURL)+'">View My Orders</a></section>';
   else paymentArea=methodChoice(last,active);
   const before=lastSeenStatus(),verifiedNow=before==='verification_pending'&&(['partially_paid','paid'].includes(status)||status==='unpaid'&&Number(order.amount_paid)>0);
@@ -158,6 +163,8 @@ function render(){
     catch(error){say(error.message,true);buttons.forEach(b=>b.disabled=false);button.textContent=accept?'Accept new price':'Decline';}
   }));
   root.querySelector('#start-payment')?.addEventListener('click',startPayment);
+  root.querySelectorAll('[name=method]').forEach(input=>input.addEventListener('change',()=>{const b=root.querySelector('#start-payment');if(b)b.textContent=isOnline(methods.find(m=>m.code===input.value))?'Continue to pay online →':'Show payment QR →';}));
+  root.querySelector('#pay-online')?.addEventListener('click',payOnline);
   // back to step 2 (choose the account and amount again); nothing is sent until a receipt is uploaded
   const backToChoice=()=>{changing=true;say('');render();root.querySelector('.choice-card')?.scrollIntoView({block:'start',behavior:'smooth'});};
   root.querySelector('#change-payment')?.addEventListener('click',backToChoice);
@@ -218,7 +225,7 @@ function methodChoice(last,active){
   if(!methods.length)return '<section class="card state-card"><h2>QR payment is temporarily unavailable</h2><p>Please return later. Your order remains saved; do not send money to an account not shown here.</p><a class="button" href="'+e(ordersURL)+'">View My Orders</a></section>';
   const chosen=active?methodFor(active)?.code:order.requested_payment_method;
   const choices=methods.map((method,index)=>'<label class="method-choice"><input type="radio" name="method" value="'+e(method.code)+'" '+((chosen===method.code||(!methods.some(m=>m.code===chosen)&&index===0))?'checked':'')+'>'+methodMark(method)+'<span><strong>'+e(method.display_name)+'</strong><small>'+e(method.account_name)+' · '+e(method.masked_account)+'</small></span></label>').join('');
-  return '<section class="card choice-card"><span class="eyebrow">ORDER CONFIRMED · CHOOSE YOUR PAYMENT</span><h2>'+(last?.status==='rejected'&&!active?'Choose how to try again':'How much would you like to pay now?')+'</h2>'+(last?.status==='rejected'&&!active?'<p class="reject-note" role="alert"><span aria-hidden="true">!</span><span><strong>Your previous proof was not accepted.</strong> '+e(last.rejection_reason||'Please check your transfer details and try again.')+' Choose your payment again to send a new proof.</span></p>':'')+planChoice(active)+'<h3 class="choice-subhead">Pay to</h3><div class="method-list">'+choices+'</div><button id="start-payment" type="button">Show payment QR →</button>'+(active?'<button class="button secondary" id="keep-payment" type="button">Keep my current choice</button>':'')+'<p class="fine-print">This does not send money or mark your order paid.</p></section>';
+  return '<section class="card choice-card"><span class="eyebrow">ORDER CONFIRMED · CHOOSE YOUR PAYMENT</span><h2>'+(last?.status==='rejected'&&!active?'Choose how to try again':'How much would you like to pay now?')+'</h2>'+(last?.status==='rejected'&&!active?'<p class="reject-note" role="alert"><span aria-hidden="true">!</span><span><strong>Your previous proof was not accepted.</strong> '+e(last.rejection_reason||'Please check your transfer details and try again.')+' Choose your payment again to send a new proof.</span></p>':'')+planChoice(active)+'<h3 class="choice-subhead">Pay to</h3><div class="method-list">'+choices+'</div><button id="start-payment" type="button">'+(isOnline(methods.find(m=>m.code===chosen)||methods[0])?'Continue to pay online →':'Show payment QR →')+'</button>'+(active?'<button class="button secondary" id="keep-payment" type="button">Keep my current choice</button>':'')+'<p class="fine-print">This does not send money or mark your order paid.</p></section>';
 }
 // The chosen receipt appears as a thumbnail with Replace / Remove (nothing is uploaded until 'Send proof').
 let proofURL=null;
@@ -243,10 +250,30 @@ function paymentForm(attempt){
     '<p class="same-phone"><strong>Using one phone?</strong> Save the QR, then import it in your bank or wallet app if supported. Otherwise scan from another screen.</p>'+
     '<details class="proof-disclosure" id="proof-disclosure"><summary><span>Already paid? Upload receipt <small>Only after your bank confirms the transfer</small></span><span aria-hidden="true">⌄</span></summary><div class="proof-intro">Use the transaction reference from your banking app—not your LexC order number.</div><form id="proof-form"><label class="field">Bank transaction reference<input type="text" name="reference" inputmode="numeric" minlength="6" maxlength="30" pattern="[0-9]{6,30}" required autocomplete="off" placeholder="Numbers only, e.g. 1234567890123"></label><label class="field">Transfer receipt <small>JPG, PNG, or WEBP · up to 5 MB</small><input type="file" name="proof" accept="image/jpeg,image/png,image/webp" required><span id="selected-proof" class="selected-proof">No receipt selected</span></label><button type="submit">Send proof for verification</button></form><p class="fine-print">Proof submission does not mark the order paid. Admin verifies the incoming transfer. Do not send another transfer while verification is pending.</p></details></section>';
 }
+// Pay online: PayMongo's secure page (GCash or QR Ph) for exactly this attempt's amount, then back here.
+function onlineForm(attempt){
+  const back=onlineReturn==='cancelled'?'<p class="reject-note" role="status"><span aria-hidden="true">!</span><span><strong>Payment not finished.</strong> Nothing was charged. You can try again or choose another way to pay.</span></p>':
+    onlineReturn==='paid'?'<p class="note" role="status">Thanks! Waiting for PayMongo to confirm your payment… this page updates by itself.</p>':'';
+  return '<section class="card payment-card online-card"><button type="button" class="back-step" id="back-to-choice"><span aria-hidden="true">←</span> Back · choose another account or amount</button><span class="eyebrow">PAY ONLINE</span><div class="compact-payment-heading"><h2>'+methodMark(methodFor(attempt))+'GCash or QR Ph</h2><span>'+e(kindName[kindOf(attempt)])+' · '+money(attempt.amount)+'</span></div>'+back+
+    '<div class="pay-amount"><span>You will pay</span><strong>'+money(attempt.amount)+'</strong></div>'+
+    '<button type="button" id="pay-online">Pay '+money(attempt.amount)+' securely →</button>'+
+    '<p class="fine-print">You will go to PayMongo’s secure page to pay with GCash or any bank or e-wallet app that scans QR Ph, then come back here. LexC’s confirms the payment after PayMongo reports it.</p>'+
+    '<p class="change-payment"><button class="text-button" id="change-payment" type="button">Change amount or account</button></p></section>';
+}
+async function payOnline(event){
+  const button=event.currentTarget,attempt=attempts.find(item=>item.status==='awaiting_payment');
+  if(!attempt)return say('Payment attempt is no longer available.',true);
+  if(submitting)return;submitting=true;button.disabled=true;button.classList.add('mo-busy');button.textContent='Opening PayMongo…';
+  try{
+    const {data,error}=await backend.client.functions.invoke('paymongo-checkout',{body:{paymentId:attempt.id,returnUrl:location.origin+location.pathname}});
+    if(error||!data?.url)throw new Error(data?.error||(await error?.context?.json?.().catch(()=>null))?.error||'PayMongo could not open the payment page. Please try again.');
+    location.assign(data.url);
+  }catch(error){say(error.message||'PayMongo could not open the payment page. Please try again.',true);button.disabled=false;button.classList.remove('mo-busy');button.textContent='Pay '+money(attempt.amount)+' securely →';submitting=false;}
+}
 // named paymentHistory, not history: a global function called history hides the browser's history object
 function paymentHistory(){
   if(!attempts.length)return '';
-  return '<details class="card history"><summary>Payment history <span aria-hidden="true">⌄</span></summary><div class="history-body">'+attempts.map(attempt=>'<div class="attempt"><strong>'+e(when(attempt.created_at))+' · '+e(kindName[kindOf(attempt)])+' · '+money(attempt.amount)+'</strong> <span class="status '+e(attempt.status)+'">'+e(statusName[attempt.status]||attempt.status)+'</span><br>'+e(methodFor(attempt)?.display_name||'Manual QR')+(attempt.transaction_reference?'<br>Reference: '+e(attempt.transaction_reference):'')+(attempt.rejection_reason?'<br>Reason: '+e(attempt.rejection_reason):'')+(attempt.proof_storage_path?'<br><button type="button" class="button secondary" data-proof="'+e(attempt.proof_storage_path)+'">View my proof</button>':'')+'</div>').join('')+'</div></details>';
+  return '<details class="card history"><summary>Payment history <span aria-hidden="true">⌄</span></summary><div class="history-body">'+attempts.map(attempt=>'<div class="attempt"><strong>'+e(when(attempt.created_at))+' · '+e(kindName[kindOf(attempt)])+' · '+money(attempt.amount)+'</strong> <span class="status '+e(attempt.status)+'">'+e(statusName[attempt.status]||attempt.status)+'</span><br>'+e(methodFor(attempt)?.display_name||'Manual QR')+(attempt.transaction_reference?'<br>'+(attempt.provider_payment_id?'PayMongo payment':'Reference')+': '+e(attempt.transaction_reference):'')+(attempt.rejection_reason?'<br>Reason: '+e(attempt.rejection_reason):'')+(attempt.proof_storage_path?'<br><button type="button" class="button secondary" data-proof="'+e(attempt.proof_storage_path)+'">View my proof</button>':'')+'</div>').join('')+'</div></details>';
 }
 async function startPayment(event){
   const button=event.currentTarget,method=root.querySelector('[name=method]:checked')?.value,plan=root.querySelector('[name=plan]:checked')?.value||null;
@@ -260,7 +287,7 @@ async function startPayment(event){
   if(submitting)return;submitting=true;button.classList.add('mo-busy');
   button.disabled=true;button.textContent='Preparing payment…';
   try{await backend.rpc('start_order_payment',custom?{target_order:order.id,method_code:method,pay_option:'custom',custom_amount:custom}:{target_order:order.id,method_code:method,pay_option:plan==='balance'?null:plan});say('Payment prepared. Check the recipient before transferring.');await load();}
-  catch(error){say(paymentError(error,'The QR could not be prepared. Your order is saved; please try again.'),true);button.disabled=false;button.classList.remove('mo-busy');button.textContent='Show payment QR →';}
+  catch(error){say(paymentError(error,'The QR could not be prepared. Your order is saved; please try again.'),true);button.disabled=false;button.classList.remove('mo-busy');button.textContent=isOnline(methods.find(m=>m.code===method))?'Continue to pay online →':'Show payment QR →';}
   finally{submitting=false;}
 }
 async function submitPayment(event){
@@ -282,8 +309,9 @@ async function submitPayment(event){
   finally{submitting=false;}
 }
 const signature=()=>[order.status,order.payment_status,order.amount_paid,order.total_amount,attempts.map(a=>a.id+a.status).join()].join('|');
-function watching(){return order&&order.status!=='cancelled'&&(awaitingConfirmation()||order.total_amount===null||attempts.some(a=>a.status==='verification_pending'));}
-function schedulePoll(){clearTimeout(pollTimer);if(watching())pollTimer=setTimeout(silentCheck,15000);}
+const waitingForPayMongo=()=>onlineReturn==='paid'&&Date.now()-onlineSince<180000&&attempts.some(a=>a.status==='awaiting_payment');
+function watching(){return order&&order.status!=='cancelled'&&(awaitingConfirmation()||order.total_amount===null||waitingForPayMongo()||attempts.some(a=>a.status==='verification_pending'));}
+function schedulePoll(){clearTimeout(pollTimer);if(watching())pollTimer=setTimeout(silentCheck,waitingForPayMongo()?5000:15000);}
 async function silentCheck(){
   if(document.hidden||submitting)return schedulePoll();
   try{

@@ -1,0 +1,4 @@
+# Supabase CLI settings for this project's Edge Functions.
+# PayMongo cannot send a Supabase login, so its webhook skips JWT checks; it checks PayMongo's signature instead.
+[functions.paymongo-webhook]
+verify_jwt = false
