@@ -573,7 +573,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     try { build(design, palette); } finally { currentPick = null; }
     if (!prev || prev === design || !model || packing || shapeKey !== 'bento') return;
     // Piping animations for what was just added (not while typing the message letter by letter).
-    const before = new Set(prev.border || []), frost = palette[design.frosting_color] || '#ffffff';
+    const before = new Set(prev.border || []), frost = palette[design.shell_color] || palette[design.frosting_color] || '#ffffff';
     for (const [code, part, radius, y] of [['shell_top', 'border_top_shell', R - 0.06, model.topShellY], ['shell_bottom', 'border_bottom_shell', R + 0.07, model.bottomShellY]])
       if ((design.border || []).includes(code) && !before.has(code) && model.parts[part]) pipeRing(model.parts[part], radius, y ?? H, frost);
     const msg = design.message || '', old = prev.message || '';
@@ -601,7 +601,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
         TIERS.slice(0, -1).forEach((t, i) => {
           const mid = i > 0, d = (mid ? design.middle || design.lower : design.lower) || {}, tierFrost = hexOf(d.frosting_color, frost);
           fadeColor(mid ? midMat : lowerMat, tierFrost);
-          const tierDesign = { accents: d.accents || [], border: d.border || [], bow_color: d.bow_color, drip_color: d.drip_color, layout: {}, topper: 'none', message: '' };
+          const tierDesign = { accents: d.accents || [], border: d.border || [], bow_color: d.bow_color, drip_color: d.drip_color, shell_color: d.shell_color, layout: {}, topper: 'none', message: '' };
           pickPrefix = mid ? 'middle:' : 'lower:';
           R = RB = t.r; TIER_Y = t.y; H = t.y + t.h; TEXT_R = TIERS[i + 1].r + 0.04;   // decorations stay on the step outside the tier above
           tierDecor(tierDesign, hexOf, tierFrost, rand, false);
@@ -616,7 +616,8 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   // the model has loaded (sharper than plain shapes). movable = the top tier, whose flowers and bows can be arranged.
   function tierDecor(design, hexOf, frost, rand, movable) {
     const accents = new Set(design.accents || []), borders = new Set(design.border || []), L = movable ? (design.layout || {}) : {};
-    const frostMat = M.piped(shade(frost, 0.03)), T = model?.templates || {};
+    const shellHex = design.shell_color ? hexOf(design.shell_color, frost) : frost;   // shells can differ from the frosting
+    const frostMat = M.piped(shade(shellHex, 0.03)), T = model?.templates || {};
     const around = (radius, spacing) => Math.max(12, Math.round((2 * Math.PI * radius) / spacing));
     const shell = (radius, y, scale) => {
       const n = around(radius, 0.125), geo = new THREE.SphereGeometry(0.1, 20, 14);
@@ -759,8 +760,9 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const accents = new Set(design.accents || []), borders = new Set(design.border || []);
     const recolor = (o, hex) => o && forEachMesh(o, (m) => { fadeColor(m.material, hex); if (m.material.sheenColor && m.material.sheen > 0.8) m.material.sheenColor.copy(shade(hex, 0.28)); });
     recolor(P.cake, frost); recolor(P.top_frosting, frost);
-    if (P.border_top_shell) { P.border_top_shell.visible = borders.has('shell_top'); recolor(P.border_top_shell, shade(frost, 0.03)); }
-    if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(frost, 0.03)); }
+    const shellHex = design.shell_color && palette[design.shell_color] ? palette[design.shell_color] : frost;
+    if (P.border_top_shell) { P.border_top_shell.visible = borders.has('shell_top'); recolor(P.border_top_shell, shade(shellHex, 0.03)); }
+    if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(shellHex, 0.03)); }
     if (P.drip) { P.drip.visible = accents.has('drip'); recolor(P.drip, design.drip_color && palette[design.drip_color] ? palette[design.drip_color] : shade(frost, -0.28)); }
 
     currentPick = 'pearls';
