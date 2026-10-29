@@ -13,7 +13,7 @@ function withSalePrices(catalog){const today=manilaToday();return catalog.map(p=
 const reservationWords=text=>String(text).replace(/\bfully booked\b/gi,'fully reserved').replace(/\bbookings\b/g,'reservations').replace(/\bBookings\b/g,'Reservations').replace(/\bbooking\b/g,'reservation').replace(/\bBooking\b/g,'Reservation');
 function customerActionError(error,fallback){
  const message=String(error?.message||'');
- if(/no longer available|enter a name|receiving slot|fully booked|delivery address|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp|choose (an available|a ribbon|a lettering|gold or silver)|keep the message|number topper|too many or repeated/i.test(message))return reservationWords(message);
+ if(/no longer available|has a minimum of|enter a name|receiving slot|fully booked|delivery address|price has changed|booking date|receiving time|payment method|valid bank transaction reference|only jpg|only png|only webp|choose (an available|a ribbon|a lettering|gold or silver)|keep the message|number topper|too many or repeated/i.test(message))return reservationWords(message);
  console.warn('Customer action failed:',error);
  return fallback;
 }
@@ -35,11 +35,11 @@ async function loadStorefront(){
   const [catalog,categories,methods]=await Promise.all([LexcBackend.catalog().then(withSalePrices),LexcBackend.categories(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
   liveCatalog=catalog.filter(p=>p.status==='active');
   const methodRoot=document.getElementById('checkoutPaymentMethods');
-  methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'" aria-pressed="false"><span class="co-option-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span><span>'+authEscape(m.display_name)+'</span></button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
+  methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'" aria-pressed="false"><span class="co-option-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span>'+(m.code==='paymongo'?'<span>Pay online<small>GCash · QR Ph</small></span>':'<span>'+authEscape(m.display_name)+'</span>')+'</button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
   methodRoot.querySelectorAll('[data-payment-code]').forEach(button=>button.onclick=()=>selectPayment(button,button.dataset.paymentCode));
   products.splice(0,products.length,...liveCatalog.filter(p=>p.kind==='standard').map((p,index)=>({
    id:p.legacy_id||10000+index,product_id:p.id,name:p.name,desc:p.description,cat:p.categories?.slug||'',emoji:p.emoji||'🧁',badge:p.badge_label,stars:'',specs:p.specifications,allergens:p.allergens,
-   sizes:p.product_variants.filter(v=>v.is_active).map(v=>({id:v.id,label:v.label,price:Number(v.price),regular:Number(v.regular_price),sale:v.sale}))
+   sizes:p.product_variants.filter(v=>v.is_active).map(v=>({id:v.id,label:v.label,price:Number(v.price),regular:Number(v.regular_price),sale:v.sale,min:Math.max(1,Number(v.min_qty)||1)}))
   })).filter(p=>p.sizes.length).map(p=>({...p,price:p.sizes[0].price})));
   for(const p of products){const db=liveCatalog.find(d=>d.id===p.product_id);if(db.image_path)PRODUCT_IMAGES[p.id]=LexcBackend.mediaURL(db.image_path);}
   const filters=document.getElementById('catFilters'),all=filters.querySelector('[data-cat=all]')?.outerHTML||'';
@@ -118,6 +118,7 @@ async function submitCheckout(){
     const product = latest.find(product => product.id === item.product_id);
     const variant = product?.product_variants.find(variant => variant.id === item.variant_id && variant.is_active);
     if (!product || product.status !== 'active' || !variant) throw new Error(item.name + ' is no longer available. Please update your cart.');
+    if (item.qty < Math.max(1, Number(variant.min_qty) || 1)) throw new Error(item.name + ' has a minimum of ' + variant.min_qty + '. Please update the quantity in your cart.');
     let expected = Number(variant.price);
     const designer = item.customization?.designer;
     const quoteFn = { bento: 'quote_bento_design', cupcake: 'quote_cupcake_design', donut: 'quote_donut_design', cakepop: 'quote_cakepop_design' }[designer];

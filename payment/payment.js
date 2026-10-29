@@ -164,7 +164,7 @@ function render(){
   }));
   root.querySelector('#start-payment')?.addEventListener('click',startPayment);
   root.querySelectorAll('[name=method]').forEach(input=>input.addEventListener('change',()=>{const b=root.querySelector('#start-payment');if(b)b.textContent=isOnline(methods.find(m=>m.code===input.value))?'Continue to pay online →':'Show payment QR →';}));
-  root.querySelector('#pay-online')?.addEventListener('click',payOnline);
+  root.querySelectorAll('[data-pay-online]').forEach(button=>button.addEventListener('click',payOnline));
   // back to step 2 (choose the account and amount again); nothing is sent until a receipt is uploaded
   const backToChoice=()=>{changing=true;say('');render();root.querySelector('.choice-card')?.scrollIntoView({block:'start',behavior:'smooth'});};
   root.querySelector('#change-payment')?.addEventListener('click',backToChoice);
@@ -254,21 +254,38 @@ function paymentForm(attempt){
 function onlineForm(attempt){
   const back=onlineReturn==='cancelled'?'<p class="reject-note" role="status"><span aria-hidden="true">!</span><span><strong>Payment not finished.</strong> Nothing was charged. You can try again or choose another way to pay.</span></p>':
     onlineReturn==='paid'?'<p class="note" role="status">Thanks! Waiting for PayMongo to confirm your payment… this page updates by itself.</p>':'';
-  return '<section class="card payment-card online-card"><button type="button" class="back-step" id="back-to-choice"><span aria-hidden="true">←</span> Back · choose another account or amount</button><span class="eyebrow">PAY ONLINE</span><div class="compact-payment-heading"><h2>'+methodMark(methodFor(attempt))+'GCash or QR Ph</h2><span>'+e(kindName[kindOf(attempt)])+' · '+money(attempt.amount)+'</span></div>'+back+
+  const head='<section class="card payment-card online-card"><button type="button" class="back-step" id="back-to-choice"><span aria-hidden="true">←</span> Back · choose another account or amount</button><span class="eyebrow">PAY ONLINE</span><div class="compact-payment-heading"><h2>'+methodMark(methodFor(attempt))+'GCash or QR Ph</h2><span>'+e(kindName[kindOf(attempt)])+' · '+money(attempt.amount)+'</span></div>'+back;
+  const tail='<p class="change-payment"><button class="text-button" id="change-payment" type="button">Change amount or account</button></p></section>';
+  const qr=liveQR&&liveQR.attemptId===attempt.id?liveQR:null;
+  if(qr&&Date.now()<qr.expires)return head+
+    '<div class="compact-payment-core online-qr"><div class="qr-panel"><div class="qr-image-wrap"><img class="qr-image is-loaded" src="'+e(qr.src)+'" alt="QR Ph code to pay '+money(attempt.amount)+'"></div><div class="qr-actions"><a class="button secondary" href="'+e(qr.src)+'" download="lexc-order-'+e(order.order_number)+'-qrph.png">Download QR</a></div></div>'+
+    '<div class="compact-payment-info"><div class="pay-amount"><span>Scan and pay exactly</span><strong>'+money(attempt.amount)+'</strong></div><p class="qr-timer" role="timer">Code expires in <b data-qr-left>'+qrLeft(qr)+'</b></p>'+
+    '<ol class="qr-steps"><li>Open <strong>GCash</strong>, Maya or your bank app.</li><li>Choose <strong>Scan QR / Pay QR</strong> and scan this code.<br><small>On this same phone? Download the QR, then upload it in the app.</small></li><li>Stay on this page — it updates by itself once paid.</li></ol></div></div>'+
+    '<p class="fine-print">The amount is already in the code. LexC’s confirms the payment after PayMongo reports it.</p>'+tail;
+  return head+(qr?'<p class="reject-note" role="status"><span aria-hidden="true">!</span><span><strong>That QR code expired.</strong> Nothing was charged. Get a new one below.</span></p>':'')+
     '<div class="pay-amount"><span>You will pay</span><strong>'+money(attempt.amount)+'</strong></div>'+
-    '<button type="button" id="pay-online">Pay '+money(attempt.amount)+' securely →</button>'+
-    '<p class="fine-print">You will go to PayMongo’s secure page to pay with GCash or any bank or e-wallet app that scans QR Ph, then come back here. LexC’s confirms the payment after PayMongo reports it.</p>'+
-    '<p class="change-payment"><button class="text-button" id="change-payment" type="button">Change amount or account</button></p></section>';
+    '<div class="online-choices"><button type="button" data-pay-online="qrph">Show QR code to scan</button>'+
+    '<button type="button" class="button secondary" data-pay-online="gcash"><img src="../'+LOGOS.gcash+'" alt="" aria-hidden="true"> Pay with GCash app</button></div>'+
+    '<p class="fine-print">Scan the QR with GCash, Maya or any bank app that supports QR Ph — right here on this page. Or pay in the GCash app and come back. LexC’s confirms the payment after PayMongo reports it.</p>'+tail;
+}
+// QR Ph shown on this page (phase 87): kept across refreshes of the page state, until paid or expired
+let liveQR=null,qrTimer=null;
+const qrLeft=qr=>{const s=Math.max(0,Math.round((qr.expires-Date.now())/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+function tickQR(){
+  clearInterval(qrTimer);if(!liveQR)return;
+  qrTimer=setInterval(()=>{const el=root.querySelector('[data-qr-left]');if(Date.now()>=liveQR.expires){clearInterval(qrTimer);render();return;}if(el)el.textContent=qrLeft(liveQR);},1000);
 }
 async function payOnline(event){
-  const button=event.currentTarget,attempt=attempts.find(item=>item.status==='awaiting_payment');
+  const button=event.currentTarget,mode=button.dataset.payOnline||'qrph',attempt=attempts.find(item=>item.status==='awaiting_payment');
   if(!attempt)return say('Payment attempt is no longer available.',true);
-  if(submitting)return;submitting=true;button.disabled=true;button.classList.add('mo-busy');button.textContent='Opening PayMongo…';
+  if(submitting)return;submitting=true;const label=button.innerHTML;button.disabled=true;button.classList.add('mo-busy');button.textContent=mode==='gcash'?'Opening GCash…':'Getting your QR code…';say('');
   try{
-    const {data,error}=await backend.client.functions.invoke('paymongo-checkout',{body:{paymentId:attempt.id,returnUrl:location.origin+location.pathname}});
-    if(error||!data?.url)throw new Error(data?.error||(await error?.context?.json?.().catch(()=>null))?.error||'PayMongo could not open the payment page. Please try again.');
-    location.assign(data.url);
-  }catch(error){say(error.message||'PayMongo could not open the payment page. Please try again.',true);button.disabled=false;button.classList.remove('mo-busy');button.textContent='Pay '+money(attempt.amount)+' securely →';submitting=false;}
+    const {data,error}=await backend.client.functions.invoke('paymongo-checkout',{body:{paymentId:attempt.id,returnUrl:location.origin+location.pathname,mode}});
+    if(error||!(data?.url||data?.qr))throw new Error(data?.error||(await error?.context?.json?.().catch(()=>null))?.error||'PayMongo could not start the payment. Please try again.');
+    if(data.url){location.assign(data.url);return;}
+    liveQR={attemptId:attempt.id,src:data.qr,expires:Math.min(Date.parse(data.expiresAt)||Infinity,Date.now()+1800000)};
+    onlineSince=Date.now();submitting=false;render();tickQR();
+  }catch(error){say(error.message||'PayMongo could not start the payment. Please try again.',true);button.disabled=false;button.classList.remove('mo-busy');button.innerHTML=label;submitting=false;}
 }
 // named paymentHistory, not history: a global function called history hides the browser's history object
 function paymentHistory(){
@@ -309,7 +326,7 @@ async function submitPayment(event){
   finally{submitting=false;}
 }
 const signature=()=>[order.status,order.payment_status,order.amount_paid,order.total_amount,attempts.map(a=>a.id+a.status).join()].join('|');
-const waitingForPayMongo=()=>onlineReturn==='paid'&&Date.now()-onlineSince<180000&&attempts.some(a=>a.status==='awaiting_payment');
+const waitingForPayMongo=()=>(onlineReturn==='paid'&&Date.now()-onlineSince<180000||liveQR&&Date.now()<liveQR.expires)&&attempts.some(a=>a.status==='awaiting_payment');
 function watching(){return order&&order.status!=='cancelled'&&(awaitingConfirmation()||order.total_amount===null||waitingForPayMongo()||attempts.some(a=>a.status==='verification_pending'));}
 function schedulePoll(){clearTimeout(pollTimer);if(watching())pollTimer=setTimeout(silentCheck,waitingForPayMongo()?5000:15000);}
 async function silentCheck(){

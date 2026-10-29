@@ -395,3 +395,12 @@ html,body{overflow-x:clip}
 .plan-amount input{flex:1;min-width:0;height:44px;padding:0;border:0;outline:0;background:transparent;color:inherit;font:inherit}
 .plan-custom .plan-hint{margin-top:2px}
 .plan-amount input:focus,.plan-amount input:focus-visible{outline:none}
+/* Pay online: QR Ph on this page, or the GCash app (phase 87) */
+.online-choices{display:grid;gap:10px;margin:14px 0 6px}
+.online-choices button{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.online-choices img{width:22px;height:22px;object-fit:contain}
+.online-qr .qr-image{background:#fff}
+.qr-timer{margin:10px 0 6px;color:var(--ui-muted,#705c7c);font-size:.9rem}
+.qr-timer b{font-variant-numeric:tabular-nums;color:var(--plum,#5c3d6e)}
+.qr-steps{margin:8px 0 0;padding-left:20px;display:grid;gap:6px;color:var(--text,#3a2840);font-size:.92rem;line-height:1.45}
+.qr-steps small{color:var(--ui-muted,#705c7c)}

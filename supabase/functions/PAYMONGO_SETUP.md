@@ -1,7 +1,7 @@
 # Pay online with PayMongo — setup (LexC's does these steps)
 
-Customers can pay the downpayment, the full amount, the balance or their own amount with **GCash or QR Ph** on
-PayMongo's secure page. PayMongo reports the payment to the site, the order shows **"Paid online · being
+Customers can pay the downpayment, the full amount, the balance or their own amount with **GCash or QR Ph**: the
+payment page shows the QR Ph code itself (scan with GCash, Maya or any bank app), or opens the GCash app. PayMongo reports the payment to the site, the order shows **"Paid online · being
 confirmed"**, and you still click **Confirm payment** in Admin → Orders, exactly like a QR receipt.
 
 Amounts always come from the order in the database. When you change a price in Admin → Products, new orders (and
@@ -31,7 +31,7 @@ supabase functions deploy paymongo-webhook --no-verify-jwt
 
 ## 4. Webhook (PayMongo dashboard → Developers → Webhooks → Create)
 - URL: `https://jruoqutpflfvkshtyyhs.supabase.co/functions/v1/paymongo-webhook`
-- Event: `checkout_session.payment.paid`
+- Events: `checkout_session.payment.paid` and `payment.paid` (the second is what the in-page QR Ph and the GCash button use)
 - Copy its secret key into `PAYMONGO_WEBHOOK_SECRET` (step 3).
 
 ## 5. Switch the method on (Supabase SQL editor)
