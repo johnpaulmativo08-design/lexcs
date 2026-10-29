@@ -5,9 +5,16 @@ import * as THREE from 'three';
 import { createSet } from './scene-set.js?v=2';
 
 const MODEL_URL = new URL('../assets/3d/bento.glb?v=1', import.meta.url).href;
+// Petite and tiered cake parts from Blender (assets/3d/source/cakes_build.py): bodies, piped shell rings, drips.
+const CAKES_URL = new URL('../assets/3d/cakes.glb?v=1', import.meta.url).href;
+const M_PER_UNIT = 0.0508;                       // 1 scene unit = 2 inches
+const inchTag = (v) => (Math.abs(v - Math.round(v)) < 1e-6 ? String(Math.round(v)) : String(v).replace('.', '_'));
 let R = 1.0;                       // cake (top tier) radius: the 4" bento is 1 (1 unit = 2")
 // Petite and Mini Tiered cakes (setShape): RB = bottom tier radius, TIER_Y = where the top tier starts.
-let RB = 1.0, TIER_Y = 0, shapeKey = 'bento', shapeSig = '', MODEL_H = null;
+let RB = 1.0, TIER_Y = 0, shapeKey = 'bento', shapeSig = '', MODEL_H = null, pickPrefix = '';
+let TIERS = [];                                  // [{ r, h, y }] in scene units, bottom first (shapes only)
+let classicShape = false;                        // true: draw this cake with the built-in shapes, not the Blender parts
+let cakeParts = null, cakePartsLoading = null;   // name -> geometry from cakes.glb, shared by every preview
 let H = 1.05;                      // cake top height; replaced by the model's real height when it loads
 let TEXT_R = 0.74;               // writing area radius on the top
 
@@ -196,7 +203,7 @@ function stickerTexture() {
 }
 
 export function createBentoScene(host, { reducedMotion = false, onPick = null, onHover = null, onMove = null } = {}) {
-  R = RB = 1; TIER_Y = 0; shapeKey = 'bento'; shapeSig = ''; H = MODEL_H ?? 1.05; TEXT_R = 0.74;   // every new preview starts as the bento
+  R = RB = 1; TIER_Y = 0; shapeKey = 'bento'; shapeSig = ''; H = MODEL_H ?? 1.05; TEXT_R = 0.74; TIERS = [];   // every new preview starts as the bento
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -245,18 +252,27 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   fixed.children.forEach((o) => { o.visible = false; });   // no box while designing; the fallback shows the cake only
 
   // Cake body from simple shapes: one lathe per tier ({r, h} in scene units, bottom tier first).
-  const cakeMat = track(M.frosting(0xffffff));
+  const cakeMat = track(M.frosting(0xffffff)), lowerMat = track(M.frosting(0xffffff));
   const body = new THREE.Group(); fixed.add(body);
   function buildBody(tiers) {
-    body.traverse((o) => { if (o.isMesh) o.geometry.dispose(); }); body.clear();
+    body.traverse((o) => { if (o.isMesh && !o.userData.sharedGeometry) o.geometry.dispose(); }); body.clear();
     let y = 0;
-    for (const { r, h } of tiers) {
-      const profile = [new THREE.Vector2(0, y), new THREE.Vector2(r * 0.985, y), new THREE.Vector2(r, y + 0.03)];
-      for (let i = 0; i <= 10; i++) { const a = (i / 10) * Math.PI / 2; profile.push(new THREE.Vector2(r - 0.06 + 0.06 * Math.cos(a), y + h - 0.06 + 0.06 * Math.sin(a))); }
+    tiers.forEach(({ r, h }, i) => {
+      const bevel = 0.035, lower = i < tiers.length - 1;   // a tighter rounded edge reads crisper than the old 0.06
+      const part = (classicShape ? null : cakeParts)?.[`body_d${inchTag(r * 4)}_h${inchTag(h * 2)}`];
+      if (part) {
+        const tier = new THREE.Mesh(part, lower ? lowerMat : cakeMat); tier.userData.sharedGeometry = true;
+        tier.scale.setScalar(1 / M_PER_UNIT); tier.position.y = y;
+        tier.userData.pick = lower ? 'lower:frosting' : 'frosting'; tier.castShadow = true; tier.receiveShadow = true; body.add(tier);
+        y += h; return;
+      }
+      const profile = [new THREE.Vector2(0, y), new THREE.Vector2(r * 0.99, y), new THREE.Vector2(r, y + 0.015)];
+      for (let k = 0; k <= 12; k++) { const a = (k / 12) * Math.PI / 2; profile.push(new THREE.Vector2(r - bevel + bevel * Math.cos(a), y + h - bevel + bevel * Math.sin(a))); }
       profile.push(new THREE.Vector2(0, y + h));
-      const tier = new THREE.Mesh(new THREE.LatheGeometry(profile, 96), cakeMat); tier.userData.pick = 'frosting'; tier.castShadow = true; tier.receiveShadow = true; body.add(tier);
+      const tier = new THREE.Mesh(new THREE.LatheGeometry(profile, 128), lower ? lowerMat : cakeMat);
+      tier.userData.pick = lower ? 'lower:frosting' : 'frosting'; tier.castShadow = true; tier.receiveShadow = true; body.add(tier);
       y += h;
-    }
+    });
   }
   buildBody([{ r: R, h: H }]);
 
@@ -266,7 +282,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   // Every decoration remembers which choice made it (userData.pick), so a tap can open that option.
   let currentPick = null;
   const decorAdd = decor.add.bind(decor);
-  decor.add = (...objects) => { for (const o of objects) if (currentPick && !o.userData.pick) o.userData.pick = currentPick; return decorAdd(...objects); };
+  decor.add = (...objects) => { for (const o of objects) if (currentPick && !o.userData.pick) o.userData.pick = pickPrefix + currentPick; return decorAdd(...objects); };
   // While designing, the cake stands on a white cake stand; the box only appears when it is packed.
   const ceramic = track(new THREE.MeshPhysicalMaterial({ color: 0xfbf8ff, roughness: 0.28, clearcoat: 0.6, clearcoatRoughness: 0.2, envMapIntensity: 0.6, transparent: true }));
   const stand = new THREE.Group(); world.add(stand);
@@ -505,77 +521,122 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     clearDecor();
     if (model && shapeKey === 'bento') return updateModel(design, palette, hexOf, frost);
     const rand = seeded(97);
-    const accents = new Set(design.accents || []); const borders = new Set(design.border || []);
-    const frostMat = M.piped(shade(frost, 0.03));
-
-    const shell = (radius, y, count, scale) => {
-      const geo = new THREE.SphereGeometry(0.1, 14, 10);
-      for (let i = 0; i < count; i++) {
-        const a = (i / count) * Math.PI * 2;
+    // Mini Tiered: the top tier's choices go on the top tier (its bottom border sits on the step between the tiers),
+    // then the bottom tier's own choices (design.lower) are drawn on the bottom tier with the same code.
+    const tiered = TIERS.length > 1 && shapeKey !== 'bento' && shapeKey !== 'petite', keep = { R, H, RB, TIER_Y, TEXT_R };
+    const restore = () => { R = keep.R; H = keep.H; RB = keep.RB; TIER_Y = keep.TIER_Y; TEXT_R = keep.TEXT_R; pickPrefix = ''; };
+    try {
+      if (tiered) RB = R;
+      tierDecor(design, hexOf, frost, rand, true);
+      decorateShared(design, hexOf, rand, new Set(design.accents || []));
+      if (tiered) {
+        const low = design.lower || {}, lowFrost = hexOf(low.frosting_color, frost);
+        fadeColor(lowerMat, lowFrost);
+        const lowDesign = { accents: low.accents || [], border: low.border || [], bow_color: low.bow_color, drip_color: low.drip_color, layout: {}, topper: 'none', message: '' };
+        pickPrefix = 'lower:';
+        TIERS.slice(0, -1).forEach((t, i) => {
+          R = RB = t.r; TIER_Y = t.y; H = t.y + t.h; TEXT_R = TIERS[i + 1].r + 0.04;   // decorations stay on the step outside the tier above
+          tierDecor(lowDesign, hexOf, lowFrost, rand, false);
+          decorateShared(lowDesign, hexOf, rand, new Set(lowDesign.accents));
+        });
+      }
+    } finally { restore(); }
+    request();
+  }
+  // Borders, drip, pearls, bows, piped flowers and leaves on one tier (R = its radius, H = its top, TIER_Y = its base).
+  // Spacing follows the tier's size so bigger cakes stay neat; the Blender pearls, flowers and leaves are used once
+  // the model has loaded (sharper than plain shapes). movable = the top tier, whose flowers and bows can be arranged.
+  function tierDecor(design, hexOf, frost, rand, movable) {
+    const accents = new Set(design.accents || []), borders = new Set(design.border || []), L = movable ? (design.layout || {}) : {};
+    const frostMat = M.piped(shade(frost, 0.03)), T = model?.templates || {};
+    const around = (radius, spacing) => Math.max(12, Math.round((2 * Math.PI * radius) / spacing));
+    const shell = (radius, y, scale) => {
+      const n = around(radius, 0.125), geo = new THREE.SphereGeometry(0.1, 20, 14);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
         const m = new THREE.Mesh(i === 0 ? geo : geo.clone(), frostMat);
         m.scale.set(scale[0], scale[1], scale[2]); m.position.set(Math.cos(a) * radius, y, Math.sin(a) * radius); m.rotation.y = -a; m.castShadow = true; decor.add(m);
       }
     };
     currentPick = 'border';
-    if (borders.has('shell_top')) shell(R - 0.05, H + 0.01, Math.round(26 * R), [0.95, 0.8, 1.55]);
-    if (borders.has('shell_bottom')) shell(RB + 0.03, 0.08, Math.round(30 * RB), [1.0, 0.85, 1.6]);
-    if (borders.has('shell_bottom') && TIER_Y > 0) shell(R + 0.03, TIER_Y + 0.08, Math.round(30 * R), [1.0, 0.85, 1.6]);   // where the tiers meet
+    const ring = (classicShape ? null : cakeParts)?.[`shell_d${inchTag(R * 4)}`], baseRing = (classicShape ? null : cakeParts)?.[`shell_d${inchTag(RB * 4)}`];
+    const placeRing = (geo, y, inset) => { const m = new THREE.Mesh(geo, frostMat); m.userData.sharedGeometry = true; m.scale.setScalar(1 / M_PER_UNIT * inset); m.position.y = y; m.castShadow = true; decor.add(m); };
+    if (borders.has('shell_top')) { if (ring) placeRing(ring, H - 0.01, 1 - 0.05 / R); else shell(R - 0.05, H + 0.01, [0.9, 0.78, 1.4]); }
+    if (borders.has('shell_bottom')) { if (baseRing) placeRing(baseRing, TIER_Y, 1 + 0.03 / RB); else shell(RB + 0.03, TIER_Y + 0.075, [0.98, 0.8, 1.45]); }
 
     currentPick = 'drip';
     if (accents.has('drip')) {
-      const dripMat = M.glaze(design.drip_color && palette[design.drip_color] ? palette[design.drip_color] : shade(frost, -0.28));
-      for (let i = 0; i < 30; i++) {
-        const a = (i / 30) * Math.PI * 2 + rand() * 0.08, len = 0.12 + rand() * 0.35;
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, len, 4, 10), dripMat);
-        body.position.set(Math.cos(a) * (R + 0.012), H - 0.02 - len / 2, Math.sin(a) * (R + 0.012)); decor.add(body);
+      const dripMat = M.glaze(design.drip_color && hexOf(design.drip_color, '') ? hexOf(design.drip_color) : shade(frost, -0.28));
+      const dripGeo = (classicShape ? null : cakeParts)?.[`drip_d${inchTag(R * 4)}_h${inchTag((H - TIER_Y) * 2)}`];
+      const n = dripGeo ? 0 : around(R, 0.21);
+      if (dripGeo) { const m = new THREE.Mesh(dripGeo, dripMat); m.userData.sharedGeometry = true; m.scale.setScalar(1 / M_PER_UNIT); m.position.y = TIER_Y; m.castShadow = true; decor.add(m); }
+      for (let i = 0; i < n; i++) {   // even spacing, long and short in turn: a tidy hand-piped drip
+        const a = (i / n) * Math.PI * 2, len = (i % 2 ? 0.14 : 0.26) + rand() * 0.05;
+        const drop = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, len, 6, 16), dripMat);
+        drop.position.set(Math.cos(a) * (R + 0.01), H - 0.02 - len / 2, Math.sin(a) * (R + 0.01)); decor.add(drop);
       }
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.05, 96), dripMat); cap.position.y = H - 0.02; decor.add(cap);
+      if (!dripGeo) { const cap = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.045, 128), dripMat); cap.position.y = H - 0.02; decor.add(cap); }
     }
 
     currentPick = 'pearls';
-    const pearl = (hex) => M.metal(hex);
     if (accents.has('pearls_gold') || accents.has('pearls_silver')) {
-      const pm = pearl(accents.has('pearls_gold') ? '#d4af37' : '#e4e7ec'); const g = new THREE.SphereGeometry(0.028, 14, 10);
-      for (let i = 0; i < 26; i++) { const a = ((i + 0.5) / 26) * Math.PI * 2; const m = new THREE.Mesh(i ? g.clone() : g, pm); m.position.set(Math.cos(a) * (R - 0.05), H + 0.1, Math.sin(a) * (R - 0.05)); decor.add(m); }
-      for (let i = 0; i < 18; i++) { const a = rand() * Math.PI * 2, r = TEXT_R + 0.04 + rand() * (R - TEXT_R - 0.2); const m = new THREE.Mesh(g.clone(), pm); m.position.set(Math.cos(a) * r, H + 0.02, Math.sin(a) * r); decor.add(m); }
-      if (borders.has('shell_bottom')) { const n = Math.round(30 * RB); for (let i = 0; i < n; i++) { const a = ((i + 0.5) / n) * Math.PI * 2; const m = new THREE.Mesh(g.clone(), pm); m.position.set(Math.cos(a) * (RB + 0.1), 0.17, Math.sin(a) * (RB + 0.1)); decor.add(m); } }
+      const pm = M.metal(accents.has('pearls_gold') ? '#d4af37' : '#e4e7ec'), g = new THREE.SphereGeometry(0.028, 20, 14);
+      const put = (x, y, z) => {
+        if (T.pearl) return placeCopy(T.pearl, x, y, z).traverse((m) => { if (m.isMesh) { m.material = pm; m.userData.sharedMaterial = false; } });
+        const m = new THREE.Mesh(g.clone(), pm); m.position.set(x, y, z); m.castShadow = true; decor.add(m);
+      };
+      const ringY = borders.has('shell_top') ? H + 0.1 : H + 0.025, nTop = around(R - 0.06, 0.11);
+      for (let i = 0; i < nTop; i++) { const a = ((i + 0.5) / nTop) * Math.PI * 2; put(Math.cos(a) * (R - 0.06), ringY, Math.sin(a) * (R - 0.06)); }
+      const inner = Math.max(0.02, R - TEXT_R - 0.2), nScatter = Math.round(14 * R);
+      for (let i = 0; i < nScatter; i++) { const a = rand() * Math.PI * 2, r = TEXT_R + 0.04 + rand() * inner; put(Math.cos(a) * r, H + 0.02, Math.sin(a) * r); }
+      if (borders.has('shell_bottom')) { const nb = around(RB + 0.1, 0.1); for (let i = 0; i < nb; i++) { const a = ((i + 0.5) / nb) * Math.PI * 2; put(Math.cos(a) * (RB + 0.1), TIER_Y + 0.16, Math.sin(a) * (RB + 0.1)); } }
     }
 
     currentPick = 'bows';
     if (accents.has('ribbon_bows')) {
       const bm = M.satin(hexOf(design.bow_color, '#ee82a8'));
-      for (let i = 0; i < 4; i++) {
-        const a = Math.PI / 4 + i * Math.PI / 2; const bow = new THREE.Group();
-        for (const s of [-1, 1]) {
-          const loop = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.028, 8, 24), bm); loop.scale.set(1.25, 0.8, 0.35); loop.position.x = s * 0.13; loop.rotation.z = s * 0.25; bow.add(loop);
-          const tail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.34, 0.012), bm); tail.position.set(s * 0.06, -0.2, 0); tail.rotation.z = s * 0.35; bow.add(tail);
+      const count = R > 1.4 ? 6 : 4;
+      for (let i = 0; i < count; i++) {
+        // a pivot at the cake's centre turns the bow around the side (so Arrange can drag it like the bento's)
+        const a = typeof L.bows?.[i] === 'number' ? L.bows[i] : Math.PI / 4 + i * (Math.PI * 2 / count);
+        const pivot = new THREE.Group(), bow = new THREE.Group();
+        for (const sgn of [-1, 1]) {
+          const loop = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.026, 14, 40), bm); loop.scale.set(1.25, 0.8, 0.35); loop.position.x = sgn * 0.13; loop.rotation.z = sgn * 0.25; bow.add(loop);
+          const tail = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.34, 0.01), bm); tail.position.set(sgn * 0.06, -0.2, 0); tail.rotation.z = sgn * 0.35; bow.add(tail);
         }
-        const knot = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), bm); knot.scale.set(1, 1, 0.6); bow.add(knot);
-        bow.position.set(Math.cos(a) * (R + 0.03), H - 0.14, Math.sin(a) * (R + 0.03)); bow.rotation.y = -a + Math.PI / 2; bow.traverse((o) => { o.castShadow = true; }); decor.add(bow);
+        const knot = new THREE.Mesh(new THREE.SphereGeometry(0.048, 18, 14), bm); knot.scale.set(1, 1, 0.6); bow.add(knot);
+        bow.position.set(R + 0.03, H - 0.14, 0); bow.rotation.y = Math.PI / 2; bow.traverse((o) => { o.castShadow = true; });
+        pivot.add(bow); pivot.rotation.y = -a; if (movable) pivot.userData.move = { kind: 'bows', index: i }; decor.add(pivot);
       }
     }
 
     currentPick = 'flowers';
     if (accents.has('piped_flowers')) {
-      const petalCols = ['#f4b6c8', '#f9e27d', '#bfdddf', '#ffffff', '#cdb8e8'];
-      for (let i = 0; i < 7; i++) {
-        const a = (i / 7) * Math.PI * 2 + 0.3, r = R - 0.22; const flower = new THREE.Group(); const pm = M.piped(petalCols[i % petalCols.length]);
-        for (let p = 0; p < 5; p++) { const pa = (p / 5) * Math.PI * 2; const petal = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), pm); petal.scale.set(1.2, 0.5, 0.8); petal.position.set(Math.cos(pa) * 0.05, 0, Math.sin(pa) * 0.05); flower.add(petal); }
-        const center = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), M.piped('#f4d03f')); center.position.y = 0.02; flower.add(center);
-        flower.position.set(Math.cos(a) * r, H + 0.02, Math.sin(a) * r); decor.add(flower);
+      const petalCols = ['#f4b6c8', '#f9e27d', '#bfdddf', '#ffffff', '#cdb8e8'], n = movable ? 7 : Math.max(7, around(R - 0.22, 0.42));
+      for (let i = 0; i < n; i++) {
+        const at = L.flowers?.[i], a = (i / n) * Math.PI * 2 + 0.3, r = R - 0.22;
+        const x = at ? at[0] * R : Math.cos(a) * r, z = at ? at[1] * R : Math.sin(a) * r;
+        let flower;
+        if (T.flower_piped) flower = placeCopy(T.flower_piped, x, H + 0.02, z, rand() * Math.PI);
+        else {
+          flower = new THREE.Group(); const pm = M.piped(petalCols[i % petalCols.length]);
+          for (let k = 0; k < 5; k++) { const pa = (k / 5) * Math.PI * 2; const petal = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 12), pm); petal.scale.set(1.2, 0.5, 0.8); petal.position.set(Math.cos(pa) * 0.05, 0, Math.sin(pa) * 0.05); flower.add(petal); }
+          const center = new THREE.Mesh(new THREE.SphereGeometry(0.025, 12, 10), M.piped('#f4d03f')); center.position.y = 0.02; flower.add(center);
+          flower.position.set(x, H + 0.02, z); decor.add(flower);
+        }
+        if (movable) flower.userData.move = { kind: 'flowers', index: i };
       }
     }
     currentPick = 'leaves';
     if (accents.has('piped_leaves')) {
-      const lm = M.piped('#3fa66b'), dm = M.piped('#ffffff');
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2 + 0.05, r = R - 0.14;
-        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), lm); leaf.scale.set(1.6, 0.35, 0.6); leaf.position.set(Math.cos(a) * r, H + 0.015, Math.sin(a) * r); leaf.rotation.y = -a + 0.8; decor.add(leaf);
-        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), dm); dot.position.set(Math.cos(a + 0.2) * (r - 0.08), H + 0.015, Math.sin(a + 0.2) * (r - 0.08)); decor.add(dot);
+      const lm = M.piped('#3fa66b'), dm = M.piped('#ffffff'), n = around(R - 0.14, 0.5);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + 0.05, r = R - 0.14;
+        if (T.leaf_piped) { placeCopy(T.leaf_piped, Math.cos(a) * r, H + 0.012, Math.sin(a) * r, -a + 0.8); continue; }
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), lm); leaf.scale.set(1.6, 0.35, 0.6); leaf.position.set(Math.cos(a) * r, H + 0.015, Math.sin(a) * r); leaf.rotation.y = -a + 0.8; decor.add(leaf);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 10), dm); dot.position.set(Math.cos(a + 0.2) * (r - 0.08), H + 0.015, Math.sin(a + 0.2) * (r - 0.08)); decor.add(dot);
       }
     }
-    decorateShared(design, hexOf, rand, accents);
-    request();
   }
 
   // Sprinkles, gold leaf, the written message and the topper are drawn the same way for both paths.
@@ -590,7 +651,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     currentPick = 'gold_leaf';
     if (accents.has('gold_leaf')) {
       const gm = M.goldLeaf();
-      for (let i = 0; i < 26; i++) { const a = rand() * Math.PI * 2, y = TIER_Y + 0.18 + rand() * (H - TIER_Y - 0.35); const m = new THREE.Mesh(new THREE.CircleGeometry(0.03 + rand() * 0.035, 5), gm); m.position.set(Math.cos(a) * (R + 0.004), y, Math.sin(a) * (R + 0.004)); m.lookAt(Math.cos(a) * 3, y, Math.sin(a) * 3); m.rotation.z = rand() * 3; decor.add(m); }
+      for (let i = 0; i < 26; i++) { const a = rand() * Math.PI * 2, y = TIER_Y + 0.18 + rand() * (H - TIER_Y - 0.35); const m = new THREE.Mesh(shapeKey === 'bento' ? new THREE.CircleGeometry(0.03 + rand() * 0.035, 5) : new THREE.CircleGeometry(0.026 + rand() * 0.02, 10), gm); m.position.set(Math.cos(a) * (R + 0.004), y, Math.sin(a) * (R + 0.004)); m.lookAt(Math.cos(a) * 3, y, Math.sin(a) * 3); m.rotation.z = rand() * 3; decor.add(m); }
     }
 
     currentPick = 'message';
@@ -770,6 +831,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   // Limits match the server (phase 34): flowers within 0.82 of the centre, topper 0.7, message 0.45.
   const LIMIT = { flowers: 0.82, topper: 0.7, message: 0.45 };
   let arranging = false, dragging = null;
+  const bowBase = () => (shapeKey === 'bento' && model?.bow ? model.bow.angle : 0);   // shape bows turn on a pivot at angle 0
   const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), dragHit = new THREE.Vector3();
   function movableAt(clientX, clientY) {
     const r = el.getBoundingClientRect(); ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
@@ -785,14 +847,16 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   function surfaceHit(clientX, clientY, kind) {
     const r = el.getBoundingClientRect();
     ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1); raycaster.setFromCamera(ndc, camera);
+    world.updateMatrixWorld(true);
+    const ray = raycaster.ray.clone().applyMatrix4(new THREE.Matrix4().copy(world.matrixWorld).invert());
     dragPlane.constant = -((kind === 'bows' ? H - 0.14 : H) + lift.position.y);
-    return raycaster.ray.intersectPlane(dragPlane, dragHit) ? dragHit : null;
+    return ray.intersectPlane(dragPlane, dragHit) ? dragHit : null;
   }
   function dragTo(clientX, clientY) {
     const { obj, move, grab } = dragging;
     const hit = surfaceHit(clientX, clientY, move.kind); if (!hit) return;
     if (move.kind === 'bows') {
-      const angle = Math.atan2(hit.z, hit.x) + grab.angle; obj.rotation.y = model.bow.angle - angle;
+      const angle = Math.atan2(hit.z, hit.x) + grab.angle; obj.rotation.y = bowBase() - angle;
       dragging.value = Math.round((((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) * 1000) / 1000;
     } else {
       let x = (hit.x + grab.x) / R, z = (hit.z + grab.z) / R; const d = Math.hypot(x, z), max = LIMIT[move.kind];
@@ -808,7 +872,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     // Remember where the item was grabbed relative to the pointer, so it doesn't jump under the cursor
     // (the topper's sign stands well above the cake, so its pointer hit is far from its base).
     const hit = surfaceHit(e.clientX, e.clientY, m.move.kind); if (!hit) return;
-    const grab = m.move.kind === 'bows' ? { angle: (model.bow.angle - m.obj.rotation.y) - Math.atan2(hit.z, hit.x) } : { x: m.obj.position.x - hit.x, z: m.obj.position.z - hit.z };
+    const grab = m.move.kind === 'bows' ? { angle: (bowBase() - m.obj.rotation.y) - Math.atan2(hit.z, hit.x) } : { x: m.obj.position.x - hit.x, z: m.obj.position.z - hit.z };
     dragging = { id: e.pointerId, obj: m.obj, move: m.move, value: null, grab }; el.style.cursor = 'grabbing'; onHover?.(null);
   });
   const endDrag = () => {
@@ -817,7 +881,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   };
   el.addEventListener('pointerup', endDrag); el.addEventListener('pointercancel', endDrag);
   function setArrange(on) {
-    arranging = !!on && !!model && shapeKey === 'bento'; dragging = null; onHover?.(null);
+    arranging = !!on && (shapeKey !== 'bento' || !!model); dragging = null; onHover?.(null);
     if (arranging) { clearTimeout(spinTimer); spin = false; spinAllowed = false; setView('arrange'); }
     else { spinAllowed = !reducedMotion; idle(); }
     return arranging;
@@ -863,11 +927,20 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     alive = false; tableSet.dispose(); clearTimeout(spinTimer); anims.clear(); spin = false; cancelAnimationFrame(frame); ro.disconnect(); clearDecor();
     if (model?.pack) forEachMesh(model.pack.group, (m) => m.geometry.dispose());
     if (model) forEachMesh(model.root, (m) => { m.geometry.dispose(); (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => { x.map?.dispose(); x.dispose(); }); });
-    body.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    body.traverse((o) => { if (o.isMesh && !o.userData.sharedGeometry) o.geometry.dispose(); });
     envTexture?.dispose(); disposables.forEach((d) => d.dispose?.()); renderer.dispose(); renderer.forceContextLoss?.(); renderer.domElement.remove();
   }
   // Which cake to draw. tiers: [{ d, h }] in inches, bottom tier first (Petite 6x4 = [{d:6,h:4}];
   // Mini Tiered 6x4 = [{d:6,h:2},{d:4,h:2}]). The bento keeps its detailed model; other cakes use shapes.
+  function loadCakeParts() {
+    if (cakeParts || cakePartsLoading) return;
+    cakePartsLoading = import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new GLTFLoader().loadAsync(CAKES_URL)).then((gltf) => {
+      const parts = {}; gltf.scene.traverse((o) => { if (o.isMesh) { o.geometry.computeVertexNormals?.(); parts[o.name] = o.geometry; } });
+      cakeParts = parts;
+      if (!alive || shapeKey === 'bento') return;
+      const sig = shapeSig; shapeSig = ''; const tiers = TIERS.map(({ r, h }) => ({ d: r * 4, h: h * 2 })); setShape({ key: shapeKey, tiers, classic: classicShape }); shapeSig = shapeSig || sig;
+    }).catch((error) => { console.info('Cake parts unavailable, using built-in shapes:', error?.message || error); cakePartsLoading = null; });
+  }
   function showBody() {
     const useModel = !!model && shapeKey === 'bento';
     if (model) model.root.visible = useModel;
@@ -877,9 +950,11 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const key = next.key && next.key !== 'bento' ? next.key : 'bento';
     const tiers = key === 'bento' ? [{ r: 1, h: 1.05 }] : (next.tiers || []).map((t) => ({ r: Number(t.d) / 4, h: Number(t.h) / 2 })).filter((t) => t.r > 0 && t.h > 0);
     if (!tiers.length) return;
-    const sig = key + JSON.stringify(tiers); if (sig === shapeSig) return; shapeSig = sig; shapeKey = key;
+    const sig = key + (next.classic ? ':classic' : '') + JSON.stringify(tiers); if (sig === shapeSig) return; shapeSig = sig; shapeKey = key; classicShape = !!next.classic;
     if (key === 'bento') { R = RB = 1; TIER_Y = 0; H = MODEL_H ?? 1.05; }
     else { RB = tiers[0].r; R = tiers[tiers.length - 1].r; TIER_Y = tiers.slice(0, -1).reduce((sum, t) => sum + t.h, 0); H = TIER_Y + tiers[tiers.length - 1].h; }
+    let y = 0; TIERS = key === 'bento' ? [] : tiers.map((t) => { const out = { ...t, y }; y += t.h; return out; });
+    if (key !== 'bento' && !classicShape) loadCakeParts();
     TEXT_R = 0.74 * R;
     buildBody(tiers);
     stand.scale.set(RB, 1, RB);

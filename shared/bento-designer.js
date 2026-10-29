@@ -64,7 +64,9 @@
     bow_color: state.accents.includes('ribbon_bows') ? state.bow_color : null, message: state.message.trim(),
     lettering: state.message.trim() ? state.lettering : null, lettering_color: state.message.trim() ? state.lettering_color : null,
     topper: state.topper, topper_text: state.topper === 'number' ? state.topper_text : '', layout: JSON.parse(JSON.stringify(state.layout || {})),
-    drip_color: state.accents.includes('drip') && state.drip_color ? state.drip_color : null, font: state.message.trim() ? state.font : null });
+    drip_color: state.accents.includes('drip') && state.drip_color ? state.drip_color : null, font: state.message.trim() ? state.font : null,
+    lower: isTiered() && state.lower ? { frosting_color: state.lower.frosting_color, border: [...state.lower.border], accents: [...state.lower.accents],
+      bow_color: state.lower.accents.includes('ribbon_bows') ? state.lower.bow_color : null, drip_color: state.lower.accents.includes('drip') && state.lower.drip_color ? state.lower.drip_color : null } : undefined });
   const hasLayout = () => Object.keys(state.layout || {}).length > 0;
   const opt = (group, code) => options[group]?.find((o) => o.code === code);
   const variant = () => product.product_variants.find((v) => v.id === state.variant_id && v.is_active);
@@ -77,14 +79,23 @@
   const sizeText = (size) => size.replace('x', '" × ') + '"';
   const activeVariants = (p) => (p?.product_variants || []).filter((v) => v.is_active);
   const cakeKind = (p) => p?.customization_config?.cake_shape || 'bento';
-  const cakeLabel = (p) => ({ petite: 'Petite cake', tiered: 'Mini tiered cake' })[cakeKind(p)] || 'Bento cake';
-  // What the 3D preview draws: the tiered cake is two 2"-ish tiers, the top one about two-thirds as wide.
+  const cakeLabel = (p) => ({ petite: 'Petite cake', tiered: 'Mini tiered cake', tiered3: 'Mini 3-tiered cake' })[cakeKind(p)] || 'Bento cake';
+  // What the 3D preview draws (sizes from LexC's size guide): the size is the bottom tier; each tier above is 2" narrower
+  // and the top tier is 2" tall. Mini Tiered 6x4 = 6"×4" + 4"×2"; Mini 3-Tiered 8x4 = 8"×4" + 6"×4" + 4"×2".
   function cakeShape(p, v) {
     const { d, h } = parseVariant(v);
-    if (cakeKind(p) === 'tiered') return { key: 'tiered', tiers: [{ d, h: h / 2 }, { d: Math.round(d * 2 / 3 * 4) / 4, h: h / 2 }] };
+    // the 4x4 Mini Tiered keeps its original look: two 2" tiers, the top about two-thirds as wide, built-in shapes
+    if (cakeKind(p) === 'tiered' && d <= 4) return { key: 'tiered', classic: true, tiers: [{ d, h: h / 2 }, { d: Math.round(d * 2 / 3 * 4) / 4, h: h / 2 }] };
+    if (cakeKind(p) === 'tiered') return { key: 'tiered', tiers: [{ d, h }, { d: d - 2, h: 2 }] };
+    if (cakeKind(p) === 'tiered3') return { key: 'tiered3', tiers: [{ d, h }, { d: d - 2, h }, { d: d - 4, h: 2 }] };
     if (cakeKind(p) === 'petite') return { key: 'petite', tiers: [{ d, h }] };
     return { key: 'bento' };
   }
+  // Mini Tiered: Style and Decorate can edit the top or the bottom tier (frosting, borders, decorations, bows, drip).
+  const isTiered = () => cakeKind(product) === 'tiered' || cakeKind(product) === 'tiered3';
+  let tier = 'top';
+  const onLower = () => tier === 'bottom' && isTiered() && !!state.lower;
+  const TIER_FIELDS = new Set(['frosting_color', 'bow_color', 'drip_color', 'border', 'accents']);
   const cakeLine = (v) => { const pv = parseVariant(v); return `${sizeText(pv.size)} · ${pv.flavor}`; };
 
   // Price shown immediately from the same option table; confirmed by the server quote below.
@@ -92,6 +103,8 @@
     const d = design(); let sum = 0; const lines = [];
     const add = (o) => { if (o && Number(o.price) > 0) { sum += Number(o.price); lines.push([o.label, Number(o.price)]); } };
     d.border.forEach((c) => add(opt('border', c))); d.accents.forEach((c) => add(opt('accent', c)));
+    if (d.lower) { const addLow = (o) => { if (o && Number(o.price) > 0) { sum += Number(o.price); lines.push(['Bottom tier — ' + o.label, Number(o.price)]); } };
+      d.lower.border.forEach((c) => addLow(opt('border', c))); d.lower.accents.forEach((c) => addLow(opt('accent', c))); }
     if (d.message) { add(opt('message', 'custom_message')); add(opt('lettering', d.lettering)); }
     add(opt('topper', d.topper));
     return { sum, lines };
@@ -126,7 +139,7 @@
 
   // ---- data -------------------------------------------------------------------------------------
   function allCakes() {
-    const order = { bento: 0, petite: 1, tiered: 2 };
+    const order = { bento: 0, petite: 1, tiered: 2, tiered3: 3 };
     return (typeof liveCatalog !== 'undefined' ? liveCatalog : []).filter((p) => p.customization_config?.designer === 'bento' && activeVariants(p).length)
       .sort((a, b) => (order[cakeKind(a)] ?? 9) - (order[cakeKind(b)] ?? 9));
   }
@@ -166,6 +179,13 @@
     state.topper_text = String(state.topper_text || '').replace(/\D/g, '').slice(0, 3);
     state.qty = Math.min(20, Math.max(1, Number(state.qty) || 1));
     if (!variant()) state.variant_id = product.product_variants.find((v) => v.is_active)?.id;
+    if (isTiered()) {
+      const low = state.lower && typeof state.lower === 'object' ? state.lower : {};
+      const acc = [...new Set(low.accents || [])].filter((c) => opt('accent', c)).slice(0, max);
+      if (acc.includes('pearls_gold') && acc.includes('pearls_silver')) acc.splice(acc.indexOf('pearls_silver'), 1);
+      state.lower = { frosting_color: palette[low.frosting_color] ? low.frosting_color : state.frosting_color, border: [...new Set(low.border || [])].filter((c) => opt('border', c)),
+        accents: acc, bow_color: palette[low.bow_color] ? low.bow_color : 'pink', drip_color: low.drip_color && palette[low.drip_color] ? low.drip_color : '' };
+    } else { delete state.lower; tier = 'top'; }
     const L = state.layout && typeof state.layout === 'object' && !Array.isArray(state.layout) ? { ...state.layout } : {};
     if (!state.accents.includes('piped_flowers')) delete L.flowers;
     if (!state.accents.includes('ribbon_bows')) delete L.bows;
@@ -185,6 +205,8 @@
 
   // ---- tap-to-edit -------------------------------------------------------------------------------
   function jumpTo(part) {
+    if (String(part || '').startsWith('lower:')) { part = part.slice(6); if (isTiered() && tier !== 'bottom') { tier = 'bottom'; renderBody(); } }
+    else if (isTiered() && tier !== 'top' && part !== 'message' && part !== 'topper') { tier = 'top'; renderBody(); }
     const target = PICK[part]; if (!target || packed) return;
     const [k, legend, name] = target;
     hoverTip(null);
@@ -261,10 +283,11 @@
     }
     const box = root?.querySelector('[data-bd-canvas]'); if (!box) return;
     let tip = box.querySelector('.bd-pick-tip');
+    const lowerPart = String(part || '').startsWith('lower:'); if (lowerPart) part = part.slice(6);
     if (!part || !PICK[part]) { if (tip) tip.hidden = true; return; }
     if (!tip) { tip = document.createElement('span'); tip.className = 'bd-pick-tip'; tip.setAttribute('aria-hidden', 'true'); box.append(tip); }
     const r = box.getBoundingClientRect();
-    tip.textContent = `${PICK[part][2]} · click to change`; tip.hidden = false;
+    tip.textContent = `${PICK[part][2]}${lowerPart ? ' (bottom tier)' : ''} · click to change`; tip.hidden = false;
     tip.style.left = Math.min(r.width - 12, Math.max(12, x - r.left)) + 'px'; tip.style.top = Math.max(10, y - r.top - 14) + 'px';
   }
   function announce(text) {
@@ -361,7 +384,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=27');
+        const mod = await import('./bento-scene.js?v=30');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -568,6 +591,12 @@
     return `<div class="bd-warning" role="status">${icon('warn')}<span>${esc(opt('color', s.lettering_color)?.label)} letters may be hard to read on ${esc(opt('color', s.frosting_color)?.label.toLowerCase())} frosting.</span>
       ${best ? `<button type="button" class="bd-link" data-bd-set="lettering_color" data-value="${best}">Use ${esc(opt('color', best)?.label.toLowerCase())}</button>` : ''}</div>`;
   }
+  function tierSwitch() {
+    if (!isTiered()) return '';
+    return `<div class="bd-tier" role="radiogroup" aria-label="Which tier you are decorating">${[['top', 'Top tier'], ['bottom', cakeKind(product) === 'tiered3' ? 'Lower tiers' : 'Bottom tier']].map(([k, l]) =>
+      `<button type="button" role="radio" data-bd-tier="${k}" aria-checked="${tier === k}">${l}</button>`).join('')}</div>
+      <p class="bd-note bd-tier-note">${tier === 'bottom' ? `Frosting, borders and decorations here go on the ${cakeKind(product) === 'tiered3' ? 'bottom and middle tiers' : 'bottom tier'}. The message and topper stay on top.` : 'Choices here go on the top tier. Switch to the bottom tier to decorate it too.'}</p>`;
+  }
   function cakePicker() {
     const cur = parseVariant(variant()), vs = activeVariants(product);
     const sizes = [...new Set(vs.map((v) => parseVariant(v).size))];
@@ -598,10 +627,13 @@
       <fieldset class="bd-group"><legend>Presets <small>Optional · all editable</small></legend>
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
-      <fieldset class="bd-group"><legend>Frosting color <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', s.frosting_color, 'Frosting color')}</fieldset>`;
+      ${tierSwitch()}
+      <fieldset class="bd-group"><legend>Frosting color${onLower() ? ' · bottom tier' : ''} <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', (onLower() ? s.lower : s).frosting_color, 'Frosting color')}</fieldset>`;
     if (step === 'decorate') {
+      const top = s; { const s = onLower() ? top.lower : top;   // the tier being decorated
       const count = s.accents.length;
       return `
+      ${tierSwitch()}
       <fieldset class="bd-group"><legend>Border <small>Piped shells</small></legend>
         <div class="bd-chips">${(options.border || []).map((o) => `<button type="button" class="bd-chip" data-bd-toggle="border" data-value="${o.code}" aria-pressed="${s.border.includes(o.code)}">${esc(o.label.replace('Shell border — ', 'Shell '))} ${priceTag(o)}</button>`).join('')}</div></fieldset>
       <fieldset class="bd-group"><legend>Decorations <small>${count} of ${max} chosen</small></legend>
@@ -611,12 +643,12 @@
       ${s.accents.includes('drip') ? `<fieldset class="bd-group"><legend>Drip color <small>Free</small></legend>
         <div class="bd-chips" style="margin-bottom:10px"><button type="button" class="bd-chip" role="radio" data-bd-set="drip_color" data-value="" aria-checked="${!s.drip_color}">Matching (darker ${esc(opt('color', s.frosting_color)?.label.toLowerCase() || 'frosting')})</button></div>
         ${swatches('drip_color', s.drip_color, 'Drip color')}</fieldset>` : ''}
-      <fieldset class="bd-group"><legend>Topper</legend>
+      ${onLower() ? '' : `<fieldset class="bd-group"><legend>Topper</legend>
         <div class="bd-chips" role="radiogroup" aria-label="Topper">${(options.topper || []).map((o) => `<button type="button" role="radio" class="bd-chip" data-bd-set="topper" data-value="${o.code}" aria-checked="${s.topper === o.code}">${esc(o.label)} ${o.code === 'none' ? '' : priceTag(o)}</button>`).join('')}</div>
         ${s.topper === 'number' ? `<label class="bd-label" for="bd-topper-text" style="margin-top:12px">Number on the topper <small>1–3 digits</small></label><input id="bd-topper-text" class="bd-input" inputmode="numeric" maxlength="3" autocomplete="off" data-bd-text="topper_text" value="${esc(s.topper_text)}">` : ''}
-      </fieldset>
-      ${window.LexcInspiration ? window.LexcInspiration.html('bento', s.inspiration) : ''}`;
-    }
+      </fieldset>`}
+      ${window.LexcInspiration ? window.LexcInspiration.html('bento', top.inspiration) : ''}`;
+    } }
     if (step === 'message') {
       const maxLines = Number(cfg().message_max_lines || 3), words = wordCount(s.message), maxWords = messageWords();
       const msgOpt = opt('message', 'custom_message');
@@ -636,7 +668,8 @@
       ${reviewChecklist()}
       <ul class="bd-summary" aria-label="Your design">
         <li><span>Cake</span><strong>${esc(product.name)} · ${esc(cakeLine(v))} ${money(v?.price || 0)}</strong></li>
-        <li><span>Frosting</span><strong>${esc(opt('color', s.frosting_color)?.label)}</strong></li>
+        <li><span>Frosting</span><strong>${esc(opt('color', s.frosting_color)?.label)}${isTiered() ? ' (top tier)' : ''}</strong></li>
+        ${isTiered() && s.lower ? `<li><span>Bottom tier</span><strong>${esc(opt('color', s.lower.frosting_color)?.label)} frosting${[...s.lower.border.map((c) => opt('border', c)?.label.replace('Shell border — ', 'Shell ')), ...s.lower.accents.map((c) => opt('accent', c)?.label)].filter(Boolean).map((l) => ', ' + esc(l)).join('')}</strong></li>` : ''}
         <li><span>Border</span><strong>${s.border.length ? s.border.map((c) => esc(opt('border', c).label.replace('Shell border — ', 'Shell '))).join(', ') : 'None'}</strong></li>
         <li><span>Decorations</span><strong>${s.accents.length ? s.accents.map((c) => esc(opt('accent', c).label) + (c === 'ribbon_bows' ? ' (' + esc(opt('color', s.bow_color)?.label) + ')' : '')).join(', ') : 'None'}</strong></li>
         <li><span>Message</span><strong>${s.message.trim() ? '“' + esc(s.message.trim()) + '”\n' + esc(opt('lettering', s.lettering)?.label) + ', ' + esc(opt('color', s.lettering_color)?.label) : 'None'}</strong></li>
@@ -737,16 +770,18 @@
       const t = e.target.closest('button'); if (!t || t.disabled) return;
       root.classList.remove('is-typing');
       if (t.dataset.bdStep) return goStep(t.dataset.bdStep);
-      if (t.dataset.bdSet) { const f = t.dataset.bdSet, v = t.dataset.value; return commit((s) => { s[f] = v; }); }
+      if (t.dataset.bdTier) { tier = t.dataset.bdTier === 'bottom' ? 'bottom' : 'top'; renderBody(); return; }
+      if (t.dataset.bdSet) { const f = t.dataset.bdSet, v = t.dataset.value; return commit((s) => { (onLower() && TIER_FIELDS.has(f) ? s.lower : s)[f] = v; }); }
       if (t.dataset.bdCake) { const p = cakes.find((c) => c.id === t.dataset.bdCake), id = p && pickVariant(p); if (id) commit((s) => { s.variant_id = id; }); return; }
       if (t.dataset.bdSize) { const id = pickVariant(product, t.dataset.bdSize); if (id) commit((s) => { s.variant_id = id; }); return; }
       if (t.dataset.bdToggle) {
         const f = t.dataset.bdToggle, v = t.dataset.value;
         return commit((s) => {
-          const list = new Set(s[f]); if (list.has(v)) list.delete(v); else list.add(v);
+          const target = onLower() && TIER_FIELDS.has(f) ? s.lower : s;
+          const list = new Set(target[f]); if (list.has(v)) list.delete(v); else list.add(v);
           if (v === 'pearls_gold' && list.has(v)) list.delete('pearls_silver');
           if (v === 'pearls_silver' && list.has(v)) list.delete('pearls_gold');
-          s[f] = [...list];
+          target[f] = [...list];
         });
       }
       if (t.dataset.bdSuggest) { const text = t.dataset.bdSuggest; return commit((s) => { s.message = text; }); }
