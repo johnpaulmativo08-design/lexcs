@@ -321,9 +321,40 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     if (hex && hex !== layersHex) { layersHex = hex; fadeColor(fillMat, hex); }
     else if (!fillMat.userData.faded) fadeColor(fillMat, layersHex);
     if (!!on === layersOn) { request(); return; }
+    finishPiping();
     layersOn = !!on;
-    if (layersOn) { if (arranging) setArrange(false); loadCakeParts(); buildLayers(true); }
-    showBody();
+    if (layersOn) { if (arranging) setArrange(false); loadCakeParts(); buildLayers(true); showBody(); return; }
+    if (reducedMotion || !layers.children.length) { showBody(); return; }
+    iceCake();
+  }
+  // Leaving the Layers step: the frosting rises over the sponge layers from the bottom up while a piping bag spirals
+  // round the cake, then the decorations settle on. Two clipping planes share one level: frosting below it is shown,
+  // layers below it are hidden.
+  function iceCake() {
+    const useModel = !!model && shapeKey === 'bento';
+    const frostMats = new Set(); forEachMesh(useModel ? model.root : body, (m) => (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => frostMats.add(x)));
+    const below = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), above = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), at = new THREE.Vector3();
+    for (const m of frostMats) m.clippingPlanes = [below];
+    spongeMat.clippingPlanes = fillMat.clippingPlanes = [above];
+    if (model) model.root.visible = useModel;
+    fixed.visible = !useModel; lift.visible = true; layers.visible = true; decor.visible = false;
+    const stack = shapeKey === 'bento' ? [{ r: 1, h: H, y: 0 }] : TIERS, top = H + 0.04;
+    const radiusAt = (y) => (stack.find((t) => y <= t.y + t.h) || stack[stack.length - 1]).r;
+    const frost = '#' + cakeMat.color.getHexString();   // build() keeps cakeMat at the top tier's frosting colour
+    const bag = makeBag(frost), start = Math.atan2(camera.position.z, camera.position.x) - 0.6, turns = 1.5 + stack.length * 0.5;
+    bag.scale.setScalar(Math.max(1.2, RB * 1.1));   // the whole cake is scaled down to fit, so a big cake needs a bigger bag to read
+    piping(1500 + stack.length * 450, (k) => {
+      const level = -0.02 + k * (top + 0.02); at.set(0, level, 0); world.localToWorld(at);
+      below.constant = at.y + 0.0005; above.constant = -at.y;
+      const a = start + k * Math.PI * 2 * turns, r = radiusAt(Math.min(level, H - 0.001)) + 0.14 * Math.max(1.2, RB * 1.1);
+      bag.position.set(Math.cos(a) * r, Math.min(level, H) + 0.03, Math.sin(a) * r); bag.rotation.set(0, -a, -0.5);
+    }, () => {
+      for (const m of frostMats) m.clippingPlanes = null;
+      spongeMat.clippingPlanes = fillMat.clippingPlanes = null;
+      bag.removeFromParent(); bag.userData.fillMat.dispose();
+      decor.visible = true; showBody();
+      animate((k) => { decor.scale.setScalar(0.94 + 0.06 * k); decor.position.y = (1 - k) * 0.08; }, 380);
+    });
   }
   const clearDecor = () => {
     decor.traverse((o) => { if (o.isMesh) { if (!o.userData.sharedGeometry) o.geometry.dispose(); if (!o.userData.sharedMaterial) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.map?.dispose(); m.dispose(); }); } });
