@@ -187,7 +187,7 @@
       const digits = box.value.replace(/\D/g, '').slice(0, 2); if (digits !== box.value) box.value = digits;
       if (digits) setQty(Number(digits));
     });
-    dialog.addEventListener('focusout', (event) => { const box = event.target.closest?.('[data-qty]'); if (box) { if (!box.value || Number(box.value) < 1) setQty(1); box.value = state.qty; } });
+    dialog.addEventListener('focusout', (event) => { const box = event.target.closest?.('[data-qty]'); if (box) { if (!box.value || Number(box.value) < 1) setQty(1); else setQty(Number(box.value)); box.value = state.qty; } });
     dialog.addEventListener('keydown', (event) => {
       if (event.target.closest('[role=tablist]') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
         const tabs = [...dialog.querySelectorAll('[data-tab]')]; const i = tabs.findIndex((x) => x.dataset.tab === state.tab);
@@ -369,6 +369,7 @@
     if (tag) { tag.hidden = !s.sale; tag.textContent = saleText(s); }
     if (until) { until.hidden = !s.sale?.ends; until.textContent = s.sale?.ends ? 'Sale until ' + new Date(s.sale.ends + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric' }) : ''; }
     const label = dialog.querySelector('[data-size-label]'); if (label) label.textContent = s.label;
+    setQty(Math.max(state.qty || 1, s.min || 1));
   }
   // Phones: once added, the bottom button turns into "Open cart"; picking another size or quantity turns it back.
   const PHONE = window.matchMedia('(max-width: 639px), (max-height: 480px) and (pointer: coarse)');
@@ -378,9 +379,10 @@
   }
   function setQty(value) {
     resetBuy();
-    state.qty = Math.min(99, Math.max(1, value));
+    const min = current()?.sizes[state.size]?.min || 1;
+    state.qty = Math.min(99, Math.max(min, value));
     const box = dialog.querySelector('[data-qty]'); if (document.activeElement !== box || Number(box.value) !== state.qty) box.value = state.qty;
-    dialog.querySelector('[data-less]').disabled = state.qty <= 1;
+    dialog.querySelector('[data-less]').disabled = state.qty <= min;
     dialog.querySelector('[data-more]').disabled = state.qty >= 99;
   }
   function addFromDetail() {

@@ -97,6 +97,7 @@ nav.dark-nav .nav-cart{color:rgba(255,255,255,0.7);}
 .co-textarea{min-height:80px;resize:vertical;}
 .co-option-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .co-option{background:white;border:2px solid rgba(195,178,215,0.4);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--mid);transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.co-option small{display:block;margin-top:2px;font-size:.92em;font-weight:500;opacity:.78}
 .co-option:hover{border-color:var(--plum);color:var(--plum);}
 .co-option.selected{border-color:var(--plum);background:var(--lilac);color:var(--plum);}
 .co-option-icon{font-size:1.3rem;}
@@ -1385,9 +1386,9 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
         </div>
 
         <div class="co-field-group">
-          <label class="co-label">Pay with QR</label>
+          <label class="co-label">How you'll pay</label>
           <div class="co-option-grid" id="checkoutPaymentMethods" role="group" aria-label="Payment method"><div class="checkout-method-skeleton" role="status" aria-label="Loading payment methods"><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span></div></div>
-          <p class="co-payment-hint">The next page shows the selected QR and exact amount. Your payment is confirmed only after the seller verifies your proof.</p>
+          <p class="co-payment-hint" id="checkoutPaymentHint">The next page shows the selected QR and exact amount. Your payment is confirmed only after the seller verifies your proof.</p>
         </div>
 
         <div class="checkout-actions"><div class="checkout-pay-now"><small>Amount due now</small><strong id="checkoutStickyDue">₱0.00</strong></div><button class="btn-primary co-submit-btn" id="placeOrderButton" onclick="submitCheckout()">Place Order →</button></div>
@@ -1594,6 +1595,10 @@ function selectPayment(el, val) {
   el.classList.add('selected');
   el.setAttribute('aria-pressed','true');
   selectedPayment = val;
+  const hint = document.getElementById('checkoutPaymentHint');
+  if (hint) hint.textContent = val === 'paymongo'
+    ? 'After LexC’s confirms your order, you pay on PayMongo’s secure page with GCash or any bank app that scans QR Ph. LexC’s then confirms the payment.'
+    : 'The next page shows the selected QR and exact amount. Your payment is confirmed only after the seller verifies your proof.';
   updateCheckoutDelivery();
 }
 
@@ -2058,6 +2063,8 @@ function addToCartById(id, selectedIndex, quantity = 1) {
   const size = p.sizes[idx];
   if (!size) return false;
   quantity = Math.min(99, Math.max(1, Number(quantity) || 1));
+  const min = Math.max(1, size.min || 1), already = cart.find(c => c.id === id && c.sizeLabel === size.label)?.qty || 0;
+  if (already + quantity < min) { showToast(`${p.name} starts at ${min} — added ${min}.`); quantity = min - already; }
   
   const existing = cart.find(c => c.id === id && c.sizeLabel === size.label);
   if (existing) {
@@ -2159,7 +2166,14 @@ function toggleAllCartItems(selected) {
   renderCart();
 }
 
+// smallest quantity LexC's sells of a product option (product_variants.min_qty, e.g. 12 cake pops)
+function variantMin(variantId) {
+  for (const p of (typeof liveCatalog !== 'undefined' ? liveCatalog : [])) { const v = (p.product_variants || []).find(x => x.id === variantId); if (v) return Math.max(1, Number(v.min_qty) || 1); }
+  return 1;
+}
 function changeQty(i, delta) {
+  const min = variantMin(cart[i]?.variant_id);
+  if (cart[i] && min > 1 && cart[i].qty + delta > 0 && cart[i].qty + delta < min) { showToast(`${cart[i].name} has a minimum of ${min}. Tap remove to take it out.`); return; }
   // cake pops are sold per piece, minimum 12
   if (cart[i]?.customization?.designer === 'cakepop' && cart[i].qty + delta < 12 && cart[i].qty + delta > 0) { showToast('Cake pops have a minimum of 12 pieces.'); return; }
   if (cart[i]?.customization?.designer === 'cakepop' && cart[i].qty + delta <= 0) { cart.splice(i, 1); renderCart(); return; }
@@ -2814,8 +2828,8 @@ loginReady();
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script>
-<script src="shared/delivery-card.js?v=1"></script><script src="shared/customer-backend.js?v=39"></script>
-<script src="shared/product-detail.js?v=17"></script>
+<script src="shared/delivery-card.js?v=1"></script><script src="shared/customer-backend.js?v=40"></script>
+<script src="shared/product-detail.js?v=18"></script>
 <script src="shared/menu-layout.js?v=5"></script>
 <script src="shared/fresh-feed.js?v=12"></script>
 <script src="shared/landing.js?v=4"></script>

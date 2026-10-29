@@ -1,4 +1,7 @@
-// Opens a PayMongo checkout (GCash, QR Ph) for one of the signed-in customer's payment attempts.
+// Starts a PayMongo payment for one of the signed-in customer's payment attempts:
+//   mode 'qrph'     → returns a QR Ph image (data URL) to show on LexC's own payment page (expires in 30 min);
+//   mode 'gcash'    → returns GCash's authorization link (opens the GCash app on phones), then back to the page;
+//   mode 'checkout' → PayMongo's hosted checkout page (the original flow, kept as a fallback).
 // The amount always comes from the database (public.paymongo_checkout_start), never from the browser.
 // Secrets (Supabase → Edge Functions → Secrets): PAYMONGO_SECRET_KEY (sk_test_… or sk_live_…),
 // PAYMONGO_RETURN_ORIGINS (comma-separated site origins allowed as return pages, e.g.
@@ -35,7 +38,8 @@ Deno.serve(async (request) => {
     const { data: auth, error: authError } = await customer.auth.getUser(token);
     if (authError || !auth.user) return json({ error: 'Your session has expired.' }, 401);
 
-    const { paymentId, returnUrl } = await request.json().catch(() => ({}));
+    const { paymentId, returnUrl, mode = 'checkout' } = await request.json().catch(() => ({}));
+    if (!['checkout', 'qrph', 'gcash'].includes(mode)) return json({ error: 'Choose how to pay.' }, 400);
     if (typeof paymentId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(paymentId)) return json({ error: 'Select a payment first.' }, 400);
     // the customer comes back to the page they paid from, but only on LexC's own site
     let back: URL;
@@ -46,13 +50,54 @@ Deno.serve(async (request) => {
     if (detailsError || !details) return json({ error: detailsError?.message || 'Payment is unavailable.' }, 403);
 
     const amount = Math.round(Number(details.amount) * 100);
-    if (!Number.isInteger(amount) || amount < 2000) return json({ error: 'Online payment needs at least ₱20.00.' }, 400);
+    const least = mode === 'checkout' ? 2000 : 100;   // PayMongo's minimums: ₱20 for its checkout page, ₱1 for QR Ph / GCash
+    if (!Number.isInteger(amount) || amount < least) return json({ error: `Online payment needs at least ₱${(least / 100).toFixed(2)}.` }, 400);
     const page = (status: string) => { const u = new URL(back.origin + back.pathname); u.searchParams.set('order', details.order_id); u.searchParams.set('online', status); return u.toString(); };
     const kind = ({ downpayment: 'Downpayment', full: 'Full payment', balance: 'Remaining balance' } as Record<string, string>)[details.kind] || 'Payment';
 
+    const headers = { Authorization: 'Basic ' + btoa(secretKey + ':'), 'Content-Type': 'application/json', Accept: 'application/json' };
+    const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const failed = (step: string, res: Response, body: any) => {
+      console.error('PayMongo ' + step + ' failed', res.status, JSON.stringify(body?.errors || body).slice(0, 500));
+      return json({ error: 'PayMongo could not start the payment. Please try again.' }, 502);
+    };
+
+    // QR Ph on LexC's own page, or straight to GCash: a payment intent with one payment method attached.
+    if (mode !== 'checkout') {
+      const post = async (path: string, attributes: Record<string, unknown>) => {
+        const res = await fetch('https://api.paymongo.com/v1/' + path, { method: 'POST', headers, body: JSON.stringify({ data: { attributes } }) });
+        return { res, body: await res.json().catch(() => null) };
+      };
+      const intent = await post('payment_intents', {
+        amount, currency: 'PHP', payment_method_allowed: [mode],
+        description: `${kind} for LexC's Snacktime order #${details.order_number}`,
+        metadata: { payment_id: details.payment_id, order_id: details.order_id },
+      });
+      const intentId = intent.body?.data?.id;
+      if (!intent.res.ok || typeof intentId !== 'string') return failed('payment intent', intent.res, intent.body);
+      const method = await post('payment_methods', mode === 'qrph' ? { type: 'qrph', expiry_seconds: 1800 } : { type: 'gcash' });
+      const methodId = method.body?.data?.id;
+      if (!method.res.ok || typeof methodId !== 'string') return failed('payment method', method.res, method.body);
+      const attach = await post(`payment_intents/${intentId}/attach`, mode === 'gcash'
+        ? { payment_method: methodId, return_url: page('paid') } : { payment_method: methodId });
+      const next = attach.body?.data?.attributes?.next_action;
+      if (!attach.res.ok || !next) return failed('attach', attach.res, attach.body);
+
+      const { error: saveError } = await admin.rpc('paymongo_attach_checkout', { target_payment: details.payment_id, checkout_id: intentId });
+      if (saveError) return json({ error: 'Payment could not be prepared. Please try again.' }, 500);
+      if (mode === 'gcash') {
+        if (typeof next.redirect?.url !== 'string') return failed('gcash link', attach.res, attach.body);
+        return json({ url: next.redirect.url });
+      }
+      const image = next.code?.image_url;
+      if (typeof image !== 'string' || !image) return failed('qr image', attach.res, attach.body);
+      return json({ qr: image.startsWith('data:') || image.startsWith('http') ? image : 'data:image/png;base64,' + image,
+        expiresAt: new Date(Date.now() + 1800 * 1000).toISOString(), amount: details.amount });
+    }
+
     const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
       method: 'POST',
-      headers: { Authorization: 'Basic ' + btoa(secretKey + ':'), 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers,
       body: JSON.stringify({ data: { attributes: {
         line_items: [{ amount, currency: 'PHP', name: `LexC's Snacktime · Order #${details.order_number}`, description: kind, quantity: 1 }],
         payment_method_types: ['gcash', 'qrph'],
@@ -70,7 +115,6 @@ Deno.serve(async (request) => {
       return json({ error: 'PayMongo could not open the payment page. Please try again.' }, 502);
     }
 
-    const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { error: attachError } = await admin.rpc('paymongo_attach_checkout', { target_payment: details.payment_id, checkout_id: checkoutId });
     if (attachError) return json({ error: 'Payment could not be prepared. Please try again.' }, 500);
     return json({ url: checkoutUrl });
