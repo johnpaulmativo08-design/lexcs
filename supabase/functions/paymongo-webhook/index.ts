@@ -34,14 +34,17 @@ Deno.serve(async (request) => {
   const type = event?.data?.attributes?.type;
   if (type !== 'checkout_session.payment.paid') return ok({ ignored: type || 'unknown' });
   const checkout = event.data.attributes.data, payment = checkout?.attributes?.payments?.[0];
-  const pay = payment?.attributes || {};
+  const pay = payment?.attributes || {}, cs = checkout?.attributes || {};
   if (typeof checkout?.id !== 'string' || typeof payment?.id !== 'string' || pay.status !== 'paid') return ok({ ignored: 'not paid' });
+  // the payment's own amount / method / time, or the checkout's when PayMongo leaves them off the payment
+  const amount = Number(pay.amount ?? (cs.line_items || []).reduce((sum: number, l: any) => sum + Number(l.amount) * Number(l.quantity || 1), 0));
+  const paidAt = Number(pay.paid_at ?? cs.paid_at);
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data, error } = await admin.rpc('paymongo_record_payment', {
-    checkout_id: checkout.id, payment_id: payment.id, amount_centavos: Number(pay.amount),
-    method: String(pay.source?.type || pay.payment_method_type || 'paymongo'),
-    paid_at: pay.paid_at ? new Date(Number(pay.paid_at) * 1000).toISOString() : null,
+    checkout_id: checkout.id, payment_id: payment.id, amount_centavos: Number.isFinite(amount) && amount > 0 ? Math.round(amount) : null,
+    method: String(pay.source?.type || pay.payment_method_type || cs.payment_method_used || 'paymongo'),
+    paid_at: Number.isFinite(paidAt) && paidAt > 0 ? new Date(paidAt * 1000).toISOString() : null,
   });
   if (error) { console.error('paymongo_record_payment', error.message); return ok({ error: 'Could not record payment.' }, 500); }   // PayMongo retries
   return ok({ result: data });
