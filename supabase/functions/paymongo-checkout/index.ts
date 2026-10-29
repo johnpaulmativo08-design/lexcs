@@ -68,31 +68,37 @@ Deno.serve(async (request) => {
         const res = await fetch('https://api.paymongo.com/v1/' + path, { method: 'POST', headers, body: JSON.stringify({ data: { attributes } }) });
         return { res, body: await res.json().catch(() => null) };
       };
+      // GCash also allows QR Ph, so the GCash button can fall back to a QR (scanned with the GCash app) when direct
+      // GCash is not switched on for the PayMongo account yet ("payment_method_not_allowed").
       const intent = await post('payment_intents', {
-        amount, currency: 'PHP', payment_method_allowed: [mode],
+        amount, currency: 'PHP', payment_method_allowed: mode === 'gcash' ? ['gcash', 'qrph'] : [mode],
         description: `${kind} for LexC's Snacktime order #${details.order_number}`,
         metadata: { payment_id: details.payment_id, order_id: details.order_id },
       });
       const intentId = intent.body?.data?.id;
       if (!intent.res.ok || typeof intentId !== 'string') return failed('payment intent', intent.res, intent.body);
-      const method = await post('payment_methods', mode === 'qrph' ? { type: 'qrph', expiry_seconds: 1800 } : { type: 'gcash' });
+      let use = mode;
+      let method = await post('payment_methods', use === 'qrph' ? { type: 'qrph', expiry_seconds: 1800 } : { type: 'gcash' });
+      if (use === 'gcash' && !method.res.ok && JSON.stringify(method.body?.errors || '').includes('payment_method_not_allowed')) {
+        use = 'qrph'; method = await post('payment_methods', { type: 'qrph', expiry_seconds: 1800 });
+      }
       const methodId = method.body?.data?.id;
       if (!method.res.ok || typeof methodId !== 'string') return failed('payment method', method.res, method.body);
-      const attach = await post(`payment_intents/${intentId}/attach`, mode === 'gcash'
+      const attach = await post(`payment_intents/${intentId}/attach`, use === 'gcash'
         ? { payment_method: methodId, return_url: page('paid') } : { payment_method: methodId });
       const next = attach.body?.data?.attributes?.next_action;
       if (!attach.res.ok || !next) return failed('attach', attach.res, attach.body);
 
       const { error: saveError } = await admin.rpc('paymongo_attach_checkout', { target_payment: details.payment_id, checkout_id: intentId });
       if (saveError) return json({ error: 'Payment could not be prepared. Please try again.' }, 500);
-      if (mode === 'gcash') {
+      if (use === 'gcash') {
         if (typeof next.redirect?.url !== 'string') return failed('gcash link', attach.res, attach.body);
         return json({ url: next.redirect.url });
       }
       const image = next.code?.image_url;
       if (typeof image !== 'string' || !image) return failed('qr image', attach.res, attach.body);
       return json({ qr: image.startsWith('data:') || image.startsWith('http') ? image : 'data:image/png;base64,' + image,
-        expiresAt: new Date(Date.now() + 1800 * 1000).toISOString(), amount: details.amount });
+        expiresAt: new Date(Date.now() + 1800 * 1000).toISOString(), amount: details.amount, forGcash: mode === 'gcash' });
     }
 
     const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
