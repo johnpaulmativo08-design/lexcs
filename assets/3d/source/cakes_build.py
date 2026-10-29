@@ -35,6 +35,7 @@ SPONGE = material('Sponge_Golden', (0.86, 0.6, 0.27), 0.85)
 FILLING = material('Filling_Cream', (0.97, 0.94, 0.86), 0.45)
 
 def to_object(bm, name, mat):
+    if bm.calc_volume(signed=True) < 0: bmesh.ops.reverse_faces(bm, faces=bm.faces)   # faces must point outward (the web preview culls back faces)
     me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
     obj = bpy.data.objects.new(name, me); scene.collection.objects.link(obj)
     me.materials.append(mat)

@@ -6,7 +6,7 @@ import { createSet } from './scene-set.js?v=2';
 
 const MODEL_URL = new URL('../assets/3d/bento.glb?v=1', import.meta.url).href;
 // Petite and tiered cake parts from Blender (assets/3d/source/cakes_build.py): bodies, piped shell rings, drips.
-const CAKES_URL = new URL('../assets/3d/cakes.glb?v=3', import.meta.url).href;
+const CAKES_URL = new URL('../assets/3d/cakes.glb?v=4', import.meta.url).href;
 const M_PER_UNIT = 0.0508;                       // 1 scene unit = 2 inches
 const inchTag = (v) => (Math.abs(v - Math.round(v)) < 1e-6 ? String(Math.round(v)) : String(v).replace('.', '_'));
 let R = 1.0;                       // cake (top tier) radius: the 4" bento is 1 (1 unit = 2")
