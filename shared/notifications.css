@@ -146,3 +146,69 @@
   .customer-mobile-nav .mobile-diy>span{width:42px;height:42px;min-height:42px;margin-top:-16px}
   .nt-wrap,.pf-wrap{padding-bottom:84px}
 }
+
+/* ---- one general colour: the landing page's "Shop now" plum (#2b1530, hover #563a8a) ---- */
+:root{--lx-plum:#2b1530;--lx-plum-hover:#563a8a;--lx-plum-soft:#f3edf6}
+.pf-band{background:var(--lx-plum);background-image:radial-gradient(120% 140% at 100% 0,rgba(86,58,138,.55),transparent 60%);box-shadow:0 10px 26px rgba(43,21,48,.28)}
+.pf-tool .mnav-badge{box-shadow:0 0 0 2px var(--lx-plum)}
+.pf-tile-ic,.pf-explore .ui-icon,.pf-ic,.pf-ic .ui-icon,.pf-round,.pf-action .ui-icon,.pf-buy-head button{color:var(--lx-plum)}
+.pf-tile-ic,.pf-ic{background:var(--lx-plum-soft)}
+.pf-tile[aria-pressed="true"]{background:var(--lx-plum-soft);color:var(--lx-plum)}
+.pf-tile[aria-pressed="true"] .pf-tile-ic{background:var(--lx-plum);color:#fff}
+.pf-order-act,.nt-pay,.nt-login{background:var(--lx-plum)}
+.pf-order-act:hover,.nt-pay:hover,.nt-login:hover{background:var(--lx-plum-hover)}
+.pf-order-act.is-quiet{background:#fff;color:var(--lx-plum);border-color:#d8cbdf}
+.pf-order-thumb{color:var(--lx-plum)}
+.nt-filters button[aria-selected="true"]{background:var(--lx-plum);border-color:var(--lx-plum)}
+.nt-filters button[aria-selected="true"] i{color:var(--lx-plum)}
+.nt-ic,.is-info>.nt-ic,.is-sale>.nt-ic,.is-post>.nt-ic,.nt-due-top .nt-ic{background:var(--lx-plum-soft);color:var(--lx-plum)}
+.nt-markall,.nt-due-more,.nt-retry{color:var(--lx-plum)}
+.nav-bell{color:var(--lx-plum)}
+.nav-bell[aria-current="page"]{background:var(--lx-plum);border-color:var(--lx-plum);color:#fff}
+@media(max-width:900px){
+  .customer-mobile-nav button[aria-current="page"]{color:var(--lx-plum)}
+  .customer-mobile-nav button[aria-current="page"] span{background:var(--lx-plum-soft)}
+  #mobileCartCount{background:var(--lx-plum)}
+}
+html[data-theme=dark] .pf-tile-ic,html[data-theme=dark] .pf-ic,html[data-theme=dark] .nt-ic{background:#3a2440;color:#e9d9f2}
+html[data-theme=dark] .pf-explore .ui-icon,html[data-theme=dark] .pf-buy-head button{color:#e9d9f2}
+.pf-band .pf-photo-btn{background:var(--lx-plum-hover);border-color:var(--lx-plum)}
+.pf-order-main span{white-space:normal;line-height:1.3}
+
+/* ---- one type style: the landing hero (eyebrow · Playfair title in ink · rose italic accent · soft body text) ---- */
+:root{--lx-serif:'Playfair Display',Georgia,serif;--lx-sans:'DM Sans',system-ui,sans-serif;--lx-ink:#23142a;--lx-violet:#6f4fa8;--lx-rose:#c9628f;--lx-body:#4a3d52;--lx-muted:#6e6274}
+.lx-eyebrow{margin:0 0 8px;font:600 .7rem/1.2 var(--lx-sans);letter-spacing:.26em;text-transform:uppercase;color:var(--lx-violet)}
+.lx-title{margin:0;font:700 clamp(1.9rem,4.6vw,2.8rem)/1.02 var(--lx-serif);letter-spacing:-.02em;color:var(--lx-ink)}
+.lx-title em,.pf-buy-head h2 em,.pf-card h3 em,.pf-band-who h1 em{font-style:italic;font-weight:400;color:var(--lx-rose)}
+.lx-lede{margin:10px 0 0;font:400 1rem/1.5 var(--lx-sans);color:var(--lx-body)}
+.nt-head{align-items:flex-end;margin-bottom:18px}
+.nt-group{font:600 .68rem/1.2 var(--lx-sans);letter-spacing:.22em;color:var(--lx-violet)}
+.nt-text strong,.pf-order-main strong{color:var(--lx-ink)}
+.nt-text>span,.pf-order-main span,.nt-due li small{color:var(--lx-body)}
+.nt-text small,.nt-head p{color:var(--lx-muted)}
+.pf-buy-head h2,.pf-card h3{font:700 1.3rem/1.15 var(--lx-serif);letter-spacing:-.01em;color:var(--lx-ink)}
+.pf-card h3{margin:0 0 12px}.pf-card-head h3{margin:0}
+.pf-band .lx-eyebrow{margin-bottom:4px;color:#d9c2f2}
+.pf-band-who h1{font:700 clamp(1.35rem,4.2vw,1.8rem)/1.08 var(--lx-serif);letter-spacing:-.015em;color:#fff}
+.pf-band-who h1 em{color:#f1a9c8}
+.pf-band-who p:not(.lx-eyebrow){margin-top:4px;font-family:var(--lx-sans)}
+.nt-due-top small{font:600 .66rem/1.2 var(--lx-sans);letter-spacing:.22em;color:var(--lx-violet)}
+.nt-due-top strong{font-family:var(--lx-serif);color:var(--lx-ink)}
+html[data-theme=dark] .lx-title,html[data-theme=dark] .pf-buy-head h2,html[data-theme=dark] .pf-card h3,html[data-theme=dark] .nt-text strong,html[data-theme=dark] .nt-due-top strong{color:#f3e9f7}
+html[data-theme=dark] .lx-lede,html[data-theme=dark] .nt-text>span{color:#d6c6dc}
+html[data-theme=dark] .lx-eyebrow,html[data-theme=dark] .nt-group{color:#cbb4ea}
+.nt-head .lx-title{font:700 clamp(1.9rem,4.6vw,2.8rem)/1.02 var(--lx-serif);letter-spacing:-.02em;color:var(--lx-ink)}
+.nt-head .lx-lede{margin:10px 0 0;font:400 1rem/1.5 var(--lx-sans);color:var(--lx-body)}
+.nt-head .lx-eyebrow{margin:0 0 8px;color:var(--lx-violet);font-size:.7rem}
+@media(max-width:520px){.nt-head{flex-wrap:wrap;align-items:flex-start}.nt-head>div{flex:1 1 100%}.nt-head .lx-eyebrow{letter-spacing:.18em}}
+html[data-theme=dark] .nt-head .lx-title{color:#f3e9f7}html[data-theme=dark] .nt-head .lx-lede{color:#d6c6dc}
+/* ---- sharp line icons: bare outline icons like a shop app (no tinted bubbles), the selected tile marked with a short bar ---- */
+.pf-tile-ic,.pf-tile[aria-pressed="true"] .pf-tile-ic{width:36px;height:32px;border-radius:0;background:none;color:var(--lx-plum)}
+.pf-tile-ic .ui-icon{width:27px;height:27px;stroke-width:1.4}
+.pf-tile[aria-pressed="true"]{background:none;font-weight:700}
+.pf-tile[aria-pressed="true"]::after{content:"";position:absolute;left:30%;right:30%;bottom:0;height:2px;background:var(--lx-plum)}
+.pf-tile:hover{background:none}.pf-tile:hover .pf-tile-ic{color:var(--lx-plum-hover)}
+.pf-tool{background:none}.pf-tool:hover{background:rgba(255,255,255,.14)}.pf-tool .ui-icon{width:24px;height:24px;stroke-width:1.5}
+.pf-explore .ui-icon{width:24px;height:24px;stroke-width:1.4}
+.customer-mobile-nav .ui-icon{stroke-width:1.5}
+html[data-theme=dark] .pf-tile-ic{color:#e4d3f6}html[data-theme=dark] .pf-tile[aria-pressed="true"]::after{background:#e4d3f6}

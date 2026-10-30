@@ -135,7 +135,7 @@
     const s = readState(), signedIn = !!window.currentUser;
     const unreadAll = items.filter((n) => isUnread(n, s)).length;
     const counts = Object.fromEntries(FILTERS.map(([k]) => [k, items.filter((n) => (k === 'all' || n.kind === k) && isUnread(n, s)).length]));
-    const head = `<header class="nt-head"><div><h1>Notifications</h1><p>${unreadAll ? `${unreadAll} new` : 'You’re all caught up'}</p></div>
+    const head = `<header class="nt-head"><div><p class="lx-eyebrow">Orders · Payments · Sweet deals</p><h1 class="lx-title">Your <em>notifications.</em></h1><p class="lx-lede">${unreadAll ? `${unreadAll} new since you last checked` : 'You’re all caught up'}</p></div>
       <button type="button" class="nt-markall" data-nt-all ${unreadAll ? '' : 'disabled'}>${svg(I.check)}Mark all as read</button></header>
       <div class="nt-filters" role="tablist" aria-label="Show">${FILTERS.filter(([k]) => signedIn || ['all', 'promos', 'posts'].includes(k)).map(([k, l]) =>
         `<button type="button" role="tab" aria-selected="${filter === k}" data-nt-filter="${k}">${l}${counts[k] ? `<i>${counts[k]}</i>` : ''}</button>`).join('')}</div>`;
