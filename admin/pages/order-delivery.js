@@ -27,11 +27,13 @@ export async function mountOrderDelivery(dialog,o){
 function draw(box,o,d){
  box.removeAttribute('aria-busy');
  const locked=o.status==='pending'||(o.status==='cancelled'&&!d);
+ // the rider is booked once the cakes are ready, so the form opens at Ready (or earlier if a booking was already recorded)
+ const early=!d&&['confirmed','preparing'].includes(o.status);
  const step=d?.step||null,rank=step==='failed'?0:STEPS.findIndex(s=>s[0]===step)+1;
  const time={booked:d?.booked_at,picked_up:d?.picked_up_at,delivered:d?.delivered_at};
  const field=(name,label,attrs='',value=d?.[name])=>'<label class="dlv-field"><span>'+label+'</span><input name="'+name+'" value="'+e(value??'')+'" autocomplete="off" '+attrs+'></label>';
  box.innerHTML='<header class="dlv-head"><span class="dlv-title">'+icon('delivery')+' Lalamove delivery</span>'+(step?'<span class="dlv-pill is-'+step+'">'+e(LABEL[step])+'</span>':'<span class="dlv-pill">Not booked yet</span>')+'</header>'+
-  (locked?'<p class="dlv-note">'+(o.status==='pending'?'Confirm the order first, then book the rider in the Lalamove app and record it here.':'This order was cancelled.')+'</p>':
+  (early?'<p class="dlv-early">'+icon('clock')+'<span><strong>Opens when the order is Ready.</strong> Tap Mark ready above, then book the rider in the Lalamove app and record it here.</span></p>':locked?'<p class="dlv-note">'+(o.status==='pending'?'Confirm the order first, then book the rider in the Lalamove app and record it here.':'This order was cancelled.')+'</p>':
   '<ol class="dlv-steps" aria-label="Delivery steps">'+STEPS.map(([key,label],i)=>'<li><button type="button" data-step="'+key+'" class="'+(i<rank?'is-done':'')+(i===rank-1?' is-now':'')+'"'+(i===rank-1?' aria-current="step"':'')+'><span class="dlv-dot" aria-hidden="true">'+(i<rank?'✓':i+1)+'</span><b>'+label+'</b><small>'+(time[key]?e(at(time[key])):i===rank?'Tap when it happens':'')+'</small></button></li>').join('')+'</ol>'+
   (step==='failed'?'<p class="dlv-failed-note"><strong>Failed / returned'+(d.failed_at?' · '+e(at(d.failed_at)):'')+'</strong>'+e(d.failure_reason||'')+'</p>':'')+
   '<form class="dlv-form" novalidate>'+
@@ -42,7 +44,7 @@ function draw(box,o,d){
    '<div class="dlv-actions" data-main-actions><button type="submit" class="button button--primary">'+(d?'Save details':'Save · rider booked')+'</button>'+(d&&step!=='failed'?'<button type="button" class="text-button dlv-fail-link" data-fail>Delivery failed?</button>':'')+'</div><p class="dlv-status" role="status"></p>'+
   '</form>'+
   '<p class="dlv-foot">The customer gets a chat message when you tap a step or add the tracking link. Marking Delivered does not complete the order — use Mark completed once it is paid.</p>');
- if(locked)return;
+ if(locked||early)return;
  const form=box.querySelector('form'),status=box.querySelector('.dlv-status'),hint=box.querySelector('[data-link-hint]'),open=box.querySelector('[data-open]');
  const say=(text,bad)=>{status.textContent=text;status.classList.toggle('is-error',!!bad);};
  const checkLink=()=>{const v=form.elements.tracking_url.value.trim();
