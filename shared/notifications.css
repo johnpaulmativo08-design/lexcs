@@ -219,3 +219,11 @@ body.is-guest .customer-mobile-nav [data-mobile-destination="shop"],body.is-gues
 .pf-band:has(.pf-band-tools:empty) .pf-band-who{padding-right:0}.pf-band:has(.pf-band-tools:empty) .pf-band-who p{white-space:normal}.pf-band-tools:empty{display:none}
 @media(max-width:520px){.pf-band .lx-eyebrow{letter-spacing:.16em;font-size:.64rem}}
 @media(max-width:380px){.pf-band:has(.pf-band-tools:empty){flex-wrap:nowrap;padding-top:18px}}
+/* remaining balance amount: plain bold sans like the rest of the card text, not the serif heading face */
+.nt-due-top strong{font-family:var(--lx-sans);font-weight:800;letter-spacing:-.01em}
+/* Profile and phone bar icons: solid black (light theme) */
+html:not([data-theme=dark]) .pf-tile-ic,html:not([data-theme=dark]) .pf-tile[aria-pressed="true"] .pf-tile-ic,html:not([data-theme=dark]) .pf-explore .ui-icon,
+html:not([data-theme=dark]) .pf-ic,html:not([data-theme=dark]) .pf-ic .ui-icon,html:not([data-theme=dark]) .pf-pen,html:not([data-theme=dark]) .pf-action>.ui-icon,
+html:not([data-theme=dark]) .customer-mobile-nav button:not(.mobile-diy) .ui-icon{color:#000}
+html:not([data-theme=dark]) .pf-tile:hover .pf-tile-ic{color:#000}
+html:not([data-theme=dark]) .pf-tile[aria-pressed="true"]::after{background:#000}
