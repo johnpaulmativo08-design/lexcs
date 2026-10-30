@@ -271,3 +271,7 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .chat-page:not([data-admin-page]) #chat-compose .chat-attach:hover:not(:disabled){background:#f3edf6}
 .chat-page:not([data-admin-page]) #chat-compose .chat-attach .ui-icon{width:22px;height:22px}
 .chat-page:not([data-admin-page]) #chat-compose textarea{height:36px;min-height:36px;padding:8px 14px}
+/* send is a bare plum arrow, no circle */
+.chat-page:not([data-admin-page]) #chat-compose button[type=submit]{background:transparent;border-color:transparent;border-radius:8px}
+.chat-page:not([data-admin-page]) #chat-compose button[type=submit]::before{color:#2b1530;font-size:1.2rem}
+.chat-page:not([data-admin-page]) #chat-compose button[type=submit]:hover:not(:disabled){background:#f3edf6;border-color:transparent}
