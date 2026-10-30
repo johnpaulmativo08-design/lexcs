@@ -31,3 +31,12 @@
 .lx-dlv.is-compact .lx-dlv-icon{width:34px;height:34px}.lx-dlv.is-compact .lx-dlv-icon svg{width:19px;height:19px}
 .lx-dlv.is-compact .lx-dlv-live{min-height:38px;font-size:.84rem}
 @media(prefers-reduced-motion:reduce){.lx-dlv-icon svg,.lx-dlv-pulse{animation:none!important}.lx-dlv-live{transition:none}}
+/* "I received my order" (phase 88): the customer confirms; the first tap asks, the second confirms */
+.lx-dlv-track{grid-template-columns:repeat(2,1fr)}
+.lx-dlv-received{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:12px;background:#2b1530;color:#fff;font:700 .9rem 'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:background .16s ease}
+.lx-dlv-received svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter}
+.lx-dlv-received:hover:not(:disabled){background:#563a8a}
+.lx-dlv-received.is-armed{background:#2f7a4f}
+.lx-dlv-received:disabled{opacity:.7;cursor:wait}
+.pf-order-act[data-received]{border:0;cursor:pointer}
+.pf-order-act[data-received].is-armed{background:#2f7a4f;color:#fff}

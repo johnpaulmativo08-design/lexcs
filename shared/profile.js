@@ -24,17 +24,18 @@
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
     chat: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/>',
     clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', wallet: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h3M3 9h15"/>',
-    whisk: '<path d="M5 19 14 10"/><path d="M14 10c-2-4 0-8 4-8s5 4 1 7z"/>', box: '<path d="M3 7 12 3l9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+    whisk: '<path d="M5 19 14 10"/><path d="M14 10c-2-4 0-8 4-8s5 4 1 7z"/>', truck: '<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>', box: '<path d="M3 7 12 3l9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
     star: '<path d="M12 3l2.6 5.4 5.9.9-4.3 4.1 1 5.9L12 16.6 6.8 19.3l1-5.9L3.5 9.3l5.9-.9z"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     gift: '<rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>'
   };
-  // My Purchases: which orders sit in each tile (an order can be in two, e.g. "Baking" and still "To pay")
+  // My Purchases: which orders sit in each tile (an order can be in two, e.g. "To receive" and still "To pay")
+  const onTheWay = (o) => o.fulfillment_method === 'lalamove' && o.status !== 'cancelled' && ['booked', 'picked_up'].includes(buy.deliveries.get(o.id)?.step);
   const due = (o) => o.total_amount == null ? 0 : Math.max(0, Math.round((Number(o.total_amount) - Number(o.amount_paid || 0)) * 100) / 100);
   const TILES = [
     ['confirm', 'Pending', 'clock', (o) => o.status === 'pending'],
     ['pay', 'To pay', 'wallet', (o) => ['confirmed', 'preparing', 'ready'].includes(o.status) && due(o) > 0 && o.payment_status !== 'verification_pending'],
-    ['baking', 'Baking', 'whisk', (o) => o.status === 'preparing' || (o.status === 'confirmed' && ['partially_paid', 'paid'].includes(o.payment_status))],
+    ['receive', 'To receive', 'truck', onTheWay],
     ['ready', 'Ready', 'box', (o) => o.status === 'ready'],
     ['rate', 'To rate', 'star', (o) => o.status === 'completed' && !buy.reviewed.has(o.id)]
   ];
@@ -44,7 +45,10 @@
     const orders = (await db.orders()).filter((o) => o.customer_id === me);
     let reviewed = new Set();
     if (orders.length) try { reviewed = new Set(db.unwrap(await db.client.from('reviews').select('order_id').in('order_id', orders.map((o) => o.id))).map((r) => r.order_id)); } catch {}
-    buy = { orders, reviewed };
+    // Lalamove deliveries: "To receive" holds orders whose rider is on the way (phase 88: the customer confirms receipt)
+    let deliveries = new Map();
+    if (orders.length) try { deliveries = new Map(db.unwrap(await db.client.from('order_deliveries').select('order_id,step,tracking_url').in('order_id', orders.map((o) => o.id))).map((d) => [d.order_id, d])); } catch {}
+    buy = { orders, reviewed, deliveries };
   }
   let pwOpen = false, profile = null, editing = false, photoUrl = '', saving = false, panel = null, panelData = null;
   const root = () => document.getElementById('profileRoot');
@@ -86,7 +90,7 @@
     let list = '';
     if (buyTab) {
       const [, label, , test] = TILES.find((t) => t[0] === buyTab), rows = buy.orders.filter(test);
-      const EMPTY = { confirm: 'Nothing waiting for confirmation.', pay: 'Nothing to pay right now.', baking: 'Nothing in the oven right now.', ready: 'Nothing ready yet.', rate: 'No orders to rate.' };
+      const EMPTY = { confirm: 'Nothing waiting for confirmation.', pay: 'Nothing to pay right now.', receive: 'Nothing on the way right now.', ready: 'Nothing ready yet.', rate: 'No orders to rate.' };
       list = rows.length ? `<ul class="pf-orders" aria-label="${label}">${rows.slice(0, 8).map(orderRow).join('')}</ul>` : `<p class="pf-buy-empty">${EMPTY[buyTab]}</p>`;
     }
     return `<section class="pf-buy" aria-label="My purchases">${head}<div class="pf-tiles">${tiles}</div>${list}</section>`;
@@ -98,10 +102,11 @@
     const A = {
       confirm: o.price_review?.status === 'awaiting' ? [`payment/index.html?order=${o.id}`, 'Review price', ''] : [`chat/?order=${o.id}`, 'Message', ' is-quiet'],
       pay: [`payment/index.html?order=${o.id}`, 'Pay ' + money(Number(o.amount_paid || 0) < Number(o.deposit_due || 0) ? Number(o.deposit_due) - Number(o.amount_paid || 0) : d), ''],
-      baking: [null, 'Track', ' is-quiet'], ready: [null, pickup ? 'Pickup info' : 'Track rider', ''], rate: [null, 'Rate', '']
+      receive: [null, 'I received it', ''], ready: [null, pickup ? 'Pickup info' : 'Track rider', ''], rate: [null, 'Rate', '']
     }[buyTab];
-    const sub = { confirm: 'Waiting for LexC’s to confirm', pay: d > 0 ? money(d) + ' left to pay' : 'Paid', baking: 'Being made', ready: pickup ? 'Ready for pickup' : 'Ready for delivery', rate: 'Completed' }[buyTab];
-    const action = A[0] ? `<a class="pf-order-act${A[2]}" href="${esc(A[0])}">${esc(A[1])}</a>` : `<button type="button" class="pf-order-act${A[2]}" data-pf-order="${esc(o.id)}" data-pf-do="${buyTab}">${esc(A[1])}</button>`;
+    const sub = { confirm: 'Waiting for LexC’s to confirm', pay: d > 0 ? money(d) + ' left to pay' : 'Paid', receive: 'On the way with Lalamove', ready: pickup ? 'Ready for pickup' : 'Ready for delivery', rate: 'Completed' }[buyTab];
+    const action = buyTab === 'receive' ? `<button type="button" class="pf-order-act" data-received="${esc(o.id)}"><span>${esc(A[1])}</span></button>`
+      : A[0] ? `<a class="pf-order-act${A[2]}" href="${esc(A[0])}">${esc(A[1])}</a>` : `<button type="button" class="pf-order-act${A[2]}" data-pf-order="${esc(o.id)}" data-pf-do="${buyTab}">${esc(A[1])}</button>`;
     return `<li class="pf-order"><span class="pf-order-thumb" aria-hidden="true">${img ? `<img src="${esc(img)}" alt="">` : esc(first.slice(0, 1))}</span>
       <span class="pf-order-main"><strong>${esc(first + more)}</strong><span>#${esc(o.order_number)} · ${esc(sub)}</span><em>${o.total_amount == null ? 'Total pending' : money(o.total_amount)}</em></span>${action}</li>`;
   }
@@ -187,9 +192,15 @@
     if (!window.currentUser) { photoUrl = ''; drawGuest(); return; }
     root().innerHTML = '<div class="pf-loading" role="status"><span class="skel skel-circle"></span><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span></div>';
     try { await load(); draw(); } catch (e) { root().innerHTML = `<p class="pf-empty" role="alert">Your profile could not load: ${esc(e.message)}</p>`; return; }
-    try { await loadPurchases(); } catch (e) { console.warn('Purchases failed:', e); buy = { orders: [], reviewed: new Set() }; }
+    try { await loadPurchases(); } catch (e) { console.warn('Purchases failed:', e); buy = { orders: [], reviewed: new Set(), deliveries: new Map() }; }
     if (document.getElementById('page-profile')?.classList.contains('active')) draw();
   }
+  // after "I received it": the order leaves To receive (the tab stays open)
+  document.addEventListener('lexc:order-received', async () => {
+    if (!window.currentUser || !buy) return;
+    try { await loadPurchases(); } catch {}
+    if (document.getElementById('page-profile')?.classList.contains('active')) draw();
+  });
 
   document.addEventListener('click', async (event) => {
     const b = event.target.closest?.('#profileRoot [data-pf]'); if (!b) return;

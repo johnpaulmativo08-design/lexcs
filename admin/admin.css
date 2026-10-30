@@ -744,3 +744,9 @@ main .operations-dashboard .cap-pop{border:0;box-shadow:0 18px 44px rgba(46,34,9
 .dlv-field input{width:100%;min-width:0;box-sizing:border-box}
 .dlv-link-row{min-width:0}.dlv-link-row .button{flex:none}
 .dlv-grid{align-items:end}
+/* phase 88: two steps — Rider booked (tap), Received (the customer confirms) */
+.dlv-steps.is-two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dlv-received{display:grid;justify-items:start;gap:2px;width:100%;min-height:66px;padding:10px 12px;border:1.5px dashed #d9cdee;border-radius:12px;background:#fff;color:#5f5674;box-sizing:border-box}
+.dlv-received b{color:#3a2467;font-size:14px}.dlv-received small{color:#7a6c94;font-size:12px}
+.dlv-received.is-done{border-style:solid;border-color:#9fd3b5;background:#f1faf4}.dlv-received.is-done .dlv-dot{background:#2f7a4f;color:#fff}.dlv-received.is-done b{color:#1e6b43}
+@media(max-width:560px){.dlv-received{min-height:58px;padding:7px;border-radius:10px;gap:1px}.dlv-received b{font-size:12px}.dlv-received small{font-size:10.5px;line-height:1.25}}
