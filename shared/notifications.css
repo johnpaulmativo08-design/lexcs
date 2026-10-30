@@ -243,3 +243,28 @@ html:not([data-theme=dark]) .pf-tile[aria-pressed="true"]::after{background:#000
 @media(prefers-reduced-motion:reduce){.nt-go svg{transition:none}}
 html[data-theme=dark] .nt-li.is-open>.nt-item,html[data-theme=dark] .nt-more{background:rgba(255,255,255,.04)}
 .nt-li.is-open.has-full .nt-text>span{display:none}
+/* ---- minimalist Profile: no boxes around icons, no outlines on the cards or their buttons ---- */
+.pf-buy,.pf-card{border:0;box-shadow:none}
+.pf-explore{gap:4px}
+.pf-explore button{border:0;background:transparent;padding:10px 4px;border-radius:12px}
+.pf-explore button:hover{background:#f6f1f9}
+.pf-explore .ui-icon{width:24px;height:24px}
+.pf-ic,.pf-tile-ic,.pf-ic .ui-icon{background:transparent}
+.pf-ic{width:28px;height:28px;border-radius:0}
+.pf-ic .ui-icon{width:20px;height:20px}
+.pf-row{grid-template-columns:28px 120px minmax(0,1fr);border-bottom-color:#f4eff8}
+.pf-row:last-child{border-bottom:0}
+.pf-row.pf-pass{grid-template-columns:28px 120px minmax(0,1fr) auto}
+.pf-round,.pf-pen{background:transparent;box-shadow:none;border:0}
+.pf-round:hover,.pf-pen:hover{background:#f6f1f9}
+.pf-forgot{border:0!important;background:transparent!important;padding:4px 2px!important;color:#2b1530;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.pf-mini{border:0}
+@media(min-width:900px){.pf-row{grid-template-columns:28px 150px minmax(0,1fr)}.pf-row.pf-pass{grid-template-columns:28px 150px minmax(0,1fr) auto}}
+@media(max-width:600px){.pf-row,.pf-row.has-pen{grid-template-columns:28px minmax(0,1fr)}.pf-row.has-pen{grid-template-columns:28px minmax(0,1fr) 34px}.pf-row.pf-pass{grid-template-columns:28px minmax(0,1fr) auto}.pf-ic{width:24px;height:24px}.pf-ic .ui-icon{width:18px;height:18px}}
+html[data-theme=dark] .pf-explore button:hover,html[data-theme=dark] .pf-round:hover,html[data-theme=dark] .pf-pen:hover{background:rgba(255,255,255,.06)}
+html[data-theme=dark] .pf-forgot{color:#f3e9f7}
+.pf-actions{border:0;border-radius:0}
+.pf-action{padding-left:0;padding-right:4px;background:transparent;border-bottom-color:#f4eff8}
+.pf-action:last-child{border-bottom:0}
+.pf-action:hover{background:#faf7fc}
+html[data-theme=dark] .pf-action{background:transparent}
