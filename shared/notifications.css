@@ -227,3 +227,19 @@ html:not([data-theme=dark]) .pf-ic,html:not([data-theme=dark]) .pf-ic .ui-icon,h
 html:not([data-theme=dark]) .customer-mobile-nav button:not(.mobile-diy) .ui-icon{color:#000}
 html:not([data-theme=dark]) .pf-tile:hover .pf-tile-ic{color:#000}
 html:not([data-theme=dark]) .pf-tile[aria-pressed="true"]::after{background:#000}
+/* each notification is a dropdown: the chevron turns down and the full note opens under it with one action */
+.nt-li .nt-text>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nt-li.is-open .nt-text>span{display:block;-webkit-line-clamp:unset}
+.nt-go svg,.nt-go .ui-icon{transition:transform .2s ease}
+.nt-li.is-open .nt-go svg{transform:rotate(90deg)}
+.nt-li.is-open>.nt-item{background:#fbf8fd}
+.nt-more{padding:0 14px 14px 66px;background:#fbf8fd}
+.nt-more p{margin:0 0 8px;color:var(--lx-body);font-size:.86rem;line-height:1.55;white-space:pre-line}
+.nt-more .nt-more-when{color:var(--lx-muted);font-size:.74rem}
+.nt-act{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:0 14px;border:0;border-radius:999px;background:var(--lx-plum,#2b1530);color:#fff;font:700 .8rem var(--lx-sans);cursor:pointer}
+.nt-act svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
+.nt-act:hover{background:#563a8a}
+@media(max-width:420px){.nt-more{padding-left:56px;padding-right:12px}}
+@media(prefers-reduced-motion:reduce){.nt-go svg{transition:none}}
+html[data-theme=dark] .nt-li.is-open>.nt-item,html[data-theme=dark] .nt-more{background:rgba(255,255,255,.04)}
+.nt-li.is-open.has-full .nt-text>span{display:none}

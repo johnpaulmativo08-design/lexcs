@@ -4,7 +4,7 @@
 // Options and prices come from public.design_options; the server re-validates and prices every design
 // (quote_cupcake_design / create_order). Adds to the existing cart; never creates an order itself.
 (() => {
-  const STEPS = [['box', 'Box'], ['design', 'Design'], ['finish', 'Finish'], ['review', 'Review']];
+  const STEPS = [['box', 'Box'], ['design', 'Design'], ['finish', 'Finish'], ['message', 'Message'], ['review', 'Review']];
   const DRAFT_KEY = 'lexc_cupcake_draft_v1';
   const SLUGS = { mini: 'product-5', regular: 'product-6' };
   // Colour rules per piping style (the server enforces the same numbers).
@@ -341,11 +341,17 @@
         ${s.theme !== 'none' ? `<label class="bd-label" for="cd-theme-note" style="margin-top:12px">${s.theme === 'custom' ? 'Your theme' : 'Anything to add?'} <small>${s.theme === 'custom' ? 'Required · ' : 'Optional · '}up to 60 characters</small></label>
           <input id="cd-theme-note" class="bd-input" maxlength="60" data-cd-note-input value="${esc(s.theme_note)}" placeholder="${s.theme === 'custom' ? 'e.g. Sonic and friends' : 'e.g. favorite colors, a name'}">` : ''}
       </fieldset>
-      ${(options().message || []).length > 1 ? `<fieldset class="bd-group"><legend>Fondant letters <small>1–5 letters per cupcake</small></legend>
-        <div class="bd-cards cd-patterns" role="radiogroup">${(options().message || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="message" data-value="${o.code}" aria-checked="${s.message === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'letters' ? 'A word or name on each cupcake you choose' : 'No letters'}${Number(o.price) ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
-        ${s.message === 'letters' ? LexcLetterPieces.markup({ pieces: s.message_pieces, count: countOf(variant()?.label), at: pieceAt, noun: 'cupcake', id: 'cd-lp' }) + `<p class="bd-label" style="margin-top:14px">Letter color</p><div class="bd-swatches">${(options().color || []).map((c) => `<button type="button" class="bd-swatch${s.message_color === c.code ? ' is-on' : ''}" style="background:${c.hex}" data-cd-set="message_color" data-value="${c.code}" aria-pressed="${s.message_color === c.code}" aria-label="${esc(c.label)}" title="${esc(c.label)}"></button>`).join('')}</div>` : ''}
-      </fieldset>` : ''}
       ${window.LexcInspiration ? window.LexcInspiration.html('cupcake', s.inspiration) : ''}`;
+    // 4 · Message: fondant letters on the cupcakes you choose (same picker as the mini donuts)
+    if (step === 'message') return (options().message || []).length > 1 ? `
+      <fieldset class="bd-group"><legend>Fondant message</legend>
+        <div class="bd-cards cd-patterns" role="radiogroup">${(options().message || []).map((o) => `<button type="button" role="radio" class="bd-card" data-cd-set="message" data-value="${o.code}" aria-checked="${s.message === o.code}"><strong>${esc(o.label)}</strong><small>${o.code === 'letters' ? '1–5 letters on each cupcake, you choose which' : 'Toppings only'}${Number(o.price) ? ' · +' + money(o.price) : ' · free'}</small></button>`).join('')}</div>
+      </fieldset>
+      ${s.message === 'letters' ? `<fieldset class="bd-group"><legend>Letters on each cupcake <small>1–5 per cupcake</small></legend>
+        ${LexcLetterPieces.markup({ pieces: s.message_pieces, count: countOf(variant()?.label), at: pieceAt, noun: 'cupcake', id: 'cd-lp' })}
+      </fieldset>
+      <fieldset class="bd-group"><legend>Letter color</legend><div class="bd-swatches">${(options().color || []).map((c) => `<button type="button" class="bd-swatch${s.message_color === c.code ? ' is-on' : ''}" style="background:${c.hex}" data-cd-set="message_color" data-value="${c.code}" aria-pressed="${s.message_color === c.code}" aria-label="${esc(c.label)}" title="${esc(c.label)}"></button>`).join('')}</div></fieldset>` : ''}`
+      : `<p class="bd-note" style="margin:6px 0">Fondant letters aren’t available for ${esc(product().name)} right now. Message LexC’s if you’d like a name on your cupcakes.</p>`;
     const v = variant(), ex = quote.status === 'ok' ? (quote.clean.extras || []).map((e) => [e.label, Number(e.price)]) : [];
     const partText = (p) => `${esc(opt('style', p.style)?.label)} — ${p.colors.map((c) => esc(opt('color', c)?.label)).join(', ')}`;
     return `
@@ -509,7 +515,7 @@
   async function addToCart() {
     if (!window.currentUser) { saveDraft(); showToast('Log in or create an account to add your design to the cart. Your design stays saved on this device.'); navigate('login'); return; }
     if (state.message === 'letters' && !LexcLetterPieces.filled(state.message_pieces)) {
-      if (step !== 'finish') goStep('finish');
+      if (step !== 'message') goStep('message');
       return showToast('Add letters to at least one cupcake, or choose No letters.');
     }
     if (quote.status !== 'ok') return;
