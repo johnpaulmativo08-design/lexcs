@@ -690,3 +690,6 @@ body.is-guest #navShoppingButton,body.is-guest [data-mobile-destination="shoppin
 
 /* cart quantity: keep the number in the middle of its box (it sat at the top on phones) */
 .cart-qty-ctrl .qty-num{display:inline-flex;align-items:center;justify-content:center;line-height:1;box-sizing:border-box}
+/* cart quantity is a box you can type in: same look as before, a plum outline while editing */
+input.qty-num{width:46px;min-width:46px;padding:0 2px;border:1px solid #dcd4e5;border-left:0;border-right:0;border-radius:0;background:#fff;color:#38204d;font:700 1rem 'DM Sans',sans-serif;text-align:center;-moz-appearance:textfield;appearance:none;outline:none}
+input.qty-num:focus{border-color:#2b1530;box-shadow:inset 0 0 0 1px #2b1530;background:#fbf8fd}
