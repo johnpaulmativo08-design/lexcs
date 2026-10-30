@@ -26,7 +26,7 @@ supabase functions deploy paymongo-webhook --no-verify-jwt
 | Name | Value |
 |---|---|
 | `PAYMONGO_SECRET_KEY` | PayMongo dashboard → Developers → API keys → **secret** key (`sk_test_…` first, later `sk_live_…`) |
-| `PAYMONGO_RETURN_ORIGINS` | `https://johnpaulmativo08-design.github.io,http://127.0.0.1:8000,http://localhost:8000` (every address the site is opened at; add your own domain later). A missing one shows "Invalid return page." |
+| `PAYMONGO_RETURN_ORIGINS` | `https://lexcsnacktime.shop,https://www.lexcsnacktime.shop,https://johnpaulmativo08-design.github.io,http://127.0.0.1:8000,http://localhost:8000` (every address the site is opened at). A missing one shows "Invalid return page." |
 | `PAYMONGO_WEBHOOK_SECRET` | from step 4 (`whsk_…`) |
 
 ## 4. Webhook (PayMongo dashboard → Developers → Webhooks → Create)

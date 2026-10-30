@@ -1,0 +1,10 @@
+# Search engines may read the shop; owner, payment and chat pages are private to each person
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /payment/
+Disallow: /chat/
+Disallow: /database/
+Disallow: /supabase/
+
+Sitemap: https://lexcsnacktime.shop/sitemap.xml
