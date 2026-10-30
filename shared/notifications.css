@@ -212,3 +212,10 @@ html[data-theme=dark] .nt-head .lx-title{color:#f3e9f7}html[data-theme=dark] .nt
 .pf-explore .ui-icon{width:24px;height:24px;stroke-width:1.4}
 .customer-mobile-nav .ui-icon{stroke-width:1.5}
 html[data-theme=dark] .pf-tile-ic{color:#e4d3f6}html[data-theme=dark] .pf-tile[aria-pressed="true"]::after{background:#e4d3f6}
+/* ---- signed out: three tabs (Home · DIY · Profile) and no bell; the welcome Profile fits the phone ---- */
+body.is-guest .customer-mobile-nav [data-mobile-destination="shop"],body.is-guest .customer-mobile-nav [data-mobile-destination="notifications"],body.is-guest #navNotifButton{display:none!important}
+.pf-guest{grid-template-columns:minmax(0,1fr)}
+.pf-band .lx-eyebrow{white-space:normal;overflow:visible}
+.pf-band:has(.pf-band-tools:empty) .pf-band-who{padding-right:0}.pf-band:has(.pf-band-tools:empty) .pf-band-who p{white-space:normal}.pf-band-tools:empty{display:none}
+@media(max-width:520px){.pf-band .lx-eyebrow{letter-spacing:.16em;font-size:.64rem}}
+@media(max-width:380px){.pf-band:has(.pf-band-tools:empty){flex-wrap:nowrap;padding-top:18px}}
