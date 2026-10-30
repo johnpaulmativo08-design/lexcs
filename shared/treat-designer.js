@@ -33,7 +33,7 @@ function makeTreatDesigner(K) {
   const palette = () => Object.fromEntries((options().color || []).map((c) => [c.code, c.hex]));
   const opt = (group, code) => (options()[group] || []).find((o) => o.code === code);
   const variant = () => product()?.product_variants.find((v) => v.id === state.variant_id && v.is_active);
-  const PER_PIECE = K.designer === 'cakepop', MIN_PIECES = 12, MAX_PIECES = 300;
+  const PER_PIECE = K.designer === 'cakepop', MIN_PIECES = 1, MAX_PIECES = 300, START_PIECES = 12;   // any number from 1 to 300; a new design starts at 12
   const pieces = () => PER_PIECE ? state.qty : countOf(variant()?.label);
   const countOf = (label) => Number(String(label).match(/(\d+)\s*pcs/i)?.[1]) || Number(String(label).match(/\d+/)?.[0]) || 25;
   const flavorsList = () => (options().flavor || []).filter((o) => o.code !== 'mix');
@@ -69,7 +69,7 @@ function makeTreatDesigner(K) {
   function normalise() {
     if (!products[state.box]) state.box = Object.keys(products)[0];
     if (!variant()) state.variant_id = product().product_variants.find((v) => v.is_active)?.id;
-    state.qty = PER_PIECE ? Math.min(MAX_PIECES, Math.max(MIN_PIECES, Math.round(Number(state.qty) || MIN_PIECES))) : Math.min(20, Math.max(1, Number(state.qty) || 1));
+    state.qty = PER_PIECE ? Math.min(MAX_PIECES, Math.max(MIN_PIECES, Math.round(Number(state.qty) || START_PIECES))) : Math.min(20, Math.max(1, Number(state.qty) || 1));
     const flav = new Set(flavorsList().map((o) => o.code));
     state.flavors = [...new Set(state.flavors)].filter((f) => flav.has(f)).slice(0, K.maxFlavors); if (!state.flavors.length) state.flavors = [flavorsList()[0]?.code || 'vanilla'];
     if (K.styles && !opt('style', state.style)) state.style = 'round';
@@ -244,7 +244,7 @@ function makeTreatDesigner(K) {
         <div class="bd-cards dd-flavors" role="group">${flavorsList().map((o) => `<button type="button" class="bd-card" data-dd-flavor="${o.code}" aria-pressed="${s.flavors.includes(o.code)}"><span class="dd-dough" style="background:${DOUGH[o.code] || '#d9a65a'}" aria-hidden="true"></span><strong>${esc(o.label)}</strong><small>${FLAVOR_NOTE[o.code] || ''}${Number(o.price) > 0 ? ' · +' + money(o.price) : ''}</small></button>`).join('')}</div>
         ${s.flavors.length > 1 ? `<p class="bd-note">We spread ${s.flavors.map((f) => esc(opt('flavor', f)?.label)).join(', ')} across your box.</p>` : ''}
       </fieldset>
-      ${PER_PIECE ? `<fieldset class="bd-group"><legend>How many cake pops? <small>${money(variant()?.price || 0)} each · minimum ${MIN_PIECES}</small></legend>
+      ${PER_PIECE ? `<fieldset class="bd-group"><legend>How many cake pops? <small>${money(variant()?.price || 0)} each · ${MIN_PIECES}–${MAX_PIECES} pcs</small></legend>
         <div class="dd-count"><button type="button" data-dd-qty="-1" aria-label="One cake pop less" ${s.qty <= MIN_PIECES ? 'disabled' : ''}>−</button>
           <input type="number" inputmode="numeric" min="${MIN_PIECES}" max="${MAX_PIECES}" value="${s.qty}" data-dd-count aria-label="Number of cake pops">
           <button type="button" data-dd-qty="1" aria-label="One cake pop more" ${s.qty >= MAX_PIECES ? 'disabled' : ''}>+</button></div>
@@ -436,7 +436,7 @@ function makeTreatDesigner(K) {
     });
     let typing = 0;
     // number of cake pops typed in (kept between 12 and 300 when the field is left)
-    root.addEventListener('change', (e) => { if (!e.target.matches('[data-dd-count]')) return; commit((st) => { st.qty = Math.round(Number(e.target.value) || MIN_PIECES); }); });
+    root.addEventListener('change', (e) => { if (!e.target.matches('[data-dd-count]')) return; commit((st) => { st.qty = Math.round(Number(e.target.value) || START_PIECES); }); });
     root.addEventListener('input', (e) => {
       const key = e.target.dataset.ddInput; if (!key) return;
       if (key === 'message_text') { const clean = e.target.value.replace(LETTER_OK, ''); if (clean !== e.target.value) e.target.value = clean; }

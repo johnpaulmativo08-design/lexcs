@@ -17,7 +17,7 @@
     chev: '<path d="m9 6 6 6-6 6"/>', price: '<path d="M12 3v18M16 7H10a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8"/>'
   };
   const FILTERS = [['all', 'All'], ['orders', 'Orders'], ['payments', 'Payments'], ['promos', 'Promos'], ['posts', 'Posts']];
-  let items = [], dues = [], dueOpen = false, state = 'idle', filter = 'all', loadedFor = null, lastLoad = 0, timer = 0;
+  let items = [], dues = [], dueOpen = false, opened = new Set(), state = 'idle', filter = 'all', loadedFor = null, lastLoad = 0, timer = 0;
 
   // ---- read state (per account, this browser) -----------------------------------------------
   const key = () => 'lexc_notif_' + (window.currentUser?.id || 'guest');
@@ -72,7 +72,7 @@
     // new posts
     jobs.push(db.rpc('get_store_feed', { p_kind: 'all', p_before: null, p_before_id: null, p_limit: 8 }).then((rows) => {
       for (const r of rows || []) out.push({ id: 'post:' + r.id, at: Date.parse(r.published_at), kind: 'posts', icon: 'spark', tone: 'post', title: 'New from LexC’s',
-        body: (String(r.caption || '').replace(/\s+/g, ' ').trim().slice(0, 110) || 'A new photo was posted.') + (String(r.caption || '').length > 110 ? '…' : ''), act: 'post', post: r.id });
+        body: (String(r.caption || '').replace(/\s+/g, ' ').trim().slice(0, 110) || 'A new photo was posted.') + (String(r.caption || '').length > 110 ? '…' : ''), full: String(r.caption || '').trim(), act: 'post', post: r.id });
     }).catch(() => {}));
     let orders = [];
     if (me) jobs.push((async () => {
@@ -123,12 +123,15 @@
     const d = new Date(t), now = new Date(), day = 86400000, start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     return t >= start ? 'Today' : t >= start - day ? 'Yesterday' : t >= start - 6 * day ? 'This week' : 'Earlier';
   }
+  // each row is a dropdown: tap to read the whole note, then act on it (pay, view the post, open the chat…)
+  const ACT = { pay: 'Pay now', rate: 'Rate your order', chat: 'Open chat', order: 'View order', post: 'View post', product: 'View product' };
   function row(n, s) {
-    const unread = isUnread(n, s);
-    return `<li><button type="button" class="nt-item is-${n.tone}${unread ? ' is-unread' : ''}" data-nt="${esc(n.id)}">
+    const unread = isUnread(n, s), isOpen = opened.has(n.id), act = ACT[n.act], panel = 'nt-more-' + String(n.id).replace(/[^\w-]/g, '_');
+    return `<li class="nt-li${isOpen ? ' is-open' : ''}${n.full && n.full !== n.body ? ' has-full' : ''}"><button type="button" class="nt-item is-${n.tone}${unread ? ' is-unread' : ''}" data-nt-toggle="${esc(n.id)}" aria-expanded="${isOpen}" aria-controls="${panel}">
       <span class="nt-ic" aria-hidden="true">${svg(I[n.icon] || I.bell)}</span>
       <span class="nt-text"><strong>${esc(n.title)}</strong><span>${esc(n.body)}</span><small><time datetime="${new Date(n.at).toISOString()}">${ago(n.at)}</time>${unread ? '<i class="nt-new">New</i>' : ''}</small></span>
-      <span class="nt-go" aria-hidden="true">${svg(I.chev)}</span></button></li>`;
+      <span class="nt-go" aria-hidden="true">${svg(I.chev)}</span></button>
+      ${isOpen ? `<div class="nt-more" id="${panel}">${n.full && n.full !== n.body ? `<p>${esc(n.full)}</p>` : ''}<p class="nt-more-when">${esc(new Date(n.at).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</p>${act ? `<button type="button" class="nt-act" data-nt="${esc(n.id)}">${act}${svg(I.chev)}</button>` : ''}</div>` : ''}</li>`;
   }
   function render() {
     const r = root(); if (!r || !document.getElementById('page-notifications')?.classList.contains('active')) return;
@@ -176,13 +179,14 @@
   }
 
   document.addEventListener('click', (event) => {
-    const t = event.target.closest?.('#notificationsRoot [data-nt],#notificationsRoot [data-nt-filter],#notificationsRoot [data-nt-all],#notificationsRoot [data-nt-retry],#notificationsRoot [data-nt-login],#notificationsRoot [data-nt-due]');
+    const t = event.target.closest?.('#notificationsRoot [data-nt],#notificationsRoot [data-nt-toggle],#notificationsRoot [data-nt-filter],#notificationsRoot [data-nt-all],#notificationsRoot [data-nt-retry],#notificationsRoot [data-nt-login],#notificationsRoot [data-nt-due]');
     if (!t) return;
     if (t.dataset.ntFilter) { filter = t.dataset.ntFilter; render(); return; }
     if ('ntDue' in t.dataset) { dueOpen = !dueOpen; render(); return; }
     if ('ntAll' in t.dataset) return markAll();
     if ('ntRetry' in t.dataset) return refresh(true);
     if ('ntLogin' in t.dataset) return window.navigate?.('login');
+    if (t.dataset.ntToggle) { const id = t.dataset.ntToggle; if (opened.has(id)) opened.delete(id); else { opened.add(id); markRead(id); paintBadges(); } return render(); }
     const n = items.find((x) => x.id === t.dataset.nt); if (n) open(n);
   });
 
