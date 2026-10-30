@@ -25,7 +25,6 @@
   .customer-mobile-nav .mnav-side{display:flex;min-width:0}
   .customer-mobile-nav .mnav-side>button{flex:1 1 0;min-width:0}
   /* signed out (no Cart): drop Shop too, so it is Home · DIY · More, one on each side (Shop stays in More) */
-  body.is-guest .customer-mobile-nav [data-mobile-destination="shop"]{display:none}
   body[data-customer-page="checkout"] .customer-mobile-nav,body[data-customer-page="invoice"] .customer-mobile-nav{display:none}
   .customer-mobile-nav button{border:0;background:transparent;color:#6d5d79;font:600 .66rem 'DM Sans',sans-serif;min-width:50px;display:grid;justify-items:center;gap:2px;padding:3px}
   .customer-mobile-nav button span{font-size:1.3rem;line-height:1.1}
@@ -33,7 +32,7 @@
   .customer-mobile-nav button[aria-current="page"] span{background:#f0e8fa;border-radius:10px}
   .customer-mobile-nav button{min-height:49px;min-width:56px}
   .customer-mobile-nav button>span{min-width:32px;min-height:25px;position:relative}
-  #mobileCartCount{position:absolute;top:-5px;right:-8px;min-width:16px;min-height:16px;border-radius:999px;background:#5c387f;color:#fff;font:700 .57rem 'DM Sans',sans-serif;display:grid;place-items:center;padding:1px 3px}
+  #mobileCartCount{position:absolute;top:-5px;right:-8px;min-width:16px;min-height:16px;border-radius:999px;background:#5c387f;color:#fff;font:700 .57rem 'DM Sans',sans-serif;display:grid;place-items:center;padding:1px 3px;box-shadow:0 0 0 2px #fff}
   #mobileCartCount[hidden]{display:none}
   .customer-more-backdrop{display:block;position:fixed;inset:0;background:rgba(28,17,43,.35);z-index:211}
   nav.customer-more-menu{position:fixed;top:auto;left:12px;right:12px;bottom:calc(64px + env(safe-area-inset-bottom));width:auto;height:auto;z-index:212;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;background:#fff;border:1px solid #e9e2ee;border-radius:16px;padding:14px;box-shadow:0 14px 45px rgba(35,19,50,.18)}
