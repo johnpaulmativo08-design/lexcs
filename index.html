@@ -669,7 +669,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'DM Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'DM Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'DM Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=42">
+<link rel="stylesheet" href="shared/customer-flow.css?v=43"><link rel="stylesheet" href="shared/notifications.css?v=4">
 <link rel="stylesheet" href="shared/auth-flow.css?v=4">
 <link rel="stylesheet" href="shared/delivery-card.css?v=1">
 <link rel="stylesheet" href="shared/product-detail.css?v=7">
@@ -701,6 +701,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
     <li><a href="?fresh=1" onclick="event.preventDefault();navigate('fresh')" data-page="fresh">Sweet moments</a></li>
     <li><a href="#about" onclick="event.preventDefault();navigate('home','about')" data-page="about">About</a></li>
   </ul>
+  <button id="navNotifButton" class="nav-bell" type="button" data-notif-bell onclick="navigate('notifications')" aria-label="Notifications"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg><i class="mnav-badge" data-notif-count hidden></i></button>
   <button id="navShoppingButton" class="nav-orders-btn nav-shopping-btn" type="button" onclick="openCart()" aria-label="Open cart"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span>Cart</span><span class="cart-badge" id="cartBadge" hidden>0</span></button>
   <div id="navAuthArea">
     <button class="nav-auth-btn" onclick="navigate('login')">Log In</button>
@@ -715,20 +716,10 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
   <button type="button" class="mobile-diy" data-mobile-diy onclick="window.LexcCustom ? LexcCustom.choose() : navigate('shop')" aria-label="DIY customization: design your own cake or treats"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/></svg></span>DIY</button>
   <div class="mnav-side">
     <button type="button" class="fresh-mobile-create" data-fresh-owner hidden onclick="LexcFresh.compose()" aria-label="Create post"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>Post</button>
-    <button type="button" data-mobile-destination="shopping" onclick="openCart()"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.4 12.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><i id="mobileCartCount" hidden></i></span>Cart</button>
-    <button type="button" id="customerMoreButton" aria-controls="customerMoreMenu" aria-expanded="false" onclick="toggleCustomerMoreMenu()"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span>More</button>
+    <button type="button" data-mobile-destination="notifications" data-notif-bell onclick="navigate('notifications')" aria-label="Notifications"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg><i class="mnav-badge" data-notif-count hidden></i></span>Alerts</button>
+    <button type="button" data-mobile-destination="profile" onclick="openCustomerAccount()"><span aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><i id="mobileCartCount" class="mnav-cart" hidden></i></span>Profile</button>
   </div>
 </div>
-<div class="customer-more-backdrop" id="customerMoreBackdrop" onclick="closeCustomerMoreMenu()" hidden></div>
-<nav class="customer-more-menu" id="customerMoreMenu" aria-label="More customer pages" hidden>
-  <div class="customer-more-heading"><strong>Explore LexC’s</strong><button type="button" aria-label="Close menu" onclick="closeCustomerMoreMenu()">×</button></div>
-  <button type="button" onclick="navigate('home')">Home</button>
-  <button type="button" onclick="navigate('shop')">Shop</button>
-  <button type="button" onclick="navigate('fresh')">Sweet moments</button>
-  <button type="button" onclick="navigate('packages')">Packages</button>
-  <button type="button" onclick="navigate('home','about')">About</button>
-  <button type="button" id="customerAccountAction" onclick="openCustomerAccount()">Log in / account</button>
-</nav>
 
 <div id="page-home" class="page lp ed">
 
@@ -1215,6 +1206,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
 </div>
 
 <div id="page-profile" class="page"><main class="pf-wrap" id="profileRoot" aria-label="My profile"></main></div>
+<div id="page-notifications" class="page"><main class="nt-wrap" id="notificationsRoot" aria-label="Notifications"></main></div>
 
 <div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
 <div class="cart-drawer" id="cartDrawer">
@@ -1682,12 +1674,7 @@ function sendInvoiceToFB() {
   window.open(`https://www.facebook.com/messages/t/lexcssnacktime?text=${msg}`, '_blank');
 }
 
-function closeCustomerMoreMenu() {
-  document.getElementById('customerMoreMenu').hidden = true;
-  document.getElementById('customerMoreBackdrop').hidden = true;
-  document.getElementById('customerMoreButton').setAttribute('aria-expanded', 'false');
-  document.body.classList.remove('customer-more-open');
-}
+function closeCustomerMoreMenu() { document.body.classList.remove('customer-more-open'); }   // the More menu became Profile → Explore
 function updateCustomerMobileNavigation() {
   // guests (no account) see no cart buttons
   document.body.classList.toggle('is-guest', !currentUser);
@@ -1699,24 +1686,12 @@ function updateCustomerMobileNavigation() {
   });
   // DIY sits in the middle of the bar on phones and lights up while a designer is open
   document.querySelector('[data-mobile-diy]')?.toggleAttribute('aria-current', ['bento', 'cupcake', 'donut', 'cakepop'].includes(active));
-  const moreButton = document.getElementById('customerMoreButton');
-  if (['packages', 'fresh'].includes(active)) moreButton.setAttribute('aria-current', 'page');
-  else moreButton.removeAttribute('aria-current');
-  const account = document.getElementById('customerAccountAction');
-  account.textContent = currentUser ? 'My profile · ' + (currentUser.name || currentUser.email) : 'Log in / account';
+  // Profile stays lit on its own page and on the pages it links to (Sweet moments, Packages)
+  if (['packages', 'fresh'].includes(active)) document.querySelector('[data-mobile-destination="profile"]')?.setAttribute('aria-current', 'page');
+  const bell = document.getElementById('navNotifButton'); if (active === 'notifications') bell?.setAttribute('aria-current', 'page'); else bell?.removeAttribute('aria-current');
 }
-function openCustomerAccount() {
-  closeCustomerMoreMenu();
-  navigate(currentUser ? 'profile' : 'login');
-}
-function toggleCustomerMoreMenu() {
-  const menu = document.getElementById('customerMoreMenu');
-  const open = menu.hidden;
-  menu.hidden = !open;
-  document.getElementById('customerMoreBackdrop').hidden = !open;
-  document.getElementById('customerMoreButton').setAttribute('aria-expanded', String(open));
-  document.body.classList.toggle('customer-more-open', open);
-}
+function openCustomerAccount() { navigate('profile'); }   // guests see a welcome page with Log in and Explore
+function toggleCustomerMoreMenu() { navigate('profile'); }
 function navigate(page, anchor) {
   if (page === 'gallery') page = 'fresh';   // the gallery was folded into Updates (Fresh from LexC's)
   closeCustomerMoreMenu();
@@ -1759,6 +1734,7 @@ function navigate(page, anchor) {
   if (page === 'shop') initShop();
   if (page === 'fresh') window.LexcFresh?.show();
   if (page === 'profile') window.LexcProfile?.show();
+  if (page === 'notifications') window.LexcNotify?.show();
   if (page === 'checkout') { renderCheckout(); }
   if (page === 'packages') {  }
 
@@ -2835,7 +2811,7 @@ loginReady();
 <script src="shared/landing.js?v=4"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/inspiration.js?v=1"></script>
-<script src="shared/profile.js?v=11"></script>
+<script src="shared/profile.js?v=14"></script><script src="shared/notifications.js?v=3"></script>
 <script src="shared/bento-designer.js?v=48"></script>
 <script src="shared/letter-pieces.js?v=3"></script>
 <script src="shared/cupcake-designer.js?v=35"></script>

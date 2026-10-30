@@ -1,4 +1,6 @@
-// Customer profile (My Profile): photo, name, email, account details (editable) and shortcuts to orders.
+// Customer profile (the Profile tab): a header band (photo, name; Settings · Cart · Chat beside it), My Purchases
+// (To confirm · To pay · Baking · Ready · To rate, each listing its orders with the next action), Explore (the old
+// "More" menu), and account details (editable). Guests see a welcome card with Log in and Explore.
 // Name, phone, address and photo are saved on the customer's own profile row (phase 56); the photo is private
 // (avatars/<user>/…), shown through a short-lived link.
 (() => {
@@ -18,8 +20,32 @@
     x: '<path d="M6 6l12 12M18 6 6 18"/>',
     chart: '<path d="M6 20V12M12 20V6M18 20v-9"/>',
     edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
-    back: '<path d="m15 6-6 6 6 6"/>', chev: '<path d="m9 6 6 6-6 6"/>', camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>'
+    back: '<path d="m15 6-6 6 6 6"/>', chev: '<path d="m9 6 6 6-6 6"/>', camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    chat: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', wallet: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h3M3 9h15"/>',
+    whisk: '<path d="M5 19 14 10"/><path d="M14 10c-2-4 0-8 4-8s5 4 1 7z"/>', box: '<path d="M3 7 12 3l9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+    star: '<path d="M12 3l2.6 5.4 5.9.9-4.3 4.1 1 5.9L12 16.6 6.8 19.3l1-5.9L3.5 9.3l5.9-.9z"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    gift: '<rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>'
   };
+  // My Purchases: which orders sit in each tile (an order can be in two, e.g. "Baking" and still "To pay")
+  const due = (o) => o.total_amount == null ? 0 : Math.max(0, Math.round((Number(o.total_amount) - Number(o.amount_paid || 0)) * 100) / 100);
+  const TILES = [
+    ['confirm', 'Pending', 'clock', (o) => o.status === 'pending'],
+    ['pay', 'To pay', 'wallet', (o) => ['confirmed', 'preparing', 'ready'].includes(o.status) && due(o) > 0 && o.payment_status !== 'verification_pending'],
+    ['baking', 'Baking', 'whisk', (o) => o.status === 'preparing' || (o.status === 'confirmed' && ['partially_paid', 'paid'].includes(o.payment_status))],
+    ['ready', 'Ready', 'box', (o) => o.status === 'ready'],
+    ['rate', 'To rate', 'star', (o) => o.status === 'completed' && !buy.reviewed.has(o.id)]
+  ];
+  let buy = null, buyTab = null;
+  async function loadPurchases() {
+    const db = window.LexcBackend, me = window.currentUser.id;
+    const orders = (await db.orders()).filter((o) => o.customer_id === me);
+    let reviewed = new Set();
+    if (orders.length) try { reviewed = new Set(db.unwrap(await db.client.from('reviews').select('order_id').in('order_id', orders.map((o) => o.id))).map((r) => r.order_id)); } catch {}
+    buy = { orders, reviewed };
+  }
   let pwOpen = false, profile = null, editing = false, photoUrl = '', saving = false, panel = null, panelData = null;
   const root = () => document.getElementById('profileRoot');
 
@@ -40,16 +66,61 @@
 
   // accounts made with Continue with Google have no password until one is set here
   const viaGoogle = () => (window.currentUser?.app_metadata?.providers || [window.currentUser?.app_metadata?.provider]).includes('google');
+  const cartCount = () => (typeof cart !== 'undefined' ? cart.reduce((n, c) => n + Number(c.qty || 0), 0) : 0);
+  function band(user, name, initials) {
+    const count = cartCount();
+    return `<header class="pf-band">
+      <div class="pf-photo">${photoUrl ? `<img src="${esc(photoUrl)}" alt="Your profile photo">` : `<span>${esc(initials)}</span>`}
+        ${user ? `<label class="pf-photo-btn" aria-label="Change profile photo">${icon(ICONS.camera)}<input type="file" accept="image/jpeg,image/png,image/webp" data-pf-photo hidden></label>` : ''}</div>
+      <div class="pf-band-who"><h1>${esc(user ? name || 'Your name' : 'Welcome to LexC’s')}</h1><p>${esc(user ? user.email || '' : 'Homemade pastries from Dau, Mabalacat')}</p>${user ? '<span class="pf-badge">Customer account</span>' : ''}</div>
+      <div class="pf-band-tools">${user ? `<button type="button" class="pf-tool" data-pf="settings" aria-label="Account settings">${icon(ICONS.gear)}</button>
+        <button type="button" class="pf-tool" data-pf="cart" aria-label="Cart${count ? ', ' + count + ' item' + (count === 1 ? '' : 's') : ''}">${icon(ICONS.cart)}<i class="mnav-badge"${count ? '' : ' hidden'}>${count > 99 ? '99+' : count}</i></button>
+        <a class="pf-tool" href="chat/" aria-label="Messages with LexC’s">${icon(ICONS.chat)}</a>` : ''}</div>
+    </header>`;
+  }
+  function purchases() {
+    const head = `<div class="pf-buy-head"><h2>My Purchases</h2><button type="button" data-pf="orders">View purchase history${icon(ICONS.chev)}</button></div>`;
+    if (!buy) return `<section class="pf-buy" aria-label="My purchases">${head}<div class="pf-buy-skel" role="status" aria-label="Loading your orders">${'<span class="skel"></span>'.repeat(5)}</div></section>`;
+    const tiles = TILES.map(([k, label, ic, test]) => { const n = buy.orders.filter(test).length;
+      return `<button type="button" class="pf-tile" data-pf-tab="${k}" aria-pressed="${buyTab === k}" aria-label="${label}${n ? ', ' + n : ''}"><span class="pf-tile-ic">${icon(ICONS[ic])}<i class="mnav-badge"${n ? '' : ' hidden'}>${n}</i></span>${label}</button>`; }).join('');
+    let list = '';
+    if (buyTab) {
+      const [, label, , test] = TILES.find((t) => t[0] === buyTab), rows = buy.orders.filter(test);
+      const EMPTY = { confirm: 'Nothing waiting for confirmation.', pay: 'Nothing to pay right now.', baking: 'Nothing in the oven right now.', ready: 'Nothing ready yet.', rate: 'No orders to rate.' };
+      list = rows.length ? `<ul class="pf-orders" aria-label="${label}">${rows.slice(0, 8).map(orderRow).join('')}</ul>` : `<p class="pf-buy-empty">${EMPTY[buyTab]}</p>`;
+    }
+    return `<section class="pf-buy" aria-label="My purchases">${head}<div class="pf-tiles">${tiles}</div>${list}</section>`;
+  }
+  function orderRow(o) {
+    const items = o.order_items || [], first = items[0]?.name_snapshot || 'Order', more = items.length > 1 ? ` +${items.length - 1} more` : '';
+    const local = typeof products !== 'undefined' ? products.find((p) => p.name === first) : null, img = local && typeof PRODUCT_IMAGES !== 'undefined' ? PRODUCT_IMAGES[local.id] : '';
+    const d = due(o), pickup = o.fulfillment_method !== 'lalamove';
+    const A = {
+      confirm: o.price_review?.status === 'awaiting' ? [`payment/index.html?order=${o.id}`, 'Review price', ''] : [`chat/?order=${o.id}`, 'Message', ' is-quiet'],
+      pay: [`payment/index.html?order=${o.id}`, 'Pay ' + money(Number(o.amount_paid || 0) < Number(o.deposit_due || 0) ? Number(o.deposit_due) - Number(o.amount_paid || 0) : d), ''],
+      baking: [null, 'Track', ' is-quiet'], ready: [null, pickup ? 'Pickup info' : 'Track rider', ''], rate: [null, 'Rate', '']
+    }[buyTab];
+    const sub = { confirm: 'Waiting for LexC’s to confirm', pay: d > 0 ? money(d) + ' left to pay' : 'Paid', baking: 'Being made', ready: pickup ? 'Ready for pickup' : 'Ready for delivery', rate: 'Completed' }[buyTab];
+    const action = A[0] ? `<a class="pf-order-act${A[2]}" href="${esc(A[0])}">${esc(A[1])}</a>` : `<button type="button" class="pf-order-act${A[2]}" data-pf-order="${esc(o.id)}" data-pf-do="${buyTab}">${esc(A[1])}</button>`;
+    return `<li class="pf-order"><span class="pf-order-thumb" aria-hidden="true">${img ? `<img src="${esc(img)}" alt="">` : esc(first.slice(0, 1))}</span>
+      <span class="pf-order-main"><strong>${esc(first + more)}</strong><span>#${esc(o.order_number)} · ${esc(sub)}</span><em>${o.total_amount == null ? 'Total pending' : money(o.total_amount)}</em></span>${action}</li>`;
+  }
+  function explore() {
+    const go = (ic, label, act) => `<button type="button" data-pf="${act}">${icon(ICONS[ic])}${label}</button>`;
+    return `<section class="pf-card"><h3>Explore</h3><div class="pf-explore">${go('bag', 'Shop', 'shop')}${go('wand', 'Customize', 'diy')}${go('spark', 'Sweet moments', 'fresh')}${go('gift', 'Packages', 'packages')}${go('chat', 'Messages', 'chatpage')}${go('info', 'About', 'about')}${go('sun', 'Display', 'display')}</div></section>`;
+  }
+  function drawGuest() {
+    root().innerHTML = `<div class="pf-guest">${band(null, '', 'L')}
+      <section class="pf-card"><h3>Your orders, all in one place</h3><p class="pf-empty" style="text-align:left;margin:0 0 12px">Log in to see what’s waiting to be paid, what’s baking, and what’s ready — and get notified at every step.</p>
+        <div class="pf-guest-cta"><button type="button" class="is-primary" data-pf="login">Log in</button><button type="button" data-pf="register" style="border:1px solid #d9c9f0">Create account</button></div></section>
+      ${explore()}</div>`;
+  }
   function draw() {
+    if (!window.currentUser) return drawGuest();
     const user = window.currentUser, name = profile.full_name || user.name || '', initials = (name || user.email || '?').slice(0, 2).toUpperCase();
-    root().innerHTML = `<header class="pf-head"><button type="button" class="pf-round" data-pf="back" aria-label="Back">${icon(ICONS.back)}</button><h1>My Profile</h1>
-        <button type="button" class="pf-round" data-pf="edit" aria-label="${editing ? 'Cancel editing' : 'Edit profile'}" aria-pressed="${!!editing}">${icon(editing ? ICONS.x : ICONS.edit)}</button></header>
-      <div class="pf-grid"><aside class="pf-side"><section class="pf-hero">
-        <div class="pf-photo">${photoUrl ? `<img src="${esc(photoUrl)}" alt="Your profile photo">` : `<span>${esc(initials)}</span>`}
-          <label class="pf-photo-btn" aria-label="Change profile photo">${icon(ICONS.camera)}<input type="file" accept="image/jpeg,image/png,image/webp" data-pf-photo hidden></label></div>
-        <h2>${esc(name || 'Your name')}</h2><p>${esc(user.email || '')}</p><span class="pf-badge">Customer account</span>
-      </section><button type="button" class="pf-logout" data-pf="logout">Log out</button></aside><div class="pf-main">
-      <form class="pf-card" data-pf-form><h3>Account Details</h3>
+    root().innerHTML = `${band(user, name, initials)}
+      <div class="pf-cols"><div class="pf-col">${purchases()}${explore()}</div><div class="pf-col">
+      <form class="pf-card" data-pf-form id="pfAccount"><div class="pf-card-head"><h3>Account Details</h3><button type="button" class="pf-round" data-pf="edit" aria-label="${editing ? 'Cancel editing' : 'Edit account details'}" aria-pressed="${!!editing}">${icon(editing ? ICONS.x : ICONS.edit)}</button></div>
         ${row('user', 'Full name', profile.full_name, 'full_name')}
         <div class="pf-row pf-pass"><span class="pf-ic">${icon('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')}</span><span class="pf-label">Password</span><span class="pf-value">••••••••</span><button type="button" class="pf-forgot" data-pf="pw" aria-expanded="${pwOpen}">${pwOpen ? 'Close' : 'Change'}</button></div>
         ${pwOpen ? `<div class="pf-pwform" data-pf-pwform>
@@ -67,12 +138,12 @@
         ${editing ? `<div class="pf-form-actions"><button type="button" class="pf-btn pf-btn--quiet" data-pf="edit">Cancel</button><button type="submit" class="pf-btn">${saving ? 'Saving…' : 'Save changes'}</button></div>` : ''}
         <p class="pf-error" role="alert" hidden></p>
       </form>
-      <section class="pf-card"><h3>Activities</h3><div class="pf-actions">
-        ${action('bag', 'Shop', 'shop')}${action('wand', 'DIY customization', 'diy')}${action('cart', 'Cart', 'cart')}
+      <section class="pf-card"><h3>Records</h3><div class="pf-actions">
         ${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
       </div></section>
-      ${panel ? panelCard() : ''}
-      </div></div>`;
+      <button type="button" class="pf-logout" data-pf="logout">Log out</button>
+      </div></div>
+      ${panel ? panelCard() : ''}`;
   }
   // Order history, cancelled orders and payments: one compact card at a time, under Activities
   const PANELS = { orders: 'Order history', cancelled: 'Cancelled orders', payments: 'Order transactions' };
@@ -112,10 +183,12 @@
   function error(text) { const box = root().querySelector('.pf-error'); if (box) { box.textContent = text; box.hidden = !text; } }
 
   async function show() {
-    if (!window.currentUser) { window.navigate('login'); return; }
+    editing = false; panel = null; panelData = null; buy = null;
+    if (!window.currentUser) { photoUrl = ''; drawGuest(); return; }
     root().innerHTML = '<div class="pf-loading" role="status"><span class="skel skel-circle"></span><span class="skel skel-line"></span><span class="skel skel-line skel-line--short"></span></div>';
-    editing = false; panel = null; panelData = null;
-    try { await load(); draw(); } catch (e) { root().innerHTML = `<p class="pf-empty" role="alert">Your profile could not load: ${esc(e.message)}</p>`; }
+    try { await load(); draw(); } catch (e) { root().innerHTML = `<p class="pf-empty" role="alert">Your profile could not load: ${esc(e.message)}</p>`; return; }
+    try { await loadPurchases(); } catch (e) { console.warn('Purchases failed:', e); buy = { orders: [], reviewed: new Set() }; }
+    if (document.getElementById('page-profile')?.classList.contains('active')) draw();
   }
 
   document.addEventListener('click', async (event) => {
@@ -153,10 +226,23 @@
       catch (e) { window.showToast?.(/rate limit/i.test(e.message) ? 'Too many emails were sent recently. Please wait an hour, or change your password here using your current password.' : e.message); b.disabled = false; b.textContent = 'Email me a reset link'; }
       return;
     }
+    if (act === 'settings') { const box = root().querySelector('#pfAccount'); box?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); box?.querySelector('[data-pf="edit"]')?.focus({ preventScroll: true }); return; }
+    if (act === 'login' || act === 'register') return window.navigate(act);
+    if (act === 'fresh' || act === 'packages') return window.navigate(act);
+    if (act === 'about') return window.navigate('home', 'about');
+    if (act === 'chatpage') return void (location.href = 'chat/');
+    if (act === 'display') return window.LexcAppearance?.open();
     if (act === 'shop') return window.navigate('shop');
     if (act === 'diy') return window.LexcCustom ? window.LexcCustom.choose() : window.navigate('shop');
     if (act === 'cart') return window.openCart?.();
     if (act === 'orders' || act === 'cancelled' || act === 'payments') return openPanel(act);
+  });
+  // My Purchases: a tile shows its orders; the order buttons open the order, the rider / pickup info, or the review
+  document.addEventListener('click', (event) => {
+    const tab = event.target.closest?.('#profileRoot [data-pf-tab]');
+    if (tab) { buyTab = buyTab === tab.dataset.pfTab ? null : tab.dataset.pfTab; draw(); root().querySelector(`[data-pf-tab="${buyTab}"]`)?.focus({ preventScroll: true }); return; }
+    const go = event.target.closest?.('#profileRoot [data-pf-order]');
+    if (go) { const id = go.dataset.pfOrder; if (go.dataset.pfDo === 'rate' && typeof window.showReviewForm === 'function') return window.showReviewForm(id); return window.openCart?.(id); }
   });
   document.addEventListener('click', (event) => {
     const pen = event.target.closest?.('#profileRoot [data-pf-field]');
