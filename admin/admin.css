@@ -718,3 +718,29 @@ main .operations-dashboard .cap-pop{border:0;box-shadow:0 18px 44px rgba(46,34,9
 @media(max-width:560px){.dlv{padding:14px}.dlv-grid{grid-template-columns:1fr}.dlv-steps{gap:6px}.dlv-steps button{padding:9px 8px;min-height:72px}.dlv-steps b{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.dlv-skel span{animation:none}.dlv-steps button{transition:none}}
 .dlv .button--danger{background:#b23a3a;border-color:#b23a3a;color:#fff}.dlv .button--danger:hover:not(:disabled){background:#8f2c2c}.dlv .text-button{grid-column:auto;justify-self:auto}
+/* Lalamove card fits the dialog on phones: the grid shrinks to the dialog instead of growing to its widest row; smaller steps and fields */
+.dlv{grid-template-columns:minmax(0,1fr);min-width:0;max-width:100%;box-sizing:border-box}
+.dlv>*,.dlv-form>*,.dlv-field{min-width:0}
+.dlv-head{flex-wrap:wrap}
+.dlv-early{display:flex;align-items:center;gap:10px;margin:0;padding:10px 12px;border-radius:12px;background:#f8f5fc;color:#5f5674;font-size:13px;line-height:1.45}
+.dlv-early strong{color:#3a2467}
+@media(max-width:560px){
+ .dlv{gap:10px;padding:12px}
+ .dlv-title{font-size:14px}.dlv-title .admin-icon{width:18px;height:18px}
+ .dlv-pill{padding:3px 9px;font-size:11px}
+ .dlv-steps{gap:5px}
+ .dlv-steps button{min-height:58px;padding:7px 7px;border-radius:10px;gap:1px}
+ .dlv-steps b{font-size:12px;line-height:1.2}.dlv-steps small{font-size:10.5px;min-height:0;line-height:1.25}
+ .dlv-dot{width:18px;height:18px;font-size:10.5px}
+ .dlv-field{font-size:12px}
+ .dlv-field input{min-height:36px;padding:6px 10px;font-size:14px}
+ .dlv-link-row{gap:5px}.dlv-link-row .button{min-height:36px;padding:0 10px;font-size:12.5px}
+ .dlv-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .dlv-note,.dlv-foot{font-size:11.5px}
+}
+.order-dialog .order-address a{font-weight:700}
+.order-placed .order-moved{color:#6a43ce;font-weight:700}
+.dlv-field{grid-template-columns:minmax(0,1fr)}
+.dlv-field input{width:100%;min-width:0;box-sizing:border-box}
+.dlv-link-row{min-width:0}.dlv-link-row .button{flex:none}
+.dlv-grid{align-items:end}
