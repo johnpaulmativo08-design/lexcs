@@ -1,11 +1,10 @@
-// "Lalamove delivery" card inside the Admin order details dialog (phase 79).
-// Lalamove is not connected to this site: the owner copies the booking details from the Lalamove app, then taps each
-// step as it happens. Every step change (and a newly added tracking link) is posted in the order chat by the database.
+// "Lalamove delivery" card inside the Admin order details dialog (phase 79; phase 88: the customer confirms receipt).
+// Lalamove is not connected to this site: the owner copies the booking details from the Lalamove app and taps
+// Rider booked. The customer taps "I received my order"; that arrives in Chats and fills in the Received step here.
 import {escapeHtml as e,icon} from '../components.js?v=3';
 import {db} from '../backend-ui.js?v=3';
 
-const STEPS=[['booked','Rider booked'],['picked_up','Picked up'],['delivered','Delivered']];
-const LABEL={booked:'Rider booked',picked_up:'On the way',delivered:'Delivered',failed:'Failed / returned'};
+const LABEL={booked:'On the way',picked_up:'On the way',delivered:'Received',failed:'Failed / returned'};
 const at=value=>{if(!value)return '';const d=new Date(value),day=k=>k.toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
  return d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'})+(day(d)===day(new Date())?'':' · '+d.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric'}));};
 const isLalamove=url=>{try{const u=new URL(url);return u.protocol==='https:'&&/(^|\.)lalamove\.com$/i.test(u.hostname);}catch{return false;}};
@@ -29,12 +28,13 @@ function draw(box,o,d){
  const locked=o.status==='pending'||(o.status==='cancelled'&&!d);
  // the rider is booked once the cakes are ready, so the form opens at Ready (or earlier if a booking was already recorded)
  const early=!d&&['confirmed','preparing'].includes(o.status);
- const step=d?.step||null,rank=step==='failed'?0:STEPS.findIndex(s=>s[0]===step)+1;
- const time={booked:d?.booked_at,picked_up:d?.picked_up_at,delivered:d?.delivered_at};
+ const step=d?.step||null,booked=!!step&&step!=='failed',received=step==='delivered';
  const field=(name,label,attrs='',value=d?.[name])=>'<label class="dlv-field"><span>'+label+'</span><input name="'+name+'" value="'+e(value??'')+'" autocomplete="off" '+attrs+'></label>';
  box.innerHTML='<header class="dlv-head"><span class="dlv-title">'+icon('delivery')+' Lalamove delivery</span>'+(step?'<span class="dlv-pill is-'+step+'">'+e(LABEL[step])+'</span>':'<span class="dlv-pill">Not booked yet</span>')+'</header>'+
   (early?'<p class="dlv-early">'+icon('clock')+'<span><strong>Opens when the order is Ready.</strong> Tap Mark ready above, then book the rider in the Lalamove app and record it here.</span></p>':locked?'<p class="dlv-note">'+(o.status==='pending'?'Confirm the order first, then book the rider in the Lalamove app and record it here.':'This order was cancelled.')+'</p>':
-  '<ol class="dlv-steps" aria-label="Delivery steps">'+STEPS.map(([key,label],i)=>'<li><button type="button" data-step="'+key+'" class="'+(i<rank?'is-done':'')+(i===rank-1?' is-now':'')+'"'+(i===rank-1?' aria-current="step"':'')+'><span class="dlv-dot" aria-hidden="true">'+(i<rank?'✓':i+1)+'</span><b>'+label+'</b><small>'+(time[key]?e(at(time[key])):i===rank?'Tap when it happens':'')+'</small></button></li>').join('')+'</ol>'+
+  '<ol class="dlv-steps is-two" aria-label="Delivery steps">'+
+   '<li><button type="button" data-step="booked" class="'+(booked?'is-done':'')+(booked&&!received?' is-now':'')+'"'+(booked&&!received?' aria-current="step"':'')+'><span class="dlv-dot" aria-hidden="true">'+(booked?'✓':'1')+'</span><b>Rider booked</b><small>'+(d?.booked_at&&booked?e(at(d.booked_at)):'Tap when booked')+'</small></button></li>'+
+   '<li><div class="dlv-received'+(received?' is-done is-now':'')+'"'+(received?' aria-current="step"':'')+'><span class="dlv-dot" aria-hidden="true">'+(received?'✓':'2')+'</span><b>'+(received?'Received':'Customer receives')+'</b><small>'+(received?e(at(d.delivered_at))+(d.received_by_customer?' · confirmed by the customer':''):booked?'Waiting for the customer to tap “I received it”':'After the rider is booked')+'</small></div></li></ol>'+
   (step==='failed'?'<p class="dlv-failed-note"><strong>Failed / returned'+(d.failed_at?' · '+e(at(d.failed_at)):'')+'</strong>'+e(d.failure_reason||'')+'</p>':'')+
   '<form class="dlv-form" novalidate>'+
    '<label class="dlv-field dlv-link"><span>Tracking link <small>from Share in the Lalamove app</small></span><span class="dlv-link-row"><input name="tracking_url" type="url" inputmode="url" value="'+e(d?.tracking_url||'')+'" placeholder="https://… (paste the share link)" autocomplete="off"><button type="button" class="button" data-paste>Paste</button><a class="button" data-open target="_blank" rel="noopener noreferrer"'+(d?.tracking_url?' href="'+e(d.tracking_url)+'"':' hidden')+'>Open</a></span><small class="dlv-hint" data-link-hint></small></label>'+
@@ -43,7 +43,7 @@ function draw(box,o,d){
    '<div class="dlv-fail-form" hidden><label class="dlv-field"><span>What happened?</span><input name="failure_reason" maxlength="300" placeholder="e.g. Customer not home, returned to LexC’s" autocomplete="off"></label><div class="dlv-actions"><button type="button" class="button button--danger" data-confirm-fail>Mark failed / returned</button><button type="button" class="text-button" data-cancel-fail>Keep the delivery going</button></div></div>'+
    '<div class="dlv-actions" data-main-actions><button type="submit" class="button button--primary">'+(d?'Save details':'Save · rider booked')+'</button>'+(d&&step!=='failed'?'<button type="button" class="text-button dlv-fail-link" data-fail>Delivery failed?</button>':'')+'</div><p class="dlv-status" role="status"></p>'+
   '</form>'+
-  '<p class="dlv-foot">The customer gets a chat message when you tap a step or add the tracking link. Marking Delivered does not complete the order — use Mark completed once it is paid.</p>');
+  '<p class="dlv-foot">The customer is told in chat when you tap Rider booked or add the tracking link. When they tap “I received it”, you get it in Chats — then use Mark completed once it is paid.</p>');
  if(locked||early)return;
  const form=box.querySelector('form'),status=box.querySelector('.dlv-status'),hint=box.querySelector('[data-link-hint]'),open=box.querySelector('[data-open]');
  const say=(text,bad)=>{status.textContent=text;status.classList.toggle('is-error',!!bad);};
@@ -68,7 +68,7 @@ function draw(box,o,d){
   catch(error){buttons.forEach(b=>b.disabled=false);button?.classList.remove('is-busy');say(error.message||'Could not save. Try again.',true);}
  };
  form.onsubmit=event=>{event.preventDefault();save(null,event.submitter);};
- box.querySelectorAll('[data-step]').forEach(button=>button.onclick=()=>{if(button.dataset.step===step&&d)return;save(button.dataset.step,button);});
+ box.querySelectorAll('[data-step]').forEach(button=>button.onclick=()=>{if(booked&&d)return;save(button.dataset.step,button);});
  const failForm=box.querySelector('.dlv-fail-form'),main=box.querySelector('[data-main-actions]');
  box.querySelector('[data-fail]')?.addEventListener('click',()=>{failForm.hidden=false;main.hidden=true;form.elements.failure_reason.focus();});
  box.querySelector('[data-cancel-fail]').onclick=()=>{failForm.hidden=true;main.hidden=false;};

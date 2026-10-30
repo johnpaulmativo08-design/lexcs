@@ -2,7 +2,7 @@ import {escapeHtml as e,icon,money,notice,statusIndicator,toolbar,showDetails} f
 import {db,grid,fail,loadingTable} from '../backend-ui.js?v=3';
 import {renderOrderPayments} from './payments.js?v=5';
 import {orderInventorySection,mountOrderInventory,showShortageFromError} from './order-inventory.js?v=5';
-import {orderDeliverySection,mountOrderDelivery} from './order-delivery.js?v=2';
+import {orderDeliverySection,mountOrderDelivery} from './order-delivery.js?v=3';
 import {designDetails} from '../design-details.js?v=1';
 import {openDesignViewer} from '../design-viewer.js?v=2';
 import {ask} from '../../shared/ask.js?v=1';
