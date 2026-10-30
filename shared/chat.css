@@ -258,3 +258,16 @@ body.chat-page:not([data-admin-page]){font-family:'DM Sans',system-ui,sans-serif
 .chat-balance{display:grid;gap:2px;margin:8px 0 12px;padding:10px 12px;border:1px solid #f0d7a8;border-radius:12px;background:#fff8ec}
 .chat-balance span{font-size:.74rem;font-weight:700;color:#8a5a12}.chat-balance strong{font-size:1.2rem;color:#6b430b}.chat-balance small{font-size:.72rem;color:#8a6a3a}
 .chat-balance.is-paid{border-color:#bfe3cf;background:#f3fbf6}.chat-balance.is-paid span{color:#2f7a52}.chat-balance.is-paid strong{color:#17643f;font-size:1rem}
+/* customer chat: a back button out of the chat, and a smaller plum composer (picture icon left, send arrow right, centred on the field) */
+.chat-page:not([data-admin-page]) #chat-back{display:inline-grid!important;place-items:center;flex:none;width:34px;height:34px;padding:0;border:0;border-radius:0;background:transparent;color:#2b1530;cursor:pointer}
+.chat-page:not([data-admin-page]) #chat-back .ui-icon{width:22px;height:22px}
+.chat-page:not([data-admin-page]) .chat-thread header{display:flex;align-items:center;gap:8px}
+.chat-page:not([data-admin-page]) #chat-compose{align-items:center;gap:8px}
+.chat-page:not([data-admin-page]) #chat-compose button{min-width:34px;width:34px;height:34px;min-height:34px;background:#2b1530;border-color:#2b1530;box-shadow:none}
+.chat-page:not([data-admin-page]) #chat-compose button:hover:not(:disabled){background:#563a8a;border-color:#563a8a}
+.chat-page:not([data-admin-page]) #chat-compose button::before{font-size:.82rem}
+.chat-page:not([data-admin-page]) #chat-compose .chat-attach{background:transparent;border:0;color:#2b1530;font-size:0}
+.chat-page:not([data-admin-page]) #chat-compose .chat-attach::before{content:none}
+.chat-page:not([data-admin-page]) #chat-compose .chat-attach:hover:not(:disabled){background:#f3edf6}
+.chat-page:not([data-admin-page]) #chat-compose .chat-attach .ui-icon{width:22px;height:22px}
+.chat-page:not([data-admin-page]) #chat-compose textarea{height:36px;min-height:36px;padding:8px 14px}

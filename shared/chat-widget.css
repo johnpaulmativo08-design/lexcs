@@ -112,3 +112,10 @@ body[data-customer-page=bento] #customer-chat-toggle,body[data-customer-page=cup
 #customer-chat-toggle.is-tucked.has-unread::after{content:'';position:absolute;top:7px;left:9px;width:8px;height:8px;border-radius:50%;background:#e2557e;box-shadow:0 0 0 2px #7551aa}
 #customer-chat-toggle.is-tucked:hover,#customer-chat-toggle.is-tucked:focus-visible{opacity:.85}
 @media(prefers-reduced-motion:reduce){#customer-chat-toggle{transition:opacity .2s ease}}
+/* composer matches the chat page: picture icon, plum round send, all centred */
+.lcw-compose{align-items:center}
+.lcw-compose .lcw-attach{width:34px;min-width:34px;height:34px;min-height:34px;border:0;background:transparent;color:#2b1530;display:grid;place-items:center}
+.lcw-compose .lcw-attach:hover:not(:disabled){background:#f3edf6}
+.lcw-compose .lcw-attach .ui-icon{width:22px;height:22px}
+.lcw-compose button[type=submit]{width:34px;min-width:34px;height:34px;min-height:34px;padding:0;border-radius:50%;background:#2b1530;border-color:#2b1530;display:grid;place-items:center;font-size:.82rem}
+.lcw-compose button[type=submit]:hover:not(:disabled){background:#563a8a;border-color:#563a8a}
