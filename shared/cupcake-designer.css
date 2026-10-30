@@ -124,15 +124,14 @@
 .pcl-note{margin:4px 0 0;color:var(--bd-muted,#6d6278);font-size:.74rem}
 .pcl-error{margin:0;padding:8px 10px;border-radius:9px;background:#fdf0f2;color:#a73345;font-size:.8rem}
 .pcl-error[hidden]{display:none}
-/* "Same on every piece": word + optional number, applied to the whole box in one tap */
-.pcl-all{display:grid;gap:8px;margin-top:12px;padding:12px;border:1px solid #e6dcf3;border-radius:14px;background:#fbf8fe}
-.pcl-all-title{margin:0;font-weight:800;font-size:.86rem;color:#2b1530}
-.pcl-all-title small{margin-left:6px;font-weight:600;color:var(--bd-muted,#6d6278)}
-.pcl-all-row{display:flex;gap:6px;align-items:center}
-.pcl-all-row .bd-input{margin:0;min-width:0;text-transform:uppercase;letter-spacing:.06em}
-.pcl-all-word{flex:1}
-.pcl-all-num{flex:0 0 64px;text-align:center}
-.pcl-all-go{flex:none;white-space:nowrap;background:#2b1530;border-color:#2b1530;color:#fff}
-.pcl-all-go:disabled{opacity:.4;cursor:not-allowed}
-.pcl-all-go:hover:not(:disabled){background:#563a8a;border-color:#563a8a}
-@media(max-width:420px){.pcl-all-row{flex-wrap:wrap}.pcl-all-word{flex:1 1 60%}.pcl-all-go{flex:1 1 100%}}
+/* copy one piece's letters: to every piece, or to N pieces starting at the one being edited */
+.pcl-copy{display:grid;gap:8px;margin-top:10px}
+.pcl-copy-all{min-height:42px;padding:0 16px;border:0;border-radius:12px;background:#2b1530;color:#fff;font:700 .86rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.pcl-copy-all:hover:not(:disabled){background:#563a8a}
+.pcl-copy-all:disabled{background:#efe8f5;color:#8a7d98;cursor:not-allowed}
+.pcl-copy-some{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.84rem;color:#3c2b4d}
+.pcl-copy-n{width:64px;margin:0;text-align:center;font-weight:700}
+.pcl-copy-go{background:#fff;border-color:#2b1530;color:#2b1530;font-weight:700}
+.pcl-copy-go:hover:not(:disabled){background:#f3edf6}
+.pcl-copy-go:disabled{opacity:.45;cursor:not-allowed}
+.pcl-copy-some .pcl-copy-n.bd-input{flex:0 0 64px;width:64px;min-width:0;height:38px;padding:0 6px}

@@ -9,24 +9,6 @@
   // Keep one entry per piece in the box (extra entries are dropped when a smaller box is chosen).
   const fit = (pieces, count) => Array.from({ length: count }, (_, i) => clean((pieces || [])[i]));
   const filled = (pieces) => (pieces || []).filter((p) => clean(p)).length;
-  // "Fill several at once": each word goes on the next piece; words longer than 5 letters continue on the next one.
-  function spread(text) {
-    const out = [];
-    for (const word of String(text || '').split(/\s+/).map((w) => w.replace(BAD, '')).filter(Boolean)) {
-      for (let i = 0; i < word.length; i += MAX) out.push(word.slice(i, i + MAX));
-    }
-    return out;
-  }
-  // "Same on every piece": a word (up to 5) and an optional number (up to 3 digits). Both together on each piece
-  // when they fit in 5 characters (HI18); otherwise the pieces take turns: LOVE, 18, LOVE, 18 …
-  function same(word, number, count) {
-    const w = clean(word).toUpperCase(), n = String(number || '').replace(/\D/g, '').slice(0, 3);
-    if (!w && !n) return null;
-    const one = (w + n).length <= MAX ? w + n : '';
-    const list = Array.from({ length: count }, (_, i) => one || (!w ? n : !n ? w : i % 2 ? n : w));
-    const how = one ? `Every piece gets ${one}.` : w && n ? `Too long for one piece, so they take turns: ${w} · ${n} · ${w} · ${n} …` : `Every piece gets ${w || n}.`;
-    return { list, how };
-  }
   // Older designs stored one sentence spelled across the box; turn it into per-piece entries (same split as before).
   function fromSentence(text) {
     const out = [];
@@ -54,19 +36,15 @@
         </div>
         <div class="pcl-meta"><span id="${id}-count" data-lp-count>${text.length} / ${MAX} letters</span><span data-lp-filled>${n} of ${count} ${esc(noun)}s have letters</span>${text ? '<button type="button" class="pcl-clear" data-lp-clear>Clear</button>' : ''}</div>
       </div>
-      <div class="pcl-all">
-        <p class="pcl-all-title">Same on every ${esc(noun)} <small>word · optional number</small></p>
-        <div class="pcl-all-row">
-          <input class="bd-input pcl-all-word" data-lp-all-word maxlength="${MAX}" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Word, e.g. LOVE" aria-label="Word for every ${esc(noun)}">
-          <input class="bd-input pcl-all-num" data-lp-all-num maxlength="3" inputmode="numeric" autocomplete="off" placeholder="No." aria-label="Optional number for every ${esc(noun)}">
-          <button type="button" class="bd-chip pcl-all-go" data-lp-all disabled>Apply to all ${count}</button>
+      <div class="pcl-copy" data-lp-copy>
+        <button type="button" class="pcl-copy-all" data-lp-copy-all ${text ? '' : 'disabled'}>${text ? `Apply “${esc(text)}” to all ${count}` : `Type letters, then apply to all ${count}`}</button>
+        <div class="pcl-copy-some">
+          <span>Apply to</span>
+          <input type="number" class="bd-input pcl-copy-n" data-lp-copy-n inputmode="numeric" min="1" max="${count - here}" value="${Math.min(6, count - here)}" aria-label="How many ${esc(noun)}s get these letters">
+          <span>${esc(noun)}s from #${here + 1}</span>
+          <button type="button" class="bd-chip pcl-copy-go" data-lp-copy-some ${text ? '' : 'disabled'}>Apply</button>
         </div>
-        <p class="pcl-note" data-lp-all-how>Type a word, a number, or both. You can still change any ${esc(noun)} after.</p>
       </div>
-      <details class="pcl-fill"><summary>Different words across the ${esc(noun)}s</summary>
-        <div class="pcl-row"><input class="bd-input" data-lp-fill-text placeholder="e.g. HAPPY 7TH BDAY" autocomplete="off" aria-label="Words to spread across the ${esc(noun)}s"><button type="button" class="bd-chip" data-lp-fill>Fill from ${esc(noun)} ${here + 1}</button></div>
-        <p class="pcl-note">Each word goes on the next ${esc(noun)}; longer words continue on the one after (5 letters each).</p>
-      </details>
       <p class="pcl-error" role="alert" ${n ? 'hidden' : ''}>${n ? '' : `Add letters to at least one ${esc(noun)}, or choose no letters.`}</p>
     </div>`;
   }
@@ -75,39 +53,29 @@
   function bind(root, api) {
     const focusInput = () => { const input = root.querySelector('[data-lp-input]'); if (input) { input.focus({ preventScroll: true }); input.select(); } };
     root.addEventListener('click', (event) => {
-      const t = event.target.closest('[data-lp-at],[data-lp-prev],[data-lp-next],[data-lp-clear],[data-lp-fill],[data-lp-all]'); if (!t || !root.contains(t)) return;
+      const t = event.target.closest('[data-lp-at],[data-lp-prev],[data-lp-next],[data-lp-clear],[data-lp-copy-all],[data-lp-copy-some]'); if (!t || !root.contains(t)) return;
       event.stopPropagation();
       const at = api.at(), count = api.count();
       if (t.dataset.lpAt !== undefined) { api.setAt(Number(t.dataset.lpAt)); return focusInput(); }
       if ('lpPrev' in t.dataset) { api.setAt(Math.max(0, at - 1)); return focusInput(); }
       if ('lpNext' in t.dataset) { api.setAt(Math.min(count - 1, at + 1)); return focusInput(); }
       if ('lpClear' in t.dataset) { const p = fit(api.pieces(), count); p[at] = ''; api.set(p, { render: true }); return focusInput(); }
-      if ('lpAll' in t.dataset) {
-        const res = same(root.querySelector('[data-lp-all-word]')?.value, root.querySelector('[data-lp-all-num]')?.value, count); if (!res) return;
-        api.set(res.list, { render: true });
-        window.showToast?.(`Applied to all ${count} — tap any one to change it.`, { type: 'success' });
-        return;
+      // copy this piece's letters: to every piece, or to N pieces starting here
+      const text = fit(api.pieces(), count)[at]; if (!text) return;
+      if ('lpCopyAll' in t.dataset) {
+        api.set(Array.from({ length: count }, () => text), { render: true });
+        return void window.showToast?.(`“${text}” is on all ${count} now — tap any one to change it.`, { type: 'success' });
       }
-      if ('lpFill' in t.dataset) {
-        const words = spread(root.querySelector('[data-lp-fill-text]')?.value); if (!words.length) return;
-        const p = fit(api.pieces(), count); words.slice(0, count - at).forEach((w, k) => { p[at + k] = w; });
+      if ('lpCopySome' in t.dataset) {
+        const want = Math.round(Number(root.querySelector('[data-lp-copy-n]')?.value) || 0), n = Math.min(Math.max(1, want), count - at);
+        const p = fit(api.pieces(), count); for (let k = 0; k < n; k++) p[at + k] = text;
         api.set(p, { render: true });
-        if (words.length > count - at) window.showToast?.(`Only ${count - at} ${count - at === 1 ? 'spot was' : 'spots were'} left in the box — some words did not fit.`);
+        window.showToast?.(`“${text}” is on ${n} ${n === 1 ? 'piece' : 'pieces'} (${at + 1}–${at + n}).`, { type: 'success' });
       }
     }, true);
     root.addEventListener('input', (event) => {
-      // "Same on every piece": tidy what is typed and preview the result before applying
-      const all = event.target.closest('[data-lp-all-word],[data-lp-all-num]');
-      if (all) {
-        if (all.matches('[data-lp-all-word]')) { const v = clean(all.value); if (v !== all.value) all.value = v; }
-        else { const v = all.value.replace(/\D/g, '').slice(0, 3); if (v !== all.value) all.value = v; }
-        const box = all.closest('.pcl-all'), res = same(box.querySelector('[data-lp-all-word]').value, box.querySelector('[data-lp-all-num]').value, api.count());
-        box.querySelector('[data-lp-all]').disabled = !res;
-        box.querySelector('[data-lp-all-how]').textContent = res ? res.how : 'Type a word, a number, or both. You can still change any one after.';
-        return;
-      }
       const input = event.target.closest('[data-lp-input]'); if (!input) return;
-      const value = clean(input.value); if (value !== input.value) input.value = value;
+      const value = clean(input.value).toUpperCase(); if (value !== input.value) input.value = value;   // fondant letters are capitals
       const count = api.count(), at = api.at(), p = fit(api.pieces(), count); p[at] = value;
       api.set(p, { render: false });
       // update the chip and counters in place so typing keeps focus
@@ -116,14 +84,17 @@
       const c = root.querySelector('[data-lp-count]'); if (c) c.textContent = `${value.length} / ${MAX} letters`;
       const n = filled(p), f = root.querySelector('[data-lp-filled]'); if (f) f.textContent = f.textContent.replace(/^\d+/, String(n));
       const err = root.querySelector('.pcl-error'); if (err) err.hidden = n > 0;
+      const all = root.querySelector('[data-lp-copy-all]'), some = root.querySelector('[data-lp-copy-some]');
+      if (all) { all.disabled = !value; all.textContent = value ? `Apply “${value}” to all ${count}` : `Type letters, then apply to all ${count}`; }
+      if (some) some.disabled = !value;
     });
     root.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && event.target.closest?.('.pcl-all')) { event.preventDefault(); event.target.closest('.pcl-all').querySelector('[data-lp-all]:not(:disabled)')?.click(); return; }
+      if (event.key === 'Enter' && event.target.matches?.('[data-lp-copy-n]')) { event.preventDefault(); root.querySelector('[data-lp-copy-some]:not(:disabled)')?.click(); return; }
       if (!event.target.matches('[data-lp-input]') || event.key !== 'Enter') return;
       event.preventDefault(); const at = api.at(), count = api.count();
       if (at < count - 1) { api.setAt(at + 1); focusInput(); }
     });
   }
 
-  window.LexcLetterPieces = { MAX, clean, fit, filled, spread, same, fromSentence, markup, bind };
+  window.LexcLetterPieces = { MAX, clean, fit, filled, fromSentence, markup, bind };
 })();
