@@ -199,7 +199,7 @@ function stickerTexture() {
   g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 6; g.setLineDash([10, 9]); g.beginPath(); g.arc(128, 128, 106, 0, Math.PI * 2); g.stroke();
   g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.font = "italic 700 64px 'Playfair Display',serif"; g.fillText('LexC’s', 128, 112);
-  g.font = "600 26px 'DM Sans',sans-serif"; g.fillText('SNACKTIME', 128, 164);
+  g.font = "700 25px 'Plus Jakarta Sans','DM Sans',sans-serif"; g.fillText('SNACKTIME', 128, 164);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 

@@ -44,14 +44,14 @@
 /* ---- Toasts ---- */
 #toast.toast{display:none!important}
 .mo-toasts{position:fixed;z-index:2147483000;right:24px;bottom:24px;display:grid;gap:8px;justify-items:end;pointer-events:none;max-width:min(420px,calc(100vw - 32px))}
-.mo-toast{display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 12px 10px 14px;border-radius:14px;background:#2b1d40;color:#fff;font:600 .84rem/1.35 'DM Sans',system-ui,sans-serif;box-shadow:0 10px 28px rgba(40,20,60,.28);pointer-events:auto;animation:mo-slide-up var(--motion-base) var(--ease-enter) both}
+.mo-toast{display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 12px 10px 14px;border-radius:14px;background:#2b1d40;color:#fff;font:600 .84rem/1.35 'Plus Jakarta Sans',system-ui,sans-serif;box-shadow:0 10px 28px rgba(40,20,60,.28);pointer-events:auto;animation:mo-slide-up var(--motion-base) var(--ease-enter) both}
 .mo-toast.is-leaving{animation:none;opacity:0;translate:0 8px;transition:opacity var(--motion-fast) var(--ease-exit),translate var(--motion-fast) var(--ease-exit)}
 .mo-toast__icon{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.14);font-size:.75rem}
 .mo-toast--success .mo-toast__icon{background:#2fa36f}
 .mo-toast--error .mo-toast__icon{background:#d55470}
 .mo-toast--warning .mo-toast__icon{background:#d18a24}
 .mo-toast__text{flex:1;min-width:0}
-.mo-toast__action{flex:none;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:6px 12px;font:700 .78rem 'DM Sans',sans-serif;cursor:pointer}
+.mo-toast__action{flex:none;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:6px 12px;font:700 .78rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
 .mo-toast__action:hover{background:rgba(255,255,255,.18)}
 @media(max-width:860px){.mo-toasts{left:16px;right:16px;bottom:calc(92px + env(safe-area-inset-bottom));justify-items:center;max-width:none}}
 body[data-customer-page=checkout] .mo-toasts{bottom:calc(110px + env(safe-area-inset-bottom))}

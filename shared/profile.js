@@ -72,7 +72,7 @@
     return `<header class="pf-band">
       <div class="pf-photo">${photoUrl ? `<img src="${esc(photoUrl)}" alt="Your profile photo">` : `<span>${esc(initials)}</span>`}
         ${user ? `<label class="pf-photo-btn" aria-label="Change profile photo">${icon(ICONS.camera)}<input type="file" accept="image/jpeg,image/png,image/webp" data-pf-photo hidden></label>` : ''}</div>
-      <div class="pf-band-who"><p class="lx-eyebrow">${user ? 'My account' : 'Cakes · Treats · Sweeter moments'}</p><h1>${user ? esc(name || 'Your name') : 'Welcome to <em>LexC’s.</em>'}</h1><p>${esc(user ? user.email || '' : 'Homemade pastries from Dau, Mabalacat')}</p></div>
+      <div class="pf-band-who"><p class="lx-eyebrow">${user ? 'My account' : 'Cakes · Treats · Sweeter moments'}</p><h1>${user ? esc(name || 'Your name') : 'Welcome to <em>LexC’s.</em>'}</h1><p>${esc(user ? user.email || '' : 'Homemade pastries from San Roque, Cavite City')}</p></div>
       <div class="pf-band-tools">${user ? `<button type="button" class="pf-tool" data-pf="settings" aria-label="Account settings">${icon(ICONS.gear)}</button>
         <button type="button" class="pf-tool" data-pf="cart" aria-label="Cart${count ? ', ' + count + ' item' + (count === 1 ? '' : 's') : ''}">${icon(ICONS.cart)}<i class="mnav-badge"${count ? '' : ' hidden'}>${count > 99 ? '99+' : count}</i></button>
         <a class="pf-tool" href="chat/" aria-label="Messages with LexC’s">${icon(ICONS.chat)}</a>` : ''}</div>

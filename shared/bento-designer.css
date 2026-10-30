@@ -1,12 +1,12 @@
 /* Bento cake designer: preview beside controls on desktop, preview on top + bottom price bar on phones. */
 .bd-page{--bd-ivory:#fdf8f2;--bd-plum:#4f3163;--bd-purple:#7d52a8;--bd-purple-dark:#653f8c;--bd-ink:#3a2840;--bd-muted:#78658a;--bd-line:#ebe2f0;--bd-soft:#f4edf9;
-  background:var(--bd-ivory);color:var(--bd-ink);font-family:'DM Sans',sans-serif}
+  background:var(--bd-ivory);color:var(--bd-ink);font-family:'Plus Jakarta Sans',sans-serif}
 .bd-wrap{max-width:1280px;margin:0 auto;padding:88px 24px 40px}
 .bd-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.bd-back{border:0;background:none;color:var(--bd-plum);font:600 .9rem 'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:6px;padding:8px 6px;cursor:pointer;min-height:44px}
-.bd-head h1{font:600 clamp(1.3rem,2.4vw,1.8rem) 'DM Sans',sans-serif;color:var(--bd-plum);margin:0;flex:1;letter-spacing:-.01em}
+.bd-back{border:0;background:none;color:var(--bd-plum);font:600 .9rem 'Plus Jakarta Sans',sans-serif;display:inline-flex;align-items:center;gap:6px;padding:8px 6px;cursor:pointer;min-height:44px}
+.bd-head h1{font:600 clamp(1.3rem,2.4vw,1.8rem) 'Plus Jakarta Sans',sans-serif;color:var(--bd-plum);margin:0;flex:1;letter-spacing:-.01em}
 .bd-tools{display:flex;gap:6px}
-.bd-tool{border:1px solid var(--bd-line);background:#fff;color:var(--bd-plum);border-radius:10px;min-width:44px;min-height:44px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 .82rem 'DM Sans',sans-serif;cursor:pointer}
+.bd-tool{border:1px solid var(--bd-line);background:#fff;color:var(--bd-plum);border-radius:10px;min-width:44px;min-height:44px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 .82rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
 .bd-tool:disabled{opacity:.4;cursor:not-allowed}
 .bd-tool .ui-icon{width:18px;height:18px}
 .bd-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);gap:22px;align-items:start}
@@ -22,20 +22,20 @@
 .bd-topview svg{width:100%;height:100%;max-width:520px}
 .bd-stage-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-top:1px solid var(--bd-line);flex-wrap:wrap}
 .bd-seg{display:inline-flex;background:var(--bd-soft);border-radius:999px;padding:3px}
-.bd-seg button{border:0;background:none;border-radius:999px;padding:7px 16px;font:600 .82rem 'DM Sans',sans-serif;color:#7c6390;cursor:pointer;min-height:44px}
+.bd-seg button{border:0;background:none;border-radius:999px;padding:7px 16px;font:600 .82rem 'Plus Jakarta Sans',sans-serif;color:#7c6390;cursor:pointer;min-height:44px}
 .bd-seg button[aria-pressed="true"]{background:#fff;color:var(--bd-plum);box-shadow:0 1px 3px rgba(70,40,90,.15)}
 .bd-hint{font-size:.76rem;color:var(--bd-muted);margin:0;padding:0 12px 10px}
 .bd-stage-msg{position:absolute;left:12px;right:12px;bottom:12px;background:#fff;border:1px solid var(--bd-line);border-radius:12px;padding:10px 12px;font-size:.84rem;color:var(--bd-ink)}
 
 .bd-panel{background:#fff;border:1px solid var(--bd-line);border-radius:20px;display:flex;flex-direction:column;min-width:0}
 .bd-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:10px;border-bottom:1px solid var(--bd-line)}
-.bd-step{border:0;background:none;border-radius:12px;padding:8px 4px;font:600 .8rem 'DM Sans',sans-serif;color:var(--bd-muted);cursor:pointer;display:grid;justify-items:center;gap:3px;min-height:52px}
+.bd-step{border:0;background:none;border-radius:12px;padding:8px 4px;font:600 .8rem 'Plus Jakarta Sans',sans-serif;color:var(--bd-muted);cursor:pointer;display:grid;justify-items:center;gap:3px;min-height:52px}
 .bd-step b{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--bd-soft);font-size:.75rem;color:var(--bd-plum)}
 .bd-step[aria-selected="true"]{background:var(--bd-soft);color:var(--bd-plum)}
 .bd-step[aria-selected="true"] b{background:var(--bd-purple);color:#fff}
 .bd-body{padding:16px 18px 8px;min-height:360px}
 .bd-group{border:0;margin:0 0 20px;padding:0;min-width:0}
-.bd-group>legend,.bd-label{font:700 .8rem 'DM Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--bd-plum);margin-bottom:10px;padding:0;display:flex;justify-content:space-between;width:100%}
+.bd-group>legend,.bd-label{font:700 .8rem 'Plus Jakarta Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--bd-plum);margin-bottom:10px;padding:0;display:flex;justify-content:space-between;width:100%}
 .bd-group>legend small,.bd-label small{font-weight:500;text-transform:none;letter-spacing:0;color:var(--bd-muted)}
 .bd-note{font-size:.8rem;color:var(--bd-muted);margin:-4px 0 10px}
 .bd-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -50,15 +50,15 @@
 .bd-swatch[aria-checked="true"]::after{content:"";position:absolute;inset:32% 30% 38%;border:solid #fff;border-width:0 0 3px 3px;transform:rotate(-45deg);filter:drop-shadow(0 0 1px rgba(0,0,0,.6))}
 .bd-swatch-name{font-size:.82rem;color:var(--bd-muted);margin:8px 0 0}
 .bd-chips{display:flex;flex-wrap:wrap;gap:8px}
-.bd-chip{border:1.5px solid var(--bd-line);background:#fff;border-radius:999px;padding:9px 14px;font:600 .84rem 'DM Sans',sans-serif;color:var(--bd-ink);cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px}
+.bd-chip{border:1.5px solid var(--bd-line);background:#fff;border-radius:999px;padding:9px 14px;font:600 .84rem 'Plus Jakarta Sans',sans-serif;color:var(--bd-ink);cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px}
 .bd-chip small{font-weight:500;color:var(--bd-muted)}
 .bd-chip[aria-pressed="true"],.bd-chip[aria-checked="true"]{border-color:var(--bd-purple);background:#faf5fe;color:var(--bd-plum)}
 .bd-chip:disabled{opacity:.45;cursor:not-allowed}
-.bd-textarea{width:100%;border:1.5px solid #dccde8;border-radius:14px;padding:12px 14px;font:500 1.05rem/1.4 'DM Sans',sans-serif;color:var(--bd-ink);resize:none;min-height:96px;background:#fff}
+.bd-textarea{width:100%;border:1.5px solid #dccde8;border-radius:14px;padding:12px 14px;font:500 1.05rem/1.4 'Plus Jakarta Sans',sans-serif;color:var(--bd-ink);resize:none;min-height:96px;background:#fff}
 .bd-textarea:focus{outline:none;border-color:var(--bd-purple);box-shadow:0 0 0 3px rgba(125,82,168,.15)}
 .bd-counter{display:flex;justify-content:space-between;font-size:.78rem;color:var(--bd-muted);margin:6px 0 12px}
 .bd-counter.is-over{color:#a73345}
-.bd-input{border:1.5px solid #dccde8;border-radius:10px;padding:10px 12px;font:600 1rem 'DM Sans',sans-serif;width:120px;min-height:44px}
+.bd-input{border:1.5px solid #dccde8;border-radius:10px;padding:10px 12px;font:600 1rem 'Plus Jakarta Sans',sans-serif;width:120px;min-height:44px}
 .bd-summary{list-style:none;margin:0 0 14px;padding:0;border:1px solid var(--bd-line);border-radius:14px}
 .bd-summary li{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--bd-line);font-size:.9rem}
 .bd-summary li:last-child{border-bottom:0}
@@ -68,16 +68,16 @@
 .bd-qty button{border:0;background:#fff;width:44px;height:44px;font-size:1.2rem;color:var(--bd-plum);cursor:pointer}
 .bd-qty output{min-width:40px;text-align:center;font-weight:700}
 .bd-theme{border:1px dashed #d8c7e6;border-radius:14px;padding:12px 14px;font-size:.86rem;color:var(--bd-muted);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px}
-.bd-link{border:0;background:none;color:var(--bd-purple);font:700 .86rem 'DM Sans',sans-serif;cursor:pointer;padding:8px 0;min-height:44px}
+.bd-link{border:0;background:none;color:var(--bd-purple);font:700 .86rem 'Plus Jakarta Sans',sans-serif;cursor:pointer;padding:8px 0;min-height:44px}
 .bd-foot{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--bd-line);border-radius:0 0 20px 20px;padding:12px 16px;display:flex;align-items:center;gap:12px}
 .bd-price{flex:1;min-width:0}
-.bd-price strong{display:block;font:700 1.35rem 'DM Sans',sans-serif;color:var(--bd-plum)}
+.bd-price strong{display:block;font:700 1.35rem 'Plus Jakarta Sans',sans-serif;color:var(--bd-plum)}
 .bd-price span{font-size:.76rem;color:var(--bd-muted)}
 .bd-price span.is-error{color:#a73345}
-.bd-primary{border:0;border-radius:12px;background:var(--bd-purple);color:#fff;font:700 .98rem 'DM Sans',sans-serif;padding:0 20px;min-height:48px;cursor:pointer;white-space:nowrap}
+.bd-primary{border:0;border-radius:12px;background:var(--bd-purple);color:#fff;font:700 .98rem 'Plus Jakarta Sans',sans-serif;padding:0 20px;min-height:48px;cursor:pointer;white-space:nowrap}
 .bd-primary:hover{background:var(--bd-purple-dark)}
 .bd-primary:disabled{background:#d9cfe2;color:#8c7c99;cursor:not-allowed}
-.bd-secondary{border:1px solid #d8c7e6;background:#fff;border-radius:12px;color:var(--bd-plum);font:600 .9rem 'DM Sans',sans-serif;padding:0 14px;min-height:48px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.bd-secondary{border:1px solid #d8c7e6;background:#fff;border-radius:12px;color:var(--bd-plum);font:600 .9rem 'Plus Jakarta Sans',sans-serif;padding:0 14px;min-height:48px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .bd-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .bd-preset{border:1.5px solid var(--bd-line);background:#fff;border-radius:14px;padding:10px 12px;text-align:left;cursor:pointer;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;font:inherit;color:inherit;min-height:64px}
 .bd-preset:hover{border-color:#cdb6e3;background:#fcf8ff}
@@ -97,7 +97,7 @@
 .bd-price span::after{content:" · details";color:var(--bd-purple);font-weight:600}
 .bd-foot{position:relative}
 .bd-breakdown{position:absolute;left:12px;bottom:calc(100% + 8px);width:min(340px,calc(100% - 24px));background:#fff;border:1px solid var(--bd-line);border-radius:16px;box-shadow:0 18px 40px rgba(60,30,80,.18);padding:14px 16px;z-index:30}
-.bd-breakdown-title{font:700 .78rem 'DM Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--bd-plum);margin:0 0 8px}
+.bd-breakdown-title{font:700 .78rem 'Plus Jakarta Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--bd-plum);margin:0 0 8px}
 .bd-breakdown ul{list-style:none;margin:0 0 8px;padding:0}
 .bd-breakdown li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:.88rem;border-bottom:1px dashed var(--bd-line)}
 .bd-breakdown li.is-total{border-bottom:0;font-weight:700;color:var(--bd-plum);padding-top:8px}
@@ -108,7 +108,7 @@
 body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="bento"] .lcw-tray{bottom:92px!important}
 .bd-cams[hidden],.bd-breakdown[hidden],.bd-topview[hidden],.bd-skeleton[hidden],.bd-stage-msg[hidden],.bd-foot [hidden],.bd-tool[hidden]{display:none!important}
 .bd-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.cart-item-edit{border:0;background:none;color:#7d52a8;font:700 .78rem 'DM Sans',sans-serif;padding:4px 0;cursor:pointer;text-decoration:underline}
+.cart-item-edit{border:0;background:none;color:#7d52a8;font:700 .78rem 'Plus Jakarta Sans',sans-serif;padding:4px 0;cursor:pointer;text-decoration:underline}
 .pd-design{display:flex;align-items:center;gap:10px;width:100%;margin:14px 0 4px;border:1.5px dashed #c8b2dc;background:#faf5fe;border-radius:14px;padding:12px 14px;text-align:left;cursor:pointer;font:inherit;color:#4f3163;min-height:56px}
 .pd-design strong{display:block;font-size:.95rem}
 .pd-design span{font-size:.8rem;color:#78658a}
@@ -269,7 +269,7 @@ body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="
 .insp-pic{position:relative;margin:0;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--bd-line,#e6dcf3);background:#f6f1fb}
 .insp-pic img{width:100%;height:100%;object-fit:cover;display:block}
 .insp-remove{position:absolute;top:4px;right:4px;display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:rgba(36,26,56,.75);color:#fff;font-size:16px;line-height:1;cursor:pointer}
-.insp-add{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1.5px dashed #cdb9f0;border-radius:12px;background:#fbf8ff;color:var(--bd-purple,#6033dd);font:700 .86rem 'DM Sans',sans-serif;cursor:pointer}
+.insp-add{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1.5px dashed #cdb9f0;border-radius:12px;background:#fbf8ff;color:var(--bd-purple,#6033dd);font:700 .86rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
 .insp-add:hover{background:#f3edfc}.insp-add:focus-within{outline:3px solid #b9a1f0;outline-offset:2px}
 .insp-add.is-busy{opacity:.7;cursor:progress}
 .insp-error{margin:8px 0 0;color:#a3324b;font-size:.82rem}
@@ -280,7 +280,7 @@ body[data-customer-page="bento"] #customer-chat-toggle,body[data-customer-page="
 .dd-count{display:inline-flex;align-items:center;gap:6px}
 .dd-count button{width:44px;height:44px;border:1.5px solid #ded3ec;border-radius:12px;background:#fff;color:#5a32b8;font-size:1.2rem;cursor:pointer}
 .dd-count button:disabled{opacity:.4;cursor:not-allowed}
-.dd-count input{width:84px;height:44px;border:1.5px solid #ded3ec;border-radius:12px;text-align:center;font:700 1rem 'DM Sans',sans-serif}
+.dd-count input{width:84px;height:44px;border:1.5px solid #ded3ec;border-radius:12px;text-align:center;font:700 1rem 'Plus Jakarta Sans',sans-serif}
 
 /* Studio backdrop: lavender wall fading to a deeper floor, soft spotlight behind the treat, shadowed edges
    (Bakery / Party scenes paint their own background over this) */
