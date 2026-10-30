@@ -106,7 +106,7 @@ async function submitCheckout(){
  if(!field('coDate')||!field('coTime'))return showToast('Choose a reservation date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
   if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
-  const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,preview_top,reference_image_path,design_top_path,inspiration,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
+  const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,preview_top,reference_image_path,design_top_path,inspiration,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:window.LexcCheckoutMap?.addressWithPin(field('coAddress'))??field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
  let request=readAuthStorage(localStorage,'lexc_checkout_request',null);
  if(!request||request.fingerprint!==fingerprint)request={fingerprint,id:crypto.randomUUID()};
  localStorage.setItem('lexc_checkout_request',JSON.stringify(request));checkoutSaving=true;
@@ -148,7 +148,7 @@ async function submitCheckout(){
   const freshAvailability=await LexcBackend.rpc('get_customer_booking_dates',{from_date:selectedDate,to_date:selectedDate});
   const selectedDay=freshAvailability[0];
   if(!selectedDay||selectedDay.is_closed||selectedDay.remaining_slots<=0||!selectedDay.has_receiving_slot)throw new Error('This reservation date is no longer available. Please choose another date.');
-   const order=await LexcBackend.rpc('create_order',{payload:{request_id:request.id,name:field('coName'),phone:field('coContact'),address:field('coAddress'),notes:field('coNotes'),slot_id:document.getElementById('coDate').dataset.slotId,fulfillment:selectedDelivery==='Lalamove'?'lalamove':'pickup',payment_method:selectedPayment,items:selectedItems.map(i=>({variant_id:i.variant_id,qty:i.qty,customization:i.customization||null,reference_image_path:i.reference_image_path||null}))}});
+   const order=await LexcBackend.rpc('create_order',{payload:{request_id:request.id,name:field('coName'),phone:field('coContact'),address:window.LexcCheckoutMap?.addressWithPin(field('coAddress'))??field('coAddress'),notes:field('coNotes'),slot_id:document.getElementById('coDate').dataset.slotId,fulfillment:selectedDelivery==='Lalamove'?'lalamove':'pickup',payment_method:selectedPayment,items:selectedItems.map(i=>({variant_id:i.variant_id,qty:i.qty,customization:i.customization||null,reference_image_path:i.reference_image_path||null}))}});
    // Add the top-view pictures to the design card the database posted in the customer's chat.
   const topViews=selectedItems.map((item,index)=>({line:index+1,top_path:item.design_top_path})).filter(view=>view.top_path);
   if(topViews.length){try{await LexcBackend.rpc('attach_design_views',{p_order_id:order.id,p_views:topViews});}catch(error){console.warn('Top-view pictures could not be added to the chat:',error);}}

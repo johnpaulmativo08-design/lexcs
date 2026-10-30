@@ -13,13 +13,13 @@
   --ed-muted: #6e6274;
   --ed-line: #e9e1ec;
   --ed-serif: 'Playfair Display', Georgia, serif;
-  --ed-sans: 'DM Sans', system-ui, sans-serif;
+  --ed-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --ed-ease: cubic-bezier(.22, 1, .36, 1);
   --ed-pad: clamp(16px, 4.5vw, 64px);
   --ed-radius: 10px;
   /* kept for other pages that read the old names */
   --lp-ivory: var(--ed-ivory); --lp-lav: var(--ed-lav); --lp-plum: #4b1747; --lp-plum-dark: #36102f; --lp-ink: var(--ed-ink); --lp-muted: var(--ed-muted); --lp-line: var(--ed-line);
-  --lp-head: 'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif;
+  --lp-head: 'Plus Jakarta Sans', 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
 /* ---- Header (all customer pages): thin, translucent, a hairline border ---------------------------- */

@@ -1,26 +1,26 @@
 /* Admin · the shop's editorial look (loaded last, after clean-look.css).
-   Same voice as the storefront hero ("Made for / sweet moments."): DM Sans body text in deep ink, Playfair Display
+   Same voice as the storefront hero ("Made for / sweet moments."): Plus Jakarta Sans body text in deep ink, Playfair Display
    headings with a tight fit, an italic rose accent, small spaced violet labels, and solid deep-aubergine buttons with
    10px corners that turn violet on hover. Secondary buttons are quiet lavender; text links are underlined plum. */
 :root{--ed-ink:#23142a;--ed-plum:#2b1530;--ed-violet:#6f4fa8;--ed-violet-deep:#563a8a;--ed-rose:#c9628f;--ed-muted:#6e6274;--ed-lav:#f3eefa;--ed-lav-hover:#e9e1f4;--ed-line:#e9e1ec}
 
 /* type */
-body{font-family:'DM Sans',system-ui,sans-serif;color:var(--ed-ink)}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:var(--ed-ink)}
 #content h1,#content .ops-heading h1,#content .module-heading h1{font-family:'Playfair Display',Georgia,serif;font-weight:700;letter-spacing:-.025em;color:var(--ed-ink)}
 #content h1 em,#content h2 em{font-style:italic;font-weight:400;color:var(--ed-rose)}
 #content .panel-title,#content .rep-card-head h2,#content .pm-card h3,dialog h2,dialog .dialog-title{font-family:'Playfair Display',Georgia,serif;font-weight:700;letter-spacing:-.01em;color:var(--ed-ink)}
 #content .dash-greeting{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1.12rem;color:var(--ed-rose)!important}
-#content .dash-label{font:600 .7rem/1.2 'DM Sans',sans-serif;letter-spacing:.26em;text-transform:uppercase;color:var(--ed-violet)}
+#content .dash-label{font:600 .7rem/1.2 'Plus Jakarta Sans',sans-serif;letter-spacing:.26em;text-transform:uppercase;color:var(--ed-violet)}
 #content .ops-caption,#content .module-heading p,#content .ops-heading p:not(.dash-greeting),#content .rep-note{color:var(--ed-muted)}
 
 /* primary buttons: solid deep aubergine, like "Shop now" */
-:is(#content,dialog,.header) :is(.button.primary,.button--primary),:is(.button.primary,.button--primary){border:1px solid var(--ed-plum);border-radius:10px;background:var(--ed-plum);background-image:none;color:#fff;box-shadow:none;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.01em}
+:is(#content,dialog,.header) :is(.button.primary,.button--primary),:is(.button.primary,.button--primary){border:1px solid var(--ed-plum);border-radius:10px;background:var(--ed-plum);background-image:none;color:#fff;box-shadow:none;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;letter-spacing:.01em}
 :is(#content,dialog,.header) :is(.button.primary,.button--primary):hover:not(:disabled),:is(.button.primary,.button--primary):hover:not(:disabled){border-color:var(--ed-violet-deep);background:var(--ed-violet-deep);color:#fff;box-shadow:none;transform:none}
 :is(.button.primary,.button--primary):active:not(:disabled){transform:scale(.98)}
 :is(.button.primary,.button--primary) svg{color:currentColor}
 
 /* secondary buttons: quiet lavender with plum text, same 10px corners */
-#content .button:not(.primary):not(.button--primary):not(.status-chip),dialog .button:not(.primary):not(.button--primary):not(.status-chip){border-color:transparent;border-radius:10px;background:var(--ed-lav);color:var(--ed-plum);font-family:'DM Sans',sans-serif;font-weight:600}
+#content .button:not(.primary):not(.button--primary):not(.status-chip),dialog .button:not(.primary):not(.button--primary):not(.status-chip){border-color:transparent;border-radius:10px;background:var(--ed-lav);color:var(--ed-plum);font-family:'Plus Jakarta Sans',sans-serif;font-weight:600}
 #content .button:not(.primary):not(.button--primary):not(.status-chip):hover:not(:disabled),dialog .button:not(.primary):not(.button--primary):not(.status-chip):hover:not(:disabled){background:var(--ed-lav-hover);color:var(--ed-plum);border-color:transparent;box-shadow:none;transform:none}
 
 /* text links, like "DIY customization →" */

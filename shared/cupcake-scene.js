@@ -4,7 +4,7 @@
 // Loaded on demand; renders only when something changes. Identical cupcakes share one built template.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { M, SURF, withSurface, shade } from './bento-scene.js?v=26';
+import { M, SURF, withSurface, shade } from './bento-scene.js?v=27';
 import { themePiece, plaquePiece, starPiece, letterTexture } from './donut-parts.js?v=2';
 import { createSet } from './scene-set.js?v=2';
 import { trayGeometry, blockGeometry, lidGeometry, ribbonGeometry, contactShadowTexture } from './box-parts.js?v=2';
@@ -226,7 +226,7 @@ function stickerTexture() {
   g.strokeStyle = '#5c3d6e'; g.lineWidth = 6; g.setLineDash([10, 8]); g.beginPath(); g.arc(128, 128, 108, 0, TAU); g.stroke(); g.setLineDash([]);
   g.fillStyle = '#5c3d6e'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.font = '700 58px "Playfair Display", Georgia, serif'; g.fillText('LexC’s', 128, 112);
-  g.font = '600 26px "DM Sans", Arial, sans-serif'; g.fillText('SNACKTIME', 128, 162);
+  g.font = '700 25px "Plus Jakarta Sans", "DM Sans", Arial, sans-serif'; g.fillText('SNACKTIME', 128, 162);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 
