@@ -35,7 +35,7 @@ button,a,input,select,textarea{touch-action:manipulation}
 button:not(:disabled),a{transition:background-color var(--ui-motion),border-color var(--ui-motion),color var(--ui-motion),transform var(--ui-motion)}
 button:not(:disabled):active{transform:scale(.98)}
 :focus-visible{outline:3px solid #9a76bc;outline-offset:3px}
-.ui-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:middle}
+.ui-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;flex:none;vertical-align:middle}
 .ui-icon--small{width:18px;height:18px}
 .ui-icon--large{width:24px;height:24px}
 .ui-skeleton{position:relative;overflow:hidden;background:#eee8f2;border-radius:var(--ui-radius-sm);color:transparent!important}

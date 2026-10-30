@@ -72,14 +72,14 @@
     return `<header class="pf-band">
       <div class="pf-photo">${photoUrl ? `<img src="${esc(photoUrl)}" alt="Your profile photo">` : `<span>${esc(initials)}</span>`}
         ${user ? `<label class="pf-photo-btn" aria-label="Change profile photo">${icon(ICONS.camera)}<input type="file" accept="image/jpeg,image/png,image/webp" data-pf-photo hidden></label>` : ''}</div>
-      <div class="pf-band-who"><h1>${esc(user ? name || 'Your name' : 'Welcome to LexC’s')}</h1><p>${esc(user ? user.email || '' : 'Homemade pastries from Dau, Mabalacat')}</p>${user ? '<span class="pf-badge">Customer account</span>' : ''}</div>
+      <div class="pf-band-who"><p class="lx-eyebrow">${user ? 'My account' : 'Cakes · Treats · Sweeter moments'}</p><h1>${user ? esc(name || 'Your name') : 'Welcome to <em>LexC’s.</em>'}</h1><p>${esc(user ? user.email || '' : 'Homemade pastries from Dau, Mabalacat')}</p></div>
       <div class="pf-band-tools">${user ? `<button type="button" class="pf-tool" data-pf="settings" aria-label="Account settings">${icon(ICONS.gear)}</button>
         <button type="button" class="pf-tool" data-pf="cart" aria-label="Cart${count ? ', ' + count + ' item' + (count === 1 ? '' : 's') : ''}">${icon(ICONS.cart)}<i class="mnav-badge"${count ? '' : ' hidden'}>${count > 99 ? '99+' : count}</i></button>
         <a class="pf-tool" href="chat/" aria-label="Messages with LexC’s">${icon(ICONS.chat)}</a>` : ''}</div>
     </header>`;
   }
   function purchases() {
-    const head = `<div class="pf-buy-head"><h2>My Purchases</h2><button type="button" data-pf="orders">View purchase history${icon(ICONS.chev)}</button></div>`;
+    const head = `<div class="pf-buy-head"><h2>My <em>purchases</em></h2><button type="button" data-pf="orders">View purchase history${icon(ICONS.chev)}</button></div>`;
     if (!buy) return `<section class="pf-buy" aria-label="My purchases">${head}<div class="pf-buy-skel" role="status" aria-label="Loading your orders">${'<span class="skel"></span>'.repeat(5)}</div></section>`;
     const tiles = TILES.map(([k, label, ic, test]) => { const n = buy.orders.filter(test).length;
       return `<button type="button" class="pf-tile" data-pf-tab="${k}" aria-pressed="${buyTab === k}" aria-label="${label}${n ? ', ' + n : ''}"><span class="pf-tile-ic">${icon(ICONS[ic])}<i class="mnav-badge"${n ? '' : ' hidden'}>${n}</i></span>${label}</button>`; }).join('');
@@ -107,11 +107,11 @@
   }
   function explore() {
     const go = (ic, label, act) => `<button type="button" data-pf="${act}">${icon(ICONS[ic])}${label}</button>`;
-    return `<section class="pf-card"><h3>Explore</h3><div class="pf-explore">${go('bag', 'Shop', 'shop')}${go('wand', 'Customize', 'diy')}${go('spark', 'Sweet moments', 'fresh')}${go('gift', 'Packages', 'packages')}${go('chat', 'Messages', 'chatpage')}${go('info', 'About', 'about')}${go('sun', 'Display', 'display')}</div></section>`;
+    return `<section class="pf-card"><h3>Explore <em>more</em></h3><div class="pf-explore">${go('bag', 'Shop', 'shop')}${go('wand', 'Customize', 'diy')}${go('spark', 'Sweet moments', 'fresh')}${go('gift', 'Packages', 'packages')}${go('chat', 'Messages', 'chatpage')}${go('info', 'About', 'about')}${go('sun', 'Display', 'display')}</div></section>`;
   }
   function drawGuest() {
     root().innerHTML = `<div class="pf-guest">${band(null, '', 'L')}
-      <section class="pf-card"><h3>Your orders, all in one place</h3><p class="pf-empty" style="text-align:left;margin:0 0 12px">Log in to see what’s waiting to be paid, what’s baking, and what’s ready — and get notified at every step.</p>
+      <section class="pf-card"><h3>Your orders, <em>all in one place</em></h3><p class="pf-empty" style="text-align:left;margin:0 0 12px">Log in to see what’s waiting to be paid, what’s baking, and what’s ready — and get notified at every step.</p>
         <div class="pf-guest-cta"><button type="button" class="is-primary" data-pf="login">Log in</button><button type="button" data-pf="register" style="border:1px solid #d9c9f0">Create account</button></div></section>
       ${explore()}</div>`;
   }
@@ -120,7 +120,7 @@
     const user = window.currentUser, name = profile.full_name || user.name || '', initials = (name || user.email || '?').slice(0, 2).toUpperCase();
     root().innerHTML = `${band(user, name, initials)}
       <div class="pf-cols"><div class="pf-col">${purchases()}${explore()}</div><div class="pf-col">
-      <form class="pf-card" data-pf-form id="pfAccount"><div class="pf-card-head"><h3>Account Details</h3><button type="button" class="pf-round" data-pf="edit" aria-label="${editing ? 'Cancel editing' : 'Edit account details'}" aria-pressed="${!!editing}">${icon(editing ? ICONS.x : ICONS.edit)}</button></div>
+      <form class="pf-card" data-pf-form id="pfAccount"><div class="pf-card-head"><h3>Account <em>details</em></h3><button type="button" class="pf-round" data-pf="edit" aria-label="${editing ? 'Cancel editing' : 'Edit account details'}" aria-pressed="${!!editing}">${icon(editing ? ICONS.x : ICONS.edit)}</button></div>
         ${row('user', 'Full name', profile.full_name, 'full_name')}
         <div class="pf-row pf-pass"><span class="pf-ic">${icon('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>')}</span><span class="pf-label">Password</span><span class="pf-value">••••••••</span><button type="button" class="pf-forgot" data-pf="pw" aria-expanded="${pwOpen}">${pwOpen ? 'Close' : 'Change'}</button></div>
         ${pwOpen ? `<div class="pf-pwform" data-pf-pwform>
@@ -138,7 +138,7 @@
         ${editing ? `<div class="pf-form-actions"><button type="button" class="pf-btn pf-btn--quiet" data-pf="edit">Cancel</button><button type="submit" class="pf-btn">${saving ? 'Saving…' : 'Save changes'}</button></div>` : ''}
         <p class="pf-error" role="alert" hidden></p>
       </form>
-      <section class="pf-card"><h3>Records</h3><div class="pf-actions">
+      <section class="pf-card"><h3>Your <em>records</em></h3><div class="pf-actions">
         ${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
       </div></section>
       <button type="button" class="pf-logout" data-pf="logout">Log out</button>
