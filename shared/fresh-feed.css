@@ -286,3 +286,6 @@
 .fresh-review.has-photo .fresh-review-quote{font-size:.94rem}
 .fresh-review-stars{display:flex;align-items:center;gap:8px}
 .fresh-review-stars b{color:#5c3d6e;font-size:.9rem}
+/* the owner's Show / Hide under a review: just the button (the site-wide footer style must not paint it dark) */
+footer.fresh-review-owner{background:none;color:inherit;padding:10px 0 0;justify-content:flex-start;border-top:0}
+.fresh-review-owner .fresh-btn{white-space:nowrap}

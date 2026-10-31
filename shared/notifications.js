@@ -17,7 +17,7 @@
     chev: '<path d="m9 6 6 6-6 6"/>', price: '<path d="M12 3v18M16 7H10a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8"/>'
   };
   const FILTERS = [['all', 'All'], ['orders', 'Orders'], ['payments', 'Payments'], ['promos', 'Promos'], ['posts', 'Posts']];
-  let items = [], dues = [], dueOpen = false, opened = new Set(), state = 'idle', filter = 'all', loadedFor = null, lastLoad = 0, timer = 0;
+  let items = [], dues = [], dueOpen = false, opened = new Set(), groupOpen = {}, state = 'idle', filter = 'all', loadedFor = null, lastLoad = 0, timer = 0;
 
   // ---- read state (per account, this browser) -----------------------------------------------
   const key = () => 'lexc_notif_' + (window.currentUser?.id || 'guest');
@@ -158,7 +158,12 @@
         body = `<div class="nt-empty"><span class="nt-ic" aria-hidden="true">${svg(I.bell)}</span><strong>${E[0]}</strong><p>${E[1]}</p></div>`;
       } else {
         const groups = []; for (const n of list) { const g = group(n.at); let box = groups.find((x) => x[0] === g); if (!box) groups.push(box = [g, []]); box[1].push(n); }
-        body = groups.map(([g, ns]) => `<h2 class="nt-group">${g}</h2><ul class="nt-list">${ns.map((n) => row(n, s)).join('')}</ul>`).join('');
+        // each day is a dropdown: the newest day starts open, older ones start closed (the choice is kept while browsing)
+        body = groups.map(([g, ns], i) => {
+          const isOpen = groupOpen[g] ?? i === 0, fresh = ns.filter((n) => isUnread(n, s)).length, id = 'nt-g-' + g.replace(/\W+/g, '-').toLowerCase();
+          return `<h2 class="nt-group-h"><button type="button" class="nt-group" data-nt-group="${esc(g)}" aria-expanded="${isOpen}" aria-controls="${id}"><span>${g}</span><small>${ns.length}${fresh ? ` · <b>${fresh} new</b>` : ''}</small>${svg(I.chev)}</button></h2>`
+            + (isOpen ? `<ul class="nt-list" id="${id}">${ns.map((n) => row(n, s)).join('')}</ul>` : '');
+        }).join('');
       }
     }
     r.innerHTML = head + guest + dueCard + `<div class="nt-body">${body}</div>`;
@@ -179,13 +184,14 @@
   }
 
   document.addEventListener('click', (event) => {
-    const t = event.target.closest?.('#notificationsRoot [data-nt],#notificationsRoot [data-nt-toggle],#notificationsRoot [data-nt-filter],#notificationsRoot [data-nt-all],#notificationsRoot [data-nt-retry],#notificationsRoot [data-nt-login],#notificationsRoot [data-nt-due]');
+    const t = event.target.closest?.('#notificationsRoot [data-nt],#notificationsRoot [data-nt-toggle],#notificationsRoot [data-nt-group],#notificationsRoot [data-nt-filter],#notificationsRoot [data-nt-all],#notificationsRoot [data-nt-retry],#notificationsRoot [data-nt-login],#notificationsRoot [data-nt-due]');
     if (!t) return;
     if (t.dataset.ntFilter) { filter = t.dataset.ntFilter; render(); return; }
     if ('ntDue' in t.dataset) { dueOpen = !dueOpen; render(); return; }
     if ('ntAll' in t.dataset) return markAll();
     if ('ntRetry' in t.dataset) return refresh(true);
     if ('ntLogin' in t.dataset) return window.navigate?.('login');
+    if (t.dataset.ntGroup) { const g = t.dataset.ntGroup; groupOpen[g] = t.getAttribute('aria-expanded') !== 'true'; return render(); }
     if (t.dataset.ntToggle) { const id = t.dataset.ntToggle; if (opened.has(id)) opened.delete(id); else { opened.add(id); markRead(id); paintBadges(); } return render(); }
     const n = items.find((x) => x.id === t.dataset.nt); if (n) open(n);
   });
