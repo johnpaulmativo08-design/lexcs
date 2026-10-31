@@ -355,8 +355,10 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const receipt=p.proof_storage_path?'<button type="button" data-proof="'+escapeHtml(p.id)+'">View receipt</button>':'';
     const order=o?row('Order','#'+o.order_number):'';
     if(m.message_type==='payment_verified'){
-      const next=balance===null?'':balance>0?'<div class="chat-proof-next"><span>Remaining balance <b>'+money(balance)+'</b></span>'+(!admin&&o.status!=='cancelled'?'<a href="'+payLink(o)+'">Pay the balance →</a>':'')+'</div>':'<div class="chat-proof-next is-done"><span>Order fully paid ✓</span></div>';
-      return '<div class="chat-proof is-received"><strong><span class="chat-proof-mark" aria-hidden="true">✓</span>Payment received · '+money(p.amount)+'</strong>'+row('For',KIND[p.payment_kind]||'')+order+row('Reference',p.transaction_reference||'—')+row('Received',when(p.verified_at||m.created_at))+next+receipt+'</div>';
+      // drawn like a paper receipt: amount on top, label/value lines, dashed rules, torn bottom edge
+      const line=(label,value)=>value?'<div><dt>'+escapeHtml(label)+'</dt><dd>'+escapeHtml(value)+'</dd></div>':'';
+      const total=balance===null?'':'<div class="chat-receipt-total"><span>'+(balance>0?'Remaining balance':'Order fully paid')+'</span><b>'+(balance>0?money(balance):'✓')+'</b></div>'+(balance>0&&!admin&&o.status!=='cancelled'?'<a class="chat-receipt-pay" href="'+payLink(o)+'">Pay the balance →</a>':'');
+      return '<div class="chat-receipt"><div class="chat-receipt-paper"><div class="chat-receipt-head"><span class="chat-receipt-mark" aria-hidden="true">✓</span><small>Payment received</small><strong>'+money(p.amount)+'</strong></div><dl>'+line('For',KIND[p.payment_kind]||'')+(o?line('Order','#'+o.order_number):'')+line('Reference',p.transaction_reference||'—')+line('Received',when(p.verified_at||m.created_at))+'</dl>'+total+'</div>'+(receipt?receipt.replace('<button ','<button class="chat-receipt-view" '):'')+'</div>';
     }
     if(m.message_type==='payment_rejected'){
       return '<div class="chat-proof is-rejected"><strong>Receipt not accepted · '+money(p.amount)+'</strong>'+row('For',KIND[p.payment_kind]||'')+order+row('Reference',p.transaction_reference||'—')+row('Reason',p.rejection_reason||'See the payment page.')+

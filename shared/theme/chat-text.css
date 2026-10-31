@@ -94,3 +94,23 @@ html[data-text] .chat-extra-fields input,html[data-text] .chat-extra-fields text
 html[data-text] .chat-pic small{font-size:0.6875rem}
 html[data-text] #chat-compose .chat-attach{font-size:1.1rem}
 html[data-text] .chat-pending button{font-size:0.875rem}
+html[data-text] .chat-proof .chat-proof-mark{font-size:.7rem}
+html[data-text] .chat-statuscard{font-size:.78rem}
+html[data-text] .chat-statuscard strong{font-size:.82rem}
+html[data-text] .chat-steps li{font-size:.68rem}
+html[data-text] .chat-thread-divider{font-size:.72rem}
+html[data-text] .chat-reply-in{font-size:.76rem}
+html[data-text] .chat-balance span{font-size:.74rem}
+html[data-text] .chat-balance strong{font-size:1.2rem}
+html[data-text] .chat-balance small{font-size:.72rem}
+html[data-text] .chat-balance.is-paid strong{font-size:1rem}
+html[data-text] .chat-page:not([data-admin-page]) #chat-compose button::before{font-size:.82rem}
+html[data-text] .chat-page:not([data-admin-page]) #chat-compose .chat-attach{font-size:0}
+html[data-text] .chat-page:not([data-admin-page]) #chat-compose button[type=submit]::before{font-size:1.2rem}
+html[data-text] .chat-progress{font-size:.66rem}
+html[data-text] .chat-receipt-paper{font-size:.78rem}
+html[data-text] .chat-receipt-mark{font-size:.8rem}
+html[data-text] .chat-receipt-head small{font-size:.72rem}
+html[data-text] .chat-receipt-head strong{font-size:1.35rem}
+html[data-text] .chat-receipt-total b{font-size:.92rem}
+html[data-text] .chat-receipt .chat-receipt-view{font-size:.76rem}
