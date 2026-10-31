@@ -307,6 +307,19 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     return '<h2>Order #'+escapeHtml(o.order_number)+'</h2>'+balanceBox+'<dl><dt>Customer</dt><dd>'+escapeHtml(o.customer_name)+'</dd><dt>Order status</dt><dd>'+escapeHtml(o.status)+'</dd><dt>Payment</dt><dd>'+escapeHtml(o.payment_status)+'</dd><dt>Total</dt><dd>'+(o.total_amount===null?'Waiting for quote':money(o.total_amount))+'</dd>'+(Number(o.vat_amount)>0?'<dt>VAT (in total)</dt><dd>'+money(o.vat_amount)+'</dd>':'')+'<dt>Downpayment due</dt><dd>'+(o.deposit_due===null?'Waiting for quote':money(o.deposit_due))+'</dd><dt>Verified paid</dt><dd>'+money(o.amount_paid)+'</dd><dt>Balance</dt><dd>'+(balance===null?'Waiting for quote':money(balance))+'</dd><dt>Fulfillment</dt><dd>'+escapeHtml(o.fulfillment_method)+'</dd><dt>Schedule</dt><dd>'+escapeHtml(stamp(o.receiving_start))+'</dd></dl>'+
       (admin?'<a class="chat-context-link" href="#orders/detail/'+escapeHtml(o.id)+'">Open full order</a>':'<a class="chat-context-link" href="../payment/index.html?order='+escapeHtml(o.id)+'">Open payment</a>');
   }
+  // where the order is now: Placed → Confirmed → Baking → Ready → Done (delivery orders also get the Lalamove card)
+  const PROGRESS=[['pending','Placed'],['confirmed','Confirmed'],['preparing','Baking'],['ready','Ready'],['completed','Done']];
+  function orderProgress(o){
+    if(o.status==='cancelled')return '<p class="chat-progress-cancelled">This order was cancelled.</p>';
+    const now=Math.max(0,PROGRESS.findIndex(([k])=>k===o.status)),pickup=o.fulfillment_method!=='lalamove';
+    return '<ol class="chat-progress" aria-label="Order progress">'+PROGRESS.map(([k,label],i)=>'<li class="'+(i<now||o.status==='completed'?'is-done':i===now?'is-now':'')+'"'+(i===now?' aria-current="step"':'')+'><span aria-hidden="true"></span>'+escapeHtml(k==='ready'?(pickup?'Ready for pickup':'Ready to ship'):label)+'</li>').join('')+'</ol>';
+  }
+  function orderDelivery(o){
+    if(o.fulfillment_method!=='lalamove'||o.status==='cancelled')return '';
+    const d=deliveries.find(row=>row.order_id===o.id);
+    if(d&&window.LexcDelivery)return window.LexcDelivery.card(d);
+    return ['ready','completed'].includes(o.status)?'<p class="chat-delivery-wait">LexC’s is booking your Lalamove rider. Tracking shows here as soon as the rider is on the way.</p>':'';
+  }
   function customerOrderCard(){
     if(admin||!selected?.order_id)return '';
     const o=orders.find(row=>row.id===selected.order_id);
@@ -317,7 +330,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     const paid=Number(o.amount_paid||0)>0;
     const state=o.status==='cancelled'?'Order cancelled':o.payment_status==='verification_pending'?'Proof awaiting verification':o.payment_status==='rejected'?'New proof needed':o.payment_status==='paid'||balance===0?'Payment verified':o.payment_status==='partially_paid'?'Downpayment paid':o.total_amount===null?'Waiting for a quote':'Payment needed';
     const stateClass=o.status==='cancelled'?'cancelled':o.payment_status==='verification_pending'?'pending':o.payment_status==='rejected'?'rejected':o.payment_status==='paid'||balance===0||o.payment_status==='partially_paid'?'paid':'due';
-    return '<section class="chat-order-card" aria-label="Order summary"><div class="chat-order-title"><strong>Order summary</strong><a href="'+paymentURL+'">View details</a></div><div class="chat-order-id">Order #'+escapeHtml(o.order_number)+' <span class="chat-status '+stateClass+'">'+escapeHtml(state)+'</span></div>'+
+    return '<section class="chat-order-card" aria-label="Order summary"><div class="chat-order-title"><strong>Order summary</strong><a href="'+paymentURL+'">View details</a></div><div class="chat-order-id">Order #'+escapeHtml(o.order_number)+' <span class="chat-status '+stateClass+'">'+escapeHtml(state)+'</span></div>'+orderProgress(o)+orderDelivery(o)+
       (items.length?'<div class="chat-order-items">'+items.map(item=>{const path=products.find(product=>product.id===item.product_id)?.image_path;return '<div><span class="chat-product-icon" aria-hidden="true">'+(path?'<img src="'+escapeHtml(db.mediaURL(path))+'" alt="">':'🧁')+'</span><span><strong>'+escapeHtml(item.name_snapshot)+'</strong><small>'+escapeHtml(item.variant_label_snapshot)+' · Qty '+item.quantity+'</small></span><b>'+money(item.line_total)+'</b></div>';}).join('')+'</div>':'')+
       '<dl><dt>Order total</dt><dd>'+(o.total_amount===null?'To be confirmed':money(o.total_amount))+'</dd><dt>Required downpayment</dt><dd>'+(o.deposit_due===null?'To be confirmed':money(o.deposit_due))+'</dd><dt>Verified paid</dt><dd>'+money(o.amount_paid)+'</dd><dt>Remaining balance</dt><dd>'+(balance===null?'To be confirmed':money(balance))+'</dd></dl>'+
       (o.status!=='cancelled'&&o.total_amount!==null&&balance>0&&o.payment_status!=='verification_pending'?'<div class="chat-payment-tip"><strong>Before sending</strong><p>The QR may not fill in the amount. Check the recipient and enter the exact amount shown on the payment page in your banking app.</p></div>':'')+
