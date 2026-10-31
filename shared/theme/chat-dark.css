@@ -204,6 +204,62 @@ html[data-theme=dark] #chat-compose .chat-attach:hover:not(:disabled){background
 html[data-theme=dark] .chat-pending{background:#1b141f;border-top:1px solid #3d304e}
 html[data-theme=dark] .chat-pending figure,html[data-theme=dark] .lcw-thread .chat-pending figure{border:1px solid #413254}
 html[data-theme=dark] .chat-pending button{background:rgba(36,26,56,.75);color:#fff}
+html[data-theme=dark] .chat-thread header .chat-archive{background:#231a28;color:#a194d1}
+html[data-theme=dark] .chat-thread header .chat-archive:hover:not(:disabled){background:#231c32}
+html[data-theme=dark] .chat-proof span b{color:#c3b5de}
+html[data-theme=dark] .chat-proof .chat-proof-mark{background:#1f8a5b;color:#fff}
+html[data-theme=dark] .chat-proof.is-received{border-color:#326046!important;background:#211925!important}
+html[data-theme=dark] .chat-proof.is-received strong{color:#b6e4ce}
+html[data-theme=dark] .chat-proof.is-rejected{border-color:#64323d!important;background:#1e1722!important}
+html[data-theme=dark] .chat-proof.is-rejected strong{color:#d79eab}
+html[data-theme=dark] .chat-proof-next{background:#1b141f;border:1px solid #3b2e4b}
+html[data-theme=dark] .chat-proof-next.is-done{background:#271e2d;border-color:#366149;color:#b6e4ce}
+html[data-theme=dark] .chat-proof-next a,html[data-theme=dark] .chat-status-link{color:#b5a0d7}
+html[data-theme=dark] .chat-statuscard{border:1px solid #402e54;background:#1d1621}
+html[data-theme=dark] .chat-statuscard strong{color:#c3b5de}
+html[data-theme=dark] .chat-statuscard.is-cancelled{border-color:#64323d;background:#1e1722}
+html[data-theme=dark] .chat-statuscard.is-cancelled strong{color:#d79eab}
+html[data-theme=dark] .chat-steps li{border-top:3px solid #3e3050;color:#bab4c6}
+html[data-theme=dark] .chat-steps li.is-done{border-color:#462e72;color:#b3a6ca}
+html[data-theme=dark] .chat-steps li.is-now{border-color:#7551aa;color:#c3b5de}
+html[data-theme=dark] .chat-thread-divider{color:#bab4c6}
+html[data-theme=dark] .chat-thread-divider::before,html[data-theme=dark] .chat-thread-divider::after{background:#2a2136}
+html[data-theme=dark] .chat-reply-in{color:#b4aac7}
+html[data-theme=dark] .chat-reply-in select{border:1px solid #46355f;background:#1b141f;color:#c3b5de}
+html[data-theme=dark] .chat-balance{border:1px solid #6b552c;background:#292319}
+html[data-theme=dark] .chat-balance span{color:#e0ccac}
+html[data-theme=dark] .chat-balance strong{color:#e4d2b7}
+html[data-theme=dark] .chat-balance small{color:#d5c3a8}
+html[data-theme=dark] .chat-balance.is-paid{border-color:#326046;background:#221a26}
+html[data-theme=dark] .chat-balance.is-paid span{color:#aed9c2}
+html[data-theme=dark] .chat-balance.is-paid strong{color:#b6e4ce}
+html[data-theme=dark] .chat-page:not([data-admin-page]) #chat-back{color:#e0cbe5}
+html[data-theme=dark] .chat-page:not([data-admin-page]) #chat-compose button{background:#2b1530;border-color:#2b1530}
+html[data-theme=dark] .chat-page:not([data-admin-page]) #chat-compose button:hover:not(:disabled){background:#563a8a;border-color:#563a8a}
+html[data-theme=dark] .chat-page:not([data-admin-page]) #chat-compose .chat-attach{color:#e0cbe5}
+html[data-theme=dark] .chat-page:not([data-admin-page]) #chat-compose .chat-attach:hover:not(:disabled){background:#261d2c}
+html[data-theme=dark] .chat-page:not([data-admin-page]) #chat-compose button[type=submit]::before{color:#e0cbe5}
+html[data-theme=dark] .chat-page:not([data-admin-page]) #chat-compose button[type=submit]:hover:not(:disabled){background:#261d2c}
+html[data-theme=dark] .chat-progress{color:#b9b3c6}
+html[data-theme=dark] .chat-progress li span{background:#282036}
+html[data-theme=dark] .chat-progress li:not(:first-child) span::before{background:#282036}
+html[data-theme=dark] .chat-progress li.is-done{color:#e0cbe5}
+html[data-theme=dark] .chat-progress li.is-done span,html[data-theme=dark] .chat-progress li.is-done span::before{background:#2b1530}
+html[data-theme=dark] .chat-progress li.is-now{color:#e0cbe5}
+html[data-theme=dark] .chat-progress li.is-now span{background:#1b141f;box-shadow:0 0 0 3px #2b1530}
+html[data-theme=dark] .chat-progress li.is-now span::before{background:#2b1530}
+html[data-theme=dark] .chat-progress-cancelled{background:#221a26;color:#daadad}
+html[data-theme=dark] .chat-delivery-wait{background:#221a27;color:#b8b1ca}
+html[data-theme=dark] .chat-receipt-paper{background:#1b141f;color:#e0cbe5}
+html[data-theme=dark] .chat-receipt-head{border-bottom:1.5px dashed #4a385b}
+html[data-theme=dark] .chat-receipt-mark{background:#1f8a5b;color:#fff}
+html[data-theme=dark] .chat-receipt-head small{color:#bbafc5}
+html[data-theme=dark] .chat-receipt-head strong{color:#e0cbe5}
+html[data-theme=dark] .chat-receipt dt{color:#bbafc5}
+html[data-theme=dark] .chat-receipt dd{color:#e0cbe5}
+html[data-theme=dark] .chat-receipt-total{border-top:1.5px dashed #4a385b;color:#e0cbe5}
+html[data-theme=dark] .chat-receipt-pay{color:#b5a0d7}
+html[data-theme=dark] .chat-receipt .chat-receipt-view{color:#b5a0d7}
 /* shared/motion.css */
 html[data-theme=dark] .mo-done{background:#1f8a5b!important;border-color:#1f8a5b!important;color:#fff!important}
 html[data-theme=dark] .mo-toast{background:#2b1d40;color:#fff;box-shadow:0 10px 28px rgba(40,20,60,.28)}

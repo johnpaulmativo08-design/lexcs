@@ -286,3 +286,20 @@ body.chat-page:not([data-admin-page]){font-family:'Plus Jakarta Sans',system-ui,
 .chat-progress-cancelled{margin:2px 0 12px;padding:8px 10px;border-radius:10px;background:#fdf1f1;color:#7c2d2d;font-weight:700}
 .chat-delivery-wait{margin:0 0 12px;padding:9px 11px;border-radius:10px;background:#f6f1fb;color:#5f5674;line-height:1.45}
 .chat-order-card .lx-dlv{margin:0 0 12px}
+/* "Payment received" drawn like a paper receipt: plain white slip, dashed rules, torn bottom edge */
+.chat-receipt{display:grid;gap:8px;margin:10px 0 2px;filter:drop-shadow(0 2px 6px #2b153014)}
+.chat-receipt-paper{padding:16px 16px 22px;background:#fff;color:#2b1530;font-size:.78rem;-webkit-mask:radial-gradient(6px at 50% 100%,#0000 98%,#000) 50% 100%/12px 100% repeat-x;mask:radial-gradient(6px at 50% 100%,#0000 98%,#000) 50% 100%/12px 100% repeat-x}
+.chat-receipt-head{display:grid;justify-items:center;gap:2px;padding-bottom:12px;border-bottom:1.5px dashed #ddd3e6;text-align:center}
+.chat-receipt-mark{display:grid;place-items:center;width:26px;height:26px;margin-bottom:4px;border-radius:50%;background:#1f8a5b;color:#fff;font-size:.8rem;font-weight:800}
+.chat-receipt-head small{color:#6f6378;font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.chat-receipt-head strong{color:#2b1530;font-size:1.35rem;font-weight:800;letter-spacing:-.01em}
+.chat-receipt dl{display:grid;gap:7px;margin:12px 0}
+.chat-receipt dl div{display:flex;justify-content:space-between;gap:12px}
+.chat-receipt dt{color:#6f6378}
+.chat-receipt dd{margin:0;color:#2b1530;font-weight:600;text-align:right;overflow-wrap:anywhere}
+.chat-receipt-total{display:flex;justify-content:space-between;gap:12px;padding-top:11px;border-top:1.5px dashed #ddd3e6;color:#2b1530;font-weight:700}
+.chat-receipt-total b{font-size:.92rem}
+.chat-receipt-pay{display:inline-block;margin-top:9px;color:#5d349e;font-weight:700;text-decoration:none}
+.chat-receipt-pay:hover{text-decoration:underline}
+.chat-receipt .chat-receipt-view{justify-self:start;padding:6px 0;border:0;background:none;color:#5d349e;font:inherit;font-size:.76rem;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.chat-receipt .chat-receipt-view:disabled{opacity:.6;cursor:progress}
