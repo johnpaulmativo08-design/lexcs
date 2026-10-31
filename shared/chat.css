@@ -275,3 +275,14 @@ body.chat-page:not([data-admin-page]){font-family:'Plus Jakarta Sans',system-ui,
 .chat-page:not([data-admin-page]) #chat-compose button[type=submit]{background:transparent;border-color:transparent;border-radius:8px}
 .chat-page:not([data-admin-page]) #chat-compose button[type=submit]::before{color:#2b1530;font-size:1.2rem}
 .chat-page:not([data-admin-page]) #chat-compose button[type=submit]:hover:not(:disabled){background:#f3edf6;border-color:transparent}
+/* customer order summary: where the order is now, and the Lalamove card for deliveries */
+.chat-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:4px 0 12px;padding:0;list-style:none;font-size:.66rem;font-weight:700;color:#9a8fb0;text-align:center}
+.chat-progress li{display:grid;justify-items:center;gap:6px;line-height:1.2}
+.chat-progress li span{position:relative;width:12px;height:12px;border-radius:50%;background:#e7def5}
+.chat-progress li:not(:first-child) span::before{content:"";position:absolute;right:12px;top:5px;width:calc((100cqw / 5) - 12px);min-width:20px;height:2px;background:#e7def5}
+.chat-progress{container-type:inline-size}
+.chat-progress li.is-done{color:#2b1530}.chat-progress li.is-done span,.chat-progress li.is-done span::before{background:#2b1530}
+.chat-progress li.is-now{color:#2b1530}.chat-progress li.is-now span{background:#fff;box-shadow:0 0 0 3px #2b1530}.chat-progress li.is-now span::before{background:#2b1530}
+.chat-progress-cancelled{margin:2px 0 12px;padding:8px 10px;border-radius:10px;background:#fdf1f1;color:#7c2d2d;font-weight:700}
+.chat-delivery-wait{margin:0 0 12px;padding:9px 11px;border-radius:10px;background:#f6f1fb;color:#5f5674;line-height:1.45}
+.chat-order-card .lx-dlv{margin:0 0 12px}
