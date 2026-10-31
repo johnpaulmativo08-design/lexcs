@@ -47,9 +47,10 @@ function draw(box,o,d){
  if(locked||early)return;
  const form=box.querySelector('form'),status=box.querySelector('.dlv-status'),hint=box.querySelector('[data-link-hint]'),open=box.querySelector('[data-open]');
  const say=(text,bad)=>{status.textContent=text;status.classList.toggle('is-error',!!bad);};
- const checkLink=()=>{const v=form.elements.tracking_url.value.trim();
-  if(!v){hint.textContent='';open.hidden=true;return true;}
-  if(!/^https:\/\/\S+$/.test(v)){hint.textContent='Paste the full link that starts with https://';hint.className='dlv-hint is-error';open.hidden=true;return false;}
+ const linkBox=form.elements.tracking_url,mark=bad=>{linkBox.classList.toggle('is-invalid',bad);linkBox.setAttribute('aria-invalid',bad?'true':'false');};
+ const checkLink=(required)=>{const v=linkBox.value.trim();mark(false);
+  if(!v){open.hidden=true;if(required){hint.textContent='Paste the Lalamove tracking link first. The customer follows the rider with it.';hint.className='dlv-hint is-error';mark(true);return false;}hint.textContent='';return true;}
+  if(!/^https:\/\/\S+$/.test(v)){hint.textContent='Paste the full link that starts with https://';hint.className='dlv-hint is-error';open.hidden=true;mark(true);return false;}
   hint.textContent=isLalamove(v)?'Lalamove link ✓ — the customer gets a “Track live” button':'This is not a lalamove.com link. Double-check it before saving.';hint.className='dlv-hint'+(isLalamove(v)?' is-ok':' is-warn');open.href=v;open.hidden=false;return true;};
  checkLink();
  form.addEventListener('input',event=>{if(event.target.name==='tracking_url')checkLink();say('Unsaved changes');});
@@ -57,7 +58,7 @@ function draw(box,o,d){
  box.querySelector('[data-paste]').onclick=async()=>{try{const text=(await navigator.clipboard.readText()).trim();const link=(text.match(/https:\/\/\S+/)||[text])[0];form.elements.tracking_url.value=link;checkLink();say('Unsaved changes');}catch{say('Your browser blocked pasting. Long-press the box and paste instead.',true);form.elements.tracking_url.focus();}};
  const details=()=>{const f=form.elements,get=n=>f[n].value.trim();return {tracking_url:get('tracking_url'),booking_ref:get('booking_ref'),rider_name:get('rider_name'),rider_phone:get('rider_phone'),plate_number:get('plate_number'),fee_charged:get('fee_charged'),note:get('note'),failure_reason:get('failure_reason')};};
  const save=async(nextStep,button)=>{
-  if(!checkLink()){form.elements.tracking_url.focus();return;}
+  if(!checkLink(nextStep!=='failed')){say('The tracking link is required.',true);linkBox.focus();return;}
   if(!phoneOk(form.elements.rider_phone.value.trim())){say('Check the rider phone number (digits only).',true);form.elements.rider_phone.focus();return;}
   const body=details();if(nextStep)body.step=nextStep;else if(!d)body.step='booked';
   const buttons=box.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);button?.classList.add('is-busy');say('Saving…');
