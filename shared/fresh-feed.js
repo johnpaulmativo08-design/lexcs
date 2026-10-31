@@ -210,7 +210,7 @@
       <div class="fresh-review-stars">${stars(rating)}<b>${rating.toFixed(1)}</b></div>
       ${r.review_text ? `<blockquote class="fresh-review-quote${long ? ' is-clamped' : ''}"><p>${esc(r.review_text)}</p></blockquote>${long ? '<button type="button" class="fresh-review-more-btn" data-review-more>Read more</button>' : ''}` : ''}
       ${items.length ? `<div class="fresh-review-items"><span class="fresh-review-label">What they ordered</span>${items.slice(0, 2).map(itemRow).join('')}${items.length > 2 ? `<small class="fresh-review-more">+${items.length - 2} more item${items.length - 2 === 1 ? '' : 's'}</small>` : ''}</div>` : ''}
-      ${owner ? `<footer class="fresh-review-owner"><button type="button" class="fresh-btn${hidden ? ' fresh-btn--primary' : ''}" data-review-toggle="${esc(r.id)}" aria-label="${hidden ? 'Show this review on the site' : 'Hide this review from customers'}">${hidden ? 'Show' : 'Hide'}</button></footer>` : ''}
+      ${owner ? `<footer class="fresh-review-owner"><button type="button" class="fresh-btn${hidden ? ' fresh-btn--primary' : ''}" data-review-toggle="${esc(r.id)}" aria-label="${hidden ? 'Post this review on the site' : 'Hide this review from customers'}">${hidden ? 'Post' : 'Hide'}</button></footer>` : ''}
     </article>`;
   }
   async function hydrateReviewPhotos() {
@@ -278,7 +278,7 @@
       r.visibility = next;
       const card = grid.querySelector(`[data-review="${CSS.escape(id)}"]`);
       if (card) card.outerHTML = reviewHtml(r);
-      showToast(next === 'visible' ? 'Review is now shown on the site.' : 'Review hidden from customers.');
+      showToast(next === 'visible' ? 'Review posted on the site.' : 'Review hidden from customers.');
     } catch (error) { console.warn('Review update failed:', error); showToast(friendlyError(error, 'Could not update the review. Try again.')); button.disabled = false; }
   }
 
