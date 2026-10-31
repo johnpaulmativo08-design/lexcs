@@ -174,11 +174,31 @@
   if ('ResizeObserver' in window) new ResizeObserver(() => { if (page.classList.contains('active')) relayout(); }).observe(grid);
   else window.addEventListener('resize', relayout);
 
+  // "All" also shows reviews that are posted on the site, in date order with the posts. Each page of posts takes the
+  // reviews newer than its last post; the last page takes the rest.
+  const reviewAt = (r) => Date.parse(r.created_at) || 0, postAt = (p) => Date.parse(p.published_at || p.updated_at) || 0;
+  function withReviews(posts, lastPage) {
+    const queue = state.allReviews || [];
+    if (!queue.length) return posts;
+    const cutoff = lastPage || !posts.length ? -Infinity : postAt(posts[posts.length - 1]);
+    const take = []; while (queue.length && reviewAt(queue[0]) >= cutoff) take.push(queue.shift());
+    state.reviewsShown = (state.reviewsShown || 0) + take.length;
+    return [...posts, ...take.map((r) => ({ review: r, at: reviewAt(r) }))].sort((a, b) => (b.review ? b.at : postAt(b)) - (a.review ? a.at : postAt(a)));
+  }
   function append(posts) {
-    const html = posts.map((p) => `<div class="fresh-cell">${cardHtml(p)}</div>`).join('');
+    const html = posts.map((p) => `<div class="fresh-cell">${p.review ? reviewHtml(p.review) : cardHtml(p)}</div>`).join('');
     grid.insertAdjacentHTML('beforeend', html);
     grid.style.setProperty('--fresh-cols', columns());
     grid.querySelectorAll('.fresh-cell:not([data-sized])').forEach((cell) => { cell.dataset.sized = '1'; sizeCell(cell); cardObserver?.observe(cell.firstElementChild); });
+    if (posts.some((p) => p.review)) {
+      hydrateReviewPhotos();
+      const token = state.token;   // product names and photos on review cards come from the menu
+      if (window.lexcCatalogState !== 'ready') whenCatalogReady(() => {
+        if (token !== state.token) return;
+        grid.querySelectorAll('[data-review]').forEach((card) => { const r = state.reviews?.get(card.dataset.review); if (r) card.outerHTML = reviewHtml(r); });
+        hydrateReviewPhotos(); grid.querySelectorAll('.fresh-cell').forEach(sizeCell);
+      });
+    }
   }
   // Reviews tab: approved reviews for customers; the owner sees every review and can show or hide it.
   const stars = (n) => `<span class="fresh-stars" role="img" aria-label="${n} out of 5 stars">${'★'.repeat(n)}<span>${'★'.repeat(5 - n)}</span></span>`;
@@ -234,17 +254,19 @@
     if (!prod) { showToast('This treat is not available to order right now.'); return; }
     goToProduct(prod);
   }
+  // get_review_feed (phase 42) adds what was ordered; older databases fall back to the plain review list.
+  async function fetchReviews(includeHidden) {
+    try { return await LexcBackend.rpc('get_review_feed', { include_hidden: includeHidden }); }
+    catch (error) {
+      if (!/get_review_feed|PGRST202|42883/i.test(`${error?.code} ${error?.message}`)) throw error;
+      return includeHidden
+        ? LexcBackend.unwrap(await client().from('reviews').select('id,rating,review_text,public_display_name,visibility,created_at').order('created_at', { ascending: false }))
+        : await LexcBackend.rpc('get_public_reviews', {});
+    }
+  }
   async function loadReviews(token) {
     try {
-      // get_review_feed (phase 42) adds what was ordered; older databases fall back to the plain review list.
-      let rows;
-      try { rows = await LexcBackend.rpc('get_review_feed', { include_hidden: state.owner }); }
-      catch (error) {
-        if (!/get_review_feed|PGRST202|42883/i.test(`${error?.code} ${error?.message}`)) throw error;
-        rows = state.owner
-          ? LexcBackend.unwrap(await client().from('reviews').select('id,rating,review_text,public_display_name,visibility,created_at').order('created_at', { ascending: false }))
-          : await LexcBackend.rpc('get_public_reviews', {});
-      }
+      const rows = await fetchReviews(state.owner);
       if (token !== state.token) return;
       state.reviews = new Map((rows || []).map((r) => [r.id, r]));
       grid.innerHTML = '';
@@ -295,7 +317,7 @@
       status.innerHTML = `<div role="alert"><strong>${state.kind === 'reviews' ? 'Reviews could not load.' : first ? 'Posts could not load.' : 'More posts could not load.'}</strong><p>Check your connection and try again.</p></div><button type="button" class="fresh-btn" data-retry>Try again</button>`;
       return;
     }
-    if (!state.items.length && !state.loading) {
+    if (!state.items.length && !state.reviewsShown && !state.loading) {
       let title, text, action;
       if (state.kind === 'reviews') { [title, text] = EMPTY.reviews; status.innerHTML = `<strong>${title}</strong><p>${text}</p>`; return; }
       if (state.mode === 'drafts') [title, text] = ['No drafts', 'Posts you save as drafts wait here until you publish them.'];
@@ -326,7 +348,7 @@
   async function load(reset) {
     const token = reset ? ++state.token : state.token;
     if (reset) {
-      Object.assign(state, { items: [], cursor: null, done: false, error: false, loading: true });
+      Object.assign(state, { items: [], cursor: null, done: false, error: false, loading: true, allReviews: [], reviewsShown: 0 });
       state.byId.clear(); skeleton();
       if (state.kind === 'reviews') return loadReviews(token);
     } else {
@@ -339,6 +361,13 @@
         const pending = await client().from('store_posts').select('id').eq('status', 'published').not('pending_revision', 'is', null);
         state.pendingIds = new Set((pending.data || []).map((r) => r.id));
       }
+      // first page of "All" (live): fetch the posted reviews once, to mix in by date
+      if (reset && state.kind === 'all' && state.mode === 'live') {
+        try {
+          const reviews = ((await fetchReviews(false)) || []).filter((r) => (r.visibility || 'visible') === 'visible').sort((a, b) => reviewAt(b) - reviewAt(a));
+          state.allReviews = reviews; state.reviews = new Map(reviews.map((r) => [r.id, r]));
+        } catch (error) { console.info('Reviews skipped in All:', error?.message || error); state.allReviews = []; }
+      }
       const rows = (await fetchPage()) || [];
       await sign(rows.flatMap((r) => [r.media_kind === 'video' ? r.poster_path : r.media_path]));
       if (token !== state.token) return;
@@ -350,7 +379,7 @@
       state.cursor = last ? { at: last.published_at, id: last.id } : state.cursor;
       state.done = rows.length < PAGE_SIZE;
       state.loading = false;
-      append(posts);
+      append(state.kind === 'all' && state.mode === 'live' ? withReviews(posts, state.done) : posts);
     } catch (error) {
       if (token !== state.token) return;
       console.warn('Fresh feed could not load:', error);
