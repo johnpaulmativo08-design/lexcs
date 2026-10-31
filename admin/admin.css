@@ -663,11 +663,10 @@ main .operations-dashboard .ops-row{border-bottom:0;border-radius:14px;padding:1
 main .operations-dashboard .ops-row:hover{background:#f7f4fd}
 main .operations-dashboard .status-indicator{border-color:transparent}
 main .operations-dashboard .ops-heading .button{border:0;background:#fff;box-shadow:var(--dash-card-shadow)}
-/* "Needs you now": borderless tiles; a warning or alert is told by a soft tint, not an outline */
+/* "Needs you now": borderless plain white tiles; a warning or alert is told by the icon colour only */
 main .operations-dashboard .dash-action{border:0;border-radius:22px;box-shadow:var(--dash-card-shadow)}
 main .operations-dashboard .dash-action:hover{box-shadow:0 2px 4px rgba(46,34,90,.05),0 16px 36px rgba(46,34,90,.10)}
-main .operations-dashboard .dash-action.is-warning{background:linear-gradient(135deg,#fff 30%,#fff5e6)}
-main .operations-dashboard .dash-action.is-danger{background:linear-gradient(135deg,#fff 30%,#ffeef1)}
+main .operations-dashboard .dash-action.is-warning,main .operations-dashboard .dash-action.is-danger{background:#fff}
 main .operations-dashboard .dash-action-go{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;background:#f6f3fb}
 /* "Today": four separate tiles instead of one box split by lines */
 main .operations-dashboard .dash-today{gap:16px;background:transparent;box-shadow:none;border-radius:0;overflow:visible}
