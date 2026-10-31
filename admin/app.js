@@ -1,8 +1,8 @@
-import { renderDashboard } from './pages/dashboard.js?v=17';
+import { renderDashboard } from './pages/dashboard.js?v=18';
 import { renderProducts } from './pages/products.js?v=13';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=35';
 import { renderReports } from './pages/reports.js?v=19';
-import { renderOrders } from './pages/orders.js?v=44';
+import { renderOrders } from './pages/orders.js?v=45';
 import { renderBookings } from './pages/bookings.js?v=13';
 import { renderDesignOptions } from './pages/design-options.js?v=12';
 import { renderProfile } from './pages/profile.js?v=13';

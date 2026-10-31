@@ -1,4 +1,4 @@
-import { renderOperations } from '../dashboard-view.js?v=17';
+import { renderOperations } from '../dashboard-view.js?v=18';
 
 export async function renderDashboard(content) {
   await renderOperations(content);

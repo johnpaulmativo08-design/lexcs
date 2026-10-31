@@ -757,3 +757,64 @@ main .operations-dashboard .cap-pop{border:0;box-shadow:0 18px 44px rgba(46,34,9
 .order-dialog .order-pin figcaption a:hover{text-decoration:underline}
 /* Lalamove card: a missing or broken tracking link */
 .dlv-field input.is-invalid{border-color:#d9768a!important;box-shadow:0 0 0 3px #fbe4e9!important}
+
+/* ---- Solid status marks (image-5 style): the colour sits in the icon itself, never in a box behind it ---- */
+.glyph{display:block;flex:none;width:22px;height:22px}
+.glyph-ok{fill:#1f8a5b}.glyph-warn{fill:#f0a020}.glyph-info{fill:#6f53bc}.glyph-stop{fill:#d33a4f}
+.line-icon{display:block;flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---- Order details card (minimal): no boxes, no shadows; small labels, plain values, thin rules, dot timeline ---- */
+.od{--od-ink:#1d1530;--od-muted:#6b6080;--od-faint:#9a90ad;--od-line:#f0ebf6;--od-accent:#6f53bc;color:var(--od-ink);margin:2px 0 10px}
+.od-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 40px;align-items:start}
+.od-col{display:grid;gap:26px;min-width:0}
+.od-sec h3,.od-time header .od-chip{margin:0 0 10px;color:var(--od-faint);font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.od-sec h3{display:block}
+.od-num,.od-row .line-icon,.od-note .line-icon,.od-time header i{display:none}
+.od-row,.od-note{display:block;padding:5px 0}
+.od-row div,.od-note div{display:grid;gap:0;min-width:0}
+.od-row small,.od-note small,.od-due small{color:var(--od-faint);font-size:12px;font-weight:500}
+.od-row span{color:var(--od-ink);font-size:14.5px;font-weight:600;overflow-wrap:anywhere}
+.od-row a{color:var(--od-ink);font-weight:600;text-decoration:underline;text-decoration-color:#d6cbe9;text-underline-offset:3px}
+.od-note p{margin:0;color:var(--od-muted);font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.od .order-pin{margin:6px 0 4px;border:0;border-radius:12px;background:#faf8fc}
+.od .order-pin iframe{height:160px}
+.od .order-pin figcaption{padding:7px 2px 0;background:#fff;font-size:12px}
+.od .order-pin figcaption a{color:var(--od-ink);text-decoration:underline;text-decoration-color:#d6cbe9;text-underline-offset:3px}
+.od-sum{display:grid;gap:7px;margin:0 0 12px}
+.od-sum div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.od-sum dt{color:var(--od-muted);font-size:14px;font-weight:500}
+.od-sum dd{display:grid;justify-items:end;margin:0;color:var(--od-ink);font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.od-sum dd small{color:var(--od-faint);font-size:11.5px;font-weight:500}
+.od-due{display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--od-line)}
+.od-due .glyph{width:20px;height:20px}
+.od-due div{display:grid;gap:0}
+.od-due strong{color:var(--od-ink);font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums}
+.od-due em{color:var(--od-faint);font-size:12px;font-style:normal;font-weight:500}
+.od-time header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.od-time header .od-chip{padding:0;background:none;box-shadow:none;margin:0}
+.od-pill{display:inline-flex;align-items:center;gap:5px;padding:0;background:none;color:var(--od-muted);font-size:12.5px;font-weight:600}
+.od-pill .glyph{width:14px;height:14px}.od-pill.is-ok,.od-pill.is-stop{background:none;color:var(--od-muted)}
+.od-time ol{margin:0;padding:0;list-style:none}
+.od-time li{position:relative;display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:12px;align-items:start;padding:6px 0}
+.od-time li:not(:last-child)::after{content:"";position:absolute;left:6.5px;top:22px;bottom:-8px;border-left:1px solid #e9e3f1}
+.od-time li.is-done:not(:last-child)::after{border-color:#cbbdf0}
+.od-step-ic{display:block;width:9px;height:9px;margin:5px 0 0 2.5px;border:1.5px solid #d6cfe2;border-radius:50%;background:#fff}
+.od-step-ic .line-icon{display:none}
+.od-time li.is-done .od-step-ic{border-color:var(--od-accent);background:var(--od-accent)}
+.od-time li.is-now .od-step-ic{width:11px;height:11px;margin:4px 0 0 1.5px;border:0;background:var(--od-accent);box-shadow:0 0 0 4px #ece6fb}
+.od-time li div{display:grid;gap:0}
+.od-time b{color:#b2a9c2;font-size:14px;font-weight:600}
+.od-time li.is-done b,.od-time li.is-now b{color:var(--od-ink)}
+.od-time li.is-now b{font-weight:700}
+.od-time li small{color:var(--od-faint);font-size:12px;font-weight:500}
+.od-time time{padding-top:2px;color:var(--od-faint);font-size:11.5px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:760px){.od-grid{grid-template-columns:1fr}.od-col{gap:22px}.od-grid>.od-col+.od-col{padding-top:22px;border-top:1px solid var(--od-line)}}
+@media(max-width:420px){.od-time li{grid-template-columns:14px minmax(0,1fr)}.od-time time{grid-column:2;padding:0}}
+
+/* ---- Dashboard: icons without boxes, one ink colour for every number ---- */
+main .operations-dashboard .dash-action-icon,main .operations-dashboard .dash-action.is-warning .dash-action-icon,main .operations-dashboard .dash-action.is-danger .dash-action-icon{width:auto;height:auto;border-radius:0;background:none}
+main .operations-dashboard .dash-action-icon .glyph{width:38px;height:38px}
+main .operations-dashboard .dash-action-title,main .operations-dashboard .dash-stat span{color:#6b6080;font-size:13.5px;font-weight:600}
+main .operations-dashboard .dash-action-body strong,main .operations-dashboard .dash-action.is-clear strong,main .operations-dashboard .dash-stat strong{color:#1d1530;font-size:30px;font-weight:800;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+main .operations-dashboard .dash-action-body small,main .operations-dashboard .dash-stat small{color:#9a90ad;font-size:12.5px;font-weight:500}
+main .operations-dashboard .ops-row .dash-balance{color:#1d1530;font-size:15.5px;font-variant-numeric:tabular-nums}

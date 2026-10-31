@@ -6,16 +6,48 @@ import {orderDeliverySection,mountOrderDelivery} from './order-delivery.js?v=4';
 import {designDetails} from '../design-details.js?v=1';
 import {openDesignViewer} from '../design-viewer.js?v=2';
 import {ask} from '../../shared/ask.js?v=1';
+import {glyph,line} from '../glyphs.js?v=1';
 
 // The spot the customer pinned at checkout (saved in the address as a Google Maps link): a small OpenStreetMap preview.
 const pinMap=address=>{const m=String(address||'').match(/https:\/\/maps\.google\.com\/\?q=(-?[0-9.]+),(-?[0-9.]+)/);if(!m)return '';const lat=+m[1],lng=+m[2],d=.004;
  return '<figure class="order-pin"><iframe title="Delivery pin on the map" referrerpolicy="no-referrer" src="https://www.openstreetmap.org/export/embed.html?bbox='+(lng-d)+'%2C'+(lat-d)+'%2C'+(lng+d)+'%2C'+(lat+d)+'&amp;layer=mapnik&amp;marker='+lat+'%2C'+lng+'"></iframe><figcaption><span>Customer’s pin · '+lat.toFixed(5)+', '+lng.toFixed(5)+'</span><a href="'+e(m[0])+'" target="_blank" rel="noopener">Open in Google Maps</a></figcaption></figure>';};
 
-// What the customer still has to pay on an order (shown in the order details and the chat's order panel).
-const balanceCard=o=>{
- if(o.total_amount===null||o.status==='cancelled')return '';
- const left=Math.max(0,Number(o.total_amount)-Number(o.amount_paid||0));
- return left>0?'<div class="balance-card"><span>Remaining balance to be paid by the customer</span><strong>'+money(left)+'</strong><small>'+money(o.amount_paid)+' of '+money(o.total_amount)+' verified'+(o.payment_status==='verification_pending'?' · a payment proof is waiting to be checked':'')+'</small></div>':'<div class="balance-card is-paid"><span>Payment</span><strong>Fully paid ✓</strong><small>'+money(o.amount_paid)+' verified</small></div>';
+// Order details card: numbered sections (customer, pickup or delivery, payment) and a status timeline.
+const when=(value,opts)=>value?new Date(value).toLocaleString('en-PH',{timeZone:'Asia/Manila',...opts}):'';
+const longDate=value=>when(value,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+const row=(iconName,label,value)=>value?'<div class="od-row">'+line(iconName)+'<div><small>'+e(label)+'</small><span>'+value+'</span></div></div>':'';
+const section=(n,title,body,extra='')=>'<section class="od-sec'+extra+'"><h3><span class="od-num">'+n+'</span>'+e(title)+'</h3>'+body+'</section>';
+// What the customer still has to pay; amounts are the server's (total, verified paid), never recomputed from items.
+const paymentSection=o=>{
+ const pending=o.total_amount===null,left=pending?null:Math.max(0,Number(o.total_amount)-Number(o.amount_paid||0)),waiting=o.payment_status==='verification_pending';
+ const sum=(label,value)=>'<div><dt>'+e(label)+'</dt><dd>'+value+'</dd></div>';
+ const lines='<dl class="od-sum">'+sum('Order total',pending?'Pending quote':money(o.total_amount)+(Number(o.vat_amount)>0?'<small>incl. VAT '+money(o.vat_amount)+'</small>':''))+sum('Downpayment required',o.deposit_due===null?'Pending quote':money(o.deposit_due))+sum('Verified paid',money(o.amount_paid))+'</dl>';
+ const due=o.status==='cancelled'?'<div class="od-due">'+glyph('stop')+'<div><small>Order cancelled</small><strong>'+money(o.amount_paid)+' was verified</strong></div></div>'
+  :pending?'<div class="od-due">'+glyph('info')+'<div><small>Balance</small><strong>Set after the quote</strong></div></div>'
+  :left>0?'<div class="od-due">'+glyph(waiting?'info':'warn')+'<div><small>Balance to collect</small><strong>'+money(left)+'</strong>'+(waiting?'<em>A payment proof is waiting to be checked</em>':'')+'</div></div>'
+  :'<div class="od-due">'+glyph('ok')+'<div><small>Payment</small><strong>Fully paid</strong></div></div>';
+ return lines+due;
+};
+const STEPS=[['pending','Order placed','bag'],['confirmed','Confirmed','check'],['preparing','Baking','cake'],['ready','Ready','box'],['completed','Completed','done']];
+const timeline=o=>{
+ const cancelled=o.status==='cancelled',now=STEPS.findIndex(([k])=>k===o.status),pickup=o.fulfillment_method!=='lalamove';
+ const pill=cancelled?'<span class="od-pill is-stop">'+glyph('stop')+'Cancelled</span>':o.status==='completed'?'<span class="od-pill is-ok">'+glyph('ok')+'Completed</span>':'<span class="od-pill">'+glyph('info')+'In progress</span>';
+ const note={pending:'Waiting for you to confirm',confirmed:'Customer can pay now',preparing:'Ingredients taken from stock',ready:pickup?'Ready for pickup':'Ready to ship by Lalamove',completed:'Handed over and paid'};
+ const past={pending:'Sent by the customer',confirmed:'You approved the order',preparing:'Made in the kitchen',ready:pickup?'Was ready for pickup':'Handed to the rider'};
+ const steps=STEPS.map(([k,label,ic],i)=>{const state=cancelled?(i===0?'is-done':''):i<now||o.status==='completed'?'is-done':i===now?'is-now':'';
+  const at=i===0?longDate(o.created_at):i===now&&!cancelled&&o.updated_at?longDate(o.updated_at):'';
+  return '<li class="'+state+'"'+(state==='is-now'?' aria-current="step"':'')+'><span class="od-step-ic">'+line(k==='ready'&&!pickup?'truck':ic)+'</span><div><b>'+e(label)+'</b><small>'+e(state==='is-done'&&past[k]?past[k]:state?note[k]:k==='ready'?(pickup?'Ready for pickup':'Ready to ship'):'Not yet')+'</small></div>'+(at?'<time>'+e(at)+'</time>':'')+'</li>';}).join('');
+ return '<section class="od-time"><header><span class="od-chip">Timeline</span><i aria-hidden="true"></i>'+pill+'</header><ol>'+steps+'</ol></section>';
+};
+const orderCard=o=>{
+ const pickup=o.fulfillment_method!=='lalamove',addr=String(o.address||'');
+ const addressText=e(addr.replace(/\n?Map pin: https:\/\/maps\.google\.com\/\?q=-?[0-9.]+,-?[0-9.]+/,'').trim()).replace(/\n/g,'<br>');
+ const phone=o.contact_phone?'<a href="tel:'+e(String(o.contact_phone).replace(/[^\d+]/g,''))+'">'+e(o.contact_phone)+'</a>':'';
+ return '<div class="od">'+
+  '<div class="od-grid"><div class="od-col">'+
+   section(1,'Customer',row('user','Name',e(o.customer_name))+row('phone','Contact number',phone)+row('calendar','Ordered',e(longDate(o.created_at))))+
+   section(2,pickup?'Store pickup':'Lalamove delivery',row('calendar',pickup?'Pickup':'Deliver on',e(when(o.receiving_start,{weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})))+(pickup?'':row('pin','Address',addressText||'—')+pinMap(addr))+(o.notes?'<div class="od-note">'+line('note')+'<div><small>Note from the customer</small><p>'+e(o.notes)+'</p></div></div>':''))+
+  '</div><div class="od-col">'+section(3,'Payment',paymentSection(o),' od-pay')+timeline(o)+'</div></div></div>';
 };
 export async function renderOrders(content){
  content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders and payments.</p></div></header>'+loadingTable(['Order','Customer','Ordered','Total','Payment','Status','Due date','Action']);
@@ -47,7 +79,7 @@ export async function renderOrders(content){
    // the Lalamove fee step is off for now (phase 52): the customer pays the rider directly
    const canQuote=false&&o.fulfillment_method==='lalamove'&&o.status!=='cancelled'&&Number(o.amount_paid||0)===0&&o.payment_status!=='verification_pending';
    const quoteForm=canQuote?'<form id="delivery-quote"><label class="form-field">Delivery fee (₱)<input name="fee" type="number" min="0" max="99999" step="0.01" required value="'+e(o.delivery_fee??'')+'"></label><button class="button" type="submit">'+(o.delivery_fee_status==='quoted'?'Update delivery quote':'Set delivery quote')+'</button></form>':'';
-   const dialog=showDetails('Order #'+o.order_number,'<p><strong>Ordered:</strong> '+e(new Date(o.created_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}))+' · <strong>Due:</strong> '+e(new Date(o.receiving_start).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}))+'</p><p>'+e(o.customer_name)+' · '+e(o.contact_phone)+'</p><p class="order-address">'+e(o.address).replace(/https:\/\/maps\.google\.com\/\?q=-?[0-9.]+,-?[0-9.]+/,u=>'<a href="'+u+'" target="_blank" rel="noopener">Open map pin</a>').replace(/\n/g,'<br>')+'</p>'+pinMap(o.address)+'<p>'+e(o.notes)+'</p><p><strong>Total:</strong> '+(o.total_amount===null?'Pending quote':money(o.total_amount))+(Number(o.vat_amount)>0?' (incl. VAT '+money(o.vat_amount)+')':'')+' · <strong>Required:</strong> '+(o.deposit_due===null?'Pending quote':money(o.deposit_due))+' · <strong>Verified paid:</strong> '+money(o.amount_paid)+'</p>'+balanceCard(o)+'<div class="order-status-actions order-status-actions--top" data-actions>'+next.map(s=>'<button class="button'+(s==='confirmed'?' button--primary':'')+'" data-status="'+s+'"'+(s==='preparing'&&!['partially_paid','paid'].includes(o.payment_status)?' disabled title="Verify the payment first"':'')+'>'+(s==='confirmed'?'Confirm order':s==='cancelled'?'Cancel order':s==='preparing'?'Start making':'Mark '+s)+'</button>').join('')+'</div><p role="alert"></p>'+orderDeliverySection(o)+quoteForm+(o.status==='pending'?'<p class="notice">The customer can pay only after you confirm this order. They then choose the downpayment ('+(o.deposit_due===null?'after the delivery fee':money(o.deposit_due))+') or the full amount ('+(o.total_amount===null?'after the delivery fee':money(o.total_amount))+').'+(o.total_amount===null?' Set the delivery fee first.':'')+'</p>':'')+'<ul>'+o.order_items.map((i,n)=>'<li>'+e(i.name_snapshot)+' · '+e(i.variant_label_snapshot)+' × '+i.quantity+' · '+money(i.line_total)+(i.customization?designDetails(i.customization):'')+(['bento','cupcake','donut','cakepop'].includes(i.customization?.designer)?'<button class="button button--primary" data-view-3d="'+n+'">View in 3D</button> ':'')+((i.inspiration_paths||[]).length?'<p class="order-inspiration"><strong>Customer’s inspiration:</strong> '+i.inspiration_paths.map((p,k)=>'<button class="button" data-reference="'+e(p)+'">Photo '+(k+1)+'</button>').join(' ')+'</p>':'')+(i.reference_image_path?'<button class="button" data-reference="'+e(i.reference_image_path)+'">'+(['bento','cupcake','donut','cakepop'].includes(i.customization?.designer)?'View design picture':'View private reference')+'</button>':'')+'</li>').join('')+'</ul>'+'<details class="order-inv-drop"><summary>Inventory consumption <small>materials for this order</small></summary>'+orderInventorySection()+'</details>',b,{footer:false});
+   const dialog=showDetails('Order #'+o.order_number,orderCard(o)+'<div class="order-status-actions order-status-actions--top" data-actions>'+next.map(s=>'<button class="button'+(s==='confirmed'?' button--primary':'')+'" data-status="'+s+'"'+(s==='preparing'&&!['partially_paid','paid'].includes(o.payment_status)?' disabled title="Verify the payment first"':'')+'>'+(s==='confirmed'?'Confirm order':s==='cancelled'?'Cancel order':s==='preparing'?'Start making':'Mark '+s)+'</button>').join('')+'</div><p role="alert"></p>'+orderDeliverySection(o)+quoteForm+(o.status==='pending'?'<p class="notice">The customer can pay only after you confirm this order. They then choose the downpayment ('+(o.deposit_due===null?'after the delivery fee':money(o.deposit_due))+') or the full amount ('+(o.total_amount===null?'after the delivery fee':money(o.total_amount))+').'+(o.total_amount===null?' Set the delivery fee first.':'')+'</p>':'')+'<ul>'+o.order_items.map((i,n)=>'<li>'+e(i.name_snapshot)+' · '+e(i.variant_label_snapshot)+' × '+i.quantity+' · '+money(i.line_total)+(i.customization?designDetails(i.customization):'')+(['bento','cupcake','donut','cakepop'].includes(i.customization?.designer)?'<button class="button button--primary" data-view-3d="'+n+'">View in 3D</button> ':'')+((i.inspiration_paths||[]).length?'<p class="order-inspiration"><strong>Customer’s inspiration:</strong> '+i.inspiration_paths.map((p,k)=>'<button class="button" data-reference="'+e(p)+'">Photo '+(k+1)+'</button>').join(' ')+'</p>':'')+(i.reference_image_path?'<button class="button" data-reference="'+e(i.reference_image_path)+'">'+(['bento','cupcake','donut','cakepop'].includes(i.customization?.designer)?'View design picture':'View private reference')+'</button>':'')+'</li>').join('')+'</ul>'+'<details class="order-inv-drop"><summary>Inventory consumption <small>materials for this order</small></summary>'+orderInventorySection()+'</details>',b,{footer:false});
    dialog.classList.add('order-dialog');
    mountOrderInventory(dialog,o,{onChanged:()=>{}});
    mountOrderDelivery(dialog,o);
