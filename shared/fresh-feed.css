@@ -289,3 +289,4 @@
 /* the owner's Show / Hide under a review: just the button (the site-wide footer style must not paint it dark) */
 footer.fresh-review-owner{background:none;color:inherit;padding:10px 0 0;justify-content:flex-start;border-top:0}
 .fresh-review-owner .fresh-btn{white-space:nowrap}
+.fresh-review.is-owner[data-review-first]{cursor:default}.fresh-review.is-owner[data-review-first]:hover{transform:none}

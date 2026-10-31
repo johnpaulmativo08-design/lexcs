@@ -201,7 +201,7 @@
     };
     const name = (r.public_display_name || 'Customer').trim();
     const long = (r.review_text || '').length > 220;
-    return `<article class="fresh-review${owner && hidden ? ' is-hidden' : ''}${r.image_path ? ' has-photo' : ''}" data-review="${esc(r.id)}"${items[0]?.product_id ? ` data-review-first="${esc(items[0].product_id)}"` : ''}>
+    return `<article class="fresh-review${owner ? ' is-owner' : ''}${owner && hidden ? ' is-hidden' : ''}${r.image_path ? ' has-photo' : ''}" data-review="${esc(r.id)}"${items[0]?.product_id ? ` data-review-first="${esc(items[0].product_id)}"` : ''}>
       <header class="fresh-review-head">
         <span class="fresh-review-avatar" aria-hidden="true">${esc(name.charAt(0).toUpperCase())}</span>
         <span class="fresh-review-who"><strong>${esc(name)}</strong><small>${icon('check', 'ui-icon fresh-review-check')}Verified order · ${esc(reviewDate(r.created_at))}</small></span>
@@ -269,7 +269,7 @@
     state.loading = false; state.loaded = true; renderStatus();
   }
   async function toggleReview(id, button) {
-    const r = state.reviews?.get(id); if (!r || !state.owner) return;
+    const r = state.reviews?.get(id); if (!r || !state.owner || button.disabled) return;
     const next = r.visibility === 'visible' ? 'hidden' : 'visible';
     button.disabled = true;
     try {
@@ -395,8 +395,11 @@
     const photo = t.closest('[data-review-photo]');
     if (photo) { const src = photo.querySelector('img')?.getAttribute('src'); if (src) window.open(src, '_blank', 'noopener'); return; }
     const reviewToggle = t.closest('[data-review-toggle]'); if (reviewToggle) return toggleReview(reviewToggle.dataset.reviewToggle, reviewToggle);
+    // a tap in the Post / Hide row (even on the button while it is saving and disabled) never opens the product
+    if (t.closest('.fresh-review-owner')) return;
     const reviewProduct = t.closest('[data-review-product]'); if (reviewProduct) return openReviewProduct(reviewProduct.dataset.reviewProduct);
-    const reviewCard = t.closest('[data-review-first]'); if (reviewCard && !t.closest('a,button')) return openReviewProduct(reviewCard.dataset.reviewFirst);
+    // customers can tap anywhere on a review to see the treat; LexC's moderates here, so only "What they ordered" opens it
+    const reviewCard = t.closest('[data-review-first]'); if (reviewCard && !state.owner && !t.closest('a,button')) return openReviewProduct(reviewCard.dataset.reviewFirst);
     const open = t.closest('[data-open]'); if (open) return openViewer(state.byId.get(open.dataset.open), open);
     if (t.closest('[data-retry]')) return load(!state.items.length);
     if (t.closest('[data-more]')) return load(false);
