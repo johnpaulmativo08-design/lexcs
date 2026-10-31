@@ -268,3 +268,15 @@ html[data-theme=dark] .pf-forgot{color:#f3e9f7}
 .pf-action:last-child{border-bottom:0}
 .pf-action:hover{background:#faf7fc}
 html[data-theme=dark] .pf-action{background:transparent}
+/* day groups are dropdowns: label · count · new, chevron turns down when open */
+.nt-group-h{margin:14px 0 6px}
+.nt-group{display:flex;align-items:center;gap:10px;width:100%;margin:0;padding:10px 6px;border:0;border-radius:10px;background:transparent;text-align:left;cursor:pointer;color:var(--lx-violet)}
+.nt-group:hover{background:#f6f1f9}
+.nt-group>span{flex:none}
+.nt-group small{flex:1;letter-spacing:0;text-transform:none;font:600 .78rem var(--lx-sans);color:var(--lx-muted)}
+.nt-group small b{color:#c9628f;font-weight:800}
+.nt-group svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .2s ease}
+.nt-group[aria-expanded="true"] svg{transform:rotate(90deg)}
+.nt-group:focus-visible{outline:2px solid #7a52c7;outline-offset:1px}
+@media(prefers-reduced-motion:reduce){.nt-group svg{transition:none}}
+html[data-theme=dark] .nt-group:hover{background:rgba(255,255,255,.05)}
