@@ -11,7 +11,7 @@ export async function mountChatWidget({admin=false}={}){
   if(!trigger||trigger.dataset.mounted)return;
   trigger.dataset.mounted='true';
   const root=document.createElement('div');root.id=admin?'admin-chat-ui':'customer-chat-ui';root.className='lexc-chat-ui';document.body.append(root);
-  let identity=null,adminOnStore=false,conversations=[],orders=[],deliveries=[],profiles=[],latest=[],unreadRows=[],drawer=false,filter='all',search='',popupIds=[],minimized=new Set(),expanded=false,threads=new Map(),drafts=new Map(),scrollPositions=new Map(),sending=new Set(),error='',loading=true,unsub=null,fallback=null,request=0,connecting=null;
+  let identity=null,adminOnStore=false,conversations=[],orders=[],deliveries=[],payments=[],profiles=[],latest=[],unreadRows=[],drawer=false,filter='all',search='',popupIds=[],minimized=new Set(),expanded=false,threads=new Map(),drafts=new Map(),scrollPositions=new Map(),sending=new Set(),error='',loading=true,unsub=null,fallback=null,request=0,connecting=null;
   const current=()=>admin?(mobile()?popupIds.at(-1):null):popupIds[0];
   const conversation=id=>conversations.find(c=>c.id===id);
   const order=c=>orders.find(o=>o.id===c?.order_id);
@@ -26,14 +26,17 @@ export async function mountChatWidget({admin=false}={}){
     const token=++request;
     const rows=await Promise.all([
       db.client.from('chat_conversations').select('id,customer_id,order_id,state,updated_at').order('updated_at',{ascending:false}).limit(200).then(db.unwrap),
-      admin?db.client.from('orders').select('id,order_number,customer_name').order('created_at',{ascending:false}).limit(300).then(db.unwrap):db.client.from('orders').select('id,order_number,status,fulfillment_method').order('created_at',{ascending:false}).limit(100).then(db.unwrap).catch(()=>[]),
+      admin?db.client.from('orders').select('id,order_number,customer_name').order('created_at',{ascending:false}).limit(300).then(db.unwrap):db.client.from('orders').select('id,order_number,status,fulfillment_method,total_amount,amount_paid').order('created_at',{ascending:false}).limit(100).then(db.unwrap).catch(()=>[]),
       admin?db.client.from('profiles').select('id,full_name').limit(500).then(db.unwrap):Promise.resolve([]),
       db.client.from('chat_messages').select('conversation_id,body,created_at,sender_type').order('created_at',{ascending:false}).limit(800).then(db.unwrap),
       (admin?db.client.from('chat_messages').select('id,conversation_id,sender_type,read_at').is('read_at',null).eq('sender_type','customer'):db.client.from('chat_messages').select('id,conversation_id,sender_type,read_at').is('read_at',null).neq('sender_type','customer')).limit(2000).then(db.unwrap)
     ]);
     if(token!==request)return;
     [conversations,orders,profiles,latest,unreadRows]=rows;loading=false;
-    if(!admin){const ids=orders.filter(o=>o.fulfillment_method==='lalamove').map(o=>o.id);deliveries=ids.length?await db.client.from('order_deliveries').select('*').in('order_id',ids).then(db.unwrap).catch(()=>[]):[];if(token!==request)return;}
+    if(!admin){const ids=orders.filter(o=>o.fulfillment_method==='lalamove').map(o=>o.id),all=orders.map(o=>o.id);
+      [deliveries,payments]=await Promise.all([ids.length?db.client.from('order_deliveries').select('*').in('order_id',ids).then(db.unwrap).catch(()=>[]):[],
+        all.length?db.client.from('order_payment_attempts').select('id,order_id,amount,status,payment_kind,transaction_reference,verified_at,rejection_reason').in('order_id',all).then(db.unwrap).catch(()=>[]):[]]);
+      if(token!==request)return;}
     if(!admin&&!popupIds.length){const c=conversations.find(c=>!c.order_id)||conversations[0];if(c)popupIds=[c.id];}
     badge();draw();
     await Promise.all(popupIds.filter(active).map(id=>loadThread(id)));
@@ -53,11 +56,23 @@ export async function mountChatWidget({admin=false}={}){
   function eventHTML(m){
     const o=orders.find(x=>x.id===(m.order_id||conversation(m.conversation_id)?.order_id));if(!o||admin)return '';
     if(m.message_type==='delivery_update'&&window.LexcDelivery){const d=deliveries.find(x=>x.order_id===o.id);return d?window.LexcDelivery.card(d,{compact:true,step:m.attachments?.step}):'';}
+    const p=payments.find(x=>x.id===m.payment_id);
+    if(p&&['payment_proof','payment_verified','payment_rejected'].includes(m.message_type))return payHTML(m,p,o);
     if(m.message_type!=='status_update')return '';
     const said=/confirmed your order/i.test(m.body)?'confirmed':(String(m.body).match(/changed to ([a-z ]+)\./i)||[])[1]?.trim().replaceAll(' ','_').toLowerCase();if(!said)return '';
     if(said==='cancelled')return `<div class="chat-statuscard is-cancelled"><strong>Order #${esc(o.order_number)} · Cancelled</strong></div>`;
     const at=STEPS.findIndex(([k])=>k===said);if(at<0)return '';
     return `<div class="chat-statuscard"><strong>Order #${esc(o.order_number)} · ${esc(STEPS[at][1])}</strong><ol class="chat-steps">${STEPS.map(([,label],i)=>`<li class="${i<at?'is-done':i===at?'is-now':''}">${esc(label)}</li>`).join('')}</ol></div>`;
+  }
+  // payments as small receipts: received (with what is left to pay), being checked, or not accepted
+  const peso=v=>'₱'+Number(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const KIND={downpayment:'Downpayment',full:'Full payment',balance:'Remaining balance'};
+  function payHTML(m,p,o){
+    const line=(k,v)=>v?`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`:'';
+    const left=o.total_amount==null?null:Math.max(0,Number(o.total_amount)-Number(o.amount_paid||0));
+    const head=m.message_type==='payment_verified'?['is-ok','✓','Payment received']:m.message_type==='payment_rejected'?['is-bad','!','Receipt not accepted']:['is-wait','…','Payment being checked'];
+    return `<div class="lcw-pay ${head[0]}"><p><span aria-hidden="true">${head[1]}</span>${head[2]}<b>${peso(p.amount)}</b></p><dl>${line('For',KIND[p.payment_kind]||'')}${line('Order','#'+o.order_number)}${line('Reference',p.transaction_reference||'—')}${m.message_type==='payment_rejected'?line('Reason',p.rejection_reason||'See the payment page.'):''}</dl>`+
+      (m.message_type==='payment_verified'&&left!=null?`<p class="lcw-pay-left">${left>0?`Remaining balance <b>${peso(left)}</b>`:'Order fully paid ✓'}</p>`:'')+'</div>';
   }
   // customers see all their chats in one thread; a line with the order number marks where an order's messages start
   const divider=(m,prev)=>{if(admin||prev?.conversation_id===m.conversation_id)return '';const o=order(conversation(m.conversation_id));return o?`<p class="lcw-divider"><span>Order #${esc(o.order_number)}</span></p>`:prev?'<p class="lcw-divider"><span>General</span></p>':'';};
