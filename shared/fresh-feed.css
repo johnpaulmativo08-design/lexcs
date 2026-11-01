@@ -290,3 +290,18 @@
 footer.fresh-review-owner{background:none;color:inherit;padding:10px 0 0;justify-content:flex-start;border-top:0}
 .fresh-review-owner .fresh-btn{white-space:nowrap}
 .fresh-review.is-owner[data-review-first]{cursor:default}.fresh-review.is-owner[data-review-first]:hover{transform:none}
+/* Phones: a review takes the whole row (one review per row, like a store's review list) instead of a narrow column */
+@media (max-width:640px){
+  .fresh-grid{grid-auto-flow:row dense}
+  .fresh-grid>.fresh-cell:has(>.fresh-review){grid-column:1/-1}
+  .fresh-review{gap:10px!important;padding:14px 14px 12px!important;border-radius:16px!important}
+  .fresh-review-head .fresh-review-avatar{width:34px;height:34px;font-size:.9rem}
+  .fresh-review-who strong{font-size:.92rem}
+  .fresh-review-who small{font-size:.74rem}
+  .fresh-review-stars{gap:6px}.fresh-review .fresh-stars{font-size:.95rem;letter-spacing:1px}
+  .fresh-review-quote{padding-left:0;font-size:.93rem;line-height:1.55}.fresh-review-quote::before{display:none}
+  .fresh-review-more-btn{margin-left:0}
+  .fresh-review-photo{width:min(62%,240px);aspect-ratio:1/1;border-radius:12px}
+  .fresh-review-items{padding:8px;gap:6px}
+  .fresh-review-item{padding:4px}
+}
