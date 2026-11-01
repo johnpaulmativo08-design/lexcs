@@ -122,3 +122,16 @@ body[data-customer-page=bento] #customer-chat-toggle,body[data-customer-page=cup
 /* send is a bare plum arrow, no circle */
 .lcw-compose button[type=submit]{background:transparent;border-color:transparent;border-radius:8px;color:#2b1530;font-size:1.2rem}
 .lcw-compose button[type=submit]:hover:not(:disabled){background:#f3edf6;border-color:transparent}
+
+/* Customer chat: order updates as small cards (status steps, Lalamove rider) and a line where each order's messages start */
+.lcw-divider{display:flex;align-items:center;gap:10px;margin:14px 0 6px;color:#9a8fae;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.lcw-divider::before,.lcw-divider::after{content:"";flex:1;border-top:1px solid #ece4f6}
+.lcw-message>div:has(.chat-statuscard),.lcw-message>div:has(.lx-dlv){width:85%;text-align:left}
+.lcw-message .chat-statuscard{display:grid;gap:8px;margin:8px 0 2px;padding:10px 11px;border:1px solid #ece4f6;border-radius:12px;background:#fff;font-size:.76rem}
+.lcw-message .chat-statuscard strong{color:#2b1530;font-size:.8rem}
+.lcw-message .chat-statuscard.is-cancelled strong{color:#a3324b}
+.lcw-message .chat-steps{display:flex;gap:3px;margin:0;padding:0;list-style:none}
+.lcw-message .chat-steps li{flex:1 1 auto;min-width:0;padding-top:5px;border-top:3px solid #ece4f6;color:#9a8fae;font-size:.6rem;letter-spacing:-.01em;text-align:center;overflow:hidden;text-overflow:clip;white-space:nowrap}
+.lcw-message .chat-steps li.is-done{border-color:#c5b3e8;color:#6a5490}
+.lcw-message .chat-steps li.is-now{border-color:#6f53bc;color:#2b1530;font-weight:700}
+.lcw-message .lx-dlv{margin:8px 0 2px}

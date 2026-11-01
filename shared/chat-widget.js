@@ -11,7 +11,7 @@ export async function mountChatWidget({admin=false}={}){
   if(!trigger||trigger.dataset.mounted)return;
   trigger.dataset.mounted='true';
   const root=document.createElement('div');root.id=admin?'admin-chat-ui':'customer-chat-ui';root.className='lexc-chat-ui';document.body.append(root);
-  let identity=null,adminOnStore=false,conversations=[],orders=[],profiles=[],latest=[],unreadRows=[],drawer=false,filter='all',search='',popupIds=[],minimized=new Set(),expanded=false,threads=new Map(),drafts=new Map(),scrollPositions=new Map(),sending=new Set(),error='',loading=true,unsub=null,fallback=null,request=0,connecting=null;
+  let identity=null,adminOnStore=false,conversations=[],orders=[],deliveries=[],profiles=[],latest=[],unreadRows=[],drawer=false,filter='all',search='',popupIds=[],minimized=new Set(),expanded=false,threads=new Map(),drafts=new Map(),scrollPositions=new Map(),sending=new Set(),error='',loading=true,unsub=null,fallback=null,request=0,connecting=null;
   const current=()=>admin?(mobile()?popupIds.at(-1):null):popupIds[0];
   const conversation=id=>conversations.find(c=>c.id===id);
   const order=c=>orders.find(o=>o.id===c?.order_id);
@@ -26,27 +26,42 @@ export async function mountChatWidget({admin=false}={}){
     const token=++request;
     const rows=await Promise.all([
       db.client.from('chat_conversations').select('id,customer_id,order_id,state,updated_at').order('updated_at',{ascending:false}).limit(200).then(db.unwrap),
-      admin?db.client.from('orders').select('id,order_number,customer_name').order('created_at',{ascending:false}).limit(300).then(db.unwrap):Promise.resolve([]),
+      admin?db.client.from('orders').select('id,order_number,customer_name').order('created_at',{ascending:false}).limit(300).then(db.unwrap):db.client.from('orders').select('id,order_number,status,fulfillment_method').order('created_at',{ascending:false}).limit(100).then(db.unwrap).catch(()=>[]),
       admin?db.client.from('profiles').select('id,full_name').limit(500).then(db.unwrap):Promise.resolve([]),
       db.client.from('chat_messages').select('conversation_id,body,created_at,sender_type').order('created_at',{ascending:false}).limit(800).then(db.unwrap),
       (admin?db.client.from('chat_messages').select('id,conversation_id,sender_type,read_at').is('read_at',null).eq('sender_type','customer'):db.client.from('chat_messages').select('id,conversation_id,sender_type,read_at').is('read_at',null).neq('sender_type','customer')).limit(2000).then(db.unwrap)
     ]);
     if(token!==request)return;
     [conversations,orders,profiles,latest,unreadRows]=rows;loading=false;
+    if(!admin){const ids=orders.filter(o=>o.fulfillment_method==='lalamove').map(o=>o.id);deliveries=ids.length?await db.client.from('order_deliveries').select('*').in('order_id',ids).then(db.unwrap).catch(()=>[]):[];if(token!==request)return;}
     if(!admin&&!popupIds.length){const c=conversations.find(c=>!c.order_id)||conversations[0];if(c)popupIds=[c.id];}
     badge();draw();
     await Promise.all(popupIds.filter(active).map(id=>loadThread(id)));
   }
   async function loadThread(id){
     if(!conversation(id))return;
-    const reader=identity?.id,rows=await readChatThread(id);if(identity?.id!==reader)return;threads.set(id,rows);
+    const reader=identity?.id,ids=admin?[id]:[id,...conversations.filter(c=>c.id!==id).map(c=>c.id)].slice(0,12);
+    const rows=(await Promise.all(ids.map(readChatThread))).flat().sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at));if(identity?.id!==reader)return;threads.set(id,rows);
     if(active(id)){
-      try{await markChatRead(rows,{admin});unreadRows=unreadRows.filter(m=>m.conversation_id!==id);}catch(err){console.warn('Chat read state:',err);}
+      try{await markChatRead(rows,{admin});unreadRows=unreadRows.filter(m=>!rows.some(r=>r.conversation_id===m.conversation_id));}catch(err){console.warn('Chat read state:',err);}
     }
     badge();draw();
   }
   function capture(){root.querySelectorAll('[data-compose]').forEach(form=>{drafts.set(form.dataset.compose,form.elements.body.value);});root.querySelectorAll('[data-stream]').forEach(stream=>{scrollPositions.set(stream.dataset.stream,stream.scrollHeight-stream.clientHeight-stream.scrollTop<24?null:stream.scrollTop);});}
-  function messageView(id){if(!threads.has(id))return messageSkeleton();const rows=threads.get(id)||[];return rows.length?rows.map(m=>`<div data-mid="${esc(m.id)}" class="lcw-message ${esc(m.sender_type)} ${m.sender_type===(admin?'admin':'customer')?'mine':''}"><div>${esc(m.body)}${designCardHTML(m)}<time>${time(m.created_at)}</time></div></div>`).join(''):'<p class="lcw-empty">No messages yet. Send a message to start the conversation.</p>';}
+  // order updates as small cards: where the order is now, and the Lalamove rider (same look as the chat page)
+  const STEPS=[['pending','Placed'],['confirmed','Confirmed'],['preparing','Baking'],['ready','Ready'],['completed','Done']];
+  function eventHTML(m){
+    const o=orders.find(x=>x.id===(m.order_id||conversation(m.conversation_id)?.order_id));if(!o||admin)return '';
+    if(m.message_type==='delivery_update'&&window.LexcDelivery){const d=deliveries.find(x=>x.order_id===o.id);return d?window.LexcDelivery.card(d,{compact:true,step:m.attachments?.step}):'';}
+    if(m.message_type!=='status_update')return '';
+    const said=/confirmed your order/i.test(m.body)?'confirmed':(String(m.body).match(/changed to ([a-z ]+)\./i)||[])[1]?.trim().replaceAll(' ','_').toLowerCase();if(!said)return '';
+    if(said==='cancelled')return `<div class="chat-statuscard is-cancelled"><strong>Order #${esc(o.order_number)} · Cancelled</strong></div>`;
+    const at=STEPS.findIndex(([k])=>k===said);if(at<0)return '';
+    return `<div class="chat-statuscard"><strong>Order #${esc(o.order_number)} · ${esc(STEPS[at][1])}</strong><ol class="chat-steps">${STEPS.map(([,label],i)=>`<li class="${i<at?'is-done':i===at?'is-now':''}">${esc(label)}</li>`).join('')}</ol></div>`;
+  }
+  // customers see all their chats in one thread; a line with the order number marks where an order's messages start
+  const divider=(m,prev)=>{if(admin||prev?.conversation_id===m.conversation_id)return '';const o=order(conversation(m.conversation_id));return o?`<p class="lcw-divider"><span>Order #${esc(o.order_number)}</span></p>`:prev?'<p class="lcw-divider"><span>General</span></p>':'';};
+  function messageView(id){if(!threads.has(id))return messageSkeleton();const rows=threads.get(id)||[];return rows.length?rows.map((m,i)=>`${divider(m,rows[i-1])}<div data-mid="${esc(m.id)}" class="lcw-message ${esc(m.sender_type)} ${m.sender_type===(admin?'admin':'customer')?'mine':''}"><div>${esc(m.body)}${designCardHTML(m)}${eventHTML(m)}<time>${time(m.created_at)}</time></div></div>`).join(''):'<p class="lcw-empty">No messages yet. Send a message to start the conversation.</p>';}
   // customers can add up to 4 pictures to a message (phase 55); they wait here until Send
   const pictures=new Map(),pendingFor=id=>{if(!pictures.has(id))pictures.set(id,[]);return pictures.get(id);};
   function composer(id){const pending=pendingFor(id);return `${pendingPicturesHTML(pending,id)}<form class="lcw-compose" data-compose="${esc(id)}">${`<input type="file" data-pick="${esc(id)}" accept="image/jpeg,image/png,image/webp" multiple hidden><button type="button" class="lcw-attach" data-action="attach" data-id="${esc(id)}" aria-label="Add a picture" title="Add a picture (up to ${CHAT_PICTURE_MAX})" ${pending.length>=CHAT_PICTURE_MAX?'disabled':''}><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14"/><path d="M3 16l5-5 4 4 3-3 6 6"/><path d="M15.5 9h.01"/></svg></button>`}<label class="lcw-sr" for="lcw-text-${esc(id)}">Message</label><textarea id="lcw-text-${esc(id)}" name="body" rows="1" maxlength="3000" placeholder="${admin?'Reply to customer…':pending.length?'Add a message (optional)…':'Message LexC’s Admin…'}">${esc(drafts.get(id)||'')}</textarea><button type="submit" aria-label="Send message" ${sending.has(id)?'disabled':''}>➤</button></form>`;}
