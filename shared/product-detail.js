@@ -70,8 +70,11 @@
   // Discounts (phase 75): sizes carry today's price, the full price (regular) and the sale, if any.
   const saleText = (s) => s?.sale ? (s.sale.type === 'percent' ? `−${Number(s.sale.value)}%` : `₱${Number(s.sale.value).toLocaleString('en-PH')} off`) : '';
   const wasPrice = (s) => s && s.regular > s.price ? `<s class="pd-was">${money(s.regular)}</s>` : '';
-  const priceLabel = (p) => { const s = p.sizes.reduce((a, b) => (b.price < a.price ? b : a));
-    return `${p.sizes.length > 1 ? '<small>from</small>' : ''}<strong>${money(s.price)}</strong>${wasPrice(s)}${p.sizes.some((x) => x.sale) ? `<span class="pd-sale-tag">${p.sizes.length > 1 && !s.sale ? 'Sale' : saleText(s)}</span>` : ''}`; };
+  const cheapest = (p) => p.sizes.reduce((a, b) => (b.price < a.price ? b : a));
+  const saleTag = (p) => { const s = cheapest(p); return p.sizes.some((x) => x.sale) ? (p.sizes.length > 1 && !s.sale ? 'Sale' : saleText(s)) : ''; };
+  const priceLabel = (p, { tag = true } = {}) => { const s = cheapest(p);
+    return `${p.sizes.length > 1 ? '<small>from</small>' : ''}<strong>${money(s.price)}</strong>${wasPrice(s)}${tag && saleTag(p) ? `<span class="pd-sale-tag">${saleTag(p)}</span>` : ''}`; };
+  const photoSale = (p) => saleTag(p) ? `<span class="pd-sale-tag pd-sale-tag--photo">${saleTag(p)}</span>` : '';
 
   // ---- Product grid (same filters/search/sort as before, new card design). ----
   window.renderShop = function renderShop() {
@@ -113,7 +116,7 @@
     const img = imageOf(p);
     return `<article class="pd-card" id="pc-${p.id}" data-card="${p.id}">
       <button type="button" class="pd-card__media" data-pd-open="${p.id}" aria-label="View details for ${esc(p.name)}">
-        ${img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : `<span class="pd-emoji" aria-hidden="true">${esc(p.emoji)}</span>`}
+        ${img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : `<span class="pd-emoji" aria-hidden="true">${esc(p.emoji)}</span>`}${photoSale(p)}
       </button>
       ${favButton(p, 'pd-fav')}
       ${p.badge ? `<span class="pd-badge">${esc(p.badge)}</span>` : ''}
@@ -122,7 +125,7 @@
         ${p.desc ? `<p class="pd-card__desc">${esc(p.desc)}</p>` : ''}
         ${ratingLine(p) || `<span class="pd-rating pd-rating--none">${icon('star', 'pd-star')}<span>No ratings yet</span></span>`}
         <div class="pd-card__foot">
-          <span class="pd-price">${priceLabel(p)}</span>
+          <span class="pd-price">${priceLabel(p, { tag: false })}</span>
           <button type="button" class="pd-add" data-pd-add="${p.id}" aria-label="Add ${esc(p.name)} (${esc(p.sizes[0].label)}) to cart">${icon('plus', 'pd-add__plus')}${icon('cart', 'pd-add__cart')}<span>Add to Cart</span></button>
         </div>
       </div>
@@ -340,10 +343,10 @@
   function miniMarkup(p) {
     const img = imageOf(p);
     return `<article class="pd-mini">
-      <button type="button" class="pd-mini__media" data-pd-open="${p.id}" aria-label="View details for ${esc(p.name)}">${img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : `<span class="pd-emoji" aria-hidden="true">${esc(p.emoji)}</span>`}</button>
+      <button type="button" class="pd-mini__media" data-pd-open="${p.id}" aria-label="View details for ${esc(p.name)}">${img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : `<span class="pd-emoji" aria-hidden="true">${esc(p.emoji)}</span>`}${photoSale(p)}</button>
       ${favButton(p, 'pd-fav pd-fav--mini')}
       <button type="button" class="pd-mini__name" data-pd-open="${p.id}">${esc(p.name)}</button>
-      <div class="pd-mini__foot"><span class="pd-price">${priceLabel(p)}</span><button type="button" class="pd-add pd-add--mini" data-pd-add="${p.id}" aria-label="Add ${esc(p.name)} (${esc(p.sizes[0].label)}) to cart">${icon('plus', 'pd-add__plus')}</button></div>
+      <div class="pd-mini__foot"><span class="pd-price">${priceLabel(p, { tag: false })}</span><button type="button" class="pd-add pd-add--mini" data-pd-add="${p.id}" aria-label="Add ${esc(p.name)} (${esc(p.sizes[0].label)}) to cart">${icon('plus', 'pd-add__plus')}</button></div>
     </article>`;
   }
 
@@ -421,13 +424,24 @@
           <span class="pd-avatar" aria-hidden="true">${esc((r.public_display_name || '?').trim().charAt(0).toUpperCase())}</span>
           <div><div class="pd-review__head"><strong>${esc(r.public_display_name)}</strong><span class="pd-review__stars" aria-label="${r.rating} out of 5 stars">${Array.from({ length: 5 }, (_, i) => icon('star', `pd-star${i < r.rating ? '' : ' is-empty'}`)).join('')}</span></div>
           <time class="pd-muted" datetime="${esc(r.created_at)}">${new Intl.DateTimeFormat('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(r.created_at))}</time>
-          ${r.review_text ? `<p>${esc(r.review_text)}</p>` : ''}</div></article>`).join('') + (rows.length > 3 ? '<button type="button" class="pd-link" data-see-all>See all reviews</button>' : '');
+          ${r.review_text ? `<p>${esc(r.review_text)}</p>` : ''}${r.image_path ? `<a class="pd-review__photo" data-review-photo="${esc(r.image_path)}" target="_blank" rel="noopener" aria-label="Open ${esc(r.public_display_name)}'s photo"><span class="skel" aria-hidden="true"></span><img alt="Photo from ${esc(r.public_display_name)}'s order" hidden></a>` : ''}</div></article>`).join('') + (rows.length > 3 ? '<button type="button" class="pd-link" data-see-all>See all reviews</button>' : '');
     };
-    if (state.reviews.has(p.product_id)) return draw(state.reviews.get(p.product_id));
+    // review photos are private files: short-lived links, fetched after the list is drawn
+    const reviewPhotos = async () => {
+      const links = [...(target()?.querySelectorAll('[data-review-photo]') || [])]; if (!links.length) return;
+      try {
+        const { data, error } = await LexcBackend.client.storage.from('review-images').createSignedUrls([...new Set(links.map((a) => a.dataset.reviewPhoto))], 3600);
+        if (error) throw error;
+        const url = new Map((data || []).map((d) => [d.path, d.signedUrl]));
+        links.forEach((a) => { const u = url.get(a.dataset.reviewPhoto); if (!u) return a.remove(); a.href = u; const img = a.querySelector('img'); img.onload = () => { img.hidden = false; a.querySelector('.skel')?.remove(); }; img.src = u; });
+      } catch (error) { console.info('Review photos unavailable:', error?.message || error); links.forEach((a) => a.remove()); }
+    };
+    if (state.reviews.has(p.product_id)) { draw(state.reviews.get(p.product_id)); return reviewPhotos(); }
     try {
       const rows = await LexcBackend.rpc('get_product_reviews', { target_product: p.product_id, max_rows: 20 });
       state.reviews.set(p.product_id, rows || []);
       draw(rows || []);
+      reviewPhotos();
     } catch (error) {
       const box = target(); if (!box || state.id !== p.id) return;
       console.info('Reviews unavailable:', error?.message || error);

@@ -253,3 +253,11 @@ html.pd-lock { overflow: hidden; }
 .pd-sale-until { margin: -4px 0 8px; font-size: 12.5px; color: #b3264f; }
 .pd-option small s { color: var(--product-text-secondary); opacity: .8; }
 [data-was][hidden], [data-sale-tag][hidden], [data-sale-until][hidden] { display: none !important; }
+
+/* Cards: the sale tag sits on the photo (bottom-left) so the price row keeps room for the add button */
+.pd-card__media,.pd-mini__media { position: relative; }
+.pd-sale-tag--photo { position: absolute; left: 8px; bottom: 8px; padding: 3px 8px; background: #fff; color: #b3264f; box-shadow: 0 2px 8px rgba(43,21,48,.14); }
+/* Product page reviews: the customer's photo */
+.pd-review__photo { position: relative; display: block; width: 96px; height: 96px; margin-top: 8px; border-radius: 12px; overflow: hidden; background: #f3edf9; }
+.pd-review__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pd-review__photo .skel { position: absolute; inset: 0; border-radius: 0; }
