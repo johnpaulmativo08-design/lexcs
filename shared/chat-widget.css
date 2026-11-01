@@ -135,3 +135,15 @@ body[data-customer-page=bento] #customer-chat-toggle,body[data-customer-page=cup
 .lcw-message .chat-steps li.is-done{border-color:#c5b3e8;color:#6a5490}
 .lcw-message .chat-steps li.is-now{border-color:#6f53bc;color:#2b1530;font-weight:700}
 .lcw-message .lx-dlv{margin:8px 0 2px}
+/* payment receipts in the customer chat */
+.lcw-message>div:has(.lcw-pay){width:85%;text-align:left}
+.lcw-pay{margin:8px 0 2px;padding:11px 12px;border:1px solid #ece4f6;border-radius:12px;background:#fff;color:#2b1530;font-size:.74rem}
+.lcw-pay>p{display:flex;align-items:center;gap:7px;margin:0 0 8px;font-weight:700;font-size:.8rem}
+.lcw-pay>p span{display:grid;place-items:center;flex:none;width:18px;height:18px;border-radius:50%;background:#f0a020;color:#fff;font-size:.66rem}
+.lcw-pay.is-ok>p span{background:#1f8a5b}.lcw-pay.is-bad>p span{background:#d33a4f}
+.lcw-pay>p b{margin-left:auto;font-size:.86rem}
+.lcw-pay dl{display:grid;gap:4px;margin:0}
+.lcw-pay dl div{display:flex;justify-content:space-between;gap:10px}
+.lcw-pay dt{color:#8a7f9c}.lcw-pay dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
+.lcw-pay-left{display:flex;justify-content:space-between;margin:8px 0 0;padding-top:8px;border-top:1px dashed #e3dbef;color:#6b6080}
+.lcw-pay-left b{color:#2b1530}
