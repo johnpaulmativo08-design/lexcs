@@ -147,3 +147,24 @@ body[data-customer-page=bento] #customer-chat-toggle,body[data-customer-page=cup
 .lcw-pay dt{color:#8a7f9c}.lcw-pay dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
 .lcw-pay-left{display:flex;justify-content:space-between;margin:8px 0 0;padding-top:8px;border-top:1px dashed #e3dbef;color:#6b6080}
 .lcw-pay-left b{color:#2b1530}
+/* Minimal: the cards inside a chat bubble lose their own box; a thin rule separates them from the message text */
+.lcw-message .chat-statuscard,.lcw-message .lcw-pay,.lcw-message .lx-dlv,.lcw-message .lx-dlv.is-picked_up,.lcw-message .lx-dlv.is-delivered,.lcw-message .lx-dlv.is-failed{margin:8px 0 0;padding:8px 0 0;border:0;border-top:1px solid #f0ebf6;border-radius:0;background:none;box-shadow:none}
+.lcw-message .chat-statuscard{gap:7px}
+.lcw-message .chat-statuscard strong,.lcw-message .lcw-pay>p{font-size:.78rem;font-weight:700;color:#2b1530}
+.lcw-message .chat-steps li{padding-top:4px;border-top-width:2px;font-weight:500}
+.lcw-message .chat-steps li.is-now{font-weight:700}
+.lcw-message .lcw-pay>p{margin:0 0 6px}
+.lcw-message .lcw-pay>p span{width:14px;height:14px;font-size:.56rem}
+.lcw-message .lcw-pay dl{gap:3px}
+.lcw-message .lcw-pay dt{color:#9a90ad}.lcw-message .lcw-pay dd{font-weight:500}
+.lcw-message .lcw-pay-left{margin-top:6px;padding-top:6px;border-top:1px solid #f0ebf6}
+.lcw-message .lx-dlv-top{gap:9px}
+.lcw-message .lx-dlv-icon,.lcw-message .lx-dlv.is-delivered .lx-dlv-icon,.lcw-message .lx-dlv.is-failed .lx-dlv-icon{width:auto;height:auto;background:none}
+.lcw-message .lx-dlv-icon svg{width:18px;height:18px}
+.lcw-message .lx-dlv-top strong{font-size:.8rem}
+.lcw-message .lx-dlv-top small{font-size:.7rem;color:#9a90ad}
+.lcw-message .lx-dlv-live{min-height:34px;border-radius:10px;font-size:.78rem}
+.lcw-message.mine .chat-statuscard,.lcw-message.mine .lcw-pay,.lcw-message.mine .lx-dlv{border-top-color:rgba(255,255,255,.25)}
+.lcw-message.mine .lx-dlv-top strong,.lcw-message.mine .lx-dlv-top small,.lcw-message.mine .lx-dlv-icon{color:inherit}
+.lcw-message.mine .lx-dlv{color:inherit}
+.lcw-message .lx-dlv-live{justify-self:start;min-height:30px;padding:0 12px;border-radius:999px;background:#f1edfb;color:#4b2fa0;font-weight:700}.lcw-message .lx-dlv-live:hover{background:#e7e0f8}.lcw-message .lx-dlv-pulse{background:#6f53bc;box-shadow:none;animation:none}
