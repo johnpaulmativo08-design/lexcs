@@ -39,11 +39,15 @@ const timeline=o=>{
   return '<li class="'+state+'"'+(state==='is-now'?' aria-current="step"':'')+'><span class="od-step-ic">'+line(k==='ready'&&!pickup?'truck':ic)+'</span><div><b>'+e(label)+'</b><small>'+e(state==='is-done'&&past[k]?past[k]:state?note[k]:k==='ready'?(pickup?'Ready for pickup':'Ready to ship'):'Not yet')+'</small></div>'+(at?'<time>'+e(at)+'</time>':'')+'</li>';}).join('');
  return '<section class="od-time"><header><span class="od-chip">Timeline</span><i aria-hidden="true"></i>'+pill+'</header><ol>'+steps+'</ol></section>';
 };
+// large order (same rule as the reservation calendar): ₱2,000 and up, or 50 pieces and up ("20pcs" sizes count as 20 each)
+const orderPieces=o=>(o.order_items||[]).reduce((n,i)=>n+Number(i.quantity||1)*Number((String(i.variant_label_snapshot||'').match(/(\d+)\s*pcs/i)||[])[1]||1),0);
+const largeNote=o=>{const pcs=orderPieces(o);if(o.status==='cancelled'||!(Number(o.total_amount)>=2000||pcs>=50))return '';
+ return '<p class="od-large">'+glyph('warn')+'<span><strong>Large order</strong>'+e([o.total_amount!=null?money(o.total_amount):'',pcs>1?pcs+' pcs':''].filter(Boolean).join(' · '))+' · plan extra kitchen time for this date</span></p>';};
 const orderCard=o=>{
  const pickup=o.fulfillment_method!=='lalamove',addr=String(o.address||'');
  const addressText=e(addr.replace(/\n?Map pin: https:\/\/maps\.google\.com\/\?q=-?[0-9.]+,-?[0-9.]+/,'').trim()).replace(/\n/g,'<br>');
  const phone=o.contact_phone?'<a href="tel:'+e(String(o.contact_phone).replace(/[^\d+]/g,''))+'">'+e(o.contact_phone)+'</a>':'';
- return '<div class="od">'+
+ return '<div class="od">'+largeNote(o)+
   '<div class="od-grid"><div class="od-col">'+
    section(1,'Customer',row('user','Name',e(o.customer_name))+row('phone','Contact number',phone)+row('calendar','Ordered',e(longDate(o.created_at))))+
    section(2,pickup?'Store pickup':'Lalamove delivery',row('calendar',pickup?'Pickup':'Deliver on',e(when(o.receiving_start,{weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})))+(pickup?'':row('pin','Address',addressText||'—')+pinMap(addr))+(o.notes?'<div class="od-note">'+line('note')+'<div><small>Note from the customer</small><p>'+e(o.notes)+'</p></div></div>':''))+
