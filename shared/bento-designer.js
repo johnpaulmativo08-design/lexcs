@@ -5,10 +5,10 @@
   const STEPS = [['layers', 'Layers'], ['style', 'Style'], ['decorate', 'Decorate'], ['message', 'Message'], ['review', 'Review']];
   // Tapping a part of the 3D cake opens its option: [step, section legend, name shown on hover].
   const PICK = {
-    frosting: ['style', 'Frosting color', 'Frosting'], border: ['decorate', 'Border', 'Shell border'], drip: ['decorate', 'Drip color', 'Frosting drip'],
-    pearls: ['decorate', 'Decorations', 'Pearls'], bows: ['decorate', 'Ribbon color', 'Ribbon bows'], flowers: ['decorate', 'Decorations', 'Piped flowers'],
-    leaves: ['decorate', 'Decorations', 'Piped leaves'], sprinkles: ['decorate', 'Decorations', 'Sprinkles'], gold_leaf: ['decorate', 'Decorations', 'Gold leaf'],
-    message: ['message', null, 'Message'], topper: ['decorate', 'Topper', 'Topper']
+    frosting: ['style', 'frosting', 'Frosting'], border: ['decorate', 'border', 'Shell border'], drip: ['decorate', 'drip', 'Frosting drip'],
+    pearls: ['decorate', 'accent', 'Pearls'], bows: ['decorate', 'bows', 'Ribbon bows'], flowers: ['decorate', 'accent', 'Piped flowers'],
+    leaves: ['decorate', 'accent', 'Piped leaves'], sprinkles: ['decorate', 'accent', 'Sprinkles'], gold_leaf: ['decorate', 'accent', 'Gold leaf'],
+    message: ['message', null, 'Message'], topper: ['decorate', 'topper', 'Topper']
   };
   // Bento message: up to 20 words (customization_config.message_max_words). Words are counted after trimming, so
   // extra spaces never count. A generous character cap only protects the cake layout and the database.
@@ -72,6 +72,10 @@
     shell_color: t.border.length && t.shell_color ? t.shell_color : null });
   const hasLayout = () => Object.keys(state.layout || {}).length > 0;
   const opt = (group, code) => options[group]?.find((o) => o.code === code);
+  // Section names the owner can change in Admin → Designs (customization_config.group_titles); defaults otherwise.
+  const title = (key, fallback) => String(cfg().group_titles?.[key] || '').trim() || fallback;
+  // Fondant (phase 90) is stored as the "fondant" decoration but shown as its own Covering choice, not as a decoration.
+  const decorations = () => (options.accent || []).filter((o) => o.code !== 'fondant');
   const variant = () => product.product_variants.find((v) => v.id === state.variant_id && v.is_active);
   const cfg = () => product.customization_config || {};
   // Bento, Petite and Mini Tiered cakes share this designer (products with designer 'bento'; cake_shape says which).
@@ -231,7 +235,7 @@
     if (step !== k) goStep(k, false);
     requestAnimationFrame(() => {
       const box = part === 'message' ? root.querySelector('#bd-message')
-        : [...root.querySelectorAll('#bd-body legend')].find((l) => l.textContent.trim().startsWith(legend))?.closest('fieldset');
+        : root.querySelector(`#bd-body [data-bd-section="${legend}"]`);
       if (!box) return;
       box.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
       box.classList.remove('bd-flash'); void box.offsetWidth; box.classList.add('bd-flash');
@@ -317,7 +321,7 @@
   // ---- Surprise me: a random design that still looks good -------------------------------------------
   function surprise(button) {
     const pick = (list) => list[Math.floor(Math.random() * list.length)];
-    const codes = (group) => (options[group] || []).map((o) => o.code);
+    const codes = (group) => (options[group] || []).map((o) => o.code).filter((c) => c !== 'fondant');
     const colorsIn = (name) => (COLOR_GROUPS.find(([n]) => n === name)?.[1] || []).filter((c) => palette[c]);
     const roll = Math.random(), frosting = pick(colorsIn(roll < 0.6 ? 'Pastels' : roll < 0.9 ? 'Brights' : 'Deep'));
     const allColors = codes('color').filter((c) => palette[c] && c !== frosting);
@@ -402,7 +406,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=37');
+        const mod = await import('./bento-scene.js?v=38');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -656,25 +660,28 @@
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
       ${tierSwitch()}
-      <fieldset class="bd-group"><legend>Frosting color${onLower() ? ' · ' + tier + ' tier' : ''} <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', sub(s).frosting_color, 'Frosting color')}</fieldset>`;
+      <fieldset class="bd-group" data-bd-section="frosting"><legend>Frosting color${onLower() ? ' · ' + tier + ' tier' : ''} <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', sub(s).frosting_color, 'Frosting color')}</fieldset>
+      ${opt('accent', 'fondant') ? (() => { const f = opt('accent', 'fondant'), on = sub(s).accents.includes('fondant');
+        return `<fieldset class="bd-group" data-bd-section="covering"><legend>${esc(title('covering', 'Covering'))}${onLower() ? ' · ' + tier + ' tier' : ''} <small>Soft buttercream or smooth fondant</small></legend>
+        <div class="bd-chips" role="radiogroup" aria-label="Covering"><button type="button" class="bd-chip" role="radio" data-bd-cover="" aria-checked="${!on}">Buttercream <small>Free</small></button><button type="button" class="bd-chip" role="radio" data-bd-cover="fondant" aria-checked="${on}">${esc(f.label)} ${priceTag(f)}</button></div></fieldset>`; })() : ''}`;
     if (step === 'decorate') {
       const top = s; { const s = sub(top);   // the tier being decorated
-      const count = s.accents.length;
+      const count = s.accents.filter((c) => c !== 'fondant').length, room = max - (s.accents.includes('fondant') ? 1 : 0);
       return `
       ${tierSwitch()}
-      <fieldset class="bd-group"><legend>Border <small>Piped shells</small></legend>
+      <fieldset class="bd-group" data-bd-section="border"><legend>${esc(title('border', 'Frosting'))} <small>Piped shells</small></legend>
         <div class="bd-chips">${(options.border || []).map((o) => `<button type="button" class="bd-chip" data-bd-toggle="border" data-value="${o.code}" aria-pressed="${s.border.includes(o.code)}">${esc(o.label.replace('Shell border — ', 'Shell '))} ${priceTag(o)}</button>`).join('')}</div></fieldset>
       ${s.border.length ? `<fieldset class="bd-group"><legend>Shell color <small>Free</small></legend>
         <div class="bd-chips" style="margin-bottom:10px"><button type="button" class="bd-chip" role="radio" data-bd-set="shell_color" data-value="" aria-checked="${!s.shell_color}">Matching (${esc(opt('color', s.frosting_color)?.label.toLowerCase() || 'frosting')})</button></div>
         ${swatches('shell_color', s.shell_color, 'Shell color')}</fieldset>` : ''}
-      <fieldset class="bd-group"><legend>Decorations <small>${count} of ${max} chosen</small></legend>
+      <fieldset class="bd-group" data-bd-section="accent"><legend>${esc(title('accent', 'Decorations'))} <small>${count} of ${room} chosen</small></legend>
         <p class="bd-note">Pick gold or silver pearls, not both.</p>
-        <div class="bd-chips">${(options.accent || []).map((o) => { const on = s.accents.includes(o.code); return `<button type="button" class="bd-chip" data-bd-toggle="accents" data-value="${o.code}" aria-pressed="${on}" ${!on && count >= max ? 'disabled' : ''}>${esc(o.label)} ${priceTag(o)}</button>`; }).join('')}</div></fieldset>
-      ${s.accents.includes('ribbon_bows') ? `<fieldset class="bd-group"><legend>Ribbon color</legend>${swatches('bow_color', s.bow_color, 'Ribbon color')}</fieldset>` : ''}
-      ${s.accents.includes('drip') ? `<fieldset class="bd-group"><legend>Drip color <small>Free</small></legend>
+        <div class="bd-chips">${decorations().map((o) => { const on = s.accents.includes(o.code); return `<button type="button" class="bd-chip" data-bd-toggle="accents" data-value="${o.code}" aria-pressed="${on}" ${!on && count >= room ? 'disabled' : ''}>${esc(o.label)} ${priceTag(o)}</button>`; }).join('')}</div></fieldset>
+      ${s.accents.includes('ribbon_bows') ? `<fieldset class="bd-group" data-bd-section="bows"><legend>Ribbon color</legend>${swatches('bow_color', s.bow_color, 'Ribbon color')}</fieldset>` : ''}
+      ${s.accents.includes('drip') ? `<fieldset class="bd-group" data-bd-section="drip"><legend>Drip color <small>Free</small></legend>
         <div class="bd-chips" style="margin-bottom:10px"><button type="button" class="bd-chip" role="radio" data-bd-set="drip_color" data-value="" aria-checked="${!s.drip_color}">Matching (darker ${esc(opt('color', s.frosting_color)?.label.toLowerCase() || 'frosting')})</button></div>
         ${swatches('drip_color', s.drip_color, 'Drip color')}</fieldset>` : ''}
-      ${onLower() ? '' : `<fieldset class="bd-group"><legend>Topper</legend>
+      ${onLower() ? '' : `<fieldset class="bd-group" data-bd-section="topper"><legend>${esc(title('topper', 'Topper'))}</legend>
         <div class="bd-chips" role="radiogroup" aria-label="Topper">${(options.topper || []).map((o) => `<button type="button" role="radio" class="bd-chip" data-bd-set="topper" data-value="${o.code}" aria-checked="${s.topper === o.code}">${esc(o.label)} ${o.code === 'none' ? '' : priceTag(o)}</button>`).join('')}</div>
         ${s.topper === 'number' ? `<label class="bd-label" for="bd-topper-text" style="margin-top:12px">Number on the topper <small>1–3 digits</small></label><input id="bd-topper-text" class="bd-input" inputmode="numeric" maxlength="3" autocomplete="off" data-bd-text="topper_text" value="${esc(s.topper_text)}">` : ''}
       </fieldset>`}
@@ -806,6 +813,15 @@
       if (t.dataset.bdSet) { const f = t.dataset.bdSet, v = t.dataset.value; return commit((s) => { (TIER_FIELDS.has(f) ? sub(s) : s)[f] = v; }); }
       if (t.dataset.bdCake) { const p = cakes.find((c) => c.id === t.dataset.bdCake), id = p && pickVariant(p); if (id) commit((s) => { s.variant_id = id; }); return; }
       if (t.dataset.bdSize) { const id = pickVariant(product, t.dataset.bdSize); if (id) commit((s) => { s.variant_id = id; }); return; }
+      if ('bdCover' in t.dataset) {
+        const want = t.dataset.bdCover === 'fondant';
+        return commit((s) => {
+          const target = sub(s), list = new Set(target.accents), max = Number(cfg().max_accents || 6);
+          if (want && !list.has('fondant') && list.size >= max) { showToast('Remove one decoration first — a cake can have ' + max + ' extras including fondant.'); return; }
+          if (want) list.add('fondant'); else list.delete('fondant');
+          target.accents = [...list];
+        });
+      }
       if (t.dataset.bdToggle) {
         const f = t.dataset.bdToggle, v = t.dataset.value;
         return commit((s) => {
