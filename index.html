@@ -2349,7 +2349,7 @@ async function renderDtCalendar() {
   for (let i = 0; i < firstDay; i++) html += `<div class="dt-cal-day empty"></div>`;
   for (let d = 1; d <= daysInMonth; d++) {
     const thisDate = new Date(dtYear, dtMonth, d);
-    const isPast = thisDate < today;
+    const isPast = thisDate <= today; // no same-day orders (phase 94): today counts as past
     const isSun = thisDate.getDay() === 0;
     const isSat = thisDate.getDay() === 6;
     const isToday = thisDate.getTime() === today.getTime();
@@ -2367,8 +2367,8 @@ async function renderDtCalendar() {
     if (state?.is_closed) cls += ' closed';
     if (!unavailable && state.remaining_slots === 1) cls += ' almost-full';
     const onclick = isPast || unavailable ? '' : `onclick="dtSelectDate('${dateStr}')"`;
-    const reason = isPast ? 'Past dates are unavailable' : !state ? 'Availability is unavailable' : state.is_closed ? 'Admin closed this date' : state.remaining_slots<=0 ? 'This date is fully reserved' : !state.has_receiving_slot ? 'No receiving time is available' : `${state.remaining_slots} reservation slot${state.remaining_slots===1?'':'s'} remaining`;
-    const stateText = isPast ? 'Past' : !state ? 'Unavailable' : state.is_closed ? 'Closed' : state.remaining_slots<=0 ? 'Full' : !state.has_receiving_slot ? 'Unavailable' : state.remaining_slots===1 ? '1 left' : `${state.remaining_slots} left`;
+    const reason = isToday ? 'Same-day orders aren’t taken. Choose tomorrow or later.' : isPast ? 'Past dates are unavailable' : !state ? 'Availability is unavailable' : state.is_closed ? 'Admin closed this date' : state.remaining_slots<=0 ? 'This date is fully reserved' : !state.has_receiving_slot ? 'No receiving time is available' : `${state.remaining_slots} reservation slot${state.remaining_slots===1?'':'s'} remaining`;
+    const stateText = isToday ? 'Today' : isPast ? 'Past' : !state ? 'Unavailable' : state.is_closed ? 'Closed' : state.remaining_slots<=0 ? 'Full' : !state.has_receiving_slot ? 'Unavailable' : state.remaining_slots===1 ? '1 left' : `${state.remaining_slots} left`;
     html += `<button class="${cls}" ${onclick} title="${reason}" ${isPast||unavailable?'disabled':''}><span>${d}</span><small class="dt-day-state">${stateText}</small></button>`;
   }
   grid.innerHTML = html;
