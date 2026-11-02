@@ -5,7 +5,7 @@
   const STEPS = [['layers', 'Layers'], ['style', 'Style'], ['decorate', 'Decorate'], ['message', 'Message'], ['review', 'Review']];
   // Tapping a part of the 3D cake opens its option: [step, section legend, name shown on hover].
   const PICK = {
-    frosting: ['style', 'frosting', 'Frosting'], border: ['decorate', 'border', 'Shell border'], drip: ['decorate', 'drip', 'Frosting drip'],
+    frosting: ['style', 'frosting', 'Frosting'], border: ['decorate', 'border', 'Frosting'], drip: ['decorate', 'drip', 'Frosting drip'],
     pearls: ['decorate', 'accent', 'Pearls'], bows: ['decorate', 'bows', 'Ribbon bows'], flowers: ['decorate', 'accent', 'Piped flowers'],
     leaves: ['decorate', 'accent', 'Piped leaves'], sprinkles: ['decorate', 'accent', 'Sprinkles'], gold_leaf: ['decorate', 'accent', 'Gold leaf'],
     message: ['message', null, 'Message'], topper: ['decorate', 'topper', 'Topper']
@@ -63,7 +63,7 @@
   const design = () => ({ designer: 'bento', frosting_color: state.frosting_color, border: [...state.border], accents: [...state.accents],
     bow_color: state.accents.includes('ribbon_bows') ? state.bow_color : null, message: state.message.trim(),
     lettering: state.message.trim() ? state.lettering : null, lettering_color: state.message.trim() ? state.lettering_color : null,
-    topper: state.topper, topper_text: state.topper === 'number' ? state.topper_text : '', layout: JSON.parse(JSON.stringify(state.layout || {})),
+    topper: state.topper, topper_text: ['number', 'custom'].includes(state.topper) ? state.topper_text : '', layout: JSON.parse(JSON.stringify(state.layout || {})),
     drip_color: state.accents.includes('drip') && state.drip_color ? state.drip_color : null, font: state.message.trim() ? state.font : null,
     shell_color: state.border.length && state.shell_color ? state.shell_color : null,
     lower: isTiered() && state.lower ? tierOut(state.lower) : undefined, middle: tierCount() === 3 && state.middle ? tierOut(state.middle) : undefined });
@@ -73,6 +73,9 @@
   const hasLayout = () => Object.keys(state.layout || {}).length > 0;
   const opt = (group, code) => options[group]?.find((o) => o.code === code);
   // Section names the owner can change in Admin → Designs (customization_config.group_titles); defaults otherwise.
+  // Custom topper (phase 91): up to 14 letters, numbers, spaces and simple punctuation (the server checks the same).
+  const TOPPER_MAX = 14;
+  const customTopper = (v) => String(v || '').replace(/[^A-Za-z0-9 !&'.\-]/g, '').replace(/\s+/g, ' ').replace(/^\s/, '').slice(0, TOPPER_MAX);
   const title = (key, fallback) => String(cfg().group_titles?.[key] || '').trim() || fallback;
   // Fondant (phase 90) is stored as the "fondant" decoration but shown as its own Covering choice, not as a decoration.
   const decorations = () => (options.accent || []).filter((o) => o.code !== 'fondant');
@@ -193,7 +196,7 @@
     if (state.drip_color && !palette[state.drip_color]) state.drip_color = '';
     if (state.shell_color && !palette[state.shell_color]) state.shell_color = '';
     if (!opt('font', state.font)) state.font = opt('font', 'rounded') ? 'rounded' : (options.font?.[0]?.code || 'rounded');
-    state.topper_text = String(state.topper_text || '').replace(/\D/g, '').slice(0, 3);
+    state.topper_text = state.topper === 'custom' ? customTopper(state.topper_text) : String(state.topper_text || '').replace(/\D/g, '').slice(0, 3);
     state.qty = Math.min(20, Math.max(1, Number(state.qty) || 1));
     if (!variant()) state.variant_id = product.product_variants.find((v) => v.is_active)?.id;
     const cleanTier = (t) => {
@@ -321,7 +324,7 @@
   // ---- Surprise me: a random design that still looks good -------------------------------------------
   function surprise(button) {
     const pick = (list) => list[Math.floor(Math.random() * list.length)];
-    const codes = (group) => (options[group] || []).map((o) => o.code).filter((c) => c !== 'fondant');
+    const codes = (group) => (options[group] || []).map((o) => o.code).filter((c) => c !== 'fondant' && c !== 'custom');
     const colorsIn = (name) => (COLOR_GROUPS.find(([n]) => n === name)?.[1] || []).filter((c) => palette[c]);
     const roll = Math.random(), frosting = pick(colorsIn(roll < 0.6 ? 'Pastels' : roll < 0.9 ? 'Brights' : 'Deep'));
     const allColors = codes('color').filter((c) => palette[c] && c !== frosting);
@@ -406,7 +409,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=38');
+        const mod = await import('./bento-scene.js?v=39');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -445,7 +448,7 @@
             <p class="bd-stage-msg" data-bd-stage-msg role="status" hidden>3D preview isn’t available on this device, so you’re seeing a top view. Every option still works.</p>
           </div>
           <div class="bd-stage-bar">
-            <div class="bd-seg" role="group" aria-label="Preview type"><button type="button" data-bd-view="3d" aria-pressed="true">3D</button><button type="button" data-bd-view="top" aria-pressed="false">Top view</button></div>
+            
             <div class="bd-seg bd-cams" role="group" aria-label="Camera"><button type="button" data-bd-cam="front">Front</button><button type="button" data-bd-cam="top">Top</button><button type="button" data-bd-cam="side">Side</button></div>
             <button type="button" class="bd-tool bd-arrange" data-bd-arrange aria-pressed="false" aria-label="Arrange decorations" title="Move decorations">✋<span>Arrange</span></button>
             <button type="button" class="bd-tool" data-bd-resetview aria-label="Reset view">${icon('view')}<span>Reset</span></button>
@@ -684,6 +687,7 @@
       ${onLower() ? '' : `<fieldset class="bd-group" data-bd-section="topper"><legend>${esc(title('topper', 'Topper'))}</legend>
         <div class="bd-chips" role="radiogroup" aria-label="Topper">${(options.topper || []).map((o) => `<button type="button" role="radio" class="bd-chip" data-bd-set="topper" data-value="${o.code}" aria-checked="${s.topper === o.code}">${esc(o.label)} ${o.code === 'none' ? '' : priceTag(o)}</button>`).join('')}</div>
         ${s.topper === 'number' ? `<label class="bd-label" for="bd-topper-text" style="margin-top:12px">Number on the topper <small>1–3 digits</small></label><input id="bd-topper-text" class="bd-input" inputmode="numeric" maxlength="3" autocomplete="off" data-bd-text="topper_text" value="${esc(s.topper_text)}">` : ''}
+        ${s.topper === 'custom' ? `<label class="bd-label" for="bd-topper-custom" style="margin-top:12px">Words on the topper <small>up to ${TOPPER_MAX} letters</small></label><input id="bd-topper-custom" class="bd-input" style="width:100%;max-width:300px" maxlength="${TOPPER_MAX}" autocomplete="off" placeholder="Happy 18th" data-bd-text="topper_text" value="${esc(s.topper_text)}"><p class="bd-note" data-bd-topper-count>${s.topper_text.length} / ${TOPPER_MAX}</p>` : ''}
       </fieldset>`}
       ${window.LexcInspiration ? window.LexcInspiration.html('bento', top.inspiration) : ''}`;
     } }
@@ -712,7 +716,7 @@
         <li><span>Border</span><strong>${s.border.length ? s.border.map((c) => esc(opt('border', c).label.replace('Shell border — ', 'Shell '))).join(', ') + (s.shell_color ? ' (' + esc(opt('color', s.shell_color)?.label) + ')' : '') : 'None'}</strong></li>
         <li><span>Decorations</span><strong>${s.accents.length ? s.accents.map((c) => esc(opt('accent', c).label) + (c === 'ribbon_bows' ? ' (' + esc(opt('color', s.bow_color)?.label) + ')' : '')).join(', ') : 'None'}</strong></li>
         <li><span>Message</span><strong>${s.message.trim() ? '“' + esc(s.message.trim()) + '”\n' + esc(opt('lettering', s.lettering)?.label) + ', ' + esc(opt('color', s.lettering_color)?.label) : 'None'}</strong></li>
-        <li><span>Topper</span><strong>${esc(opt('topper', s.topper)?.label)}${s.topper === 'number' ? ' ' + esc(s.topper_text) : ''}</strong></li>
+        <li><span>Topper</span><strong>${esc(opt('topper', s.topper)?.label)}${['number', 'custom'].includes(s.topper) ? ' ' + esc(s.topper_text) : ''}</strong></li>
         ${hasLayout() ? '<li><span>Placement</span><strong>Arranged by you</strong></li>' : ''}
         ${ex.map(([l, p]) => `<li><span>${esc(l)}</span><strong>+${money(p)}</strong></li>`).join('')}
       </ul>
@@ -868,7 +872,7 @@
         const maxLines = Number(cfg().message_max_lines || 3);
         const lines = value.split('\n'); if (lines.length > maxLines) { value = lines.slice(0, maxLines).join('\n'); e.target.value = value; }
       }
-      if (f === 'topper_text') { value = value.replace(/\D/g, '').slice(0, 3); e.target.value = value; }
+      if (f === 'topper_text') { value = state.topper === 'custom' ? customTopper(value) : value.replace(/\D/g, '').slice(0, 3); if (e.target.value !== value) e.target.value = value; const n = root.querySelector('[data-bd-topper-count]'); if (n) n.textContent = value.length + ' / ' + TOPPER_MAX; }
       const first = !textTimer; clearTimeout(textTimer);
       commit((s) => { s[f] = value; }, { soft: !first });
       textTimer = setTimeout(() => { textTimer = 0; }, 800);
