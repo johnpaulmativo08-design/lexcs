@@ -737,3 +737,37 @@ input.qty-num:focus{border-color:#2b1530;box-shadow:inset 0 0 0 1px #2b1530;back
 .co-map .leaflet-control-zoom a:last-child{border-bottom:0!important}
 .co-map .leaflet-control-zoom a:hover{background:#f3edf6}
 .co-map .leaflet-control-zoom a.leaflet-disabled{color:#c9bfd2!important}
+
+/* Order cards, minimal: one white card, no boxes inside it — thin rules, a dot timeline, the product photo,
+   payment and delivery as plain lines, one solid button and quiet secondary actions. */
+.co-card{gap:16px;padding:18px 18px 14px!important;border:0!important;border-radius:20px!important;box-shadow:0 1px 2px rgba(46,34,90,.04),0 8px 24px rgba(46,34,90,.07)!important}
+.co-card .customer-order-number{font-size:1rem;font-weight:800;color:#1d1530}
+.co-card .customer-order-date{font-size:.74rem;color:#9a90ad}
+.co-card .customer-order-status,.co-card .customer-pay-pill{padding:3px 9px!important;border:0!important;font-size:.68rem!important;font-weight:700!important;letter-spacing:0!important;text-transform:capitalize!important}
+.co-track{font-size:.62rem;color:#b2a9c2}
+.co-track li span{width:9px;height:9px;border-width:1.5px;border-color:#d6cfe2}
+.co-track li:not(:last-child)::after{top:3.5px;height:1px;background:#e9e3f1}
+.co-track li.is-done span{background:#6f53bc;border-color:#6f53bc}.co-track li.is-done::after{background:#cbbdf0}
+.co-track li.is-now span{width:11px;height:11px;margin-top:-1px;border:0;background:#6f53bc;box-shadow:0 0 0 4px #ece6fb}
+.co-track li.is-done,.co-track li.is-now{color:#1d1530}
+.co-main{gap:14px}
+.co-thumb{width:58px;height:58px;border-radius:14px;overflow:hidden;background:#f6f2fa;color:#6f53bc;font:700 1.1rem 'Playfair Display',serif}
+.co-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.co-card .customer-order-product{font-size:.95rem;font-weight:700;color:#1d1530}
+.co-card .customer-order-schedule{color:#6b6080}
+.co-count{margin-top:4px;padding:0;background:none;color:#9a90ad;font-size:.72rem}
+.co-amount small{font-size:.62rem;color:#9a90ad}
+.co-amount strong{font-size:1.08rem;font-weight:800;color:#1d1530;font-variant-numeric:tabular-nums}
+.co-card .lx-dlv,.co-card .lx-dlv.is-picked_up,.co-card .lx-dlv.is-delivered,.co-card .lx-dlv.is-failed{margin:0;padding:12px 0 0;border:0;border-top:1px solid #f0ebf6;border-radius:0;background:none}
+.co-card .lx-dlv-icon,.co-card .lx-dlv.is-delivered .lx-dlv-icon,.co-card .lx-dlv.is-failed .lx-dlv-icon{width:auto;height:auto;background:none}
+.co-card .lx-dlv-icon svg{width:20px;height:20px}
+.co-card .lx-dlv-line{font-size:.8rem}
+.co-pay,.co-pay.is-due,.co-pay.is-review,.co-pay.is-ok,.co-pay.is-part,.co-pay.is-issue{padding:12px 0 0;border-top:1px solid #f0ebf6;border-radius:0;background:none}
+.co-pay-dot,.co-pay.is-due .co-pay-dot,.co-pay.is-review .co-pay-dot,.co-pay.is-ok .co-pay-dot,.co-pay.is-part .co-pay-dot,.co-pay.is-issue .co-pay-dot{width:8px;height:8px;box-shadow:none}
+.co-pay strong{font-size:.84rem;color:#1d1530}
+.co-card .customer-order-actions{gap:6px 10px}
+.co-card .customer-order-actions .btn-primary{min-height:44px;border-radius:999px;letter-spacing:.02em;text-transform:none;font-size:.88rem}
+.co-card .customer-order-actions .btn-outline,.co-card .customer-order-cancel,.co-card .customer-order-actions [data-review]{min-height:38px;border:0!important;border-radius:999px;background:#f5f1fb!important;color:#4b2fa0!important;font-size:.8rem;text-transform:none;letter-spacing:0;box-shadow:none}
+.co-card .customer-order-more{padding-top:8px;border-top:1px solid #f0ebf6}
+.co-card .customer-order-more summary{font-size:.76rem;color:#6b6080}
+.co-card .customer-order-date{white-space:nowrap}.co-card .lx-dlv-track li span{height:3px}
