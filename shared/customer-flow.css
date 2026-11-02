@@ -771,3 +771,10 @@ input.qty-num:focus{border-color:#2b1530;box-shadow:inset 0 0 0 1px #2b1530;back
 .co-card .customer-order-more{padding-top:8px;border-top:1px solid #f0ebf6}
 .co-card .customer-order-more summary{font-size:.76rem;color:#6b6080}
 .co-card .customer-order-date{white-space:nowrap}.co-card .lx-dlv-track li span{height:3px}
+/* "Order details" reads as a dropdown: a chevron on the right that turns when it is open */
+.co-card .customer-order-more summary{display:flex;width:100%;box-sizing:border-box;justify-content:space-between;list-style:none}
+.co-card .customer-order-more summary::-webkit-details-marker{display:none}
+.co-card .customer-order-more summary::after{content:'';flex:none;width:26px;height:26px;margin-left:8px;border-radius:50%;background:#f5f1fb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m7 10 5 5 5-5' fill='none' stroke='%234b2fa0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat;transition:transform .2s ease}
+.co-card .customer-order-more[open] summary::after{transform:rotate(180deg)}
+.co-card .customer-order-more summary:hover::after{background-color:#ece4fa}
+@media(prefers-reduced-motion:reduce){.co-card .customer-order-more summary::after{transition:none}}
