@@ -97,3 +97,5 @@ html[data-theme=dark] #page-shop.mx :is(.pd-card__media,.mx-new-photo,.mx-cat-ar
 html[data-theme=dark] #page-shop.mx .pd-rating--none .pd-star{fill:none!important;stroke:#7d6c8f!important;stroke-width:1.8}
 /* the search box's input is part of the pill: no inner box of its own */
 html[data-theme=dark] .shop-search-line input[type],html[data-theme=dark] .shop-search-line input{background:transparent!important;border:0!important;box-shadow:none!important}
+/* checkout on phones is flat (no outer box) — keep it flat in dark mode too, so the text never sits on a box edge */
+@media(max-width:700px){html[data-theme=dark] .checkout-form-box{background:transparent;border:0;box-shadow:none}}
