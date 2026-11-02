@@ -167,7 +167,10 @@ function topperTexture(label) {
   const isNumber = /^[0-9]+$/.test(label);
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.font = isNumber ? "700 360px 'Playfair Display',serif" : "italic 400 170px 'Playfair Display',serif";
-  const lines = isNumber ? [label] : label.split(' ');
+  let lines = isNumber ? [label] : label.split(' ');
+  if (lines.length > 3) lines = [lines.slice(0, Math.ceil(lines.length / 2)).join(' '), lines.slice(Math.ceil(lines.length / 2)).join(' ')];
+  // long custom words shrink to fit the sign (up to 14 letters)
+  if (!isNumber) { let size = 170; while (size > 70 && Math.max(...lines.map((l) => g.measureText(l).width)) > 900) { size -= 10; g.font = `italic 400 ${size}px 'Playfair Display',serif`; } }
   const lh = isNumber ? 0 : 175, top = 256 - (lines.length - 1) * lh / 2;
   const grad = g.createLinearGradient(0, 60, 0, 460); grad.addColorStop(0, '#f3dc8a'); grad.addColorStop(0.5, '#c9a227'); grad.addColorStop(1, '#8a6a12');
   g.lineWidth = 26; g.lineJoin = 'round'; g.strokeStyle = '#8a6a12';
@@ -581,6 +584,9 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     lastDesign = design; lastPalette = palette; messagePlane = null;
     finishPiping();
     try { build(design, palette); } finally { currentPick = null; }
+    // Fondant chosen just now: a rolled sheet drops onto the cake and drapes down the sides, in one step.
+    if (prev && prev !== design && !packing && (design.accents || []).includes('fondant') && !(prev.accents || []).includes('fondant'))
+      drapeFondant(palette[design.frosting_color] || '#ffffff');
     if (!prev || prev === design || !model || packing || shapeKey !== 'bento') return;
     // Piping animations for what was just added (not while typing the message letter by letter).
     const before = new Set(prev.border || []), frost = palette[design.shell_color] || palette[design.frosting_color] || '#ffffff';
@@ -754,7 +760,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
 
     currentPick = 'topper';
     if (design.topper && design.topper !== 'none') {
-      const label = design.topper === 'number' ? (design.topper_text || '1') : design.topper === 'congrats' ? 'Congrats' : 'Happy Birthday';
+      const label = design.topper === 'number' ? (design.topper_text || '1') : design.topper === 'custom' ? (design.topper_text || 'Your words') : design.topper === 'congrats' ? 'Congrats' : 'Happy Birthday';
       const t = topperTexture(label); const topper = new THREE.Group();
       const face = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.68), new THREE.MeshPhysicalMaterial({ map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: 0.35, transparent: true, alphaTest: 0.2, metalness: 0.75, roughness: 0.22, clearcoat: 0.7, clearcoatRoughness: 0.08, envMapIntensity: 1.4, side: THREE.DoubleSide }));
       face.position.y = 0.62; face.castShadow = true; topper.add(face);
@@ -847,6 +853,26 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
       bag.position.set(Math.cos(a) * radius, y + 0.02 + Math.abs(Math.sin(k * 80)) * 0.015, Math.sin(a) * radius);
       bag.rotation.set(0, -a, -0.45);
     }, () => { for (const m of mats) m.userData.sdReveal.value = 7; bag.removeFromParent(); bag.userData.fillMat.dispose(); });
+  }
+  function drapeFondant(hex) {
+    if (reducedMotion) return;
+    const r = R + 0.012, h = H + 0.012, size = (r + h) * 1.06;          // a round sheet just big enough to reach the board
+    const geo = new THREE.RingGeometry(0.0001, size, 96, 48); geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position, flat = Float32Array.from(pos.array);
+    const mat = new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.42, sheen: 0.12, sheenRoughness: 0.6, side: THREE.DoubleSide, envMapIntensity: 0.3 });
+    const sheet = new THREE.Mesh(geo, mat); sheet.castShadow = true; lift.add(sheet);
+    piping(1500, (k) => {
+      const drop = Math.min(1, k / 0.35), wrap = Math.max(0, (k - 0.35) / 0.65);
+      const y0 = h + (1 - drop) * 0.35;                       // the sheet comes down flat first
+      for (let i = 0; i < pos.count; i++) {
+        const x = flat[i * 3], z = flat[i * 3 + 2], d = Math.hypot(x, z), a = Math.atan2(z, x), over = Math.max(0, d - r);
+        // where this point ends up: on the top, down the side, then a small skirt on the board
+        const tr = over <= 0 ? d : over <= h ? r : r + (over - h) * 0.35, ty = over <= 0 ? h : over <= h ? h - over : 0.006;
+        const rr = d + (tr - d) * wrap, yy = y0 + (ty - y0) * wrap - Math.sin(Math.min(1, over / (r + 0.001)) * Math.PI) * 0.06 * (1 - wrap) * drop;
+        pos.setXYZ(i, Math.cos(a) * rr, yy, Math.sin(a) * rr);
+      }
+      pos.needsUpdate = true; geo.computeVertexNormals();
+    }, () => { sheet.removeFromParent(); geo.dispose(); mat.dispose(); });
   }
   function pipeMessage(plane, hex) {
     if (reducedMotion) return;
