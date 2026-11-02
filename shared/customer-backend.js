@@ -210,7 +210,7 @@ async function cancelMyOrder(orderId,orderNumber){
    const statusClass=['pending','cancelled','completed','ready'].includes(bookingStatus)?' is-'+bookingStatus:'';
    const waiting=o.status==='pending'&&o.payment_status==='unpaid',payable=!waiting&&o.status!=='cancelled'&&['unpaid','rejected','partially_paid'].includes(o.payment_status)&&o.total_amount!==null;
    const details='<div class="customer-order-details"><span><em>Total</em>'+moneyValue(o.total_amount)+'</span><span><em>Downpayment</em>'+moneyValue(o.deposit_due)+'</span><span><em>Verified paid</em>'+moneyValue(o.amount_paid)+'</span><span><em>Remaining</em>'+moneyValue(o.total_amount===null?null:Number(o.total_amount)-Number(o.amount_paid||0))+'</span><span><em>Method</em>'+authEscape(method)+'</span><span><em>Products</em>'+authEscape((o.order_items||[]).map(i=>i.name_snapshot+' ×'+i.quantity).join(', ')||'Not available')+'</span>'+(p?.status==='rejected'?'<span><em>Payment issue</em>'+authEscape(p.rejection_reason||'Please resubmit')+'</span>':'')+'</div>';
-   const canCancel=o.status==='pending'&&['unpaid','rejected'].includes(o.payment_status)&&Number(o.amount_paid||0)===0;
+   const canCancel=['pending','confirmed'].includes(o.status)&&['unpaid','rejected'].includes(o.payment_status)&&Number(o.amount_paid||0)===0;
    // progress along the order (from the saved status only): Placed → Confirmed → Paid → Ready → Done
    const steps=['Placed','Confirmed','Paid','Ready','Done'];
    const stage=o.status==='completed'?4:o.status==='ready'?3:(['paid','partially_paid'].includes(o.payment_status)||o.status==='preparing')?2:o.status!=='pending'?1:0;
