@@ -8,12 +8,14 @@
 --      paid). In-place patch with an exact-match guard.
 --   2. When an order is cancelled this way, its open payment requests ("awaiting payment") are marked cancelled,
 --      like phase 71 did for older cancelled orders, so nothing keeps showing as waiting.
+--   3. Refuses while an online PayMongo QR made in the last 35 minutes could still be paid (QR codes last 30), so
+--      money never lands on a cancelled order.
 --
 -- What it does NOT do: allow cancelling once a receipt is under review, a downpayment is verified, or baking
 -- started; change any money; touch inventory (stock is only taken at "Start making").
 --
--- How to apply: rehearse first in a transaction you roll back, then run this whole file once in the Supabase SQL
--- editor. Safe to run twice. NOT applied yet (prepared 2026-11-02).
+-- How to apply: rehearse with database/tests/phase92-rehearsal.sql (rolls itself back), then run this whole file once in the Supabase SQL
+-- editor. Safe to run twice.
 
 do $$
 declare def text;
@@ -21,7 +23,12 @@ declare def text;
   b1 text := 'if result.status not in (''pending'', ''confirmed'') or result.payment_status not in (''unpaid'', ''rejected'') or result.amount_paid <> 0 then';
   a2 text := '  update public.orders set status = ''cancelled''
   where id = target_order returning * into result;';
-  b2 text := '  update public.orders set status = ''cancelled''
+  b2 text := '  -- phase 92: not while an online (PayMongo) QR made in the last 35 minutes could still be paid; QR codes last 30
+  if exists (select 1 from public.order_payment_attempts where order_id = target_order and status = ''awaiting_payment''
+              and provider_checkout_id is not null and updated_at > now() - interval ''35 minutes'') then
+    raise exception ''An online payment was started for this order. Wait 30 minutes for its QR code to expire, or message LexC''''s to cancel.'';
+  end if;
+  update public.orders set status = ''cancelled''
   where id = target_order returning * into result;
   update public.order_payment_attempts set status = ''cancelled''          -- phase 92: open requests close with the order
    where order_id = target_order and status = ''awaiting_payment'';';
