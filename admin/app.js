@@ -4,7 +4,7 @@ import { openInventoryNotifications, refreshInventoryNotificationBadge, renderIn
 import { renderReports } from './pages/reports.js?v=19';
 import { renderOrders } from './pages/orders.js?v=46';
 import { renderBookings } from './pages/bookings.js?v=14';
-import { renderDesignOptions } from './pages/design-options.js?v=13';
+import { renderDesignOptions } from './pages/design-options.js?v=14';
 import { renderProfile } from './pages/profile.js?v=13';
 import { mountChat } from '../shared/chat.js?v=40';
 import { mountChatWidget } from '../shared/chat-widget.js?v=43';

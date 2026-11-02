@@ -34,7 +34,7 @@ const ICON={
  theme:'<path d="M4 20 9 7l8 8-13 5Z"/><path d="M14 3.5v2M18.5 5.5 17 7M20.5 10h-2M12.5 6.5l1-1"/>',
  chev:'<path d="m9 6 6 6-6 6"/>', down:'<path d="m6 9 6 6 6-6"/>', search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>'};
 // One line under each group title, by designer.
-const DESC={border:'Piped frosting shells around the cake.',accent:'Decorations customers can add to the cake. Fondant (the smooth covering) is here too; customers see it as Covering.',lettering:'How the message is written on the cake.',topper:'A topper to make it extra special.',font:'Fonts for the custom message.',
+const DESC={border:'Piped frosting shells around the cake.',accent:'Decorations customers can add to the cake. Every cake is covered in fondant at no extra charge.',lettering:'How the message is written on the cake.',topper:'A topper to make it extra special.',font:'Fonts for the custom message.',
  color:{bento:'Frosting, lettering, ribbon and drip colors.',cupcake:'Frosting colors for the piping.',donut:'Glaze, sprinkle and letter colors.',cakepop:'Coating and sprinkle colors.'},
  message:{bento:'A custom message on the cake.',donut:'Fondant letters or name plaques.',cakepop:'Cake pops have no message.'},
  flavor:{cupcake:'Cake flavor for the box.',donut:'Donut flavors, one or mixed.',cakepop:'Cake pop flavors, one or mixed.'},
@@ -57,7 +57,8 @@ const recall=k=>{try{return localStorage.getItem(k);}catch{return null;}};
 export async function renderDesignOptions(content){
  content.innerHTML=heading+loadingTable(['Option','Extra','Offered',''],8);
  try{
-  const options=await rows(db.client.from('design_options').select('id,product_id,group_key,code,label,price,hex,is_active,sort_order').order('group_key').order('sort_order'));
+  // the phase 90 "fondant" decoration is unused (every cake is fondant now), so it is not listed
+  const options=(await rows(db.client.from('design_options').select('id,product_id,group_key,code,label,price,hex,is_active,sort_order').order('group_key').order('sort_order'))).filter(o=>!(o.group_key==='accent'&&o.code==='fondant'));
   const ids=[...new Set(options.map(o=>o.product_id))];
   const products=ids.length?await rows(db.client.from('products').select('id,name,customization_config').in('id',ids).order('name')):[];
   if(!options.length){content.innerHTML=heading+'<section class="panel"><p>No designer options yet. Apply database phase 32 first.</p></section>';return;}

@@ -47,7 +47,7 @@ const SURF = {
   crinkle: { scale: [18, 18, 18], fine: 40, strength: 0.12, rough: 0.18 },       // gold leaf
   pulp: { scale: [9, 9, 9], fine: 45, strength: 0.012, rough: 0.04 }             // moulded pulp box
 };
-// Fondant (phase 90): the same cake under a smooth satin cover — almost no spatula streaks, a little more sheen.
+// Every LexC's designer cake is covered in fondant: a smooth satin cover — almost no spatula streaks, a little more sheen.
 function fondant(material, on) {
   if (!material) return;
   const d = material.userData;
@@ -340,34 +340,21 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     if (reducedMotion || !layers.children.length) { showBody(); return; }
     iceCake();
   }
-  // Leaving the Layers step: the frosting rises over the sponge layers from the bottom up while a piping bag spirals
-  // round the cake, then the decorations settle on. Two clipping planes share one level: frosting below it is shown,
-  // layers below it are hidden.
+  // Leaving the Layers step: every LexC's cake is fondant, so a rolled sheet drops onto each tier over the sponge
+  // layers and drapes down its sides (all tiers at once), then the covered cake and its decorations settle in.
   function iceCake() {
     const useModel = !!model && shapeKey === 'bento';
-    const frostMats = new Set(); forEachMesh(useModel ? model.root : body, (m) => (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => frostMats.add(x)));
-    const below = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), above = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), at = new THREE.Vector3();
-    for (const m of frostMats) m.clippingPlanes = [below];
-    spongeMat.clippingPlanes = fillMat.clippingPlanes = [above];
-    if (model) model.root.visible = useModel;
-    fixed.visible = !useModel; lift.visible = true; layers.visible = true; decor.visible = false;
-    const stack = shapeKey === 'bento' ? [{ r: 1, h: H, y: 0 }] : TIERS, top = H + 0.04;
-    const radiusAt = (y) => (stack.find((t) => y <= t.y + t.h) || stack[stack.length - 1]).r;
-    const frost = '#' + cakeMat.color.getHexString();   // build() keeps cakeMat at the top tier's frosting colour
-    const bag = makeBag(frost), start = Math.atan2(camera.position.z, camera.position.x) - 0.6, turns = 1.5 + stack.length * 0.5;
-    bag.scale.setScalar(Math.max(1.2, RB * 1.1));   // the whole cake is scaled down to fit, so a big cake needs a bigger bag to read
-    piping(1500 + stack.length * 450, (k) => {
-      const level = -0.02 + k * (top + 0.02); at.set(0, level, 0); world.localToWorld(at);
-      below.constant = at.y + 0.0005; above.constant = -at.y;
-      const a = start + k * Math.PI * 2 * turns, r = radiusAt(Math.min(level, H - 0.001)) + 0.14 * Math.max(1.2, RB * 1.1);
-      bag.position.set(Math.cos(a) * r, Math.min(level, H) + 0.03, Math.sin(a) * r); bag.rotation.set(0, -a, -0.5);
-    }, () => {
-      for (const m of frostMats) m.clippingPlanes = null;
-      spongeMat.clippingPlanes = fillMat.clippingPlanes = null;
-      bag.removeFromParent(); bag.userData.fillMat.dispose();
+    if (model) model.root.visible = false;
+    fixed.visible = false; lift.visible = true; layers.visible = true; decor.visible = false;
+    const stack = shapeKey === 'bento' ? [{ r: R, h: H, y: 0 }] : TIERS, n = stack.length, d = lastDesign || {}, pal = lastPalette || {};
+    const tierOf = (i) => (i === n - 1 ? d : (i > 0 ? d.middle || d.lower : d.lower)) || {};
+    let left = n;
+    stack.forEach((t, i) => drapeFondant(pal[tierOf(i).frosting_color] || pal[d.frosting_color] || '#' + cakeMat.color.getHexString(), t.r, t.y + t.h, t.y, () => {
+      if (--left) return;
       decor.visible = true; showBody();
       animate((k) => { decor.scale.setScalar(0.94 + 0.06 * k); decor.position.y = (1 - k) * 0.08; }, 380);
-    });
+    }));
+    if (useModel) request();
   }
   const clearDecor = () => {
     decor.traverse((o) => { if (o.isMesh) { if (!o.userData.sharedGeometry) o.geometry.dispose(); if (!o.userData.sharedMaterial) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.map?.dispose(); m.dispose(); }); } });
@@ -584,17 +571,6 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     lastDesign = design; lastPalette = palette; messagePlane = null;
     finishPiping();
     try { build(design, palette); } finally { currentPick = null; }
-    // Fondant chosen just now on a tier: a rolled sheet drops onto that tier and drapes down its sides, in one step.
-    // Tiers bottom first; the top tier's choices are the design itself, lower tiers are design.lower / design.middle.
-    if (prev && prev !== design && !packing) {
-      const stack = shapeKey === 'bento' ? [{ r: R, h: H, y: 0 }] : TIERS, n = stack.length;
-      const tierOf = (d, i) => (i === n - 1 ? d : (i > 0 ? d?.middle || d?.lower : d?.lower)) || {};
-      stack.forEach((t, i) => {
-        const now = tierOf(design, i), was = tierOf(prev, i);
-        if ((now.accents || []).includes('fondant') && !(was.accents || []).includes('fondant'))
-          drapeFondant(palette[now.frosting_color] || palette[design.frosting_color] || '#ffffff', t.r, t.y + t.h, t.y);
-      });
-    }
     if (!prev || prev === design || !model || packing || shapeKey !== 'bento') return;
     // Piping animations for what was just added (not while typing the message letter by letter).
     const before = new Set(prev.border || []), frost = palette[design.shell_color] || palette[design.frosting_color] || '#ffffff';
@@ -608,7 +584,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const dmat = (color, rough = 0.62, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
     const hexOf = (code, fallback = '#ffffff') => palette[code] || fallback;
     const frost = hexOf(design.frosting_color);
-    fadeColor(cakeMat, frost); fondant(cakeMat, (design.accents || []).includes('fondant'));
+    fadeColor(cakeMat, frost); fondant(cakeMat, true);
     clearDecor();
     if (model && shapeKey === 'bento') return updateModel(design, palette, hexOf, frost);
     const rand = seeded(97);
@@ -624,7 +600,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
         // bottom tier = design.lower; the middle tier of a 3-tier cake = design.middle (the bottom's choices if absent)
         TIERS.slice(0, -1).forEach((t, i) => {
           const mid = i > 0, d = (mid ? design.middle || design.lower : design.lower) || {}, tierFrost = hexOf(d.frosting_color, frost);
-          fadeColor(mid ? midMat : lowerMat, tierFrost); fondant(mid ? midMat : lowerMat, (d.accents || []).includes('fondant'));
+          fadeColor(mid ? midMat : lowerMat, tierFrost); fondant(mid ? midMat : lowerMat, true);
           const tierDesign = { accents: d.accents || [], border: d.border || [], bow_color: d.bow_color, drip_color: d.drip_color, shell_color: d.shell_color, layout: {}, topper: 'none', message: '' };
           pickPrefix = mid ? 'middle:' : 'lower:';
           R = RB = t.r; TIER_Y = t.y; H = t.y + t.h; TEXT_R = TIERS[i + 1].r + 0.04;   // decorations stay on the step outside the tier above
@@ -784,7 +760,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const accents = new Set(design.accents || []), borders = new Set(design.border || []);
     const recolor = (o, hex) => o && forEachMesh(o, (m) => { fadeColor(m.material, hex); if (m.material.sheenColor && m.material.sheen > 0.8) m.material.sheenColor.copy(shade(hex, 0.28)); });
     recolor(P.cake, frost); recolor(P.top_frosting, frost);
-    for (const part of [P.cake, P.top_frosting]) if (part) forEachMesh(part, (m) => fondant(m.material, accents.has('fondant')));
+    for (const part of [P.cake, P.top_frosting]) if (part) forEachMesh(part, (m) => fondant(m.material, true));
     const shellHex = design.shell_color && palette[design.shell_color] ? palette[design.shell_color] : frost;
     if (P.border_top_shell) { P.border_top_shell.visible = borders.has('shell_top'); recolor(P.border_top_shell, shade(shellHex, 0.03)); }
     if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(shellHex, 0.03)); }
@@ -862,16 +838,16 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
       bag.rotation.set(0, -a, -0.45);
     }, () => { for (const m of mats) m.userData.sdReveal.value = 7; bag.removeFromParent(); bag.userData.fillMat.dispose(); });
   }
-  function drapeFondant(hex, radius, top, base) {
-    if (reducedMotion) return;
+  function drapeFondant(hex, radius, top, base, onDone) {
+    if (reducedMotion) { onDone?.(); return; }
     const r = radius + 0.012, h = top - base + 0.012, size = (r + h) * 1.06;   // a round sheet just big enough to reach the tier's base
     const geo = new THREE.RingGeometry(0.0001, size, 96, 48); geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position, flat = Float32Array.from(pos.array);
     const mat = new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.42, sheen: 0.12, sheenRoughness: 0.6, side: THREE.DoubleSide, envMapIntensity: 0.3 });
     const sheet = new THREE.Mesh(geo, mat); sheet.castShadow = true; lift.add(sheet);
     piping(1500, (k) => {
-      const drop = Math.min(1, k / 0.35), wrap = Math.max(0, (k - 0.35) / 0.65);
-      const y0 = base + h + (1 - drop) * 0.35;                // the sheet comes down flat first
+      const drop = Math.min(1, k / 0.3), wrap = 0.6 + 0.4 * Math.max(0, (k - 0.3) / 0.7);   // held half-draped, like over a rolling pin, then it settles
+      const y0 = base + h + (1 - drop) * 0.22;                // the sheet comes down flat first
       for (let i = 0; i < pos.count; i++) {
         const x = flat[i * 3], z = flat[i * 3 + 2], d = Math.hypot(x, z), a = Math.atan2(z, x), over = Math.max(0, d - r);
         // where this point ends up: on the top, down the side, then a small skirt on the board
@@ -880,7 +856,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
         pos.setXYZ(i, Math.cos(a) * rr, yy, Math.sin(a) * rr);
       }
       pos.needsUpdate = true; geo.computeVertexNormals();
-    }, () => { sheet.removeFromParent(); geo.dispose(); mat.dispose(); });
+    }, () => { sheet.removeFromParent(); geo.dispose(); mat.dispose(); onDone?.(); });
   }
   function pipeMessage(plane, hex) {
     if (reducedMotion) return;

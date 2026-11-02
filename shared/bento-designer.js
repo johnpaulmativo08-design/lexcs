@@ -5,7 +5,7 @@
   const STEPS = [['layers', 'Layers'], ['style', 'Style'], ['decorate', 'Decorate'], ['message', 'Message'], ['review', 'Review']];
   // Tapping a part of the 3D cake opens its option: [step, section legend, name shown on hover].
   const PICK = {
-    frosting: ['style', 'frosting', 'Frosting'], border: ['decorate', 'border', 'Frosting'], drip: ['decorate', 'drip', 'Frosting drip'],
+    frosting: ['style', 'frosting', 'Fondant'], border: ['decorate', 'border', 'Frosting'], drip: ['decorate', 'drip', 'Frosting drip'],
     pearls: ['decorate', 'accent', 'Pearls'], bows: ['decorate', 'bows', 'Ribbon bows'], flowers: ['decorate', 'accent', 'Piped flowers'],
     leaves: ['decorate', 'accent', 'Piped leaves'], sprinkles: ['decorate', 'accent', 'Sprinkles'], gold_leaf: ['decorate', 'accent', 'Gold leaf'],
     message: ['message', null, 'Message'], topper: ['decorate', 'topper', 'Topper']
@@ -77,7 +77,7 @@
   const TOPPER_MAX = 14;
   const customTopper = (v) => String(v || '').replace(/[^A-Za-z0-9 !&'.\-]/g, '').replace(/\s+/g, ' ').replace(/^\s/, '').slice(0, TOPPER_MAX);
   const title = (key, fallback) => String(cfg().group_titles?.[key] || '').trim() || fallback;
-  // Fondant (phase 90) is stored as the "fondant" decoration but shown as its own Covering choice, not as a decoration.
+  // Every cake is covered in fondant (no choice, no charge); the old phase 90 "fondant" decoration is never offered.
   const decorations = () => (options.accent || []).filter((o) => o.code !== 'fondant');
   const variant = () => product.product_variants.find((v) => v.id === state.variant_id && v.is_active);
   const cfg = () => product.customization_config || {};
@@ -186,7 +186,7 @@
     const owner = cakes.find((p) => activeVariants(p).some((v) => v.id === state.variant_id));
     if (owner && owner !== product) { const was = product; product = owner; try { useOptions(); } catch { product = was; useOptions(); } }
     const max = Number(cfg().max_accents || 6);
-    state.accents = [...new Set(state.accents)].filter((c) => opt('accent', c)).slice(0, max);
+    state.accents = [...new Set(state.accents)].filter((c) => c !== 'fondant' && opt('accent', c)).slice(0, max);
     state.border = [...new Set(state.border)].filter((c) => opt('border', c));
     if (!palette[state.frosting_color]) state.frosting_color = options.color[0].code;
     if (!palette[state.bow_color]) state.bow_color = 'pink';
@@ -409,7 +409,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=40');
+        const mod = await import('./bento-scene.js?v=43');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -663,13 +663,10 @@
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
       ${tierSwitch()}
-      <fieldset class="bd-group" data-bd-section="frosting"><legend>Frosting color${onLower() ? ' · ' + tier + ' tier' : ''} <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', sub(s).frosting_color, 'Frosting color')}</fieldset>
-      ${opt('accent', 'fondant') ? (() => { const f = opt('accent', 'fondant'), on = sub(s).accents.includes('fondant');
-        return `<fieldset class="bd-group" data-bd-section="covering"><legend>${esc(title('covering', 'Covering'))}${onLower() ? ' · ' + tier + ' tier' : ''} <small>Soft buttercream or smooth fondant</small></legend>
-        <div class="bd-chips" role="radiogroup" aria-label="Covering"><button type="button" class="bd-chip" role="radio" data-bd-cover="" aria-checked="${!on}">Buttercream <small>Free</small></button><button type="button" class="bd-chip" role="radio" data-bd-cover="fondant" aria-checked="${on}">${esc(f.label)} ${priceTag(f)}</button></div></fieldset>`; })() : ''}`;
+      <fieldset class="bd-group" data-bd-section="frosting"><legend>Fondant color${onLower() ? ' · ' + tier + ' tier' : ''} <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', sub(s).frosting_color, 'Fondant color')}</fieldset>`;
     if (step === 'decorate') {
       const top = s; { const s = sub(top);   // the tier being decorated
-      const count = s.accents.filter((c) => c !== 'fondant').length, room = max - (s.accents.includes('fondant') ? 1 : 0);
+      const count = s.accents.filter((c) => c !== 'fondant').length, room = max;
       return `
       ${tierSwitch()}
       <fieldset class="bd-group" data-bd-section="border"><legend>${esc(title('border', 'Frosting'))} <small>Piped shells</small></legend>
@@ -817,15 +814,6 @@
       if (t.dataset.bdSet) { const f = t.dataset.bdSet, v = t.dataset.value; return commit((s) => { (TIER_FIELDS.has(f) ? sub(s) : s)[f] = v; }); }
       if (t.dataset.bdCake) { const p = cakes.find((c) => c.id === t.dataset.bdCake), id = p && pickVariant(p); if (id) commit((s) => { s.variant_id = id; }); return; }
       if (t.dataset.bdSize) { const id = pickVariant(product, t.dataset.bdSize); if (id) commit((s) => { s.variant_id = id; }); return; }
-      if ('bdCover' in t.dataset) {
-        const want = t.dataset.bdCover === 'fondant';
-        return commit((s) => {
-          const target = sub(s), list = new Set(target.accents), max = Number(cfg().max_accents || 6);
-          if (want && !list.has('fondant') && list.size >= max) { showToast('Remove one decoration first — a cake can have ' + max + ' extras including fondant.'); return; }
-          if (want) list.add('fondant'); else list.delete('fondant');
-          target.accents = [...list];
-        });
-      }
       if (t.dataset.bdToggle) {
         const f = t.dataset.bdToggle, v = t.dataset.value;
         return commit((s) => {
