@@ -584,9 +584,17 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     lastDesign = design; lastPalette = palette; messagePlane = null;
     finishPiping();
     try { build(design, palette); } finally { currentPick = null; }
-    // Fondant chosen just now: a rolled sheet drops onto the cake and drapes down the sides, in one step.
-    if (prev && prev !== design && !packing && (design.accents || []).includes('fondant') && !(prev.accents || []).includes('fondant'))
-      drapeFondant(palette[design.frosting_color] || '#ffffff');
+    // Fondant chosen just now on a tier: a rolled sheet drops onto that tier and drapes down its sides, in one step.
+    // Tiers bottom first; the top tier's choices are the design itself, lower tiers are design.lower / design.middle.
+    if (prev && prev !== design && !packing) {
+      const stack = shapeKey === 'bento' ? [{ r: R, h: H, y: 0 }] : TIERS, n = stack.length;
+      const tierOf = (d, i) => (i === n - 1 ? d : (i > 0 ? d?.middle || d?.lower : d?.lower)) || {};
+      stack.forEach((t, i) => {
+        const now = tierOf(design, i), was = tierOf(prev, i);
+        if ((now.accents || []).includes('fondant') && !(was.accents || []).includes('fondant'))
+          drapeFondant(palette[now.frosting_color] || palette[design.frosting_color] || '#ffffff', t.r, t.y + t.h, t.y);
+      });
+    }
     if (!prev || prev === design || !model || packing || shapeKey !== 'bento') return;
     // Piping animations for what was just added (not while typing the message letter by letter).
     const before = new Set(prev.border || []), frost = palette[design.shell_color] || palette[design.frosting_color] || '#ffffff';
@@ -854,20 +862,20 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
       bag.rotation.set(0, -a, -0.45);
     }, () => { for (const m of mats) m.userData.sdReveal.value = 7; bag.removeFromParent(); bag.userData.fillMat.dispose(); });
   }
-  function drapeFondant(hex) {
+  function drapeFondant(hex, radius, top, base) {
     if (reducedMotion) return;
-    const r = R + 0.012, h = H + 0.012, size = (r + h) * 1.06;          // a round sheet just big enough to reach the board
+    const r = radius + 0.012, h = top - base + 0.012, size = (r + h) * 1.06;   // a round sheet just big enough to reach the tier's base
     const geo = new THREE.RingGeometry(0.0001, size, 96, 48); geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position, flat = Float32Array.from(pos.array);
     const mat = new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.42, sheen: 0.12, sheenRoughness: 0.6, side: THREE.DoubleSide, envMapIntensity: 0.3 });
     const sheet = new THREE.Mesh(geo, mat); sheet.castShadow = true; lift.add(sheet);
     piping(1500, (k) => {
       const drop = Math.min(1, k / 0.35), wrap = Math.max(0, (k - 0.35) / 0.65);
-      const y0 = h + (1 - drop) * 0.35;                       // the sheet comes down flat first
+      const y0 = base + h + (1 - drop) * 0.35;                // the sheet comes down flat first
       for (let i = 0; i < pos.count; i++) {
         const x = flat[i * 3], z = flat[i * 3 + 2], d = Math.hypot(x, z), a = Math.atan2(z, x), over = Math.max(0, d - r);
         // where this point ends up: on the top, down the side, then a small skirt on the board
-        const tr = over <= 0 ? d : over <= h ? r : r + (over - h) * 0.35, ty = over <= 0 ? h : over <= h ? h - over : 0.006;
+        const tr = over <= 0 ? d : over <= h ? r : r + (over - h) * 0.35, ty = base + (over <= 0 ? h : over <= h ? h - over : 0.006);
         const rr = d + (tr - d) * wrap, yy = y0 + (ty - y0) * wrap - Math.sin(Math.min(1, over / (r + 0.001)) * Math.PI) * 0.06 * (1 - wrap) * drop;
         pos.setXYZ(i, Math.cos(a) * rr, yy, Math.sin(a) * rr);
       }
