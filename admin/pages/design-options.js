@@ -7,7 +7,7 @@ import {db,rows,fail,loadingTable} from '../backend-ui.js?v=3';
 // switches; changes are collected and saved together from the bar at the bottom. Every option can carry a price
 // (phase 41); "No …" choices stay free.
 const GROUPS={
- bento:[['border','Borders'],['accent','Decorations'],['message','Message'],['lettering','Lettering styles'],['topper','Toppers'],['font','Message fonts'],['color','Colors (frosting, lettering, ribbon, drip)']],
+ bento:[['border','Frosting'],['accent','Decorations'],['message','Message'],['lettering','Lettering styles'],['topper','Toppers'],['font','Message fonts'],['color','Colors (frosting, lettering, ribbon, drip)']],
  cupcake:[['flavor','Flavors'],['style','Piping styles'],['pattern','Box arrangement'],['finish','Finishing touches'],['theme','Theme toppers'],['color','Frosting colors']],
  cakepop:[['style','Pop shape'],['flavor','Flavors'],['pattern','Coating'],['finish','Finishes'],['sprinkle','Sprinkles'],['theme','Theme toppers'],['message','Fondant message'],['color','Coating, sprinkle and letter colors']],
  donut:[['flavor','Flavors'],['pattern','Glaze dip'],['finish','Finishes'],['sprinkle','Sprinkles'],['theme','Theme toppers'],['message','Fondant message'],['color','Glaze, sprinkle and letter colors']]};
@@ -34,7 +34,7 @@ const ICON={
  theme:'<path d="M4 20 9 7l8 8-13 5Z"/><path d="M14 3.5v2M18.5 5.5 17 7M20.5 10h-2M12.5 6.5l1-1"/>',
  chev:'<path d="m9 6 6 6-6 6"/>', down:'<path d="m6 9 6 6 6-6"/>', search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>'};
 // One line under each group title, by designer.
-const DESC={border:'Piped borders around the cake.',accent:'Decorations customers can add to the cake.',lettering:'How the message is written on the cake.',topper:'A topper to make it extra special.',font:'Fonts for the custom message.',
+const DESC={border:'Piped frosting shells around the cake.',accent:'Decorations customers can add to the cake. Fondant (the smooth covering) is here too; customers see it as Covering.',lettering:'How the message is written on the cake.',topper:'A topper to make it extra special.',font:'Fonts for the custom message.',
  color:{bento:'Frosting, lettering, ribbon and drip colors.',cupcake:'Frosting colors for the piping.',donut:'Glaze, sprinkle and letter colors.',cakepop:'Coating and sprinkle colors.'},
  message:{bento:'A custom message on the cake.',donut:'Fondant letters or name plaques.',cakepop:'Cake pops have no message.'},
  flavor:{cupcake:'Cake flavor for the box.',donut:'Donut flavors, one or mixed.',cakepop:'Cake pop flavors, one or mixed.'},
@@ -45,6 +45,8 @@ const DESC={border:'Piped borders around the cake.',accent:'Decorations customer
 const HOW={color:'once for each color the customer uses',flavor:'for each flavor chosen (Mixed flavors: once, when a box has more than one)',font:'when the cake has a message'};
 const FILTERS=[['all','All'],['on','Offered'],['off','Hidden'],['paid','With extra charge']];
 const STORE='lexc_admin_design_product';
+// Sections whose name the owner can change; the cake designer shows the saved name (customization_config.group_titles).
+const RENAMABLE={bento:['border','accent','topper']};
 const heading='<header class="module-heading dopt-heading"><div><h1>Designer Options</h1><p>Set an extra price for any choice in the bento, cupcake, donut and cake pop designers (₱0 = free), and turn an option off to hide it from customers. Open a section with its button.</p></div></header>';
 const priceLocked=o=>o.code==='none';
 const activeLocked=o=>o.code==='none'||(o.group_key==='lettering'&&o.code==='piped')||(o.group_key==='font'&&o.code==='rounded');
@@ -97,7 +99,8 @@ export async function renderDesignOptions(content){
 
   function render(){
    const p=sorted.find(x=>x.id===view.product),k=kind(p),unit=UNIT[k];
-   const groups=GROUPS[k].map(([key,title])=>({key,title:title.replace(/ \(.*\)$/,''),list:options.filter(o=>o.product_id===p.id&&o.group_key===key)})).filter(g=>g.list.length);
+   const named=key=>String(p.customization_config?.group_titles?.[key]||'').trim();
+   const groups=GROUPS[k].map(([key,title])=>({key,title:named(key)||title.replace(/ \(.*\)$/,''),list:options.filter(o=>o.product_id===p.id&&o.group_key===key)})).filter(g=>g.list.length);
    if(view.section&&!groups.some(g=>g.key===view.section))view.section=null;
    const mine=options.filter(o=>o.product_id===p.id),count={all:mine.length,on:mine.filter(o=>current(o).is_active).length,off:mine.filter(o=>!current(o).is_active).length,paid:mine.filter(o=>current(o).price>0).length};
    const allOpen=groups.every(g=>isOpen(g.key)),scroll=window.scrollY;
@@ -122,7 +125,10 @@ export async function renderDesignOptions(content){
        +'<span class="dopt-group-pills">'+(changed?'<span class="dopt-pill is-unsaved">'+changed+' unsaved</span>':'')
        +'<span class="dopt-pill">'+g.list.filter(o=>current(o).is_active).length+' of '+g.list.length+' offered</span>'+'</span>'
        +'<span class="dopt-caret">'+SVG(ICON.down)+'</span></button>'
-       +(open?'<div class="dopt-body" id="dopt-body-'+e(g.key)+'"><div class="dopt-body-top"><p class="dopt-how">Extra charged '+(HOW[g.key]||'once per '+unit+' when chosen')+'.</p>'
+       +(open?'<div class="dopt-body" id="dopt-body-'+e(g.key)+'">'+((RENAMABLE[k]||[]).includes(g.key)?(view.renaming===g.key
+          ?'<form class="dopt-rename" data-rename-form="'+e(g.key)+'"><label>Section name customers see<input name="title" maxlength="40" required value="'+e(g.title)+'"></label><button type="submit" class="dopt-chip is-primary">Save name</button><button type="button" class="dopt-chip" data-rename-cancel>Cancel</button><small role="status"></small></form>'
+          :'<p class="dopt-rename-row"><span>Customers see this section as <b>'+e(g.title)+'</b></span><button type="button" class="dopt-chip" data-rename="'+e(g.key)+'">Rename</button></p>'):'')
+         +'<div class="dopt-body-top"><p class="dopt-how">Extra charged '+(HOW[g.key]||'once per '+unit+' when chosen')+'.</p>'
          +(lockedAll?'':'<div class="dopt-group-actions"><button type="button" class="dopt-chip" data-all="on">Offer all</button><button type="button" class="dopt-chip" data-all="off">Hide all</button></div>')+'</div>'
          +'<div class="dopt-head" aria-hidden="true"><span>Option</span><span>Extra price (₱)</span><span>Customers see it</span><span></span></div>'
          +shown.map(o=>rowHtml(o,unit)).join('')+'</div>':'')+'</section>';
@@ -177,6 +183,8 @@ export async function renderDesignOptions(content){
    if(t.dataset.section){const id=view.product+':'+t.dataset.section;if(isOpen(t.dataset.section)){view.open.delete(id);view.closed.add(id);}else{view.closed.delete(id);view.open.add(id);}render();root.querySelector('[data-section="'+CSS.escape(t.dataset.section)+'"]')?.focus();return;}
    if(t.dataset.expand){const keys=GROUPS[kind(sorted.find(x=>x.id===view.product))].map(([k])=>view.product+':'+k);keys.forEach(k=>{if(t.dataset.expand==='open'){view.open.add(k);view.closed.delete(k);}else{view.open.delete(k);view.closed.add(k);}});render();return;}
    if(t.dataset.all){const key=t.closest('[data-group]').dataset.group;options.filter(x=>x.product_id===view.product&&x.group_key===key&&!activeLocked(x)).forEach(x=>setEdit(x,{is_active:t.dataset.all==='on'}));render();return;}
+   if(t.dataset.rename){view.renaming=t.dataset.rename;render();root.querySelector('[data-rename-form] input')?.select();return;}
+   if(t.hasAttribute('data-rename-cancel')){view.renaming=null;render();return;}
    if(t.hasAttribute('data-discard')){edits.clear();render();return;}
    if(t.hasAttribute('data-save-all')){saveAll();return;}
    if(!o)return;
@@ -184,6 +192,21 @@ export async function renderDesignOptions(content){
    else if(t.hasAttribute('data-free')){setEdit(o,{price:0});render();}
    else if(t.hasAttribute('data-toggle')){setEdit(o,{is_active:!current(o).is_active});render();}
    else if(t.hasAttribute('data-undo')){edits.delete(o.id);render();}
+  });
+  // Rename a section: saved on every cake of this designer, so all cakes show the same name.
+  root.addEventListener('submit',async event=>{
+   const form=event.target.closest('[data-rename-form]');if(!form)return;event.preventDefault();
+   const key=form.dataset.renameForm,name=form.elements.title.value.trim(),status=form.querySelector('[role=status]'),k=kind(sorted.find(x=>x.id===view.product));
+   if(!name){status.textContent='Type a name.';return;}
+   form.querySelectorAll('button').forEach(b=>b.disabled=true);status.textContent='Saving…';
+   try{
+    for(const x of products.filter(x=>kind(x)===k)){
+     const cfg={...(x.customization_config||{}),group_titles:{...(x.customization_config?.group_titles||{}),[key]:name}};
+     const {error}=await db.client.from('products').update({customization_config:cfg}).eq('id',x.id);if(error)throw error;
+     x.customization_config=cfg;
+    }
+    view.renaming=null;render();
+   }catch(error){status.textContent=error.message||'Could not save the name.';form.querySelectorAll('button').forEach(b=>b.disabled=false);}
   });
   root.addEventListener('input',event=>{
    if(event.target.matches('[data-search]')){view.query=event.target.value;const pos=event.target.selectionStart;render();const s=root.querySelector('[data-search]');s.focus();s.setSelectionRange(pos,pos);return;}

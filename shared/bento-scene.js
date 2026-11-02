@@ -47,11 +47,21 @@ const SURF = {
   crinkle: { scale: [18, 18, 18], fine: 40, strength: 0.12, rough: 0.18 },       // gold leaf
   pulp: { scale: [9, 9, 9], fine: 45, strength: 0.012, rough: 0.04 }             // moulded pulp box
 };
+// Fondant (phase 90): the same cake under a smooth satin cover — almost no spatula streaks, a little more sheen.
+function fondant(material, on) {
+  if (!material) return;
+  const d = material.userData;
+  if (d.fondantBase == null) d.fondantBase = { strength: d.sdStrength ? d.sdStrength.value : SURF.buttercream.strength, rough: material.roughness, sheen: material.sheen };
+  if (!d.sdStrength) d.sdStrength = { value: d.fondantBase.strength };
+  d.sdStrength.value = on ? d.fondantBase.strength * 0.08 : d.fondantBase.strength;
+  material.roughness = on ? 0.42 : d.fondantBase.rough;
+  if (d.fondantBase.sheen != null) material.sheen = on ? 0.12 : d.fondantBase.sheen;
+}
 function withSurface(material, cfg) {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uSdScale = { value: new THREE.Vector3(...cfg.scale) };
     shader.uniforms.uSdFine = { value: cfg.fine };
-    shader.uniforms.uSdStrength = { value: cfg.strength };
+    shader.uniforms.uSdStrength = material.userData.sdStrength || (material.userData.sdStrength = { value: cfg.strength });
     shader.uniforms.uSdRough = { value: cfg.rough };
     // Piping reveal: only the part of a ring from uSdRevealStart through uSdReveal radians is drawn.
     shader.uniforms.uSdReveal = material.userData.sdReveal || (material.userData.sdReveal = { value: 7 });
@@ -584,7 +594,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const dmat = (color, rough = 0.62, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
     const hexOf = (code, fallback = '#ffffff') => palette[code] || fallback;
     const frost = hexOf(design.frosting_color);
-    fadeColor(cakeMat, frost);
+    fadeColor(cakeMat, frost); fondant(cakeMat, (design.accents || []).includes('fondant'));
     clearDecor();
     if (model && shapeKey === 'bento') return updateModel(design, palette, hexOf, frost);
     const rand = seeded(97);
@@ -600,7 +610,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
         // bottom tier = design.lower; the middle tier of a 3-tier cake = design.middle (the bottom's choices if absent)
         TIERS.slice(0, -1).forEach((t, i) => {
           const mid = i > 0, d = (mid ? design.middle || design.lower : design.lower) || {}, tierFrost = hexOf(d.frosting_color, frost);
-          fadeColor(mid ? midMat : lowerMat, tierFrost);
+          fadeColor(mid ? midMat : lowerMat, tierFrost); fondant(mid ? midMat : lowerMat, (d.accents || []).includes('fondant'));
           const tierDesign = { accents: d.accents || [], border: d.border || [], bow_color: d.bow_color, drip_color: d.drip_color, shell_color: d.shell_color, layout: {}, topper: 'none', message: '' };
           pickPrefix = mid ? 'middle:' : 'lower:';
           R = RB = t.r; TIER_Y = t.y; H = t.y + t.h; TEXT_R = TIERS[i + 1].r + 0.04;   // decorations stay on the step outside the tier above
@@ -760,6 +770,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const accents = new Set(design.accents || []), borders = new Set(design.border || []);
     const recolor = (o, hex) => o && forEachMesh(o, (m) => { fadeColor(m.material, hex); if (m.material.sheenColor && m.material.sheen > 0.8) m.material.sheenColor.copy(shade(hex, 0.28)); });
     recolor(P.cake, frost); recolor(P.top_frosting, frost);
+    for (const part of [P.cake, P.top_frosting]) if (part) forEachMesh(part, (m) => fondant(m.material, accents.has('fondant')));
     const shellHex = design.shell_color && palette[design.shell_color] ? palette[design.shell_color] : frost;
     if (P.border_top_shell) { P.border_top_shell.visible = borders.has('shell_top'); recolor(P.border_top_shell, shade(shellHex, 0.03)); }
     if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(shellHex, 0.03)); }

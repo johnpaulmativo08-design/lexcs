@@ -840,3 +840,13 @@ main .operations-dashboard .ops-row .dash-balance{color:#1d1530;font-size:15.5px
 .od-large{display:flex;align-items:flex-start;gap:9px;margin:0 0 16px;padding:10px 12px;border-radius:12px;background:#fff8ea;color:#6b4a12;font-size:13px}
 .od-large .glyph{width:18px;height:18px;margin-top:1px}
 .od-large strong{margin-right:6px;color:#5a3c06}
+
+/* Designs: rename a section (the name customers see in the cake designer) */
+.dopt-rename-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;color:#6b6080;font-size:13px}
+.dopt-rename-row b{color:#1d1530}
+.dopt-rename{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;margin:0 0 12px}
+.dopt-rename label{display:grid;gap:4px;flex:1;min-width:200px;color:#6b6080;font-size:12.5px;font-weight:600}
+.dopt-rename input{min-height:38px;padding:7px 11px;border:1px solid #d9cdeb;border-radius:10px;font:inherit;font-size:14px;color:#1d1530}
+.dopt-rename input:focus{outline:none;border-color:#6f53bc;box-shadow:0 0 0 3px #ece4fb}
+.dopt-rename .is-primary{background:#6f53bc;color:#fff;border-color:#6f53bc}
+.dopt-rename small{flex-basis:100%;color:#a03030;font-size:12px}
