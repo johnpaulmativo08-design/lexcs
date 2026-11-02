@@ -162,13 +162,14 @@ async function submitCheckout(){
  }catch(error){showToast(customerActionError(error,'We could not place your order. Please try again; your selected cart items are still saved.'));}finally{checkoutSaving=false;submitButton.disabled=false;submitButton.textContent='Place Order →';}
 }
 let customerShowCancelled=false;
-async function cancelMyOrder(orderId,orderNumber){
- if(!confirm('Cancel order #'+orderNumber+'? This releases its reservation date. The order stays in history for payment and seller records.'))return;
+async function cancelMyOrder(orderId,orderNumber,paid=0){
+ const refund=paid>0?' LexC’s will refund the ₱'+paid.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})+' you already paid.':'';
+ if(!confirm('Cancel order #'+orderNumber+'? This releases its reservation date.'+refund+' The order stays in history for payment and seller records.'))return;
  const button=[...document.querySelectorAll('[data-cancel-order]')].find(item=>item.dataset.cancelOrder===orderId);
  if(button)button.disabled=true;
  try{
   await LexcBackend.rpc('cancel_my_order',{order_id:orderId});
-  showToast('Order cancelled. Your reservation slot is available again.');
+  showToast(paid>0?'Order cancelled. LexC’s will refund what you paid; watch your chat.':'Order cancelled. Your reservation slot is available again.');
    await showMyOrders();
  }catch(error){showToast(customerActionError(error,'Order cancellation could not be completed. Please try again.'));if(button)button.disabled=false;}
 }
@@ -210,7 +211,8 @@ async function cancelMyOrder(orderId,orderNumber){
    const statusClass=['pending','cancelled','completed','ready'].includes(bookingStatus)?' is-'+bookingStatus:'';
    const waiting=o.status==='pending'&&o.payment_status==='unpaid',payable=!waiting&&o.status!=='cancelled'&&['unpaid','rejected','partially_paid'].includes(o.payment_status)&&o.total_amount!==null;
    const details='<div class="customer-order-details"><span><em>Total</em>'+moneyValue(o.total_amount)+'</span><span><em>Downpayment</em>'+moneyValue(o.deposit_due)+'</span><span><em>Verified paid</em>'+moneyValue(o.amount_paid)+'</span><span><em>Remaining</em>'+moneyValue(o.total_amount===null?null:Number(o.total_amount)-Number(o.amount_paid||0))+'</span><span><em>Method</em>'+authEscape(method)+'</span><span><em>Products</em>'+authEscape((o.order_items||[]).map(i=>i.name_snapshot+' ×'+i.quantity).join(', ')||'Not available')+'</span>'+(p?.status==='rejected'?'<span><em>Payment issue</em>'+authEscape(p.rejection_reason||'Please resubmit')+'</span>':'')+'</div>';
-   const canCancel=['pending','confirmed'].includes(o.status)&&['unpaid','rejected'].includes(o.payment_status)&&Number(o.amount_paid||0)===0;
+   // cancel until baking starts (phase 93); money already received is refunded by LexC's; not while a receipt is being checked
+   const canCancel=['pending','confirmed'].includes(o.status)&&o.payment_status!=='verification_pending';
    // progress along the order (from the saved status only): Placed → Confirmed → Paid → Ready → Done
    const steps=['Placed','Confirmed','Paid','Ready','Done'];
    const stage=o.status==='completed'?4:o.status==='ready'?3:(['paid','partially_paid'].includes(o.payment_status)||o.status==='preparing')?2:o.status!=='pending'?1:0;
@@ -224,13 +226,13 @@ async function cancelMyOrder(orderId,orderNumber){
     '<div class="co-main"><span class="co-thumb" aria-hidden="true">'+(photo(products[0])?'<img src="'+authEscape(photo(products[0]))+'" alt="" loading="lazy">':authEscape((products[0]||'L').slice(0,1)))+'</span><div class="co-info"><p class="customer-order-product">'+productSummary+'</p><p class="customer-order-schedule">'+when+authEscape(schedule||'Schedule pending')+'</p>'+(count?'<span class="co-count">'+count+' item'+(count===1?'':'s')+'</span>':'')+'</div><div class="co-amount"><small>Total</small><strong>'+moneyValue(o.total_amount)+'</strong></div></div>'+
     (o.status!=='cancelled'&&window.LexcDelivery?window.LexcDelivery.card(deliveryByOrder.get(o.id)):'')+
     '<div class="co-pay is-'+payState+'"><span class="co-pay-dot" aria-hidden="true"></span><div><strong>'+authEscape(o.status==='cancelled'?'Order cancelled':waiting?'Waiting for LexC’s to confirm':paymentLabel(o.payment_status))+'</strong><span>'+authEscape(waiting?'You can pay once your order is confirmed':method)+'</span></div></div>'+
-    '<div class="customer-order-actions"><a class="btn-primary" href="payment/index.html?order='+encodeURIComponent(o.id)+'">'+(o.payment_status==='rejected'?'Resubmit payment':payable?(o.payment_status==='partially_paid'?'Pay remaining balance':'Pay now'):'View order & payment')+'</a><a class="btn-outline" href="chat/?order='+encodeURIComponent(o.id)+'">'+icon('M4 5h16v11H8l-4 4z')+'Message LexC</a>'+(canCancel?'<button class="customer-order-cancel" type="button" data-cancel-order="'+authEscape(o.id)+'" data-order-number="'+authEscape(o.order_number)+'">Cancel order</button>':'')+(canReview(o)?'<button class="btn-outline customer-review-cta" data-review="'+authEscape(o.id)+'">★ Rate your treats</button>':'')+'</div>'+
+    '<div class="customer-order-actions"><a class="btn-primary" href="payment/index.html?order='+encodeURIComponent(o.id)+'">'+(o.payment_status==='rejected'?'Resubmit payment':payable?(o.payment_status==='partially_paid'?'Pay remaining balance':'Pay now'):'View order & payment')+'</a><a class="btn-outline" href="chat/?order='+encodeURIComponent(o.id)+'">'+icon('M4 5h16v11H8l-4 4z')+'Message LexC</a>'+(canCancel?'<button class="customer-order-cancel" type="button" data-cancel-order="'+authEscape(o.id)+'" data-order-number="'+authEscape(o.order_number)+'" data-order-paid="'+Number(o.amount_paid||0)+'">Cancel order</button>':'')+(canReview(o)?'<button class="btn-outline customer-review-cta" data-review="'+authEscape(o.id)+'">★ Rate your treats</button>':'')+'</div>'+
     '<details class="customer-order-more"><summary>Order details</summary>'+details+'</details></article>';
   }).join(''):'<div class="customer-orders-state"><h2>'+(!mine.length?'No orders yet':'No active orders')+'</h2><p>'+(!mine.length?'Your reservations and payments will appear here after checkout.':'Cancelled orders are hidden. Use “Show cancelled” to see them.')+'</p><a class="btn-primary" href="#" onclick="event.preventDefault();navigate(\'shop\')">Browse products</a></div>';
   const focused=[...container.querySelectorAll('[data-order-id]')].find(item=>item.dataset.orderId===focusOrderId);
   focused?.scrollIntoView({block:'center'});
   container.querySelectorAll('[data-review]').forEach(button => button.onclick = () => showReviewForm(button.dataset.review));
-  container.querySelectorAll('[data-cancel-order]').forEach(button=>button.onclick=()=>cancelMyOrder(button.dataset.cancelOrder,button.dataset.orderNumber));
+  container.querySelectorAll('[data-cancel-order]').forEach(button=>button.onclick=()=>cancelMyOrder(button.dataset.cancelOrder,button.dataset.orderNumber,Number(button.dataset.orderPaid||0)));
   }catch(error){console.warn('Orders failed:',error);container.innerHTML='<div class="customer-orders-state"><h2>Orders could not load</h2><p>Your saved orders are still available. Check your connection and try again.</p><button class="btn-outline" type="button" onclick="showMyOrders()">Try again</button></div>';}
 }
 function openOrderFromReturnLink(){
