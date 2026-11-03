@@ -3,7 +3,7 @@
 // Leaflet loads only when checkout opens. The pin travels with the order as a Google Maps link added to the address,
 // so the owner can paste it straight into Lalamove (no database change).
 (() => {
-  const SHOP = { lat: 14.481412, lng: 120.908203, name: 'LexC’s Snacktime', area: 'San Roque, Cavite City' };   // Plus Code FWJ5+H78
+  const SHOP = { lat: 14.481412, lng: 120.908203, name: 'LexC’s Snacktime', area: 'Dau, Mabalacat, Pampanga' };   // Plus Code FWJ5+H78
   const LEAFLET = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
   const PH_BOX = '116.9,4.5,126.7,21.2';   // keep address search inside the Philippines
   let loading = null, map = null, shopMarker = null, pinMarker = null, mode = '', pin = null, searchTimer = 0, searchSeq = 0, failed = false;
