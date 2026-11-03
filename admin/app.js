@@ -10,6 +10,7 @@ import { mountChat } from '../shared/chat.js?v=40';
 import { mountChatWidget } from '../shared/chat-widget.js?v=43';
 import { renderUpdates } from './pages/updates.js?v=2';
 import { icon } from './components.js?v=3';
+import { ask } from '../shared/ask.js?v=1';
 
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
@@ -24,7 +25,7 @@ const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
 let toastTimer;
-document.querySelector('button.logout').addEventListener('click', () => window.LexcAdminAuth.logout());
+document.querySelector('button.logout').addEventListener('click', async () => { if (await ask('You will need to log in again to manage orders and the shop.', { title: 'Log out?', confirm: 'Log out', cancel: 'Stay logged in' })) window.LexcAdminAuth.logout(); });
 export function notify(message) {
   const toast = document.querySelector('#toast');
   toast.textContent = message;
