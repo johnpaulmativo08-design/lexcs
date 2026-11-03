@@ -409,7 +409,7 @@
       try {
         const probe = document.createElement('canvas');
         if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) throw new Error('WebGL unavailable');
-        const mod = await import('./bento-scene.js?v=44');
+        const mod = await import('./bento-scene.js?v=45');
         if (!root.isConnected || currentPage !== 'bento') return;
         scene = mod.createBentoScene(box, { reducedMotion, onPick: jumpTo, onHover: hoverTip, onMove: moveDecoration });
         if (savedScene() !== 'studio') chooseScene(savedScene(), { quiet: true });
@@ -684,7 +684,7 @@
       ${onLower() ? '' : `<fieldset class="bd-group" data-bd-section="topper"><legend>${esc(title('topper', 'Topper'))}</legend>
         <div class="bd-chips" role="radiogroup" aria-label="Topper">${(options.topper || []).map((o) => `<button type="button" role="radio" class="bd-chip" data-bd-set="topper" data-value="${o.code}" aria-checked="${s.topper === o.code}">${esc(o.label)} ${o.code === 'none' ? '' : priceTag(o)}</button>`).join('')}</div>
         ${s.topper === 'number' ? `<label class="bd-label" for="bd-topper-text" style="margin-top:12px">Number on the topper <small>1–3 digits</small></label><input id="bd-topper-text" class="bd-input" inputmode="numeric" maxlength="3" autocomplete="off" data-bd-text="topper_text" value="${esc(s.topper_text)}">` : ''}
-        ${s.topper === 'custom' ? `<label class="bd-label" for="bd-topper-custom" style="margin-top:12px">Words on the topper <small>up to ${TOPPER_MAX} letters</small></label><input id="bd-topper-custom" class="bd-input" style="width:100%;max-width:300px" maxlength="${TOPPER_MAX}" autocomplete="off" placeholder="Happy 18th" data-bd-text="topper_text" value="${esc(s.topper_text)}"><p class="bd-note" data-bd-topper-count>${s.topper_text.length} / ${TOPPER_MAX}</p>` : ''}
+        ${s.topper === 'custom' ? `<label class="bd-label" for="bd-topper-custom" style="margin-top:12px">Words on the topper</label><input id="bd-topper-custom" class="bd-input" style="width:100%" maxlength="${TOPPER_MAX}" autocomplete="off" placeholder="Happy 18th" aria-describedby="bd-topper-help" data-bd-text="topper_text" value="${esc(s.topper_text)}"><div class="bd-counter" id="bd-topper-help"><span>Up to ${TOPPER_MAX} letters, spaces included.</span><span data-bd-topper-count>${s.topper_text.length} / ${TOPPER_MAX}</span></div>` : ''}
       </fieldset>`}
       ${window.LexcInspiration ? window.LexcInspiration.html('bento', top.inspiration) : ''}`;
     } }

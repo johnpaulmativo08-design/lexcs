@@ -116,7 +116,7 @@
     const img = imageOf(p);
     return `<article class="pd-card" id="pc-${p.id}" data-card="${p.id}">
       <button type="button" class="pd-card__media" data-pd-open="${p.id}" aria-label="View details for ${esc(p.name)}">
-        ${img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : `<span class="pd-emoji" aria-hidden="true">${esc(p.emoji)}</span>`}${photoSale(p)}
+        ${img ? `<img src="${esc(img)}" alt="" loading="lazy" decoding="async">` : `<span class="pd-emoji" aria-hidden="true">${esc(p.emoji)}</span>`}
       </button>
       ${favButton(p, 'pd-fav')}
       ${p.badge ? `<span class="pd-badge">${esc(p.badge)}</span>` : ''}
@@ -125,7 +125,7 @@
         ${p.desc ? `<p class="pd-card__desc">${esc(p.desc)}</p>` : ''}
         ${ratingLine(p) || `<span class="pd-rating pd-rating--none">${icon('star', 'pd-star')}<span>No ratings yet</span></span>`}
         <div class="pd-card__foot">
-          <span class="pd-price">${priceLabel(p, { tag: false })}</span>
+          <span class="pd-price">${priceLabel(p)}</span>
           <button type="button" class="pd-add" data-pd-add="${p.id}" aria-label="Add ${esc(p.name)} (${esc(p.sizes[0].label)}) to cart">${icon('plus', 'pd-add__plus')}${icon('cart', 'pd-add__cart')}<span>Add to Cart</span></button>
         </div>
       </div>

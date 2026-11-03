@@ -162,6 +162,18 @@ function messageTextures(message, colorHex, style, fontCode = 'rounded') {
   const normalMap = new THREE.CanvasTexture(heightToNormal(height, style === 'pearl_letters' ? 4.5 : 3.5));
   return { map, normalMap };
 }
+// The Blender drips close the top with a few wide triangles, which hid the message: keep only the edge lip and the drips.
+function dripEdge(geo) {
+  const pos = geo.attributes.position, idx = geo.index; if (!idx) return geo;
+  let max = 0; for (let i = 0; i < pos.count; i++) max = Math.max(max, Math.hypot(pos.getX(i), pos.getZ(i)));
+  const lip = max - 0.12 * M_PER_UNIT, keep = [];
+  for (let k = 0; k < idx.count; k += 3) {
+    const a = idx.getX(k), b = idx.getX(k + 1), c = idx.getX(k + 2);
+    if (Math.hypot(pos.getX(a) + pos.getX(b) + pos.getX(c), pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3 >= lip) keep.push(a, b, c);
+  }
+  const out = geo.clone(); out.setIndex(keep); return out;
+}
+
 function topperTexture(label) {
   const c = document.createElement('canvas'); c.width = 1024; c.height = 512; const g = c.getContext('2d');
   const isNumber = /^[0-9]+$/.test(label);
@@ -672,7 +684,10 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
         const drop = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, len, 6, 16), dripMat);
         drop.position.set(Math.cos(a) * (R + 0.01), H - 0.02 - len / 2, Math.sin(a) * (R + 0.01)); decor.add(drop);
       }
-      if (!dripGeo) { const cap = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.045, 128), dripMat); cap.position.y = H - 0.02; decor.add(cap); }
+      if (!dripGeo) {   // only the edge: a rounded lip and a band down the side, so the top (and the message) stays clear
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.045, 128, 1, true), dripMat); band.position.y = H - 0.02; decor.add(band);
+        const lip = new THREE.Mesh(new THREE.TorusGeometry(R - 0.01, 0.024, 12, 128), dripMat); lip.rotation.x = Math.PI / 2; lip.position.y = H - 0.004; decor.add(lip);
+      }
     }
 
     currentPick = 'pearls';
@@ -774,8 +789,9 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     if (design.topper && design.topper !== 'none') {
       const label = design.topper === 'number' ? (design.topper_text || '1') : design.topper === 'custom' ? (design.topper_text || 'Your words') : design.topper === 'congrats' ? 'Congrats' : 'Happy Birthday';
       const t = topperTexture(label); const topper = new THREE.Group();
-      const face = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.68), new THREE.MeshPhysicalMaterial({ map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: 0.35, transparent: true, alphaTest: 0.2, metalness: 0.75, roughness: 0.22, clearcoat: 0.7, clearcoatRoughness: 0.08, envMapIntensity: 1.4, side: THREE.DoubleSide }));
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.68), new THREE.MeshPhysicalMaterial({ map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: 0.35, transparent: true, alphaTest: 0.2, metalness: 0.75, roughness: 0.22, clearcoat: 0.7, clearcoatRoughness: 0.08, envMapIntensity: 1.4 }));
       face.position.y = 0.62; face.castShadow = true; topper.add(face);
+      const back = face.clone(); back.rotation.y = Math.PI; back.position.z = -0.002; topper.add(back);   // printed both sides: reads the right way from behind too
       const stick = M.metal('#c9a227', 0.25);
       for (const x of [-0.28, 0.28]) { const s = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 6), stick); s.position.set(x, 0.25, 0); topper.add(s); }
       topper.position.set(L.topper ? L.topper[0] * R : 0, H - 0.05, L.topper ? L.topper[1] * R : -0.32); topper.userData.topper = true; topper.userData.move = { kind: 'topper' }; decor.add(topper);
@@ -1054,7 +1070,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   function loadCakeParts() {
     if (cakeParts || cakePartsLoading) return;
     cakePartsLoading = import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new GLTFLoader().loadAsync(CAKES_URL)).then((gltf) => {
-      const parts = {}; gltf.scene.traverse((o) => { if (o.isMesh) { o.geometry.computeVertexNormals?.(); parts[o.name] = o.geometry; } });
+      const parts = {}; gltf.scene.traverse((o) => { if (o.isMesh) { o.geometry.computeVertexNormals?.(); parts[o.name] = /^drip_/.test(o.name) ? dripEdge(o.geometry) : o.geometry; } });
       cakeParts = parts;
       if (!alive) return;
       if (layersOn) buildLayers(false);
