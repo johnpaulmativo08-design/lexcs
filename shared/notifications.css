@@ -280,3 +280,11 @@ html[data-theme=dark] .pf-action{background:transparent}
 .nt-group:focus-visible{outline:2px solid #7a52c7;outline-offset:1px}
 @media(prefers-reduced-motion:reduce){.nt-group svg{transition:none}}
 html[data-theme=dark] .nt-group:hover{background:rgba(255,255,255,.05)}
+/* dark mode: My purchases was still a white card with dark labels; it matches the other cards now, with bright labels and icons */
+html[data-theme=dark] .pf-buy{background:#1b141f;border:1px solid #3b2f4d}
+html[data-theme=dark] .pf-tile,html[data-theme=dark] .pf-explore button{color:#eadcf6}
+html[data-theme=dark] .pf-tile[aria-pressed="true"]{color:#fff}
+html[data-theme=dark] .pf-tile-ic,html[data-theme=dark] .pf-tile[aria-pressed="true"] .pf-tile-ic{background:none;color:#f3e9f7}
+html[data-theme=dark] .pf-tile:hover .pf-tile-ic{color:#fff}
+html[data-theme=dark] .pf-explore .ui-icon{color:#f3e9f7}
+html[data-theme=dark] .pf-buy-empty{background:rgba(255,255,255,.05);color:#d6c6dc}
