@@ -1,7 +1,7 @@
 // In-page confirmation (replaces window.confirm, which some embedded and mobile browsers block silently,
 // making buttons look dead). Resolves true when the person confirms, false on Cancel / Esc / outside click.
 const STYLE = `
-.lx-ask{width:min(420px,calc(100vw - 32px));padding:0;border:0;border-radius:16px;background:#fff;color:#1f1735;box-shadow:0 24px 60px rgba(32,18,60,.28);font-family:inherit}
+.lx-ask{width:min(420px,calc(100vw - 32px));margin:auto;padding:0;border:0;border-radius:16px;background:#fff;color:#1f1735;box-shadow:0 24px 60px rgba(32,18,60,.28);font-family:inherit}
 .lx-ask::backdrop{background:rgba(26,18,48,.45)}
 .lx-ask form{display:grid;gap:10px;padding:20px 20px 16px}
 .lx-ask h2{margin:0;font-size:17px;line-height:1.3}
