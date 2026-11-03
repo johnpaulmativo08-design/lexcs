@@ -288,3 +288,21 @@ html[data-theme=dark] .pf-tile-ic,html[data-theme=dark] .pf-tile[aria-pressed="t
 html[data-theme=dark] .pf-tile:hover .pf-tile-ic{color:#fff}
 html[data-theme=dark] .pf-explore .ui-icon{color:#f3e9f7}
 html[data-theme=dark] .pf-buy-empty{background:rgba(255,255,255,.05);color:#d6c6dc}
+/* dark mode: the notification center kept its light-mode text and white boxes; bright text on the dark cards, like the profile */
+html[data-theme=dark] .nt-wrap,html[data-theme=dark] .nt-head h1,html[data-theme=dark] .nt-empty strong,html[data-theme=dark] .nt-due li{color:#f3e9f7}
+html[data-theme=dark] .nt-head p,html[data-theme=dark] .nt-guest p,html[data-theme=dark] .nt-empty p,html[data-theme=dark] .nt-due-top small,html[data-theme=dark] .nt-due li small,html[data-theme=dark] .nt-text>span{color:#d6c6dc}
+html[data-theme=dark] .nt-list,html[data-theme=dark] .nt-guest,html[data-theme=dark] .nt-empty{background:#1b141f;border-color:#3b2f4d}
+html[data-theme=dark] .nt-list>li+li{border-top-color:#3b2f4d}
+html[data-theme=dark] .nt-item:hover,html[data-theme=dark] .nt-item.is-unread{background:rgba(255,255,255,.05)}
+html[data-theme=dark] .nt-markall,html[data-theme=dark] .nt-retry,html[data-theme=dark] .nt-filters button{background:#1b141f;border-color:#45345a;color:#eadcf6}
+html[data-theme=dark] .nt-filters button[aria-selected="true"]{background:#7551aa;border-color:#7551aa;color:#fff}
+html[data-theme=dark] .nt-filters button[aria-selected="true"] i{background:#fff;color:#4e307c}
+html[data-theme=dark] .nt-due-more{color:#e4d3f6}
+html[data-theme=dark] .nt-due{background:#231a2a;border-color:#3b2f4d}
+html[data-theme=dark] .nt-due li,html[data-theme=dark] .nt-due-count{background:#1b141f;border-color:#3b2f4d;color:#f3e9f7}
+html[data-theme=dark] .nt-ic,html[data-theme=dark] .is-info>.nt-ic,html[data-theme=dark] .nt-due-top .nt-ic{background:#2e2238;color:#e4d3f6}
+html[data-theme=dark] .is-ok>.nt-ic{background:#1f3229;color:#9fe0c0}
+html[data-theme=dark] .is-bad>.nt-ic,html[data-theme=dark] .nt-ic.is-bad{background:#3a1f28;color:#f2a7b8}
+html[data-theme=dark] .is-warn>.nt-ic{background:#3a2c17;color:#f3c77e}
+html[data-theme=dark] .is-sale>.nt-ic{background:#3a1f2f;color:#f3a6c8}
+html[data-theme=dark] .is-post>.nt-ic{background:#1d2a3d;color:#a9c8f3}

@@ -168,3 +168,15 @@ body[data-customer-page=bento] #customer-chat-toggle,body[data-customer-page=cup
 .lcw-message.mine .lx-dlv-top strong,.lcw-message.mine .lx-dlv-top small,.lcw-message.mine .lx-dlv-icon{color:inherit}
 .lcw-message.mine .lx-dlv{color:inherit}
 .lcw-message .lx-dlv-live{justify-self:start;min-height:30px;padding:0 12px;border-radius:999px;background:#f1edfb;color:#4b2fa0;font-weight:700}.lcw-message .lx-dlv-live:hover{background:#e7e0f8}.lcw-message .lx-dlv-pulse{background:#6f53bc;box-shadow:none;animation:none}
+/* dark mode: order status, payment and live-delivery cards in chat kept dark text; bright text on the dark bubbles */
+html[data-theme=dark] .lcw-message .chat-statuscard strong,html[data-theme=dark] .lcw-message .lcw-pay>p,html[data-theme=dark] .lcw-pay,html[data-theme=dark] .lcw-pay-left b,html[data-theme=dark] .lcw-message .chat-steps li.is-now{color:#f3e9f7}
+html[data-theme=dark] .lcw-message .chat-statuscard.is-cancelled strong{color:#f2a7b8}
+html[data-theme=dark] .lcw-message .chat-steps li{color:#b9a9c9;border-top-color:#45345a}
+html[data-theme=dark] .lcw-message .chat-steps li.is-done{color:#d6c6dc;border-color:#8a6fc4}
+html[data-theme=dark] .lcw-message .chat-steps li.is-now{border-color:#c9aef0}
+html[data-theme=dark] .lcw-pay-left,html[data-theme=dark] .lcw-pay dt,html[data-theme=dark] .lcw-message .lcw-pay dt{color:#cbbcd9}
+html[data-theme=dark] .lcw-message .chat-statuscard,html[data-theme=dark] .lcw-message .lcw-pay,html[data-theme=dark] .lcw-message .lx-dlv,html[data-theme=dark] .lcw-message .lcw-pay-left{border-top-color:rgba(255,255,255,.12)}
+html[data-theme=dark] .lcw-message .lx-dlv-live{background:#2e2238;color:#e4d3f6}html[data-theme=dark] .lcw-message .lx-dlv-live:hover{background:#3a2c48}
+html[data-theme=dark] .lcw-compose .lcw-attach,html[data-theme=dark] .lcw-compose button[type=submit]{background:transparent;border-color:transparent;color:#e4d3f6}
+html[data-theme=dark] .lcw-compose .lcw-attach:hover:not(:disabled),html[data-theme=dark] .lcw-compose button[type=submit]:hover:not(:disabled){background:rgba(255,255,255,.08)}
+html[data-theme=dark] .chat-pic small{color:#d6c6dc}
