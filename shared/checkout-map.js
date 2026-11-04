@@ -131,7 +131,8 @@
     // the fee service failed: if delivery fees are not switched on (or not set up yet), delivery works as before
     if (next.state === 'failed') next = await (async () => {
       try {
-        const { data, error } = await window.LexcBackend.client.from('delivery_pricing').select('enabled').eq('id', 1).maybeSingle();
+        const ask = window.LexcBackend.client.from('delivery_pricing').select('enabled').eq('id', 1).maybeSingle();
+        const { data, error } = await Promise.race([ask, new Promise(r => setTimeout(() => r({ error: 'timeout', data: { enabled: true } }), 5000))]);
         return error || !data?.enabled ? { state: 'not_priced' } : next;
       } catch { return next; }
     })();
