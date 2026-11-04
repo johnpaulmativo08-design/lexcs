@@ -178,13 +178,15 @@ export function openProductEditor({ product, categories, packages, catalog, imag
   const variantRow = (v, i) => `<div class="pe-variant" data-variant="${attr(v.id)}">
       <label><span>Size / option</span><input data-v="label" maxlength="60" value="${attr(v.label)}" placeholder="e.g. 6 pcs"></label>
       <label><span>Price (₱)</span><input data-v="price" type="number" min="0" step="0.01" inputmode="decimal" value="${attr(v.price)}" placeholder="0.00"></label>
+      <label title="Kitchen minutes to make ONE of this size. 2 ordered = twice the minutes. Used by Reservations → Daily production capacity."><span>Prep time (min)</span><input data-v="prep_minutes" type="number" min="0" max="750" step="1" inputmode="numeric" value="${attr(v.prep_minutes ?? '')}" placeholder="0"></label>
       ${locked ? '' : `<button type="button" class="stock-icon-button pe-variant__remove" data-remove-variant="${attr(v.id)}" aria-label="Remove ${attr(v.label || 'size ' + (i + 1))}" ${state.variants.length === 1 ? 'disabled' : ''}>${icon('trash')}</button>`}
     ${discountRow(v)}
     </div>`;
   const drawVariants = () => { form.querySelector('[data-variants]').innerHTML = state.variants.map(variantRow).join(''); summarize(); drawPieces(); };
   form.querySelector('[data-variants]').addEventListener('input', (event) => {
     const row = event.target.closest('[data-variant]'), v = state.variants.find((x) => x.id === row?.dataset.variant); if (!v) return;
-    v[event.target.dataset.v] = event.target.dataset.v === 'price' ? event.target.value : event.target.value;
+    v[event.target.dataset.v] = event.target.value;
+    if (event.target.dataset.v === 'prep_minutes') v.prep_touched = true;
     event.target.removeAttribute('aria-invalid'); summarize(); drawPieces(true);
     const note = row.querySelector('[data-discount-note]'); if (note) note.innerHTML = discountNote(v);
   });
@@ -419,6 +421,7 @@ export function openProductEditor({ product, categories, packages, catalog, imag
       else if (labels.has(String(v.label).trim().toLowerCase())) { problems.push(`Two sizes are called “${v.label}”.`); row?.querySelector('[data-v="label"]').setAttribute('aria-invalid', 'true'); open('sizes'); }
       labels.add(String(v.label).trim().toLowerCase());
       if (v.price === '' || !(Number(v.price) >= 0) || Number(v.price) > 1000000) { problems.push(`Enter a valid price for ${v.label || 'each size'}.`); row?.querySelector('[data-v="price"]').setAttribute('aria-invalid', 'true'); open('sizes'); }
+      if (v.prep_minutes !== '' && v.prep_minutes != null && !(Number.isInteger(Number(v.prep_minutes)) && Number(v.prep_minutes) >= 0 && Number(v.prep_minutes) <= 750)) { problems.push(`Prep time for ${v.label || 'a size'} must be a whole number from 0 to 750 minutes.`); row?.querySelector('[data-v="prep_minutes"]').setAttribute('aria-invalid', 'true'); open('sizes'); }
       if (v.discount_type) {
         const d = Number(v.discount_value), bad = (field, text) => { problems.push(text); row?.querySelector(`[data-v="${field}"]`)?.setAttribute('aria-invalid', 'true'); open('sizes'); };
         if (v.discount_type === 'percent' && !(d >= 1 && d <= 95)) bad('discount_value', `Percent off for ${v.label || 'a size'} must be from 1 to 95.`);
@@ -464,6 +467,12 @@ export function openProductEditor({ product, categories, packages, catalog, imag
       say('Saving discounts…');
       await db.rpc('save_variant_discounts', { target_product: productId, items: state.variants.map((v) => ({ variant_id: v.id, type: v.discount_type || 'none',
         value: v.discount_type ? Number(v.discount_value) : null, starts: v.discount_type ? v.discount_starts || null : null, ends: v.discount_type ? v.discount_ends || null : null })) });
+      // prep times only when they loaded (or were typed), so a failed load never resets them to 0
+      if (state.prepLoaded || state.variants.some((v) => v.prep_touched)) {
+        say('Saving prep times…');
+        await db.rpc('save_variant_prep_times', { target_product: productId, items: state.variants.filter((v) => state.prepLoaded || v.prep_touched)
+          .map((v) => ({ variant_id: v.id, minutes: v.prep_minutes === '' || v.prep_minutes == null ? 0 : Number(v.prep_minutes) })) });
+      }
       say('Saving specifications and allergens…');
       const specs = state.specs.map((s) => ({ label: s.label.trim(), value: s.value.trim() })).filter((s) => s.label && s.value);
       const sameAsDefault = specs.length === DEFAULT_SPECS.length && specs.every((s, i) => s.label === DEFAULT_SPECS[i].label && s.value === DEFAULT_SPECS[i].value);
@@ -501,5 +510,21 @@ export function openProductEditor({ product, categories, packages, catalog, imag
   });
   drawer.addEventListener('close', () => { if (state.photoURL) URL.revokeObjectURL(state.photoURL); });
   drawVariants(); summarize();
+  // prep minutes live in an Admin-only table (phase 96); fill them in once loaded without overwriting typing
+  (async () => {
+    const ids = state.variants.map((v) => v.id);
+    if (isNew) { state.prepLoaded = true; return; }
+    try {
+      const rows = db.unwrap(await db.client.from('variant_prep_times').select('variant_id,minutes').in('variant_id', ids)) || [];
+      const byId = new Map(rows.map((r) => [r.variant_id, r.minutes]));
+      state.variants.forEach((v) => {
+        if (v.prep_touched) return;
+        v.prep_minutes = byId.has(v.id) ? byId.get(v.id) : '';
+        const input = form.querySelector(`[data-variant="${CSS.escape(v.id)}"] [data-v="prep_minutes"]`);
+        if (input) input.value = v.prep_minutes;
+      });
+      state.prepLoaded = true;
+    } catch (error) { console.warn('Prep times not loaded (run database/phase96-production-capacity.sql):', error); }
+  })();
   return drawer;
 }

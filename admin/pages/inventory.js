@@ -144,12 +144,22 @@ export async function getPaymentAlerts() {
   }
   return alerts;
 }
+// Heavy production workload (phase 96): pending orders that would take their day over the daily capacity.
+// Worked out live, like payments: they clear once the order is confirmed, cancelled or the capacity is raised.
+export async function getWorkloadAlerts() {
+  const rows = (await db.rpc('get_heavy_workload_alerts', {})) || [];
+  return rows.map((w) => {
+    const day = new Date(w.booking_date + 'T12:00:00Z').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    return { order: { id: w.order_id }, tone: 'danger', icon: 'alert', title: `Heavy production workload · #${w.order_number}`,
+      message: `${w.customer_name || 'Customer'} · ${day}: accepting brings the day to ${w.projected_minutes} of ${w.workload_minutes} min (+${w.minutes} min).` };
+  });
+}
 export async function refreshInventoryNotificationBadge() {
   const badge = document.querySelector('#notification-count');
   if (!badge) return;
   try {
-    const [snapshot, payments] = await Promise.all([getInventorySnapshot(), getPaymentAlerts().catch(() => [])]);
-    const unread = (snapshot.notifications || []).filter((item) => !item.is_read).length + payments.length;
+    const [snapshot, payments, workload] = await Promise.all([getInventorySnapshot(), getPaymentAlerts().catch(() => []), getWorkloadAlerts().catch(() => [])]);
+    const unread = (snapshot.notifications || []).filter((item) => !item.is_read).length + payments.length + workload.length;
     badge.textContent = unread > 99 ? '99+' : String(unread);
     badge.hidden = unread === 0;
   } catch {
@@ -166,14 +176,20 @@ export async function openInventoryNotifications(opener) {
   popover.setAttribute('aria-label', 'Inventory notifications');
   popover.innerHTML='<section class="inventory-notifications"><div class="inventory-notifications__head"><strong>Notifications</strong></div>'+loadingList(4)+'</section>';
   document.body.append(popover);
-  let snapshot, payments = [];
-  try { [snapshot, payments] = await Promise.all([getInventorySnapshot(), getPaymentAlerts().catch((error) => { console.warn('Payment alerts:', error); return []; })]); }
+  let snapshot, payments = [], workload = [];
+  try { [snapshot, payments, workload] = await Promise.all([getInventorySnapshot(), getPaymentAlerts().catch((error) => { console.warn('Payment alerts:', error); return []; }), getWorkloadAlerts().catch((error) => { console.warn('Workload alerts:', error); return []; })]); }
   catch (error) { console.warn('Notifications could not load:',error);popover.innerHTML='<section class="inventory-notifications" role="alert"><div class="inventory-notifications__head"><strong>Notifications</strong></div><p>Notifications could not load.</p><button class="button" type="button" data-retry>Try again</button></section>';popover.querySelector('[data-retry]').onclick=()=>{popover.remove();openInventoryNotifications(opener)};return; }
   if(!popover.isConnected)return;
   const notifications = snapshot.notifications || [];
   const visibleNotifications = notifications.slice(0, 4);
   popover.innerHTML = `<section class="inventory-notifications">
       <div class="inventory-notifications__head"><strong>Notifications</strong><button class="text-button" data-mark-all ${notifications.some((item) => !item.is_read) ? '' : 'disabled'}>Mark all as read</button></div>
+      ${workload.length ? `<h4 class="inventory-notifications__group">Workload <small>${workload.length}</small></h4>${workload.slice(0, 4).map((item) => `
+        <article class="inventory-notification inventory-notification--unread">
+          <span class="inventory-notification__icon status-chip--${item.tone}">${icon(item.icon)}</span>
+          <div class="inventory-notification__copy"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.message)}</p></div>
+          <div class="inventory-notification__actions"><a class="text-button" href="#orders/detail/${escapeHtml(item.order.id)}" data-close-popover>Open order →</a><a class="text-button" href="#bookings" data-close-popover>Capacity →</a></div>
+        </article>`).join('')}${workload.length > 4 ? `<a class="inventory-notifications__all" href="#orders" data-close-popover>${workload.length - 4} more in Orders →</a>` : ''}${payments.length ? '' : '<h4 class="inventory-notifications__group">Inventory</h4>'}` : ''}
       ${payments.length ? `<h4 class="inventory-notifications__group">Payments <small>${payments.length}</small></h4>${payments.slice(0, 5).map((item) => `
         <article class="inventory-notification inventory-notification--unread">
           <span class="inventory-notification__icon status-chip--${item.tone}">${icon(item.icon)}</span>

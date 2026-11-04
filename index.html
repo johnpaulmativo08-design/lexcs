@@ -2385,10 +2385,10 @@ async function renderDtCalendar() {
     if (isSelected) cls += ' selected';
     if (!isPast && unavailable) cls += ' unavailable';
     if (state?.is_closed) cls += ' closed';
-    if (!unavailable && state.remaining_slots === 1) cls += ' almost-full';
+    // how many slots are left is for LexC's only (phase 96): customers see Open / Full
     const onclick = isPast || unavailable ? '' : `onclick="dtSelectDate('${dateStr}')"`;
-    const reason = isPast ? 'Past dates are unavailable' : !state ? 'Availability is unavailable' : state.is_closed ? 'Admin closed this date' : state.remaining_slots<=0 ? 'This date is fully reserved' : !state.has_receiving_slot ? 'No receiving time is available' : `${state.remaining_slots} reservation slot${state.remaining_slots===1?'':'s'} remaining`;
-    const stateText = isPast ? 'Past' : !state ? 'Unavailable' : state.is_closed ? 'Closed' : state.remaining_slots<=0 ? 'Full' : !state.has_receiving_slot ? 'Unavailable' : state.remaining_slots===1 ? '1 left' : `${state.remaining_slots} left`;
+    const reason = isPast ? 'Past dates are unavailable' : !state ? 'Availability is unavailable' : state.is_closed ? 'Admin closed this date' : state.remaining_slots<=0 ? 'This date is fully reserved' : !state.has_receiving_slot ? 'No receiving time is available' : 'Available for reservations';
+    const stateText = isPast ? 'Past' : !state ? 'Unavailable' : state.is_closed ? 'Closed' : state.remaining_slots<=0 ? 'Full' : !state.has_receiving_slot ? 'Unavailable' : 'Open';
     html += `<button class="${cls}" ${onclick} title="${reason}" ${isPast||unavailable?'disabled':''}><span>${d}</span><small class="dt-day-state">${stateText}</small></button>`;
   }
   grid.innerHTML = html;
@@ -2857,7 +2857,7 @@ loginReady();
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script><script src="shared/delivery-area.js?v=1"></script><script src="shared/checkout-map.js?v=11"></script>
-<script src="shared/delivery-card.js?v=2"></script><script src="shared/customer-backend.js?v=47"></script>
+<script src="shared/delivery-card.js?v=2"></script><script src="shared/customer-backend.js?v=48"></script>
 <script src="shared/product-detail.js?v=20"></script>
 <script src="shared/menu-layout.js?v=5"></script>
 <script src="shared/fresh-feed.js?v=16"></script>
