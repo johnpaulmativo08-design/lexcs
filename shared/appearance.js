@@ -52,6 +52,7 @@
     };
   }
   if (!embedded) { chooseTheme(read('lexc_theme')); setSize(read('lexc_text')); setMotion(read('lexc_motion') === 'reduce'); }
+  const notifyOff = () => { try { const list = JSON.parse(read('lexc_notify_off') || '[]'); return Array.isArray(list) ? list : []; } catch { return []; } };
   // Data saver: the 3D cake previews (several MB each) wait for a tap instead of loading when a designer opens
   const dataSaver = () => !embedded && read('lexc_saver') === 'on';
   // puts a "Show 3D preview" button after the flat picture; the 3D loads only when it is tapped
@@ -88,6 +89,8 @@
     const count = (() => { try { const list = JSON.parse(read('lexc_recent_searches') || '[]'); return Array.isArray(list) ? list.length : 0; } catch { return 0; } })();
     const countText = dialog.querySelector('[data-recent-count]'), clearButton = dialog.querySelector('[data-clear-searches]');
     if (countText) { countText.textContent = count ? count + ' saved on this device' : 'None saved'; clearButton.disabled = !count; }
+    const off = notifyOff();
+    dialog.querySelectorAll('[data-switch=promos],[data-switch=posts]').forEach((b) => b.setAttribute('aria-checked', String(!off.includes(b.dataset.switch))));
     dialog.querySelector('[data-switch=saver]').setAttribute('aria-checked', String(dataSaver()));
     dialog.querySelector('[data-switch=motion]').setAttribute('aria-checked', String(root.dataset.motion === 'reduce'));
   }
@@ -107,6 +110,10 @@
       '<p class="lx-appear-preview">Freshly baked treats, made to order. This is how text will look.</p>' +
       '<p class="lx-appear-label">Motion</p>' +
       switchRow('motion', 'Reduce motion', 'Turns off animations and sliding effects.') +
+      (page === 'site' ? '<p class="lx-appear-label">Notifications</p>' +
+        switchRow('promos', 'Sales & promos', 'When something goes on sale.') +
+        switchRow('posts', 'New posts', 'Fresh photos and news from LexC’s.') +
+        '<p class="lx-appear-hint">Order and payment updates always show, so you never miss a step.</p>' : '') +
       '<p class="lx-appear-label">Data</p>' +
       switchRow('saver', 'Data saver', '3D cake previews load only when you tap them. Good on mobile data.') +
       (page === 'site' ? '<p class="lx-appear-label">Privacy</p><div class="lx-action-row"><span class="lx-switch-text"><strong>Recent searches</strong><small data-recent-count></small></span><button type="button" class="lx-action" data-clear-searches>Clear</button></div>' : '') +
@@ -123,6 +130,11 @@
         return;
       }
       const toggle = event.target.closest('[data-switch]');
+      if (toggle && ['promos', 'posts'].includes(toggle.dataset.switch)) {
+        const kind = toggle.dataset.switch, off = notifyOff();
+        save('lexc_notify_off', JSON.stringify(off.includes(kind) ? off.filter((k) => k !== kind) : [...off, kind]));
+        render(); window.LexcNotify?.refresh();
+      }
       if (toggle?.dataset.switch === 'saver') { save('lexc_saver', dataSaver() ? 'off' : 'on'); render(); }
       if (toggle?.dataset.switch === 'motion') { const off = root.dataset.motion !== 'reduce'; setMotion(off); save('lexc_motion', off ? 'reduce' : 'full'); render(); }
     });
