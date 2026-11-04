@@ -63,14 +63,18 @@ html[data-theme=dark] .nav-appear-btn:hover{background:#2c2238}
 .lx-appear-close{display:grid;place-items:center;width:44px;height:44px;margin:-8px -8px -8px 0;border:0;border-radius:50%;background:transparent;color:inherit;font-size:1.5rem;cursor:pointer}
 .lx-appear-close:hover{background:rgba(120,90,160,.12)}
 .lx-appear-label{margin:14px 0 8px;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7d6f8c}
-.lx-appear-themes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lx-appear-themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .lx-appear-themes button{display:grid;gap:8px;padding:8px;border:2px solid #e7def0;border-radius:16px;background:transparent;color:inherit;font:inherit;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease}
 .lx-appear-themes button[aria-checked=true]{border-color:#7a55b8;box-shadow:0 0 0 4px rgba(122,85,184,.16)}
-.lx-swatch{display:grid;grid-template-rows:14px 1fr;gap:6px;height:72px;padding:9px;border-radius:10px}
+.lx-swatch{display:grid;grid-template-rows:12px 1fr;gap:6px;height:64px;padding:8px;border-radius:10px}
 .lx-swatch i{display:block;border-radius:6px}
 .lx-swatch i:nth-child(3){display:none}
 .lx-swatch--light{background:#fbf9fd;border:1px solid #ece4f4}
 .lx-swatch--light i:nth-child(1){width:60%;background:#e4d7f4}.lx-swatch--light i:nth-child(2){background:#fff;box-shadow:0 2px 8px rgba(92,61,110,.12)}
+.lx-swatch--auto{background:linear-gradient(135deg,#fbf9fd 50%,#17121c 50%);border:1px solid #d9cde6}
+.lx-swatch--auto i:nth-child(1){width:60%;background:linear-gradient(135deg,#e4d7f4 50%,#4a3866 50%)}.lx-swatch--auto i:nth-child(2){background:linear-gradient(135deg,#fff 50%,#2a2133 50%)}
+.lx-appear-hint{margin:8px 0 0;font-size:.78rem;color:#7d6f8c}
+html[data-theme=dark] .lx-appear-hint{color:#a898b8}
 .lx-swatch--dark{background:#17121c;border:1px solid #2c2236}
 .lx-swatch--dark i:nth-child(1){width:60%;background:#4a3866}.lx-swatch--dark i:nth-child(2){background:#2a2133}
 .lx-appear-name{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:.9rem;padding-bottom:2px}
