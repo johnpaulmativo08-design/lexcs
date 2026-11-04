@@ -26,7 +26,24 @@
   function setSize(size) {
     if (size && size !== 'md' && SIZES.some(([key]) => key === size)) root.dataset.text = size; else delete root.dataset.text;
   }
-  if (!embedded) { setTheme(read('lexc_theme')); setSize(read('lexc_text')); }
+  // Reduce motion: the same calm look the phone's own "reduce motion" setting gives (CSS in appearance.css).
+  // Scripts ask matchMedia('(prefers-reduced-motion: reduce)'); this answer also counts the setting here,
+  // and stays live, so scripts that kept the answer from page load see a later change too.
+  function setMotion(off) { if (off) root.dataset.motion = 'reduce'; else delete root.dataset.motion; }
+  if (window.matchMedia) {
+    const nativeMatch = window.matchMedia.bind(window);
+    window.matchMedia = (query) => {
+      const real = nativeMatch(query);
+      if (!/prefers-reduced-motion\s*:\s*reduce/.test(String(query))) return real;
+      return {
+        media: real.media, onchange: null,
+        get matches() { return root.dataset.motion === 'reduce' || real.matches; },
+        addEventListener: (...a) => real.addEventListener(...a), removeEventListener: (...a) => real.removeEventListener(...a),
+        addListener: (fn) => real.addListener?.(fn), removeListener: (fn) => real.removeListener?.(fn),
+      };
+    };
+  }
+  if (!embedded) { setTheme(read('lexc_theme')); setSize(read('lexc_text')); setMotion(read('lexc_motion') === 'reduce'); }
 
   // smooth blend between themes (skipped when the device asks for reduced motion)
   function blend() {
@@ -41,10 +58,14 @@
     palette: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
   };
   let dialog = null, opener = null;
+  // an on/off row: the whole row is the switch, so it is easy to tap
+  const switchRow = (key, title, hint) => '<button type="button" class="lx-switch-row" role="switch" aria-checked="false" data-switch="' + key + '" aria-describedby="lxHint-' + key + '">' +
+    '<span class="lx-switch-text"><strong>' + title + '</strong><small id="lxHint-' + key + '">' + hint + '</small></span><span class="lx-switch" aria-hidden="true"><i></i></span></button>';
   function render() {
     const theme = root.dataset.theme || 'light', size = root.dataset.text || 'md';
     dialog.querySelectorAll('[data-theme-choice]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.themeChoice === theme)));
     dialog.querySelectorAll('[data-size-choice]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.sizeChoice === size)));
+    dialog.querySelector('[data-switch=motion]').setAttribute('aria-checked', String(root.dataset.motion === 'reduce'));
   }
   function build() {
     dialog = document.createElement('dialog');
@@ -58,6 +79,8 @@
       '<p class="lx-appear-label" id="lxSizeLabel">Text size</p><div class="lx-appear-sizes" role="radiogroup" aria-labelledby="lxSizeLabel">' +
       SIZES.map(([key, label], n) => '<button type="button" role="radio" data-size-choice="' + key + '" aria-label="' + label + '"><span style="font-size:' + (13 + n * 3) + 'px" aria-hidden="true">A</span><small>' + label + '</small></button>').join('') + '</div>' +
       '<p class="lx-appear-preview">Freshly baked treats, made to order. This is how text will look.</p>' +
+      '<p class="lx-appear-label">Motion</p>' +
+      switchRow('motion', 'Reduce motion', 'Turns off animations and sliding effects.') +
       '<p class="lx-appear-note">Saved on this device.</p>';
     document.body.append(dialog);
     dialog.addEventListener('click', (event) => {
@@ -65,6 +88,8 @@
       const themeButton = event.target.closest('[data-theme-choice]'), sizeButton = event.target.closest('[data-size-choice]');
       if (themeButton) { blend(); setTheme(themeButton.dataset.themeChoice); save('lexc_theme', root.dataset.theme); render(); }
       if (sizeButton) { setSize(sizeButton.dataset.sizeChoice); save('lexc_text', sizeButton.dataset.sizeChoice); render(); }
+      const toggle = event.target.closest('[data-switch]');
+      if (toggle?.dataset.switch === 'motion') { const off = root.dataset.motion !== 'reduce'; setMotion(off); save('lexc_motion', off ? 'reduce' : 'full'); render(); }
     });
     // arrow keys move between options inside each group
     dialog.addEventListener('keydown', (event) => {
@@ -87,7 +112,7 @@
   // Entry points: desktop nav, the mobile "More" menu, and the header on the payment and chat pages
   function addButtons() {
     if (embedded) return;
-    const button = (cls, text) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.setAttribute('aria-label', 'Settings: theme and text size'); b.innerHTML = ICON.palette + (text ? '<span>' + text + '</span>' : ''); b.addEventListener('click', open); return b; };
+    const button = (cls, text) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.setAttribute('aria-label', 'Settings'); b.innerHTML = ICON.palette + (text ? '<span>' + text + '</span>' : ''); b.addEventListener('click', open); return b; };
     const cart = document.getElementById('navShoppingButton');
     if (cart) cart.before(button('nav-appear-btn'));
     const account = document.getElementById('customerAccountAction');
