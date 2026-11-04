@@ -577,7 +577,8 @@
       else state = blank(size && products[size] ? size : Object.keys(products)[0]);
     }
     if (!state.b) state.b = { style: 'rosette', colors: ['white'] };
-    normalise(); renderBody(); renderPreview(); scheduleQuote(); ensureScene();
+    normalise(); renderBody(); renderPreview(); scheduleQuote();
+    if (window.LexcAppearance?.dataSaver?.()) window.LexcAppearance.offer3d(root.querySelector('[data-cd-box]'), ensureScene); else ensureScene();
   }
   function whenReady(fn) {
     if (window.lexcCatalogState === 'ready') return fn();

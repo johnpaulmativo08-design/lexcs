@@ -5,6 +5,9 @@ html[data-text=sm]{font-size:93.75%}
 html[data-text=lg]{font-size:112.5%}
 html[data-text=xl]{font-size:125%}
 
+/* ---------- Reduce motion (Settings): the same rule brand.css uses for the phone's own setting */
+html[data-motion=reduce],html[data-motion=reduce] *,html[data-motion=reduce] *::before,html[data-motion=reduce] *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important}
+
 /* ---------- Smooth blend when switching theme */
 html.lx-theme-blend,html.lx-theme-blend *,html.lx-theme-blend *::before,html.lx-theme-blend *::after{transition:background-color .35s ease,color .35s ease,border-color .35s ease,fill .35s ease,box-shadow .35s ease!important}
 
@@ -60,14 +63,18 @@ html[data-theme=dark] .nav-appear-btn:hover{background:#2c2238}
 .lx-appear-close{display:grid;place-items:center;width:44px;height:44px;margin:-8px -8px -8px 0;border:0;border-radius:50%;background:transparent;color:inherit;font-size:1.5rem;cursor:pointer}
 .lx-appear-close:hover{background:rgba(120,90,160,.12)}
 .lx-appear-label{margin:14px 0 8px;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7d6f8c}
-.lx-appear-themes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lx-appear-themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .lx-appear-themes button{display:grid;gap:8px;padding:8px;border:2px solid #e7def0;border-radius:16px;background:transparent;color:inherit;font:inherit;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease}
 .lx-appear-themes button[aria-checked=true]{border-color:#7a55b8;box-shadow:0 0 0 4px rgba(122,85,184,.16)}
-.lx-swatch{display:grid;grid-template-rows:14px 1fr;gap:6px;height:72px;padding:9px;border-radius:10px}
+.lx-swatch{display:grid;grid-template-rows:12px 1fr;gap:6px;height:64px;padding:8px;border-radius:10px}
 .lx-swatch i{display:block;border-radius:6px}
 .lx-swatch i:nth-child(3){display:none}
 .lx-swatch--light{background:#fbf9fd;border:1px solid #ece4f4}
 .lx-swatch--light i:nth-child(1){width:60%;background:#e4d7f4}.lx-swatch--light i:nth-child(2){background:#fff;box-shadow:0 2px 8px rgba(92,61,110,.12)}
+.lx-swatch--auto{background:linear-gradient(135deg,#fbf9fd 50%,#17121c 50%);border:1px solid #d9cde6}
+.lx-swatch--auto i:nth-child(1){width:60%;background:linear-gradient(135deg,#e4d7f4 50%,#4a3866 50%)}.lx-swatch--auto i:nth-child(2){background:linear-gradient(135deg,#fff 50%,#2a2133 50%)}
+.lx-appear-hint{margin:8px 0 0;font-size:.78rem;color:#7d6f8c}
+html[data-theme=dark] .lx-appear-hint{color:#a898b8}
 .lx-swatch--dark{background:#17121c;border:1px solid #2c2236}
 .lx-swatch--dark i:nth-child(1){width:60%;background:#4a3866}.lx-swatch--dark i:nth-child(2){background:#2a2133}
 .lx-appear-name{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:.9rem;padding-bottom:2px}
@@ -80,10 +87,36 @@ html[data-theme=dark] .nav-appear-btn:hover{background:#2c2238}
 .lx-appear-preview{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:#faf7fd;font-size:1rem;line-height:1.5}
 .lx-appear-note{margin:10px 0 0;font-size:.75rem;color:#8a7d96;text-align:center}
 .lx-appear button:focus-visible{outline:3px solid #b9a1f0;outline-offset:2px}
+/* on/off rows */
+.lx-switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;min-height:56px;padding:10px 12px;border:1px solid #e7def0;border-radius:14px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.lx-switch-row+.lx-switch-row{margin-top:8px}
+.lx-switch-text{display:grid;gap:2px}
+.lx-switch-text strong{font-size:.92rem}
+.lx-switch-text small{font-size:.78rem;color:#7d6f8c;line-height:1.35}
+.lx-switch{flex:none;position:relative;width:44px;height:26px;border-radius:999px;background:#d9cde6;transition:background .18s ease}
+.lx-switch i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s ease}
+.lx-switch-row[aria-checked=true] .lx-switch{background:#7a55b8}
+.lx-switch-row[aria-checked=true] .lx-switch i{transform:translateX(18px)}
+.lx-action-row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:56px;padding:10px 12px;border:1px solid #e7def0;border-radius:14px}
+.lx-action{flex:none;min-height:40px;padding:0 16px;border:1px solid #cdb9e6;border-radius:999px;background:transparent;color:#5c3d8e;font:600 .85rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.lx-action:hover:not(:disabled){background:#f5f0fa}
+.lx-action:disabled{opacity:.45;cursor:default}
+html[data-theme=dark] .lx-action-row{border-color:#3b2f47}
+html[data-theme=dark] .lx-action{border-color:#6b5291;color:#d6c3f5}
+html[data-theme=dark] .lx-action:hover:not(:disabled){background:#2c2238}
+html[data-theme=dark] .lx-switch-row{border-color:#3b2f47}
+html[data-theme=dark] .lx-switch-text small{color:#a898b8}
+html[data-theme=dark] .lx-switch{background:#4a3b58}
+html[data-theme=dark] .lx-switch-row[aria-checked=true] .lx-switch{background:#b393e6}
 html[data-theme=dark] .lx-appear{background:#211a28;border-color:#3b2f47;color:#efe6f5;box-shadow:0 24px 60px rgba(0,0,0,.6)}
 html[data-theme=dark] .lx-appear::backdrop{background:rgba(5,3,8,.6)}
 html[data-theme=dark] .lx-appear-themes button{border-color:#3b2f47}
 html[data-theme=dark] .lx-appear-themes button[aria-checked=true]{border-color:#b393e6;box-shadow:0 0 0 4px rgba(179,147,230,.18)}
+.lx-appear-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#f5f0fa}
+.lx-appear-seg button{min-height:44px;border:0;border-radius:11px;background:transparent;color:inherit;font:600 .85rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.lx-appear-seg button[aria-checked=true]{background:#fff;box-shadow:0 2px 10px rgba(92,61,110,.16);color:#4c2f86}
+html[data-theme=dark] .lx-appear-seg{background:#1a1420}
+html[data-theme=dark] .lx-appear-seg button[aria-checked=true]{background:#3a2c50;color:#fff;box-shadow:none}
 html[data-theme=dark] .lx-appear-sizes{background:#1a1420}
 html[data-theme=dark] .lx-appear-sizes button[aria-checked=true]{background:#3a2c50;color:#fff;box-shadow:none}
 html[data-theme=dark] :is(.lx-appear-label,.lx-appear-sizes button small,.lx-appear-note){color:#a898b8}
@@ -99,3 +132,10 @@ html[data-theme=dark] #page-shop.mx .pd-rating--none .pd-star{fill:none!importan
 html[data-theme=dark] .shop-search-line input[type],html[data-theme=dark] .shop-search-line input{background:transparent!important;border:0!important;box-shadow:none!important}
 /* checkout on phones is flat (no outer box) — keep it flat in dark mode too, so the text never sits on a box edge */
 @media(max-width:700px){html[data-theme=dark] .checkout-form-box{background:transparent;border:0;box-shadow:none}}
+
+/* ---------- Data saver: the button that loads the 3D preview on request */
+.lx-load3d{display:grid;justify-items:center;gap:2px;margin:10px auto 0;min-height:48px;padding:8px 20px;border:1px solid #cdb9e6;border-radius:999px;background:#fff;color:#4c2f86;font:inherit;cursor:pointer}
+.lx-load3d strong{font-size:.9rem}.lx-load3d small{font-size:.74rem;color:#7d6f8c}
+.lx-load3d:hover{background:#f5f0fa}
+html[data-theme=dark] .lx-load3d{background:#2a2133;border-color:#6b5291;color:#e6d8fa}
+html[data-theme=dark] .lx-load3d small{color:#a898b8}

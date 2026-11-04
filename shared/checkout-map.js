@@ -3,10 +3,16 @@
 // Leaflet loads only when checkout opens. The pin travels with the order as a Google Maps link added to the address,
 // so the owner can paste it straight into Lalamove (no database change).
 (() => {
-  const SHOP = { lat: 14.481412, lng: 120.908203, name: 'LexC’s Snacktime', area: 'Dau, Mabalacat, Pampanga' };   // Plus Code FWJ5+H78
+  // the kitchen: 66 Quezon St., Dau (pin from the owner's Google Maps link, 2026-11-04)
+  const SHOP = { lat: 15.172157, lng: 120.586210, name: 'LexC’s Snacktime', area: '66 Quezon St., Dau, Mabalacat City, Pampanga' };
+  // delivery is only offered inside this area (shared/delivery-area.js)
+  const AREA = window.LexcDeliveryArea;
+  const inArea = (lat, lng) => !AREA || AREA.contains(lat, lng);
+  const OUTSIDE = `Sorry, we only deliver within ${AREA?.name || 'our area'} for now. Choose Store Pick-up, or pin an address in ${AREA?.name || 'our area'}.`;
   const LEAFLET = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
-  const PH_BOX = '116.9,4.5,126.7,21.2';   // keep address search inside the Philippines
-  let loading = null, map = null, shopMarker = null, pinMarker = null, mode = '', pin = null, searchTimer = 0, searchSeq = 0, failed = false;
+  // address search only looks inside the delivery area (min lon, min lat, max lon, max lat)
+  const SEARCH_BOX = window.LexcDeliveryArea ? [window.LexcDeliveryArea.bounds[0][1], window.LexcDeliveryArea.bounds[0][0], window.LexcDeliveryArea.bounds[1][1], window.LexcDeliveryArea.bounds[1][0]].join(',') : '116.9,4.5,126.7,21.2';
+  let areaLayer = null, loading = null, map = null, shopMarker = null, pinMarker = null, mode = '', pin = null, searchTimer = 0, searchSeq = 0, failed = false;
   const $ = id => document.getElementById(id);
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const calm = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -66,6 +72,11 @@
     L.control.zoom({ position: 'bottomright', zoomInTitle: 'Zoom in', zoomOutTitle: 'Zoom out' }).addTo(map);
     map.attributionControl.setPrefix(false);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, keepBuffer: 3, updateWhenZooming: false, attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' }).addTo(map);
+    if (AREA) {
+      // the delivery area, outlined, and the map kept to it (with a little room around the edge)
+      areaLayer = L.polygon(AREA.ring, { color: '#7a55b8', weight: 2, opacity: .7, fillColor: '#7a55b8', fillOpacity: .05, interactive: false });
+      map.setMaxBounds(L.latLngBounds(AREA.bounds).pad(0.15)); map.options.maxBoundsViscosity = 0.9; map.setMinZoom(9);
+    }
     shopMarker = L.marker([SHOP.lat, SHOP.lng], { icon: pinIcon('is-shop'), keyboard: false, title: SHOP.name }).addTo(map);
     map.on('click', e => { if (mode === 'Lalamove') setPin(e.latlng.lat, e.latlng.lng, { lookup: true }); });
   }
@@ -75,13 +86,20 @@
       <a class="co-map-link" href="https://www.google.com/maps/dir/?api=1&destination=${fixed(SHOP.lat)},${fixed(SHOP.lng)}" target="_blank" rel="noopener">Get directions in Google Maps</a>`;
   }
   function infoDelivery() {
-    if (!pin) return `<p class="co-map-hint">Tap the map, search, or use your location to pin your exact spot. Lalamove riders find you faster with a pin.</p>`;
+    if (!pin) return `<p class="co-map-hint">We deliver within ${esc(AREA?.name || 'our area')} (outlined on the map). Tap the map, search, or use your location to pin your exact spot.</p>`;
     return `<div class="co-map-place"><span class="co-map-badge is-pin" aria-hidden="true"></span><div><strong>Deliver to · ~${kmText(km(SHOP, pin))} from LexC’s</strong><small>${esc(pin.label || 'Pinned on the map')} · drag the pin to adjust</small></div><button type="button" class="co-map-clear" data-clear-pin>Remove pin</button></div>
       <p class="co-map-hint">The delivery fee is paid to the Lalamove rider.</p>`;
   }
   function paint() { const info = $('coMapInfo'); if (info) info.innerHTML = mode === 'Lalamove' ? infoDelivery() : infoPickup(); }
 
   function setPin(lat, lng, { label = '', fly = false, lookup = false } = {}) {
+    if (!inArea(lat, lng)) {
+      // outside the delivery area: keep the old pin (a dragged pin goes back to it) and say why
+      if (pinMarker && pin) pinMarker.setLatLng([pin.lat, pin.lng]);
+      toast(OUTSIDE, { type: 'info' });
+      if (map && areaLayer) map.fitBounds(areaLayer.getBounds(), { animate: !calm() });
+      return;
+    }
     pin = { lat, lng, label };
     if (!pinMarker) {
       pinMarker = L.marker([lat, lng], { icon: pinIcon('is-pin'), draggable: true, title: 'Delivery pin' }).addTo(map);
@@ -128,11 +146,11 @@
     const seq = ++searchSeq, list = $('coMapResults');
     list.hidden = false; list.innerHTML = '<li class="co-map-results-note">Searching…</li>';
     try {
-      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=en&lat=${SHOP.lat}&lon=${SHOP.lng}&bbox=${PH_BOX}`);
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=en&lat=${SHOP.lat}&lon=${SHOP.lng}&bbox=${SEARCH_BOX}`);
       const data = await res.json(); if (seq !== searchSeq) return;
-      const rows = (data.features || []).map(f => ({ lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], label: labelOf(f.properties) })).filter(r => r.label);
+      const rows = (data.features || []).map(f => ({ lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0], label: labelOf(f.properties) })).filter(r => r.label && inArea(r.lat, r.lng));
       list.innerHTML = rows.length ? rows.map(r => `<li><button type="button" role="option" data-lat="${r.lat}" data-lng="${r.lng}" data-label="${esc(r.label)}">${esc(r.label)}</button></li>`).join('')
-        : '<li class="co-map-results-note">No match. Try a nearby landmark, or tap the map.</li>';
+        : `<li class="co-map-results-note">No match in ${esc(AREA?.name || 'our delivery area')}. Try a nearby landmark, or tap the map.</li>`;
     } catch { if (seq === searchSeq) list.innerHTML = '<li class="co-map-results-note">Search is unavailable right now. Tap the map instead.</li>'; }
   }
 
@@ -156,15 +174,18 @@
     card.hidden = false;
     $('coMapSearchWrap').hidden = mode !== 'Lalamove';
     card.classList.toggle('is-delivery', mode === 'Lalamove');
+    if (map && areaLayer) { if (mode === 'Lalamove') areaLayer.addTo(map); else areaLayer.remove(); }
     if (failed) { paint(); return; }
     try { await build(); } catch {
       failed = true;
       $('coMap').innerHTML = '<p class="co-map-error">The map couldn’t load. You can still type your address below.</p>';
       paint(); return;
     }
+    if (areaLayer) { if (mode === 'Lalamove') areaLayer.addTo(map); else areaLayer.remove(); }
     paint();
     map.invalidateSize();
     if (mode === 'Lalamove' && pin) frame();
+    else if (mode === 'Lalamove' && areaLayer) map.fitBounds(areaLayer.getBounds(), { animate: false });   // the whole delivery area
     else if (mode === 'Lalamove') map.setView([SHOP.lat, SHOP.lng], 13, { animate: false });
     else map.setView([SHOP.lat, SHOP.lng], 16, { animate: false });
   }
@@ -175,7 +196,15 @@
     return `${text}\nMap pin: ${mapsLink(pin.lat, pin.lng)}`;
   }
 
+  // checked before the order is placed: delivery needs a pin inside the delivery area
+  function problem() {
+    if (mode !== 'Lalamove') return null;
+    if (!pin) return `Pin your delivery spot on the map. We deliver within ${AREA?.name || 'our area'} only.`;
+    if (!inArea(pin.lat, pin.lng)) return OUTSIDE;
+    return null;
+  }
+
   // start fetching the map library as soon as checkout opens, so the map is ready when a choice is tapped
   const preload = () => { loadLeaflet().catch(() => {}); };
-  window.LexcCheckoutMap = { show, preload, addressWithPin, get pin() { return pin && { ...pin }; }, shop: SHOP };
+  window.LexcCheckoutMap = { show, preload, addressWithPin, problem, area: AREA, get pin() { return pin && { ...pin }; }, shop: SHOP };
 })();

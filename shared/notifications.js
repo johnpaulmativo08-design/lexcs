@@ -17,6 +17,8 @@
     chev: '<path d="m9 6 6 6-6 6"/>', price: '<path d="M12 3v18M16 7H10a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8"/>'
   };
   const FILTERS = [['all', 'All'], ['orders', 'Orders'], ['payments', 'Payments'], ['promos', 'Promos'], ['posts', 'Posts']];
+  // Settings can switch off sales and new posts (order and payment updates always show)
+  const muted = (kind) => { try { return (JSON.parse(localStorage.getItem('lexc_notify_off') || '[]') || []).includes(kind); } catch { return false; } };
   let items = [], dues = [], dueOpen = false, opened = new Set(), groupOpen = {}, state = 'idle', filter = 'all', loadedFor = null, lastLoad = 0, timer = 0;
 
   // ---- read state (per account, this browser) -----------------------------------------------
@@ -58,7 +60,7 @@
     const db = window.LexcBackend, me = window.currentUser, out = [];
     const jobs = [];
     // sales: one per product option on sale (from the catalog the shop already loaded)
-    jobs.push((async () => {
+    if (!muted('promos')) jobs.push((async () => {
       const cat = typeof liveCatalog !== 'undefined' && liveCatalog.length ? liveCatalog : await db.catalog();
       const priced = typeof withSalePrices === 'function' ? withSalePrices(cat) : cat;
       for (const p of priced) for (const v of p.product_variants || []) if (v.is_active && v.sale) {
@@ -70,7 +72,7 @@
       }
     })().catch(() => {}));
     // new posts
-    jobs.push(db.rpc('get_store_feed', { p_kind: 'all', p_before: null, p_before_id: null, p_limit: 8 }).then((rows) => {
+    if (!muted('posts')) jobs.push(db.rpc('get_store_feed', { p_kind: 'all', p_before: null, p_before_id: null, p_limit: 8 }).then((rows) => {
       for (const r of rows || []) out.push({ id: 'post:' + r.id, at: Date.parse(r.published_at), kind: 'posts', icon: 'spark', tone: 'post', title: 'New from LexC’s',
         body: (String(r.caption || '').replace(/\s+/g, ' ').trim().slice(0, 110) || 'A new photo was posted.') + (String(r.caption || '').length > 110 ? '…' : ''), full: String(r.caption || '').trim(), act: 'post', post: r.id });
     }).catch(() => {}));
@@ -97,6 +99,7 @@
   }
   async function refresh(force = false) {
     const who = window.currentUser?.id || 'guest';
+    items = items.filter((n) => !muted(n.kind));   // a kind just switched off in Settings disappears right away
     if (!force && loadedFor === who && Date.now() - lastLoad < 45000) return;
     if (!items.length || loadedFor !== who) { state = 'loading'; render(); }
     try { items = await gather(); state = 'ready'; loadedFor = who; lastLoad = Date.now(); }
@@ -140,7 +143,7 @@
     const counts = Object.fromEntries(FILTERS.map(([k]) => [k, items.filter((n) => (k === 'all' || n.kind === k) && isUnread(n, s)).length]));
     const head = `<header class="nt-head"><div><p class="lx-eyebrow">Orders · Payments · Sweet deals</p><h1 class="lx-title">Your <em>notifications.</em></h1><p class="lx-lede">${unreadAll ? `${unreadAll} new since you last checked` : 'You’re all caught up'}</p></div>
       <button type="button" class="nt-markall" data-nt-all ${unreadAll ? '' : 'disabled'}>${svg(I.check)}Mark all as read</button></header>
-      <div class="nt-filters" role="tablist" aria-label="Show">${FILTERS.filter(([k]) => signedIn || ['all', 'promos', 'posts'].includes(k)).map(([k, l]) =>
+      <div class="nt-filters" role="tablist" aria-label="Show">${FILTERS.filter(([k]) => (signedIn || ['all', 'promos', 'posts'].includes(k)) && !muted(k)).map(([k, l]) =>
         `<button type="button" role="tab" aria-selected="${filter === k}" data-nt-filter="${k}">${l}${counts[k] ? `<i>${counts[k]}</i>` : ''}</button>`).join('')}</div>`;
     const totalDue = dues.reduce((sum, d) => sum + d.due, 0);
     const dueCard = signedIn && dues.length && ['all', 'payments', 'orders'].includes(filter) ? `<section class="nt-due" aria-label="Balance to pay">
@@ -196,7 +199,7 @@
     const n = items.find((x) => x.id === t.dataset.nt); if (n) open(n);
   });
 
-  function show() { if (!FILTERS.some(([k]) => k === filter) || (!window.currentUser && !['all', 'promos', 'posts'].includes(filter))) filter = 'all'; render(); refresh(); }
+  function show() { if (!FILTERS.some(([k]) => k === filter) || muted(filter) || (!window.currentUser && !['all', 'promos', 'posts'].includes(filter))) filter = 'all'; render(); refresh(); }
   // keep the badge fresh: on load, when signing in/out, every 90 s while visible, and when coming back to the tab
   function tick() { clearTimeout(timer); timer = setTimeout(() => { if (!document.hidden) refresh(true); tick(); }, 90000); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });

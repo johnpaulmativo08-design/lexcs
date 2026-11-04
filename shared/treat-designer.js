@@ -519,7 +519,8 @@ function makeTreatDesigner(K) {
       if (draft?.state && !box) { state = { ...blank(draft.state.box || 'party'), ...draft.state }; step = STEPS.some(([k]) => k === draft.step) ? draft.step : 'box'; showToast(`Your saved ${NOUN} design was restored.`); }
       else state = blank(box && products[box] ? box : Object.keys(products)[0]);
     }
-    normalise(); renderBody(); renderPreview(); scheduleQuote(); ensureScene();
+    normalise(); renderBody(); renderPreview(); scheduleQuote();
+    if (window.LexcAppearance?.dataSaver?.()) window.LexcAppearance.offer3d(root.querySelector('.cd-box[data-dd-box]'), ensureScene); else ensureScene();
   }
   function whenReady(fn) {
     if (window.lexcCatalogState === 'ready') return fn();

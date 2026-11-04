@@ -105,6 +105,9 @@ async function submitCheckout(){
  if(problem)return needField(problem.id,problem.message);
  if(!field('coDate')||!field('coTime'))return showToast('Choose a reservation date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
+ // delivery only inside the delivery area (Pampanga), with a map pin (shared/checkout-map.js)
+ const areaProblem=selectedDelivery==='Lalamove'?window.LexcCheckoutMap?.problem?.():null;
+ if(areaProblem){document.getElementById('coMapCard')?.scrollIntoView({block:'center',behavior:'smooth'});return showToast(areaProblem);}
   if(selectedItems.some(i=>!i.variant_id))return showToast('Your selected cart contains older items. Remove and re-add them from the updated catalog.');
   const fingerprint=JSON.stringify({cart:selectedItems.map(({preview,preview_top,reference_image_path,design_top_path,inspiration,...rest})=>rest),name:field('coName'),phone:field('coContact'),address:window.LexcCheckoutMap?.addressWithPin(field('coAddress'))??field('coAddress'),slot:document.getElementById('coDate').dataset.slotId,delivery:selectedDelivery,notes:field('coNotes'),payment:selectedPayment});
  let request=readAuthStorage(localStorage,'lexc_checkout_request',null);
