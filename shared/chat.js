@@ -51,7 +51,7 @@ function orderSummaryHTML(s,orderId){
   const row=(label,value,strong)=>'<div class="order-card-row'+(strong?' is-total':'')+'"><span>'+label+'</span>'+(strong?'<strong>':'<b>')+value+(strong?'</strong>':'</b>')+'</div>';
   const items=(s.items||[]).map(i=>'<li><div><strong>'+escapeHtml(i.name)+'</strong><span>'+escapeHtml(i.option||'')+(Number(i.qty)>1?' × '+Number(i.qty):'')+'</span>'+(i.details?'<small>'+escapeHtml(i.details)+'</small>':'')+'</div><b>'+money(i.total)+'</b></li>').join('');
   const delivery=s.fulfillment==='lalamove';
-  const fee=!delivery?'':s.delivery_fee_status==='quoted'&&Number(s.delivery_fee)>0?money(s.delivery_fee):'Paid to the rider';
+  const fee=!delivery?'':s.delivery_fee_status==='quoted'&&Number(s.delivery_fee)>0?money(s.delivery_fee)+(s.delivery_distance_km!=null?' · '+Number(s.delivery_distance_km).toFixed(1)+' km':''):'Paid to the rider';
   const day=s.receiving_start?phWhen(s.receiving_start,{weekday:'short',month:'short',day:'numeric',year:'numeric'}):'';
   const hours=s.receiving_start&&s.receiving_end?phWhen(s.receiving_start,{hour:'numeric',minute:'2-digit'})+' – '+phWhen(s.receiving_end,{hour:'numeric',minute:'2-digit'}):'';
   const count=(s.items||[]).reduce((sum,i)=>sum+Number(i.qty||0),0),key=String(s.order_number);

@@ -850,3 +850,20 @@ main .operations-dashboard .ops-row .dash-balance{color:#1d1530;font-size:15.5px
 .dopt-rename input:focus{outline:none;border-color:#6f53bc;box-shadow:0 0 0 3px #ece4fb}
 .dopt-rename .is-primary{background:#6f53bc;color:#fff;border-color:#6f53bc}
 .dopt-rename small{flex-basis:100%;color:#a03030;font-size:12px}
+
+/* Delivery rates (phase 94) and the delivery fee line in order details */
+.od-row .od-fee-rule{display:block;margin-top:2px;line-height:1.4}
+.dr-form{display:grid;gap:16px;max-width:860px;margin-top:16px;padding:20px}
+.dr-group{border:1px solid var(--line,#e7e1ee);border-radius:14px;padding:14px 16px;margin:0}
+.dr-group legend,.dr-towns summary{font-weight:700;padding:0 4px;cursor:default}
+.dr-towns summary{cursor:pointer}
+.dr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px 16px;margin-top:8px}
+.dr-grid--towns{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.dr-hint{display:block;margin-top:4px;font-size:12px;font-weight:500;color:var(--muted,#6e6274)}
+.dr-switch{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--surface-2,#f7f3fa);cursor:pointer}
+.dr-switch input{width:20px;height:20px;margin-top:2px;flex:none}
+.dr-switch span{display:grid;gap:2px}.dr-switch small{color:var(--muted,#6e6274)}
+.dr-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dr-try h2{margin:0;font-size:1.05rem}
+.dr-result{margin:0}.dr-result strong{font-size:1.2rem;margin-right:6px}.dr-result span{color:var(--muted,#6e6274)}
+@media(max-width:600px){.dr-form{padding:14px}.dr-grid{grid-template-columns:1fr}.dr-grid--towns{grid-template-columns:1fr 1fr}}
