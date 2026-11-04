@@ -128,6 +128,13 @@
           : res.status === 401 ? { state: 'login' } : { state: 'failed', data };
       }
     } catch { next = { state: 'failed' }; }
+    // the fee service failed: if delivery fees are not switched on (or not set up yet), delivery works as before
+    if (next.state === 'failed') next = await (async () => {
+      try {
+        const { data, error } = await window.LexcBackend.client.from('delivery_pricing').select('enabled').eq('id', 1).maybeSingle();
+        return error || !data?.enabled ? { state: 'not_priced' } : next;
+      } catch { return next; }
+    })();
     if (seq !== quoteSeq) return;            // the pin moved again meanwhile: a newer answer is coming
     quote = { ...next, at };
     changed();
