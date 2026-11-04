@@ -246,6 +246,8 @@
     if (act === 'shop') return window.navigate('shop');
     if (act === 'diy') return window.LexcCustom ? window.LexcCustom.choose() : window.navigate('shop');
     if (act === 'cart') return window.openCart?.();
+    // order history and cancelled orders open My Orders (shared/order-history.js); payments keep their panel
+    if ((act === 'orders' || act === 'cancelled') && window.LexcOrders) { if (panel) { panel = null; panelData = null; draw(); } return window.LexcOrders.goTo(null, { tab: act === 'cancelled' ? 'cancelled' : 'all' }); }
     if (act === 'orders' || act === 'cancelled' || act === 'payments') return openPanel(act);
   });
   // My Purchases: a tile shows its orders; the order buttons open the order, the rider / pickup info, or the review
@@ -253,7 +255,7 @@
     const tab = event.target.closest?.('#profileRoot [data-pf-tab]');
     if (tab) { buyTab = buyTab === tab.dataset.pfTab ? null : tab.dataset.pfTab; draw(); root().querySelector(`[data-pf-tab="${buyTab}"]`)?.focus({ preventScroll: true }); return; }
     const go = event.target.closest?.('#profileRoot [data-pf-order]');
-    if (go) { const id = go.dataset.pfOrder; if (go.dataset.pfDo === 'rate' && typeof window.showReviewForm === 'function') return window.showReviewForm(id); return window.openCart?.(id); }
+    if (go) { const id = go.dataset.pfOrder; if (go.dataset.pfDo === 'rate' && typeof window.showReviewForm === 'function') return window.showReviewForm(id); return window.LexcOrders ? window.LexcOrders.goTo(id) : window.openCart?.(id); }
   });
   document.addEventListener('click', (event) => {
     const pen = event.target.closest?.('#profileRoot [data-pf-field]');

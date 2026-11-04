@@ -242,6 +242,8 @@ function openOrderFromReturnLink(){
  const target=new URLSearchParams(location.search).get('order');
  if(!currentUser||!target||!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(target))return;
  const url=new URL(location.href);url.searchParams.delete('order');history.replaceState(null,'',url);
+ // links back from the payment page open the order in My Orders (shared/order-history.js)
+ if(window.LexcOrders)return window.LexcOrders.goTo(target);
  showMyOrders(target);
 }
 // Review sheet: tap a star rating, write a few words, optionally add a photo. Saved reviews wait for LexC's approval.

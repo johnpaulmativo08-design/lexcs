@@ -1,0 +1,197 @@
+/* My Orders (shared/order-history.js): order history cards, the details sheet, order progress and the
+   Delivery / Pickup confirmation. Pastel violet, pink and lavender; status colours are the same everywhere. */
+.oh-wrap{max-width:860px;margin:0 auto;padding:92px 16px 120px;color:#23142a;font-family:'Plus Jakarta Sans',system-ui,sans-serif}
+.oh-ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.oh-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.oh-head{margin-bottom:18px}
+
+/* tabs, search, sort */
+.oh-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px;margin-bottom:16px}
+.oh-tabs{display:flex;gap:6px;padding:4px;border-radius:999px;background:#f3edf9;overflow-x:auto;scrollbar-width:none;max-width:100%}
+.oh-tabs::-webkit-scrollbar{display:none}
+.oh-tabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:#5d4a78;font:600 .84rem 'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:background .18s,color .18s}
+.oh-tabs button i{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#e5dbf3;color:#4e307c;font-size:.7rem;line-height:20px;text-align:center}
+.oh-tabs button[aria-selected=true]{background:#fff;color:#2b1530;box-shadow:0 2px 10px rgba(78,48,124,.14)}
+.oh-tabs button[aria-selected=true] i{background:#4e307c;color:#fff}
+.oh-find{display:flex;gap:8px;flex:1 1 260px;justify-content:flex-end}
+.oh-search{position:relative;display:flex;align-items:center;flex:1;max-width:220px}
+.oh-search .oh-ic{position:absolute;left:12px;color:#8a7d96}
+.oh-search input{width:100%;height:40px;padding:0 12px 0 36px;border:1px solid #e3d8f2;border-radius:12px;background:#fff;font:500 .88rem 'Plus Jakarta Sans',sans-serif;color:#23142a}
+.oh-sort select{height:40px;padding:0 10px;border:1px solid #e3d8f2;border-radius:12px;background:#fff;font:600 .82rem 'Plus Jakarta Sans',sans-serif;color:#4e307c}
+.oh-search input:focus,.oh-sort select:focus{outline:2px solid #b9a1f0;outline-offset:1px}
+
+/* needs attention */
+.oh-attn{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#f7efff,#fdf0f6);border:1px solid #ead9f6}
+.oh-attn-ic{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#fff;color:#c9628f;flex:none}
+.oh-attn strong{display:block;font-size:.95rem;color:#2b1530}
+.oh-attn span:not(.oh-attn-ic){display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.oh-attn button{border:1px solid #e3cfe9;background:#fff;color:#7a2f57;border-radius:999px;padding:6px 12px;font:600 .78rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.oh-attn button:hover{background:#fbeef4}
+
+/* status pills: order and payment share one colour language */
+.oh-pill{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0 10px;border-radius:999px;font:700 .72rem/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.01em;white-space:nowrap}
+.oh-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+.oh-pill.is-wait{background:#fff4dc;color:#8a5a00}
+.oh-pill.is-warn{background:#fff0e0;color:#a64d00}
+.oh-pill.is-ok{background:#efe7fb;color:#5a37a0}
+.oh-pill.is-busy{background:#e8eefc;color:#2f4fa0}
+.oh-pill.is-ready{background:#fbe6f0;color:#a3346b}
+.oh-pill.is-move{background:#e4f3f6;color:#17687a}
+.oh-pill.is-done{background:#e5f4ea;color:#23743c}
+.oh-pill.is-bad{background:#fde7ea;color:#a3283b}
+.oh-pill.is-off{background:#f0edf3;color:#6e627a}
+.oh-pill.is-pay{border:1px dashed currentColor;background:transparent}
+
+/* order cards */
+.oh-list{display:grid;gap:14px}
+.oh-card{position:relative;display:grid;gap:12px;padding:16px 18px;border-radius:22px;background:#fff;box-shadow:0 1px 2px rgba(46,34,90,.04),0 10px 28px rgba(46,34,90,.08);border:1px solid #f0e9f7;transition:box-shadow .2s,transform .2s}
+.oh-card:hover{box-shadow:0 1px 2px rgba(46,34,90,.05),0 16px 36px rgba(46,34,90,.12);transform:translateY(-1px)}
+.oh-card.is-cancelled{opacity:.78}
+.oh-card-hit{position:absolute;inset:0;border:0;background:transparent;border-radius:22px;cursor:pointer}
+.oh-card-hit:focus-visible{outline:3px solid #b9a1f0;outline-offset:2px}
+.oh-card a,.oh-card .oh-btn{position:relative;z-index:1}
+.oh-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.oh-num{display:block;font:800 1.05rem/1.2 'Plus Jakarta Sans',sans-serif;color:#1d1530}
+.oh-date{display:block;margin-top:2px;font-size:.78rem;color:#8a7d96}
+.oh-card-body{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.oh-lines{display:grid;gap:8px;margin:0;padding:0;list-style:none;min-width:0;flex:1}
+.oh-lines li{display:flex;align-items:center;gap:10px;min-width:0}
+.oh-lines li>span:last-child{min-width:0}
+.oh-lines b{display:block;font-size:.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oh-lines small{display:block;font-size:.76rem;color:#7a6e86}
+.oh-more{padding-left:54px;font-size:.78rem;font-weight:600;color:#6f4fa8}
+.oh-thumb{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;overflow:hidden;background:#f3edf9;color:#6f4fa8;font:700 1rem 'Playfair Display',serif}
+.oh-thumb.is-lg{width:56px;height:56px;border-radius:14px}
+.oh-thumb img{width:100%;height:100%;object-fit:cover}
+.oh-total{text-align:right;flex:none}
+.oh-total small{display:block;font-size:.74rem;color:#8a7d96}
+.oh-total strong{font:800 1.2rem/1.2 'Plus Jakarta Sans',sans-serif;color:#2b1530}
+.oh-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.oh-chip{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border-radius:999px;background:#f6f2fa;color:#4a3d52;font:600 .76rem 'Plus Jakarta Sans',sans-serif}
+.oh-chip .oh-ic{width:15px;height:15px;color:#6f4fa8}
+.oh-confirm-flag{display:flex;align-items:center;gap:8px;margin:0;padding:9px 12px;border-radius:12px;background:linear-gradient(90deg,#f1e9fd,#fcedf4);color:#4e307c;font:700 .8rem 'Plus Jakarta Sans',sans-serif}
+.oh-confirm-flag .oh-ic{width:16px;height:16px;padding:2px;border-radius:50%;background:#6f4fa8;color:#fff;stroke-width:2.6}
+.oh-confirm-flag.is-bad{background:#fde7ea;color:#a3283b}.oh-confirm-flag.is-bad .oh-ic{background:#a3283b}
+.oh-card-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid #f1ebf6}
+
+/* buttons */
+.oh-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 16px;border-radius:999px;border:1px solid transparent;font:700 .84rem 'Plus Jakarta Sans',sans-serif;text-decoration:none;cursor:pointer;transition:background .18s,box-shadow .18s}
+.oh-btn .oh-ic{width:16px;height:16px}
+.oh-btn.is-go{background:#2b1530;color:#fff;box-shadow:0 6px 18px rgba(43,21,48,.22)}
+.oh-btn.is-go:hover{background:#563a8a}
+.oh-btn.is-warn{background:#c9628f;color:#fff}
+.oh-btn.is-bad{background:#a3283b;color:#fff}
+.oh-btn.is-quiet{background:#fff;border-color:#e3d8f2;color:#4e307c}
+.oh-btn.is-quiet:hover{background:#f6f0fd}
+.oh-btn.is-danger{background:#fff;border-color:#f0c9d0;color:#a3283b}
+.oh-btn:focus-visible{outline:3px solid #b9a1f0;outline-offset:2px}
+.oh-btn:disabled{opacity:.55;cursor:default}
+
+/* empty / loading */
+.oh-empty{display:grid;justify-items:center;gap:8px;padding:48px 20px;text-align:center;border-radius:22px;background:#fff;border:1px dashed #e3d8f2}
+.oh-empty strong{font-size:1.05rem}.oh-empty p{margin:0 0 6px;max-width:360px;color:#6e627a;font-size:.9rem;line-height:1.5}
+.oh-empty-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:#f3edf9;color:#6f4fa8}
+.oh-empty-ic.is-bad{background:#fde7ea;color:#a3283b}
+.oh-empty-ic .oh-ic{width:24px;height:24px}
+.oh-skel{pointer-events:none}.oh-skel-thumb{width:44px;height:44px;border-radius:12px}
+
+/* details sheet */
+.oh-sheet{width:min(680px,100vw);max-width:100vw;max-height:min(92dvh,100%);margin:auto;padding:0;border:0;border-radius:24px;background:#fbf9fd;color:#23142a;box-shadow:0 30px 80px rgba(32,18,60,.32);font-family:'Plus Jakarta Sans',system-ui,sans-serif}
+.oh-sheet::backdrop{background:rgba(30,18,40,.45);backdrop-filter:blur(2px)}
+.oh-sheet[open]{animation:oh-up .26s cubic-bezier(.22,1,.36,1)}
+@keyframes oh-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.oh-sheet-body{display:grid;gap:16px;max-height:min(92dvh,100%);overflow:auto;padding:20px 20px 24px}
+.oh-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.oh-sheet-eyebrow{margin:0;font:700 .68rem/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#6f4fa8}
+.oh-sheet-head h2{margin:4px 0 0;font:700 1.9rem/1.1 'Playfair Display',Georgia,serif;color:#2b1530}
+.oh-close{display:grid;place-items:center;width:44px;height:44px;margin:-6px -6px 0 0;border:0;border-radius:50%;background:#fff;color:#4e307c;cursor:pointer;box-shadow:0 2px 8px rgba(46,34,90,.1)}
+.oh-sheet-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.oh-sheet-status>div{display:grid;gap:6px;align-content:start;padding:10px 12px;border-radius:14px;background:#fff;border:1px solid #f0e9f7}
+.oh-sheet-status small{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a7d96}
+.oh-sheet-status .oh-pill{justify-self:start;white-space:normal;line-height:1.2;padding:5px 10px}
+.oh-sheet-cta{width:100%;min-height:48px;font-size:.95rem}
+.oh-sec{padding:16px;border-radius:18px;background:#fff;border:1px solid #f0e9f7}
+.oh-sec h3{margin:0 0 12px;font:800 .78rem/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#6f4fa8}
+
+/* Delivery / Pickup confirmation */
+.oh-dc{position:relative;padding:18px;border-radius:20px;background:linear-gradient(150deg,#f4ecff 0%,#fdf1f7 100%);border:1.5px solid #dcc8f3;overflow:hidden}
+.oh-dc.is-wait{background:#fffaf0;border-color:#f1dfb3}
+.oh-dc.is-off{background:#f6f4f8;border-color:#e4dfe9}
+.oh-dc.is-bad{background:#fff3f5;border-color:#f0c9d0}
+.oh-dc-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.oh-dc-head>div{flex:1;min-width:0}
+.oh-dc-head h3{margin:0;font:700 1.25rem/1.2 'Playfair Display',Georgia,serif;color:#2b1530}
+.oh-dc-head p{margin:4px 0 0;font-size:.82rem;line-height:1.45;color:#5f5269}
+.oh-dc-badge{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:50%;background:#6f4fa8;color:#fff;box-shadow:0 0 0 6px rgba(111,79,168,.15)}
+.oh-dc-badge .oh-ic{width:22px;height:22px;stroke-width:2.4}
+.oh-dc.is-wait .oh-dc-badge{background:#c48a14;box-shadow:0 0 0 6px rgba(196,138,20,.15)}
+.oh-dc.is-off .oh-dc-badge{background:#8a7d96;box-shadow:none}
+.oh-dc.is-bad .oh-dc-badge{background:#a3283b;box-shadow:0 0 0 6px rgba(163,40,59,.12)}
+.oh-dc-head .oh-pill{flex:none}
+.oh-dc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.oh-dc-row{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.78)}
+.oh-dc-row .oh-ic{margin-top:2px;color:#c9628f}
+.oh-dc-row small{display:block;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a7d96}
+.oh-dc-row span{display:block;margin-top:2px;font-size:.9rem;font-weight:600;line-height:1.4;color:#23142a;overflow-wrap:anywhere}
+.oh-dc-row span small{display:inline;text-transform:none;letter-spacing:0;font-weight:500}
+.oh-dc-row a{color:#6f4fa8;font-weight:700;white-space:nowrap}
+.oh-map{margin:12px 0 0;border-radius:16px;overflow:hidden;background:#efe8f7;border:1px solid #e3d8f2}
+.oh-map iframe{display:block;width:100%;height:170px;border:0}
+.oh-map figcaption{padding:8px 12px;background:#fff;font-size:.8rem;text-align:right}
+.oh-map a{color:#6f4fa8;font-weight:700}
+.oh-dc-rider{margin-top:12px}
+
+/* order progress */
+.oh-time{display:grid;gap:0;margin:0;padding:0;list-style:none}
+.oh-time li{position:relative;display:flex;gap:12px;padding-bottom:16px}
+.oh-time li:last-child{padding-bottom:0}
+.oh-time li:not(:last-child)::after{content:'';position:absolute;left:15px;top:34px;bottom:2px;width:2px;background:#ece4f4}
+.oh-time li.is-done:not(:last-child)::after{background:#b79ae6}
+.oh-step-ic{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:50%;background:#f3eff7;color:#a59ab0;border:2px solid #ece4f4}
+.oh-step-ic .oh-ic{width:16px;height:16px}
+.oh-time li.is-done .oh-step-ic{background:#6f4fa8;border-color:#6f4fa8;color:#fff}
+.oh-time li.is-now .oh-step-ic{background:#fff;border-color:#c9628f;color:#c9628f;box-shadow:0 0 0 5px rgba(201,98,143,.15)}
+.oh-time li.is-stop .oh-step-ic{background:#a3283b;border-color:#a3283b;color:#fff}
+.oh-time li>div{padding-top:5px;min-width:0}
+.oh-time b{display:block;font-size:.92rem;color:#23142a}
+.oh-time li.is-next b{color:#9a90a6;font-weight:600}
+.oh-time li.is-now b{color:#a3346b}
+.oh-time time{display:block;font-size:.76rem;color:#7a6e86;margin-top:1px}
+.oh-time small{display:block;font-size:.78rem;color:#6e627a;margin-top:2px}
+
+/* items and payment */
+.oh-items{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.oh-items li{display:flex;align-items:flex-start;gap:12px}
+.oh-items li>div{flex:1;min-width:0}
+.oh-items b{display:block;font-size:.92rem}
+.oh-items small{display:block;font-size:.78rem;color:#7a6e86}
+.oh-items strong{font-size:.9rem;white-space:nowrap}
+.oh-custom{margin:6px 0 0;padding:8px 10px;border-radius:10px;background:#f8f4fc;font-size:.78rem;line-height:1.45;color:#4a3d52}
+.oh-paystate{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;font-size:.84rem;color:#5f5269}
+.oh-reject{display:flex;gap:8px;margin:0 0 12px;padding:10px 12px;border-radius:12px;background:#fde7ea;color:#7d1f2e;font-size:.84rem;line-height:1.45}
+.oh-reject .oh-ic{color:#a3283b;margin-top:1px}
+.oh-sum{display:grid;gap:8px}
+.oh-sum-row{display:flex;justify-content:space-between;gap:12px;font-size:.88rem;color:#5f5269}
+.oh-sum-row b{color:#23142a;text-align:right}
+.oh-sum-row.is-total{padding-top:10px;margin-top:2px;border-top:1px solid #f1ebf6;font-size:1rem;color:#23142a}
+.oh-sum-row.is-total b{font-size:1.15rem}
+.oh-sum-row.is-due b{color:#a3346b}.oh-sum-row.is-clear b{color:#23743c}
+.oh-sheet-actions{display:flex;flex-wrap:wrap;gap:8px}
+
+@media(max-width:640px){
+  .oh-wrap{padding:84px 14px 120px}
+  .oh-tabs{width:100%}.oh-tabs button{flex:1 1 0;justify-content:center;padding:0 6px;font-size:.78rem;gap:4px}.oh-tabs button i{min-width:18px;padding:0 4px}
+  .oh-find{flex-basis:100%;justify-content:stretch}.oh-search{max-width:none}
+  .oh-card{padding:14px;border-radius:20px}
+  .oh-card-body{flex-direction:column;align-items:stretch;gap:10px}
+  .oh-total{display:flex;align-items:baseline;justify-content:space-between;text-align:left}
+  .oh-card-actions .oh-btn{flex:1}
+  .oh-sheet{width:100vw;max-height:94dvh;margin:auto 0 0;border-radius:24px 24px 0 0}
+  .oh-sheet-body{max-height:94dvh;padding:18px 16px 28px}
+  .oh-sheet-status{grid-template-columns:1fr 1fr}.oh-sheet-status>div:last-child{grid-column:1/-1}
+  .oh-dc{padding:16px}.oh-dc-head{flex-wrap:wrap}.oh-dc-head>div{flex-basis:calc(100% - 54px)}.oh-dc-head .oh-pill{margin-left:54px}.oh-dc-grid{grid-template-columns:1fr}
+  .oh-sheet-actions .oh-btn{flex:1 1 calc(50% - 4px)}
+}
+@media(prefers-reduced-motion:reduce){.oh-card,.oh-card:hover{transition:none;transform:none}.oh-sheet[open]{animation:none}}
+/* the cart drawer's link to the full order history */
+.customer-orders-history{display:inline;margin:0;padding:0;border:0;background:none;color:#6f4fa8;font:700 inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
