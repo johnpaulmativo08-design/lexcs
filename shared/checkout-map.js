@@ -3,8 +3,8 @@
 // Leaflet loads only when checkout opens. The pin travels with the order as a Google Maps link added to the address,
 // so the owner can paste it straight into Lalamove (no database change).
 (() => {
-  // TODO(owner): replace with the kitchen's exact Google Maps pin; this is the centre of Dau for now
-  const SHOP = { lat: 15.1757, lng: 120.5885, name: 'LexC’s Snacktime', area: 'Dau, Mabalacat City, Pampanga' };
+  // the kitchen: 66 Quezon St., Dau (pin from the owner's Google Maps link, 2026-11-04)
+  const SHOP = { lat: 15.172157, lng: 120.586210, name: 'LexC’s Snacktime', area: '66 Quezon St., Dau, Mabalacat City, Pampanga' };
   // delivery is only offered inside this area (shared/delivery-area.js)
   const AREA = window.LexcDeliveryArea;
   const inArea = (lat, lng) => !AREA || AREA.contains(lat, lng);
