@@ -112,6 +112,11 @@ html[data-theme=dark] .lx-appear{background:#211a28;border-color:#3b2f47;color:#
 html[data-theme=dark] .lx-appear::backdrop{background:rgba(5,3,8,.6)}
 html[data-theme=dark] .lx-appear-themes button{border-color:#3b2f47}
 html[data-theme=dark] .lx-appear-themes button[aria-checked=true]{border-color:#b393e6;box-shadow:0 0 0 4px rgba(179,147,230,.18)}
+.lx-appear-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#f5f0fa}
+.lx-appear-seg button{min-height:44px;border:0;border-radius:11px;background:transparent;color:inherit;font:600 .85rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.lx-appear-seg button[aria-checked=true]{background:#fff;box-shadow:0 2px 10px rgba(92,61,110,.16);color:#4c2f86}
+html[data-theme=dark] .lx-appear-seg{background:#1a1420}
+html[data-theme=dark] .lx-appear-seg button[aria-checked=true]{background:#3a2c50;color:#fff;box-shadow:none}
 html[data-theme=dark] .lx-appear-sizes{background:#1a1420}
 html[data-theme=dark] .lx-appear-sizes button[aria-checked=true]{background:#3a2c50;color:#fff;box-shadow:none}
 html[data-theme=dark] :is(.lx-appear-label,.lx-appear-sizes button small,.lx-appear-note){color:#a898b8}

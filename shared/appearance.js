@@ -4,6 +4,7 @@
 (function () {
   const script = document.currentScript, base = script.src.replace(/appearance\.js.*$/, ''), page = script.dataset.page || 'site';
   const root = document.documentElement;
+  const DELIVERY = [['ask', 'Ask me'], ['Pick-up', 'Pick-up'], ['Lalamove', 'Lalamove']];
   const SIZES = [['sm', 'Small'], ['md', 'Default'], ['lg', 'Large'], ['xl', 'Extra large']];
   const read = (key) => { try { return localStorage.getItem(key); } catch { return null; } };
   const save = (key, value) => { try { localStorage.setItem(key, value); } catch { /* private mode: applies for this visit only */ } };
@@ -89,6 +90,8 @@
     const count = (() => { try { const list = JSON.parse(read('lexc_recent_searches') || '[]'); return Array.isArray(list) ? list.length : 0; } catch { return 0; } })();
     const countText = dialog.querySelector('[data-recent-count]'), clearButton = dialog.querySelector('[data-clear-searches]');
     if (countText) { countText.textContent = count ? count + ' saved on this device' : 'None saved'; clearButton.disabled = !count; }
+    const usual = DELIVERY.some(([key]) => key === read('lexc_delivery')) ? read('lexc_delivery') : 'ask';
+    dialog.querySelectorAll('[data-delivery-choice]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.deliveryChoice === usual)));
     const off = notifyOff();
     dialog.querySelectorAll('[data-switch=promos],[data-switch=posts]').forEach((b) => b.setAttribute('aria-checked', String(!off.includes(b.dataset.switch))));
     dialog.querySelector('[data-switch=saver]').setAttribute('aria-checked', String(dataSaver()));
@@ -114,6 +117,9 @@
         switchRow('promos', 'Sales & promos', 'When something goes on sale.') +
         switchRow('posts', 'New posts', 'Fresh photos and news from LexC’s.') +
         '<p class="lx-appear-hint">Order and payment updates always show, so you never miss a step.</p>' : '') +
+      (page === 'site' ? '<p class="lx-appear-label" id="lxDeliveryLabel">At checkout, start with</p><div class="lx-appear-seg" role="radiogroup" aria-labelledby="lxDeliveryLabel">' +
+        DELIVERY.map(([key, label]) => '<button type="button" role="radio" data-delivery-choice="' + key + '">' + label + '</button>').join('') + '</div>' +
+        '<p class="lx-appear-hint">You can still change it on the checkout page.</p>' : '') +
       '<p class="lx-appear-label">Data</p>' +
       switchRow('saver', 'Data saver', '3D cake previews load only when you tap them. Good on mobile data.') +
       (page === 'site' ? '<p class="lx-appear-label">Privacy</p><div class="lx-action-row"><span class="lx-switch-text"><strong>Recent searches</strong><small data-recent-count></small></span><button type="button" class="lx-action" data-clear-searches>Clear</button></div>' : '') +
@@ -129,6 +135,8 @@
         render(); window.showToast?.('Recent searches cleared');
         return;
       }
+      const deliveryButton = event.target.closest('[data-delivery-choice]');
+      if (deliveryButton) { save('lexc_delivery', deliveryButton.dataset.deliveryChoice); render(); }
       const toggle = event.target.closest('[data-switch]');
       if (toggle && ['promos', 'posts'].includes(toggle.dataset.switch)) {
         const kind = toggle.dataset.switch, off = notifyOff();

@@ -1622,6 +1622,14 @@ function selectDelivery(el, val) {
   updateCheckoutDelivery();
 }
 
+// Settings -> "At checkout": starts checkout on the customer's usual choice (they can still change it)
+function applyPreferredDelivery() {
+  if (selectedDelivery) return;
+  let usual = null; try { usual = localStorage.getItem('lexc_delivery'); } catch {}
+  const button = ['Lalamove', 'Pick-up'].includes(usual) && document.querySelector(`#page-checkout .co-option[data-val="${usual}"]`);
+  if (button) selectDelivery(button, usual);
+}
+
 const VAT_RATE = 0.12;
 function updateCheckoutDelivery() {
   const deliveryRow = document.getElementById('checkoutDeliveryRow');
@@ -1753,7 +1761,7 @@ function navigate(page, anchor) {
   if (page === 'fresh') window.LexcFresh?.show();
   if (page === 'profile') window.LexcProfile?.show();
   if (page === 'notifications') window.LexcNotify?.show();
-  if (page === 'checkout') { renderCheckout(); window.LexcCheckoutMap?.preload(); }
+  if (page === 'checkout') { renderCheckout(); window.LexcCheckoutMap?.preload(); applyPreferredDelivery(); }
   if (page === 'packages') {  }
 
   if (anchor) {
