@@ -176,7 +176,7 @@
     if (n.act === 'pay' && n.order) return void (location.href = payURL(n.order));
     if (n.act === 'rate' && n.order && typeof window.showReviewForm === 'function') return window.showReviewForm(n.order);
     if (n.act === 'chat' && n.order) return void (location.href = 'chat/?order=' + encodeURIComponent(n.order));
-    if (n.act === 'order' && n.order) return window.openCart?.(n.order);
+    if (n.act === 'order' && n.order) return window.LexcOrders ? window.LexcOrders.goTo(n.order) : window.openCart?.(n.order);
     if (n.act === 'post' && n.post) return window.LexcFresh?.open(n.post);
     if (n.act === 'product' && n.product) {
       const local = typeof products !== 'undefined' ? products.find((p) => p.product_id === n.product) : null;

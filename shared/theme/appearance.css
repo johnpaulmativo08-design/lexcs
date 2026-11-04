@@ -139,3 +139,33 @@ html[data-theme=dark] .shop-search-line input[type],html[data-theme=dark] .shop-
 .lx-load3d:hover{background:#f5f0fa}
 html[data-theme=dark] .lx-load3d{background:#2a2133;border-color:#6b5291;color:#e6d8fa}
 html[data-theme=dark] .lx-load3d small{color:#a898b8}
+
+
+/* ---------- My Orders (shared/order-history.css) on dark */
+html[data-theme=dark] .oh-wrap{color:var(--lx-ink)}
+html[data-theme=dark] :is(.oh-card,.oh-sec,.oh-empty,.oh-sheet-status>div){background:var(--lx-surface);border-color:var(--lx-line);box-shadow:none}
+html[data-theme=dark] .oh-sheet{background:var(--lx-bg);color:var(--lx-ink)}
+html[data-theme=dark] :is(.oh-num,.oh-total strong,.oh-sheet-head h2,.oh-dc-head h3,.oh-time b,.oh-sum-row b,.oh-dc-row span,.oh-attn strong){color:var(--lx-ink)}
+html[data-theme=dark] :is(.oh-date,.oh-lines small,.oh-total small,.oh-items small,.oh-time time,.oh-time small,.oh-sum-row,.oh-dc-head p,.oh-paystate,.oh-empty p,.oh-sheet-status small,.oh-dc-row small){color:var(--lx-muted)}
+html[data-theme=dark] .oh-tabs{background:#1a1420}
+html[data-theme=dark] .oh-tabs button{color:var(--lx-muted)}
+html[data-theme=dark] .oh-tabs button[aria-selected=true]{background:#3a2c50;color:#fff;box-shadow:none}
+html[data-theme=dark] :is(.oh-search input,.oh-sort select,.oh-btn.is-quiet,.oh-close,.oh-attn button){background:var(--lx-raised);border-color:var(--lx-line);color:var(--lx-ink)}
+html[data-theme=dark] .oh-btn.is-go{background:#7a55b8;box-shadow:none}
+html[data-theme=dark] .oh-btn.is-danger{background:transparent;border-color:#6b2d3a;color:#f2a3ae}
+html[data-theme=dark] :is(.oh-chip,.oh-thumb,.oh-custom){background:var(--lx-raised);color:var(--lx-ink)}
+html[data-theme=dark] .oh-card-actions{border-top-color:var(--lx-line)}
+html[data-theme=dark] .oh-attn{background:linear-gradient(135deg,#2a1f38,#341e2d);border-color:var(--lx-line)}
+html[data-theme=dark] .oh-confirm-flag{background:linear-gradient(90deg,#2f2445,#3a2333);color:#e6d8fa}
+html[data-theme=dark] .oh-dc{background:linear-gradient(150deg,#2a2040,#36202f);border-color:#4d3a68}
+html[data-theme=dark] .oh-dc.is-wait{background:#2e2716;border-color:#5c4a1f}
+html[data-theme=dark] .oh-dc.is-off{background:var(--lx-surface);border-color:var(--lx-line)}
+html[data-theme=dark] .oh-dc.is-bad{background:#34171d;border-color:#6b2d3a}
+html[data-theme=dark] .oh-dc-row{background:rgba(23,18,28,.55)}
+html[data-theme=dark] :is(.oh-dc-row a,.oh-map a,.customer-orders-history){color:#c9aef0}
+html[data-theme=dark] .oh-map figcaption{background:var(--lx-surface)}
+html[data-theme=dark] .oh-step-ic{background:var(--lx-raised);border-color:var(--lx-line);color:var(--lx-muted)}
+html[data-theme=dark] .oh-time li.is-now .oh-step-ic{background:var(--lx-surface)}
+html[data-theme=dark] .oh-time li:not(:last-child)::after{background:var(--lx-line)}
+html[data-theme=dark] .oh-time li.is-done:not(:last-child)::after{background:#7a55b8}
+html[data-theme=dark] .oh-sum-row.is-total,html[data-theme=dark] .oh-sum-row.is-total b{border-top-color:var(--lx-line);color:var(--lx-ink)}

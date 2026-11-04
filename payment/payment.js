@@ -104,9 +104,10 @@ function render(){
   const orderSummary='<details class="card order-card"><summary><span>Order details & balance</span><span aria-hidden="true">⌄</span></summary><div class="order-detail-body"><p class="order-meta">'+e(when(order.created_at))+' · '+e(order.fulfillment_method==='pickup'?'Pickup':'Delivery')+'</p>'+ 
     order.order_items.map(item=>'<div class="summary-row"><span>'+e(item.name_snapshot)+' · '+e(item.variant_label_snapshot)+' ×'+item.quantity+'</span><strong>'+money(item.line_total)+'</strong></div>').join('')+
     (Number(order.rush_fee)>0?'<div class="summary-row"><span>Rush fee (next-day)</span><strong>'+money(order.rush_fee)+'</strong></div>':'')+
+    (order.delivery_in_deposit&&Number(order.delivery_fee)>0?'<div class="summary-row"><span>Delivery fee (estimate'+(order.delivery_distance_km!=null?', '+Number(order.delivery_distance_km).toFixed(1)+' km':'')+')</span><strong>'+money(order.delivery_fee)+'</strong></div>':'')+
     (Number(order.vat_amount)>0?'<div class="summary-row"><span>VAT ('+Math.round(Number(order.vat_rate)*100)+'%)</span><strong>'+money(order.vat_amount)+'</strong></div>':'')+
     '<div class="summary-row"><span>Order total</span><strong>'+(order.total_amount===null?'Pending delivery quote':money(order.total_amount))+'</strong></div>'+
-    '<div class="summary-row"><span>'+(Number(order.deposit_rate)===1?'Required payment':'Downpayment ('+depositPercent()+'%'+(Number(order.vat_amount)>0?' + all VAT':'')+')')+'</span><strong>'+(order.deposit_due===null?'Pending delivery quote':money(order.deposit_due))+'</strong></div>'+
+    '<div class="summary-row"><span>'+(Number(order.deposit_rate)===1?'Required payment':'Downpayment ('+depositPercent()+'%'+(Number(order.vat_amount)>0?' + all VAT':'')+(order.delivery_in_deposit&&Number(order.delivery_fee)>0?' + delivery':'')+')')+'</span><strong>'+(order.deposit_due===null?'Pending delivery quote':money(order.deposit_due))+'</strong></div>'+
     '<div class="summary-row"><span>Verified amount paid</span><strong>'+money(order.amount_paid)+'</strong></div>'+
     '<div class="summary-row total"><span>Remaining balance</span><strong>'+(remaining===null?'Pending delivery quote':money(remaining))+'</strong></div>'+
     '<div class="actions"><button class="button secondary" type="button" id="refresh-payment">Refresh status</button></div></div></details>';
@@ -171,13 +172,7 @@ function render(){
   root.querySelector('#back-to-choice')?.addEventListener('click',backToChoice);
   // the heading and the amount strip follow the downpayment / full choice
   const showPlan=()=>{const amount=planAmount();pageTitle.textContent=amount?'Pay '+money(amount):'Order payment';root.querySelector('.strip-amount strong').textContent=amount?money(amount):'Enter an amount';};
-  root.querySelectorAll('[name=plan]').forEach(input=>input.addEventListener('change',()=>{showPlan();if(input.value==='custom')root.querySelector('#custom-amount')?.focus();}));
-  const customAmount=root.querySelector('#custom-amount');
-  if(customAmount){
-    // pesos and centavos only: digits and one dot, at most two decimals
-    customAmount.addEventListener('focus',()=>{const radio=root.querySelector('[name=plan][value=custom]');if(!radio.checked){radio.checked=true;showPlan();}});
-    customAmount.addEventListener('input',()=>{const clean=customAmount.value.replace(/[^\d.]/g,'').replace(/^(\d*\.?)(.*)$/,(m,a,b)=>a+b.replace(/\./g,'')).replace(/(\.\d{2})\d+$/,'$1');if(clean!==customAmount.value)customAmount.value=clean;showPlan();});
-  }
+  root.querySelectorAll('[name=plan]').forEach(input=>input.addEventListener('change',showPlan));
   root.querySelector('#keep-payment')?.addEventListener('click',()=>{changing=false;render();});
   root.querySelector('#proof-form')?.addEventListener('submit',submitPayment);
   const proofForm=root.querySelector('#proof-form');
@@ -199,26 +194,21 @@ function render(){
     catch(error){say(paymentError(error,'The receipt could not be opened right now. Please try again.'),true);}finally{button.disabled=false;}
   });
 }
-// How much to pay now: the (rest of the) downpayment, everything left, or the customer's own amount (phase 78).
+// How much to pay now: the (rest of the) downpayment or everything left (phase 95 removed "different amount").
 const centavos=v=>Math.round(Number(v)*100);
 function planChoice(active){
   const paid=Number(order.amount_paid||0),total=Number(order.total_amount),deposit=Number(order.deposit_due),left=(centavos(total)-centavos(paid))/100;
   if(deposit>=total&&paid===0)return '<div class="plan-single"><span>Full payment</span><strong>'+money(total)+'</strong></div>';
   const rest=(centavos(deposit)-centavos(paid))/100;
   const options=paid>=deposit?[['balance','Remaining balance',left,'Nothing left to pay']]:[['downpayment',paid>0?'Rest of the downpayment':'Downpayment ('+depositPercent()+'%)',rest,'Pay '+money(left-rest)+' later'],['full',paid>0?'Everything left':'Full payment',left,'Nothing left to pay']];
-  const match=active&&options.find(o=>centavos(active.amount)===centavos(o[2])),mine=active&&!match;
-  const picked=mine?'custom':match?match[0]:options[0][0];
+  const match=active&&options.find(o=>centavos(active.amount)===centavos(o[2]));
+  const picked=match?match[0]:options[0][0];
   const plan=([value,title,amount,note])=>'<label class="plan-choice"><input type="radio" name="plan" value="'+value+'" data-amount="'+amount+'" '+(picked===value?'checked':'')+'><span><strong>'+title+'</strong><b>'+money(amount)+'</b><small>'+note+'</small></span></label>';
-  const custom='<label class="plan-choice plan-custom"><input type="radio" name="plan" value="custom" '+(picked==='custom'?'checked':'')+'><span><strong>Different amount</strong><small>Can’t pay it all today? Send what you can now and the rest later.</small>'+
-    '<span class="plan-amount"><span aria-hidden="true">₱</span><input type="text" id="custom-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount to pay now, in pesos" value="'+(mine?Number(active.amount).toFixed(2):'')+'"></span>'+
-    '<small class="plan-hint">Up to '+money(left)+'.'+(paid<deposit?' LexC’s starts making your order once the '+money(deposit)+' downpayment is complete.':'')+'</small></span></label>';
-  return '<div class="plan-list" role="radiogroup" aria-label="How much to pay now">'+options.map(plan).join('')+custom+'</div>';
+  return '<div class="plan-list" role="radiogroup" aria-label="How much to pay now">'+options.map(plan).join('')+'</div>';
 }
-// the amount the current choice asks for, or null while 'Different amount' is empty
+// the amount the current choice asks for
 function planAmount(){
-  const input=root.querySelector('[name=plan]:checked');if(!input)return null;
-  if(input.value!=='custom')return Number(input.dataset.amount);
-  const n=Number(root.querySelector('#custom-amount')?.value||'');return n>0?n:null;
+  const input=root.querySelector('[name=plan]:checked');return input?Number(input.dataset.amount):null;
 }
 function methodChoice(last,active){
   if(order.status==='cancelled')return '<section class="card"><h2>Order cancelled</h2><p>Payment cannot be started for a cancelled order.</p></section>';
@@ -296,15 +286,9 @@ function paymentHistory(){
 async function startPayment(event){
   const button=event.currentTarget,method=root.querySelector('[name=method]:checked')?.value,plan=root.querySelector('[name=plan]:checked')?.value||null;
   if(!method)return say('Choose a payment method.',true);
-  let custom=null;
-  if(plan==='custom'){
-    const left=(centavos(order.total_amount)-centavos(order.amount_paid||0))/100;custom=planAmount();
-    if(!custom)return say('Enter how much you want to pay now.',true);
-    if(custom>left)return say('That is more than the '+money(left)+' still unpaid.',true);
-  }
   if(submitting)return;submitting=true;button.classList.add('mo-busy');
   button.disabled=true;button.textContent='Preparing payment…';
-  try{await backend.rpc('start_order_payment',custom?{target_order:order.id,method_code:method,pay_option:'custom',custom_amount:custom}:{target_order:order.id,method_code:method,pay_option:plan==='balance'?null:plan});say('Payment prepared. Check the recipient before transferring.');await load();}
+  try{await backend.rpc('start_order_payment',{target_order:order.id,method_code:method,pay_option:plan==='balance'?null:plan});say('Payment prepared. Check the recipient before transferring.');await load();}
   catch(error){say(paymentError(error,'The QR could not be prepared. Your order is saved; please try again.'),true);button.disabled=false;button.classList.remove('mo-busy');button.textContent=isOnline(methods.find(m=>m.code===method))?'Continue to pay online →':'Show payment QR →';}
   finally{submitting=false;}
 }

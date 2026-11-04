@@ -20,12 +20,6 @@
   const mapsLink = (lat, lng) => `https://maps.google.com/?q=${fixed(lat)},${fixed(lng)}`;
   const toast = (m, o) => window.showToast?.(m, o);
 
-  function km(a, b) {   // straight-line distance; roads are a bit longer
-    const r = d => d * Math.PI / 180, dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
-    const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
-    return 6371 * 2 * Math.asin(Math.sqrt(h));
-  }
-  const kmText = d => d < 1 ? `${Math.round(d * 1000)} m` : `${d.toFixed(d < 10 ? 1 : 0)} km`;
 
   function hint(href) { if (document.querySelector(`link[rel=preconnect][href="${href}"]`)) return; const l = document.createElement('link'); l.rel = 'preconnect'; l.href = href; l.crossOrigin = ''; document.head.appendChild(l); }
   function loadLeaflet() {
@@ -57,7 +51,7 @@
     $('coMapSearch').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('coMapResults').querySelector('button')?.click(); } if (e.key === 'Escape') hideResults(); });
     $('coMapLocate').addEventListener('click', locate);
     $('coMapResults').addEventListener('click', e => { const b = e.target.closest('button[data-lat]'); if (b) { setPin(+b.dataset.lat, +b.dataset.lng, { label: b.dataset.label, fly: true }); fillAddress(b.dataset.label); hideResults(); $('coMapSearch').value = b.dataset.label; } });
-    $('coMapInfo').addEventListener('click', e => { if (e.target.closest('[data-clear-pin]')) clearPin(); });
+    $('coMapInfo').addEventListener('click', e => { if (e.target.closest('[data-clear-pin]')) clearPin(); if (e.target.closest('[data-fee-retry]')) requestQuote(0); });
   }
 
   function pinIcon(kind) { return L.divIcon({ className: 'co-map-marker', html: `<span class="co-map-dot ${kind}"><span></span></span>`, iconSize: [34, 42], iconAnchor: [17, 40] }); }
@@ -87,8 +81,64 @@
   }
   function infoDelivery() {
     if (!pin) return `<p class="co-map-hint">We deliver within ${esc(AREA?.name || 'our area')} (outlined on the map). Tap the map, search, or use your location to pin your exact spot.</p>`;
-    return `<div class="co-map-place"><span class="co-map-badge is-pin" aria-hidden="true"></span><div><strong>Deliver to · ~${kmText(km(SHOP, pin))} from LexC’s</strong><small>${esc(pin.label || 'Pinned on the map')} · drag the pin to adjust</small></div><button type="button" class="co-map-clear" data-clear-pin>Remove pin</button></div>
-      <p class="co-map-hint">The delivery fee is paid to the Lalamove rider.</p>`;
+    return `<div class="co-map-place"><span class="co-map-badge is-pin" aria-hidden="true"></span><div><strong>Deliver to</strong><small>${esc(pin.label || 'Pinned on the map')} · drag the pin to adjust</small></div><button type="button" class="co-map-clear" data-clear-pin>Remove pin</button></div>
+      ${feeBox()}`;
+  }
+  // ---- delivery fee: driving distance and the estimated fee, worked out on the server (supabase/functions/delivery-quote)
+  const peso = n => '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const kmOf = n => `${Number(n).toFixed(Number(n) < 10 ? 1 : 0)} km`;
+  function feeBox() {
+    const q = quote, row = (label, value, extra = '') => `<div class="co-fee-row${extra}"><span>${label}</span><strong>${value}</strong></div>`;
+    const coverage = row('Coverage', `<span class="co-fee-ok">✓ Within ${esc(AREA?.name || 'our area')}</span>`);
+    if (q.state === 'loading') return `<div class="co-fee" aria-busy="true">${coverage}${row('Driving distance', '<span class="skel skel-line co-fee-skel" aria-hidden="true"></span><span class="sr-only">Calculating…</span>')}${row('Estimated delivery fee', '<span class="skel skel-line co-fee-skel" aria-hidden="true"></span>', ' is-fee')}<p class="co-fee-note">Calculating the driving route and fee…</p></div>`;
+    if (q.state === 'ok') return `<div class="co-fee">${coverage}${row('Driving distance', kmOf(q.data.distance_km))}${row('Estimated delivery fee', peso(q.data.fee), ' is-fee')}<p class="co-fee-note">Estimate from LexC’s ${esc(String(q.data.vehicle || '').toLowerCase() || 'delivery')} rates, not a Lalamove quotation. Paid to LexC’s with your first payment; LexC’s books the rider.</p></div>`;
+    if (q.state === 'not_priced') return `<div class="co-fee">${coverage}${q.data?.distance_km != null ? row('Driving distance', kmOf(q.data.distance_km)) : ''}<p class="co-fee-note">The delivery fee is paid to the Lalamove rider.</p></div>`;
+    const retry = '<button type="button" class="co-fee-retry" data-fee-retry>Try again</button>';
+    const MSG = {
+      failed: ['We couldn’t work out the driving route right now.', true], login: ['Log in again to see the delivery fee.', false],
+      too_far: [`This spot is ${q.data?.distance_km != null ? kmOf(q.data.distance_km) + ' away, ' : ''}farther than we deliver. Choose Store Pick-up or a nearer spot.`, false],
+      no_road: ['That pin is too far from a road. Move it onto your street or building.', false],
+      busy: ['Too many fee checks in the last hour. Please wait a little, then try again.', true],
+      outside: [OUTSIDE, false],
+    }[q.state] || ['The delivery fee isn’t available yet.', true];
+    return `<div class="co-fee is-problem" role="alert">${q.state === 'outside' ? '' : coverage}<p class="co-fee-note">${esc(MSG[0])} ${MSG[1] ? retry : ''}</p><p class="co-fee-note">Store Pick-up is always available.</p></div>`;
+  }
+  let quote = { state: 'idle' }, quoteSeq = 0, quoteTimer = 0;
+  const changed = () => { paint(); window.updateCheckoutDelivery?.(); window.LexcCheckoutChecks?.refresh?.(); };
+  function requestQuote(delay = 350) {
+    clearTimeout(quoteTimer);
+    if (!pin) { quote = { state: 'idle' }; return changed(); }
+    quote = { state: 'loading' }; changed();
+    const seq = ++quoteSeq, at = { ...pin };
+    return new Promise(resolve => { quoteTimer = setTimeout(async () => { await fetchQuote(seq, at); resolve(); }, delay); });
+  }
+  async function fetchQuote(seq, at) {
+    let next;
+    try {
+      const cfg = window.LexcSupabaseConfig, session = (await window.LexcBackend?.client?.auth.getSession())?.data?.session;
+      if (!cfg?.url || !session?.access_token) next = { state: 'login' };
+      else {
+        const res = await fetch(cfg.url.replace(/\/+$/, '') + '/functions/v1/delivery-quote', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', apikey: cfg.key, Authorization: 'Bearer ' + session.access_token },
+          body: JSON.stringify({ lat: at.lat, lng: at.lng, label: at.label || '' }) });
+        const data = await res.json().catch(() => null);
+        const st = data?.status;
+        next = st === 'ok' && Number.isFinite(Number(data.fee)) && data.quote_id ? { state: 'ok', data: { ...data, fee: Number(data.fee), distance_km: Number(data.distance_km) } }
+          : ['outside', 'not_priced', 'too_far', 'no_road', 'busy'].includes(st) ? { state: st, data }
+          : res.status === 401 ? { state: 'login' } : { state: 'failed', data };
+      }
+    } catch { next = { state: 'failed' }; }
+    // the fee service failed: if delivery fees are not switched on (or not set up yet), delivery works as before
+    if (next.state === 'failed') next = await (async () => {
+      try {
+        const ask = window.LexcBackend.client.from('delivery_pricing').select('enabled').eq('id', 1).maybeSingle();
+        const { data, error } = await Promise.race([ask, new Promise(r => setTimeout(() => r({ error: 'timeout', data: { enabled: true } }), 5000))]);
+        return error || !data?.enabled ? { state: 'not_priced' } : next;
+      } catch { return next; }
+    })();
+    if (seq !== quoteSeq) return;            // the pin moved again meanwhile: a newer answer is coming
+    quote = { ...next, at };
+    changed();
   }
   function paint() { const info = $('coMapInfo'); if (info) info.innerHTML = mode === 'Lalamove' ? infoDelivery() : infoPickup(); }
 
@@ -100,7 +150,9 @@
       if (map && areaLayer) map.fitBounds(areaLayer.getBounds(), { animate: !calm() });
       return;
     }
+    const moved = !pin || pin.lat !== lat || pin.lng !== lng;
     pin = { lat, lng, label };
+    if (moved) requestQuote();
     if (!pinMarker) {
       pinMarker = L.marker([lat, lng], { icon: pinIcon('is-pin'), draggable: true, title: 'Delivery pin' }).addTo(map);
       pinMarker.on('dragend', () => { const p = pinMarker.getLatLng(); setPin(p.lat, p.lng, { lookup: true }); });
@@ -114,7 +166,7 @@
     if (!map || !pin) return;
     map.fitBounds(L.latLngBounds([[SHOP.lat, SHOP.lng], [pin.lat, pin.lng]]), { paddingTopLeft: [40, 58], paddingBottomRight: [48, 22], maxZoom: 16, animate: !calm() });
   }
-  function clearPin() { pin = null; if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; } paint(); }
+  function clearPin() { pin = null; if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; } quoteSeq++; quote = { state: 'idle' }; changed(); }
 
   function labelOf(p = {}) {
     const street = [p.housenumber, p.street].filter(Boolean).join(' ');
@@ -201,10 +253,17 @@
     if (mode !== 'Lalamove') return null;
     if (!pin) return `Pin your delivery spot on the map. We deliver within ${AREA?.name || 'our area'} only.`;
     if (!inArea(pin.lat, pin.lng)) return OUTSIDE;
+    if (quote.state === 'loading') return 'Please wait — the delivery fee is still being calculated.';
+    if (quote.state === 'ok' && Date.parse(quote.data.expires_at) - Date.now() < 60000) { requestQuote(0); return 'The delivery fee was refreshed. Please check it, then place your order.'; }
+    if (quote.state === 'outside') return OUTSIDE;
+    if (!['ok', 'not_priced'].includes(quote.state)) return 'The delivery fee isn’t ready. Tap “Try again” under the map, move the pin, or choose Store Pick-up.';
     return null;
   }
+  // what checkout shows and sends: the fee only when the server priced it
+  function fee() { return mode === 'Lalamove' && quote.state === 'ok' ? { amount: quote.data.fee, quote_id: quote.data.quote_id, distance_km: quote.data.distance_km } : null; }
+  function feeState() { return mode === 'Lalamove' ? quote.state : 'pickup'; }
 
   // start fetching the map library as soon as checkout opens, so the map is ready when a choice is tapped
   const preload = () => { loadLeaflet().catch(() => {}); };
-  window.LexcCheckoutMap = { show, preload, addressWithPin, problem, area: AREA, get pin() { return pin && { ...pin }; }, shop: SHOP };
+  window.LexcCheckoutMap = { show, preload, addressWithPin, problem, fee, feeState, area: AREA, get pin() { return pin && { ...pin }; }, shop: SHOP };
 })();
