@@ -127,3 +127,10 @@ html[data-theme=dark] #page-shop.mx .pd-rating--none .pd-star{fill:none!importan
 html[data-theme=dark] .shop-search-line input[type],html[data-theme=dark] .shop-search-line input{background:transparent!important;border:0!important;box-shadow:none!important}
 /* checkout on phones is flat (no outer box) — keep it flat in dark mode too, so the text never sits on a box edge */
 @media(max-width:700px){html[data-theme=dark] .checkout-form-box{background:transparent;border:0;box-shadow:none}}
+
+/* ---------- Data saver: the button that loads the 3D preview on request */
+.lx-load3d{display:grid;justify-items:center;gap:2px;margin:10px auto 0;min-height:48px;padding:8px 20px;border:1px solid #cdb9e6;border-radius:999px;background:#fff;color:#4c2f86;font:inherit;cursor:pointer}
+.lx-load3d strong{font-size:.9rem}.lx-load3d small{font-size:.74rem;color:#7d6f8c}
+.lx-load3d:hover{background:#f5f0fa}
+html[data-theme=dark] .lx-load3d{background:#2a2133;border-color:#6b5291;color:#e6d8fa}
+html[data-theme=dark] .lx-load3d small{color:#a898b8}

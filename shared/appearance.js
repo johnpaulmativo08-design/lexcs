@@ -52,6 +52,17 @@
     };
   }
   if (!embedded) { chooseTheme(read('lexc_theme')); setSize(read('lexc_text')); setMotion(read('lexc_motion') === 'reduce'); }
+  // Data saver: the 3D cake previews (several MB each) wait for a tap instead of loading when a designer opens
+  const dataSaver = () => !embedded && read('lexc_saver') === 'on';
+  // puts a "Show 3D preview" button after the flat picture; the 3D loads only when it is tapped
+  function offer3d(after, load) {
+    if (!after || after.parentNode.querySelector('.lx-load3d')) return;
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'lx-load3d';
+    button.innerHTML = '<strong>Show 3D preview</strong><small>Data saver is on · uses a few MB</small>';
+    button.addEventListener('click', () => { button.remove(); load(); });
+    after.after(button);
+  }
 
   // smooth blend between themes (skipped when the device asks for reduced motion)
   function blend() {
@@ -77,6 +88,7 @@
     const count = (() => { try { const list = JSON.parse(read('lexc_recent_searches') || '[]'); return Array.isArray(list) ? list.length : 0; } catch { return 0; } })();
     const countText = dialog.querySelector('[data-recent-count]'), clearButton = dialog.querySelector('[data-clear-searches]');
     if (countText) { countText.textContent = count ? count + ' saved on this device' : 'None saved'; clearButton.disabled = !count; }
+    dialog.querySelector('[data-switch=saver]').setAttribute('aria-checked', String(dataSaver()));
     dialog.querySelector('[data-switch=motion]').setAttribute('aria-checked', String(root.dataset.motion === 'reduce'));
   }
   function build() {
@@ -95,6 +107,8 @@
       '<p class="lx-appear-preview">Freshly baked treats, made to order. This is how text will look.</p>' +
       '<p class="lx-appear-label">Motion</p>' +
       switchRow('motion', 'Reduce motion', 'Turns off animations and sliding effects.') +
+      '<p class="lx-appear-label">Data</p>' +
+      switchRow('saver', 'Data saver', '3D cake previews load only when you tap them. Good on mobile data.') +
       (page === 'site' ? '<p class="lx-appear-label">Privacy</p><div class="lx-action-row"><span class="lx-switch-text"><strong>Recent searches</strong><small data-recent-count></small></span><button type="button" class="lx-action" data-clear-searches>Clear</button></div>' : '') +
       '<p class="lx-appear-note">Saved on this device.</p>';
     document.body.append(dialog);
@@ -109,6 +123,7 @@
         return;
       }
       const toggle = event.target.closest('[data-switch]');
+      if (toggle?.dataset.switch === 'saver') { save('lexc_saver', dataSaver() ? 'off' : 'on'); render(); }
       if (toggle?.dataset.switch === 'motion') { const off = root.dataset.motion !== 'reduce'; setMotion(off); save('lexc_motion', off ? 'reduce' : 'full'); render(); }
     });
     // arrow keys move between options inside each group
@@ -141,5 +156,5 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addButtons); else addButtons();
 
-  window.LexcAppearance = { open, close, setTheme: (t) => { blend(); chooseTheme(t); save('lexc_theme', themeChoice); }, setSize: (s) => { setSize(s); save('lexc_text', s); } };
+  window.LexcAppearance = { open, close, dataSaver, offer3d, setTheme: (t) => { blend(); chooseTheme(t); save('lexc_theme', themeChoice); }, setSize: (s) => { setSize(s); save('lexc_text', s); } };
 })();

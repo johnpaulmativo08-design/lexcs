@@ -56,7 +56,7 @@
 
   let root = null, product = null, options = null, palette = {}, scene = null, sceneLoading = null, cakes = [], optionsByProduct = {};
   let state = null, step = 'layers', past = [], future = [], editIndex = null, quote = { status: 'idle' }, quoteTimer = 0, quoteSeq = 0;
-  let textTimer = 0, view3d = true, packed = false;
+  let textTimer = 0, view3d = !window.LexcAppearance?.dataSaver?.(), packed = false; // Data saver: start on the flat view, 3D on tap
 
   const blank = () => ({ variant_id: product.product_variants.filter((v) => v.is_active)[0]?.id, frosting_color: 'white', border: [], accents: [], bow_color: 'pink',
     message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {}, drip_color: '', shell_color: '', font: 'rounded', inspiration: [] });
