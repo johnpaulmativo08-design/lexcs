@@ -74,6 +74,9 @@
     const theme = themeChoice, size = root.dataset.text || 'md';
     dialog.querySelectorAll('[data-theme-choice]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.themeChoice === theme)));
     dialog.querySelectorAll('[data-size-choice]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.sizeChoice === size)));
+    const count = (() => { try { const list = JSON.parse(read('lexc_recent_searches') || '[]'); return Array.isArray(list) ? list.length : 0; } catch { return 0; } })();
+    const countText = dialog.querySelector('[data-recent-count]'), clearButton = dialog.querySelector('[data-clear-searches]');
+    if (countText) { countText.textContent = count ? count + ' saved on this device' : 'None saved'; clearButton.disabled = !count; }
     dialog.querySelector('[data-switch=motion]').setAttribute('aria-checked', String(root.dataset.motion === 'reduce'));
   }
   function build() {
@@ -92,6 +95,7 @@
       '<p class="lx-appear-preview">Freshly baked treats, made to order. This is how text will look.</p>' +
       '<p class="lx-appear-label">Motion</p>' +
       switchRow('motion', 'Reduce motion', 'Turns off animations and sliding effects.') +
+      (page === 'site' ? '<p class="lx-appear-label">Privacy</p><div class="lx-action-row"><span class="lx-switch-text"><strong>Recent searches</strong><small data-recent-count></small></span><button type="button" class="lx-action" data-clear-searches>Clear</button></div>' : '') +
       '<p class="lx-appear-note">Saved on this device.</p>';
     document.body.append(dialog);
     dialog.addEventListener('click', (event) => {
@@ -99,6 +103,11 @@
       const themeButton = event.target.closest('[data-theme-choice]'), sizeButton = event.target.closest('[data-size-choice]');
       if (themeButton) { blend(); chooseTheme(themeButton.dataset.themeChoice); save('lexc_theme', themeChoice); render(); }
       if (sizeButton) { setSize(sizeButton.dataset.sizeChoice); save('lexc_text', sizeButton.dataset.sizeChoice); render(); }
+      if (event.target.closest('[data-clear-searches]')) {
+        if (window.clearRecentShopSearches) window.clearRecentShopSearches(); else { try { localStorage.removeItem('lexc_recent_searches'); } catch { /* nothing saved */ } }
+        render(); window.showToast?.('Recent searches cleared');
+        return;
+      }
       const toggle = event.target.closest('[data-switch]');
       if (toggle?.dataset.switch === 'motion') { const off = root.dataset.motion !== 'reduce'; setMotion(off); save('lexc_motion', off ? 'reduce' : 'full'); render(); }
     });

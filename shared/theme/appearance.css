@@ -97,6 +97,13 @@ html[data-theme=dark] .lx-appear-hint{color:#a898b8}
 .lx-switch i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s ease}
 .lx-switch-row[aria-checked=true] .lx-switch{background:#7a55b8}
 .lx-switch-row[aria-checked=true] .lx-switch i{transform:translateX(18px)}
+.lx-action-row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:56px;padding:10px 12px;border:1px solid #e7def0;border-radius:14px}
+.lx-action{flex:none;min-height:40px;padding:0 16px;border:1px solid #cdb9e6;border-radius:999px;background:transparent;color:#5c3d8e;font:600 .85rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.lx-action:hover:not(:disabled){background:#f5f0fa}
+.lx-action:disabled{opacity:.45;cursor:default}
+html[data-theme=dark] .lx-action-row{border-color:#3b2f47}
+html[data-theme=dark] .lx-action{border-color:#6b5291;color:#d6c3f5}
+html[data-theme=dark] .lx-action:hover:not(:disabled){background:#2c2238}
 html[data-theme=dark] .lx-switch-row{border-color:#3b2f47}
 html[data-theme=dark] .lx-switch-text small{color:#a898b8}
 html[data-theme=dark] .lx-switch{background:#4a3b58}

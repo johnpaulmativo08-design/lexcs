@@ -1901,6 +1901,8 @@ function showRecentShopSearches() {
 // the recent-searches box closes when you click or tap anywhere outside the search, or press Escape
 document.addEventListener("pointerdown", (event) => { const box = document.getElementById("shopSearchRecent"); if (box && !box.hidden && !event.target.closest(".shop-search-wrap")) box.hidden = true; });
 document.addEventListener("keydown", (event) => { const box = document.getElementById("shopSearchRecent"); if (event.key === "Escape" && box && !box.hidden) box.hidden = true; });
+// also used by Settings -> "Clear recent searches"
+window.clearRecentShopSearches = function () { recentShopSearches = []; try { localStorage.removeItem('lexc_recent_searches'); } catch {} const box = document.getElementById('shopSearchRecent'); if (box) box.hidden = true; };
 function rememberShopSearch(term) {
   term = term.trim().slice(0, 80);
   if (!term) return;
@@ -1935,7 +1937,7 @@ function initShop() {
     search.addEventListener('keydown', event => { if (event.key === 'Enter') { rememberShopSearch(search.value); search.blur(); } });
     document.getElementById('clearShopSearch').onclick = () => { search.value = ''; renderShop(); search.focus(); showRecentShopSearches(); };
     document.getElementById('shopSearchRecent').onclick = event => {
-      if (event.target.dataset.clear) { recentShopSearches = []; localStorage.removeItem('lexc_recent_searches'); showRecentShopSearches(); return; }
+      if (event.target.dataset.clear) { window.clearRecentShopSearches(); showRecentShopSearches(); return; }
       if (event.target.dataset.term) { search.value = event.target.dataset.term; renderShop(); search.blur(); rememberShopSearch(search.value); }
     };
   }
