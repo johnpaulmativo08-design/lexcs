@@ -25,6 +25,13 @@ const salePrice = (v) => {
   if (v.discount_type === 'percent') return value >= 1 && value <= 95 ? { now: Math.round(price * (100 - value)) / 100 } : null;
   return value < price ? { now: Math.round((price - value) * 100) / 100 } : null;
 };
+// "35 min" / "1 hr 10 mins" under the Prep time box (phase 96)
+const prepHint = (value) => {
+  if (value === '' || value == null) return 'Not set · counts as 0';
+  const m = Number(value), h = Math.floor(m / 60), r = m % 60;
+  if (!h) return `${m} min${m === 1 ? '' : 's'} each`;
+  return `${h} hr${h === 1 ? '' : 's'}${r ? ` ${r} min${r === 1 ? '' : 's'}` : ''} each`;
+};
 const blankLine = () => ({ item_id: '', line_group: 'ingredient', quantity: '', unit: 'g', basis: 'per_batch', rounding: 'exact', condition: {}, needs_review: false, review_note: '', source_text: '' });
 
 /**
@@ -178,17 +185,35 @@ export function openProductEditor({ product, categories, packages, catalog, imag
   const variantRow = (v, i) => `<div class="pe-variant" data-variant="${attr(v.id)}">
       <label><span>Size / option</span><input data-v="label" maxlength="60" value="${attr(v.label)}" placeholder="e.g. 6 pcs"></label>
       <label><span>Price (₱)</span><input data-v="price" type="number" min="0" step="0.01" inputmode="decimal" value="${attr(v.price)}" placeholder="0.00"></label>
-      <label title="Kitchen minutes to make ONE of this size. 2 ordered = twice the minutes. Used by Reservations → Daily production capacity."><span>Prep time (min)</span><input data-v="prep_minutes" type="number" min="0" max="750" step="1" inputmode="numeric" value="${attr(v.prep_minutes ?? '')}" placeholder="0"></label>
+      <label class="pe-prep" title="Kitchen minutes to make ONE of this size. 2 ordered = twice the minutes. Used by Reservations → Daily production capacity."><span>Prep time (min)</span><input data-v="prep_minutes" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" value="${attr(v.prep_minutes ?? '')}" placeholder="e.g. 35" aria-describedby="prep-${attr(v.id)}"><small class="pe-prep__hint" id="prep-${attr(v.id)}" data-prep-hint>${prepHint(v.prep_minutes)}</small></label>
       ${locked ? '' : `<button type="button" class="stock-icon-button pe-variant__remove" data-remove-variant="${attr(v.id)}" aria-label="Remove ${attr(v.label || 'size ' + (i + 1))}" ${state.variants.length === 1 ? 'disabled' : ''}>${icon('trash')}</button>`}
     ${discountRow(v)}
     </div>`;
   const drawVariants = () => { form.querySelector('[data-variants]').innerHTML = state.variants.map(variantRow).join(''); summarize(); drawPieces(); };
   form.querySelector('[data-variants]').addEventListener('input', (event) => {
     const row = event.target.closest('[data-variant]'), v = state.variants.find((x) => x.id === row?.dataset.variant); if (!v) return;
+    if (event.target.dataset.v === 'prep_minutes') {
+      // digits only, 0–750: anything else typed or pasted is dropped
+      const digits = event.target.value.replace(/\D/g, '').slice(0, 3);
+      const clean = digits === '' ? '' : String(Math.min(750, Number(digits)));
+      if (event.target.value !== clean) event.target.value = clean;
+      v.prep_touched = true;
+      const hint = row.querySelector('[data-prep-hint]'); if (hint) hint.textContent = prepHint(clean);
+    }
     v[event.target.dataset.v] = event.target.value;
-    if (event.target.dataset.v === 'prep_minutes') v.prep_touched = true;
     event.target.removeAttribute('aria-invalid'); summarize(); drawPieces(true);
     const note = row.querySelector('[data-discount-note]'); if (note) note.innerHTML = discountNote(v);
+  });
+  // clicking into Prep time selects what is there, so typing replaces it
+  // (the mouse-up after the click would otherwise drop the selection, so it is skipped once)
+  let selectOnUp = null;
+  form.querySelector('[data-variants]').addEventListener('focusin', (event) => {
+    if (event.target.dataset.v !== 'prep_minutes') return;
+    event.target.select(); selectOnUp = event.target;
+  });
+  form.querySelector('[data-variants]').addEventListener('mouseup', (event) => {
+    if (event.target === selectOnUp) { event.preventDefault(); event.target.select(); }
+    selectOnUp = null;
   });
   form.querySelector('[data-variants]').addEventListener('change', (event) => {
     if (event.target.dataset.v !== 'discount_type') return;
@@ -521,7 +546,7 @@ export function openProductEditor({ product, categories, packages, catalog, imag
         if (v.prep_touched) return;
         v.prep_minutes = byId.has(v.id) ? byId.get(v.id) : '';
         const input = form.querySelector(`[data-variant="${CSS.escape(v.id)}"] [data-v="prep_minutes"]`);
-        if (input) input.value = v.prep_minutes;
+        if (input) { input.value = v.prep_minutes; const hint = input.parentElement.querySelector('[data-prep-hint]'); if (hint) hint.textContent = prepHint(v.prep_minutes); }
       });
       state.prepLoaded = true;
     } catch (error) { console.warn('Prep times not loaded (run database/phase96-production-capacity.sql):', error); }

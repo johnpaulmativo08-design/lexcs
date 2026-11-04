@@ -69,6 +69,10 @@
 .pe input:focus,.pe select:focus,.pe textarea:focus{outline:none;border-color:#8f6be0;box-shadow:0 0 0 3px #ece5fd}
 .pe [aria-invalid=true]{border-color:#d4566f!important;background:#fff8f9!important}
 .pe-variant__remove{align-self:end;width:40px;height:42px}
+.pe-variant{align-items:start}
+.pe-variant>.pe-variant__remove{align-self:start;margin-top:21px}
+.pe-prep__hint{font-size:11.5px;font-weight:600;color:#7a6f96;line-height:1.3}
+.pe-prep input::placeholder{color:#b3a9c9;font-weight:500}
 .pe-add{justify-self:start}
 .pe-loading{margin:0;color:var(--admin-muted)}
 .pe-version{margin:0;color:var(--admin-muted);font-size:13px}
