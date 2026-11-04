@@ -18,7 +18,7 @@ export async function renderDeliveryRates(content){
   r=r||{};
   const sur=Object.fromEntries((r.surcharges||[]).map(s=>[s.town,s.amount]));
   content.innerHTML=head+
-   notice('These are estimates from your own rates, not Lalamove quotations. Enter rates you have checked in the Lalamove app for the vehicle you book. Customers pay this fee to LexC’s with their first payment (no VAT on it); you then book and pay the rider.')+
+   notice('These are estimates from your own rates, not Lalamove quotations. Enter rates you have checked in the Lalamove app for the vehicle you book. Customers pay this fee to LexC’s with their first payment; you then book and pay the rider.')+
    '<form class="panel dr-form form-body" data-rates>'+
     '<label class="dr-switch"><input type="checkbox" name="enabled"'+(r.enabled?' checked':'')+'><span><strong>Charge delivery fees at checkout</strong><small>When off, delivery works as before: ₱0 at checkout and the customer pays the rider.</small></span></label>'+
     '<fieldset class="dr-group"><legend>Rate</legend><div class="dr-grid">'+

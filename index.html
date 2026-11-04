@@ -1348,10 +1348,9 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           <div id="checkoutOrderList" class="checkout-order-list"></div>
           <div class="checkout-total-row"><span>Subtotal</span><span id="checkoutSubtotal">₱0</span></div>
           <div class="checkout-total-row checkout-rush-row" id="checkoutRushRow" hidden><span>⚡ Rush fee (next-day order)</span><span>₱200.00</span></div>
-          <div class="checkout-total-row"><span>VAT (12%)</span><span id="checkoutVat">₱0.00</span></div>
           <div class="checkout-total-row" id="checkoutDeliveryRow" style="display:none;"><span>Lalamove fee</span><span id="checkoutDeliveryFee">₱0</span></div>
           <div class="checkout-total-row checkout-grand"><span>Order total</span><span id="checkoutGrandTotal">₱0</span></div>
-          <div class="checkout-total-row checkout-due-row"><span id="checkoutRequiredLabel">First payment (60% + all VAT)</span><strong id="checkoutRequired">₱0.00</strong></div>
+          <div class="checkout-total-row checkout-due-row"><span id="checkoutRequiredLabel">First payment (60%)</span><strong id="checkoutRequired">₱0.00</strong></div>
           <div class="checkout-total-row"><span>Balance after verified payment</span><span id="checkoutBalance">₱0.00</span></div>
         </section>
 
@@ -1591,7 +1590,7 @@ function renderCheckout() {
   document.getElementById('checkoutSubtotal').textContent = checkoutMoney(subtotalCentavos / 100);
   document.getElementById('checkoutGrandTotal').textContent = checkoutMoney(subtotalCentavos / 100);
   const requiredCentavos = Math.round(subtotalCentavos * 0.6);
-  document.getElementById('checkoutRequiredLabel').textContent = 'First payment (60% + all VAT)';
+  document.getElementById('checkoutRequiredLabel').textContent = 'First payment (60%)';
   document.getElementById('checkoutRequired').textContent = checkoutMoney(requiredCentavos / 100);
   document.getElementById('checkoutBalance').textContent = checkoutMoney((subtotalCentavos - requiredCentavos) / 100);
   document.getElementById('checkoutCustomerEmail').textContent = currentUser?.email ? `Signed in as ${currentUser.email}` : '';
@@ -1630,7 +1629,6 @@ function applyPreferredDelivery() {
   if (button) selectDelivery(button, usual);
 }
 
-const VAT_RATE = 0.12;
 function updateCheckoutDelivery() {
   const deliveryRow = document.getElementById('checkoutDeliveryRow');
   const deliveryFeeEl = document.getElementById('checkoutDeliveryFee');
@@ -1639,8 +1637,7 @@ function updateCheckoutDelivery() {
   const rush = typeof isRushDate === 'function' && isRushDate(document.getElementById('coDate')?.value) ? RUSH_FEE : 0;
   document.getElementById('checkoutRushRow').hidden = !rush;
   const subtotal = cartSelectedItems().reduce((s, c) => s + Math.round(Number(c.price) * 100) * c.qty, 0) / 100 + rush;
-  // Delivery fee (phase 94): worked out on the server from the driving distance; no VAT on it, and all of it is in the
-  // first payment. While it is loading or unavailable the totals show a dash, never ₱0.
+  // Delivery fee (phase 94): worked out on the server from the driving distance; all of it is in the first payment. While it is loading or unavailable the totals show a dash, never ₱0.
   const fee = selectedDelivery === 'Lalamove' ? window.LexcCheckoutMap?.fee?.() : null;
   const feeState = selectedDelivery === 'Lalamove' ? (window.LexcCheckoutMap?.feeState?.() || 'idle') : 'pickup';
   const deliveryCents = fee ? Math.round(fee.amount * 100) : 0;
@@ -1651,18 +1648,16 @@ function updateCheckoutDelivery() {
     deliveryFeeEl.textContent = fee ? checkoutMoney(deliveryCents / 100) : feeState === 'not_priced' ? 'Paid to the rider'
       : feeState === 'loading' ? 'Calculating…' : feeState === 'idle' ? 'Pin your address' : 'Not available';
   } else { deliveryRow.style.display = 'none'; }
-  // 12% VAT on top, all of it in the first payment; the balance is VAT-free (phase 77 — the database does the same)
-  const vat = Math.round(subtotal * 100 * VAT_RATE);
-  document.getElementById('checkoutVat').textContent = checkoutMoney(vat / 100);
-  const total = Math.round(subtotal * 100) + vat + deliveryCents;
-  const required = Math.round(subtotal * 100 * 0.6) + vat + deliveryCents;
+  // no VAT (phase 95: LexC's is not VAT-registered)
+  const total = Math.round(subtotal * 100) + deliveryCents;
+  const required = Math.round(subtotal * 100 * 0.6) + deliveryCents;
   const show = cents => waiting ? '—' : checkoutMoney(cents / 100);
   grandEl.textContent = show(total);
   document.getElementById('checkoutRequired').textContent = show(required);
   document.getElementById('checkoutBalance').textContent = show(total - required);
   document.getElementById('checkoutStickyDue').textContent = show(required);
   const label = document.getElementById('checkoutRequiredLabel');
-  if (label) label.textContent = deliveryCents ? 'First payment (60% + all VAT + delivery)' : 'First payment (60% + all VAT)';
+  if (label) label.textContent = deliveryCents ? 'First payment (60% + delivery fee)' : 'First payment (60%)';
 }
 window.updateCheckoutDelivery = updateCheckoutDelivery;
 

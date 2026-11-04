@@ -1,5 +1,5 @@
 -- Phase 94 checks (the part of phase94-rehearsal.sql after the migration). Kept separate so the rehearsal can be
--- rebuilt from the migration with scripts/build-phase94-rehearsal.sh. Runs inside the rehearsal's transaction and
+-- rebuilt from the migration with scripts/build-rehearsal.sh 94. Runs inside the rehearsal's transaction and
 -- ends with an error on purpose, so nothing is saved.
 do $rehearsal$
 declare

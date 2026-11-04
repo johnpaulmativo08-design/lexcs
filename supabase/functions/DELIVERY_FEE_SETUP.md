@@ -5,7 +5,7 @@ At checkout, when a customer pins a Lalamove delivery spot, the site shows:
 - the **driving** distance from the shop (66 Quezon St., Dau);
 - the **estimated delivery fee**, worked out from **your own rates**.
 
-The fee is added to the order total and collected with the customer's first payment. No VAT is added on it. You then
+The fee is added to the order total and collected with the customer's first payment. You then
 book and pay the Lalamove rider yourself.
 
 The fee is an **estimate, not a Lalamove quotation**. Lalamove is not connected to the site. Compare it with what the
