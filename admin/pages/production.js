@@ -21,7 +21,7 @@ const PAY = { unpaid: 'Not paid yet', verification_pending: 'Receipt to check', 
 const NEXT = { confirmed: ['preparing', 'Start making'], preparing: ['ready', 'Mark ready'], ready: ['completed', 'Mark completed'] };
 const FILTERS = [['all', 'All'], ['confirmed', 'To start'], ['preparing', 'Baking'], ['ready', 'Ready']];
 
-export async function renderProduction(content) {
+export async function renderProduction(content, focus) {
   const today = manilaKey();
   let selected = today, filter = 'all', picked = null;
   const timelines = new Map(), orders = new Map();
@@ -97,6 +97,10 @@ export async function renderProduction(content) {
     const week = Array.from({ length: 7 }, (_, i) => plus(start, i));
     box.setAttribute('aria-busy', 'true');
     const rows = await timeline(selected, fresh);
+    // times the Admin reserved in Reservations (no order behind them) sit in the plan too
+    let held = [];
+    try { held = db.unwrap(await db.client.from('booking_entries').select('id,customer_name,scheduled_start,scheduled_end,status').eq('booking_date', selected).is('order_id', null).neq('status', 'cancelled')) || []; }
+    catch (error) { console.warn('Reserved times:', error); }
     if (rows) await loadOrders(rows.map((r) => r.order_id)).catch(() => {});
     const shown = (rows || []).filter((r) => filter === 'all' || r.status === filter).sort((a, b) => (a.bake_start_minutes ?? 0) - (b.bake_start_minutes ?? 0));
     box.innerHTML = `
@@ -113,7 +117,8 @@ export async function renderProduction(content) {
             <span class="prod-what"><b>${e(what(o))}</b><small>${e(mins(r.minutes))} · ${o?.fulfillment_method === 'lalamove' ? 'deliver' : 'pickup'} ${e(at(r.delivery_at))} · ${e(r.customer_name || '')}</small>
               ${r.fits ? chip(r.status) : '<span class="prod-chip is-bad">Doesn’t fit · starts before the kitchen opens</span>'}</span></button></li>`;
         }).join('')}</ol>`
-        : `<p class="prod-none">${filter === 'all' ? 'Nothing to bake on this day.' : 'No bakes in this step.'}</p>`}`;
+        : `<p class="prod-none">${filter === 'all' ? 'Nothing to bake on this day.' : 'No bakes in this step.'}</p>`}
+      ${held.length && filter === 'all' ? `<div class="prod-held"><h3>Reserved times</h3>${held.map((h) => `<a class="prod-slot is-held" href="#bookings"><span class="prod-time"><b>${e(String(h.scheduled_start || '').slice(0, 5) || '—')}</b><small>${h.scheduled_end ? 'to ' + e(String(h.scheduled_end).slice(0, 5)) : ''}</small></span><span class="prod-what"><b>${e(h.customer_name)}</b><small>Reserved in Reservations</small></span></a>`).join('')}</div>` : ''}`;
     box.removeAttribute('aria-busy');
     box.querySelectorAll('[data-day]').forEach((b) => (b.onclick = () => { selected = b.dataset.day; paintPlan(); }));
     box.querySelectorAll('[data-week]').forEach((b) => (b.onclick = () => { selected = plus(selected, Number(b.dataset.week)); paintPlan(); }));
@@ -137,8 +142,10 @@ export async function renderProduction(content) {
       <div class="prod-box"><small>Payment</small><b class="${paid ? 'is-ok' : ''}">${e(PAY[o.payment_status] || String(o.payment_status || '—').replace(/_/g, ' '))}</b>${o.notes ? `<span class="prod-note">${e(o.notes)}</span>` : ''}</div>
       <p role="alert" class="prod-say"></p>
       ${o.status === 'pending' ? `<a class="prod-go" href="#orders/detail/${e(o.id)}">Confirm it in Orders</a>`
+        : o.status === 'confirmed' && !paid ? `<p class="prod-warn">Waiting for payment. Start making opens once you mark a payment received in Orders.</p><a class="prod-go" href="#orders/detail/${e(o.id)}">Check payment in Orders</a>`
         : next ? `<button type="button" class="prod-go" data-next="${next[0]}">${e(next[1])}</button>` : ''}
-      <a class="prod-link" href="#orders/detail/${e(o.id)}">Open the full order ${icon('arrow')}</a>`;
+      ${Number(r.minutes) ? '' : '<p class="prod-hint">No prep time is set for this product, so it takes 0 minutes in the plan. Set it in Products → the product → Prep time.</p>'}
+      <div class="prod-links"><a class="prod-link" href="#orders/detail/${e(o.id)}">Open the order ${icon('arrow')}</a><a class="prod-link" href="#bookings">See it in Reservations ${icon('arrow')}</a></div>`;
     const go = box.querySelector('[data-next]');
     if (go) go.onclick = async () => {
       const say = box.querySelector('.prod-say');
@@ -161,5 +168,13 @@ export async function renderProduction(content) {
     content.querySelectorAll('[data-pick]').forEach((x) => x.classList.toggle('is-picked', x.dataset.pick === picked));
     paintDetail(picked, b.dataset.date);
   });
+  // opened from Orders or Reservations (#production/<order id>): jump to that order's day and open its card
+  if (focus && /^[0-9a-f-]{36}$/i.test(focus)) {
+    try {
+      const [o] = db.unwrap(await db.client.from('orders').select('id,receiving_start').eq('id', focus)) || [];
+      if (o?.receiving_start) { selected = manilaKey(new Date(o.receiving_start)); picked = focus; }
+    } catch (error) { console.warn('Production focus:', error); }
+  }
   await Promise.all([paintToday(), paintPlan()]);
+  if (picked) { await timeline(selected); await loadOrders([picked]).catch(() => {}); paintDetail(picked, selected); }
 }
