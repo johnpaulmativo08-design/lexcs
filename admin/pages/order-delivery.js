@@ -7,6 +7,9 @@ import {db} from '../backend-ui.js?v=3';
 const LABEL={booked:'On the way',picked_up:'On the way',delivered:'Received',failed:'Failed / returned'};
 const at=value=>{if(!value)return '';const d=new Date(value),day=k=>k.toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
  return d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'})+(day(d)===day(new Date())?'':' · '+d.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric'}));};
+// "Open Lalamove": on Android the Lalamove app (falls back to the web app); elsewhere Lalamove's web booking page
+const LALAMOVE_WEB='https://web.lalamove.com/';
+const LALAMOVE_APP=/Android/i.test(navigator.userAgent)?'intent://#Intent;package=hk.easyvan.app.client;S.browser_fallback_url='+encodeURIComponent(LALAMOVE_WEB)+';end':LALAMOVE_WEB;
 const isLalamove=url=>{try{const u=new URL(url);return u.protocol==='https:'&&/(^|\.)lalamove\.com$/i.test(u.hostname);}catch{return false;}};
 const phoneOk=v=>!v||/^\+?[\d\s-]{7,24}$/.test(v)&&v.replace(/\D/g,'').length>=7;
 
@@ -30,7 +33,7 @@ function draw(box,o,d){
  const early=!d&&['confirmed','preparing'].includes(o.status);
  const step=d?.step||null,booked=!!step&&step!=='failed',received=step==='delivered';
  const field=(name,label,attrs='',value=d?.[name])=>'<label class="dlv-field"><span>'+label+'</span><input name="'+name+'" value="'+e(value??'')+'" autocomplete="off" '+attrs+'></label>';
- box.innerHTML='<header class="dlv-head"><span class="dlv-title">'+icon('delivery')+' Lalamove delivery</span>'+(step?'<span class="dlv-pill is-'+step+'">'+e(LABEL[step])+'</span>':'<span class="dlv-pill">Not booked yet</span>')+'</header>'+
+ box.innerHTML='<header class="dlv-head"><span class="dlv-title">'+icon('delivery')+' Lalamove delivery</span>'+(step?'<span class="dlv-pill is-'+step+'">'+e(LABEL[step])+'</span>':'<span class="dlv-pill">Not booked yet</span>')+'<a class="button dlv-app" href="'+e(LALAMOVE_APP)+'" target="_blank" rel="noopener noreferrer">Open Lalamove ↗</a></header>'+
   (early?'<p class="dlv-early">'+icon('clock')+'<span><strong>Opens when the order is Ready.</strong> Tap Mark ready above, then book the rider in the Lalamove app and record it here.</span></p>':locked?'<p class="dlv-note">'+(o.status==='pending'?'Confirm the order first, then book the rider in the Lalamove app and record it here.':'This order was cancelled.')+'</p>':
   '<ol class="dlv-steps is-two" aria-label="Delivery steps">'+
    '<li><button type="button" data-step="booked" class="'+(booked?'is-done':'')+(booked&&!received?' is-now':'')+'"'+(booked&&!received?' aria-current="step"':'')+'><span class="dlv-dot" aria-hidden="true">'+(booked?'✓':'1')+'</span><b>Rider booked</b><small>'+(d?.booked_at&&booked?e(at(d.booked_at)):'Tap when booked')+'</small></button></li>'+

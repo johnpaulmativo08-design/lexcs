@@ -296,7 +296,8 @@ function deliverySection(o) {
       ${row(I.wallet, 'Delivery fee', fee)}
       ${o.notes ? row(I.note, 'Delivery instructions', esc(o.notes)) : ''}
     </div>
-    ${mapPreview(pin)}
+    ${/* the rider is on the way with a Lalamove link: the delivery card below shows the live tracker instead of the pin */
+      d && ['booked', 'picked_up'].includes(d.step) && /^https:\/\/([a-z0-9-]+\.)*lalamove\.com\//i.test(d.tracking_url || '') ? '' : mapPreview(pin)}
     ${d && window.LexcDelivery ? `<div class="oh-dc-rider">${window.LexcDelivery.card(d)}</div>` : ''}
   </section>`;
 }
