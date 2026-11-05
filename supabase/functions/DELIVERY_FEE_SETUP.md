@@ -53,3 +53,25 @@ Use **Try the saved rates** to check a few distances. Then tick **Charge deliver
 - While rates are on, a delivery order without a valid quote is refused.
 - Each order keeps the rate that was used (`delivery_pricing`), so changing rates later never changes old orders.
   Admin → Orders shows the fee, the distance and how it was worked out.
+
+## Real Lalamove prices (phase 98)
+
+Instead of your own rates, checkout can ask **Lalamove itself** for the price of a rider from the shop to the
+customer's pin. A quotation is free and books nothing; you still book and pay the rider in the Lalamove app. The
+price can change by the time you book (traffic, time of day), so compare it in Admin → Orders.
+
+1. **Database:** run all of `database/phase98-lalamove-quotations.sql` once in the Supabase SQL editor (after phase 94).
+2. **Keys:** in Supabase → Edge Functions → **Secrets**, add
+   - `LALAMOVE_API_KEY` — your API key from the Lalamove Partner Portal (`pk_prod_…` for live, `pk_test_…` for sandbox);
+   - `LALAMOVE_API_SECRET` — its secret (`sk_prod_…` / `sk_test_…`).
+   Never put these in the site files, in chat, or in GitHub. Production keys use `rest.lalamove.com`, sandbox keys
+   `rest.sandbox.lalamove.com`; the optional secret `LALAMOVE_ENV` (`production` / `sandbox`) overrides that.
+3. **Deploy** the function again (`supabase functions deploy delivery-quote`), so it has the Lalamove code.
+4. **Admin → Delivery rates:** set *Delivery fee* to **Lalamove quotation**, pick the vehicle, tick
+   **Charge delivery fees at checkout**, and save. The farthest-delivery limit still applies.
+5. **Check:** at checkout choose Lalamove and pin a spot in Angeles. The box should show **Lalamove delivery fee**.
+   If it says "We couldn't get Lalamove's price", open Supabase → Edge Functions → delivery-quote → Logs: Lalamove's
+   error id is there (for example `ERR_UNAUTHORIZED` = wrong keys, `ERR_OUT_OF_SERVICE_AREA` = no riders there,
+   `ERR_INVALID_SERVICE_TYPE` = that vehicle isn't offered there).
+
+To go back to your own rates, set *Delivery fee* to **My own rates** and save.

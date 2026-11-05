@@ -48,6 +48,8 @@ const largeNote=o=>{const pcs=orderPieces(o);if(o.status==='cancelled'||!(Number
 const deliveryFeeRows=o=>{
  if(!o.delivery_in_deposit)return row('truck','Delivery fee',o.delivery_fee_status==='quoted'&&Number(o.delivery_fee)>0?money(o.delivery_fee):'Paid to the rider by the customer');
  const p=o.delivery_pricing||{},n=v=>Number(v||0),km=v=>String(+n(v).toFixed(n(v)<10?2:1))+' km';
+ // phase 98: a real Lalamove quotation (compare with the price when you book the rider)
+ if(p.source==='lalamove')return row('truck','Delivery fee (Lalamove quotation, paid to LexC’s)',money(o.delivery_fee)+(n(o.delivery_distance_km)>0?' · '+e(km(o.delivery_distance_km)):'')+(p.town?' · '+e(p.town):'')+'<small class="od-fee-rule">'+e((p.vehicle||'Motorcycle')+(p.quotation_id?' · quotation '+p.quotation_id:''))+(p.quoted_at?' · priced '+e(longDate(p.quoted_at)):'')+'</small>');
  const parts=[money(p.base_fee)+' base'+(n(p.included_km)>0?' (first '+km(p.included_km)+')':'')];
  if(n(p.extra_km)>0)parts.push(km(p.extra_km)+' × '+money(p.per_km_fee)+(p.km_counting==='started_km'?' (per started km)':''));
  if(n(p.surcharge)>0)parts.push(money(p.surcharge)+' '+(p.town||'area')+' surcharge');

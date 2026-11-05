@@ -1643,7 +1643,7 @@ function updateCheckoutDelivery() {
   const feeState = selectedDelivery === 'Lalamove' ? (window.LexcCheckoutMap?.feeState?.() || 'idle') : 'pickup';
   const deliveryCents = fee ? Math.round(fee.amount * 100) : 0;
   const waiting = selectedDelivery === 'Lalamove' && !fee && feeState !== 'not_priced';
-  deliveryRow.querySelector('span').textContent = fee ? `Estimated delivery fee (${fee.distance_km.toFixed(fee.distance_km < 10 ? 1 : 0)} km)` : 'Delivery fee';
+  deliveryRow.querySelector('span').textContent = fee ? (fee.source === 'lalamove' ? 'Lalamove delivery fee' : 'Estimated delivery fee') + (fee.distance_km > 0 ? ` (${fee.distance_km.toFixed(fee.distance_km < 10 ? 1 : 0)} km)` : '') : 'Delivery fee';
   if (selectedDelivery === 'Lalamove') {
     deliveryRow.style.display = 'flex';
     deliveryFeeEl.textContent = fee ? checkoutMoney(deliveryCents / 100) : feeState === 'not_priced' ? 'Paid to the rider'
@@ -2856,7 +2856,7 @@ document.getElementById('loginRemember').checked = Boolean(localStorage.getItem(
 loginReady();
 </script>
 
-<script src="shared/checkout-checks.js?v=2"></script><script src="shared/delivery-area.js?v=1"></script><script src="shared/checkout-map.js?v=11"></script>
+<script src="shared/checkout-checks.js?v=2"></script><script src="shared/delivery-area.js?v=1"></script><script src="shared/checkout-map.js?v=12"></script>
 <script src="shared/delivery-card.js?v=2"></script><script src="shared/customer-backend.js?v=48"></script>
 <script src="shared/product-detail.js?v=20"></script>
 <script src="shared/menu-layout.js?v=5"></script>
@@ -2864,7 +2864,7 @@ loginReady();
 <script src="shared/landing.js?v=4"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/inspiration.js?v=1"></script>
-<script src="shared/profile.js?v=19"></script><script src="shared/notifications.js?v=9"></script><script type="module" src="shared/order-history.js?v=3"></script>
+<script src="shared/profile.js?v=19"></script><script src="shared/notifications.js?v=9"></script><script type="module" src="shared/order-history.js?v=4"></script>
 <script src="shared/bento-designer.js?v=59"></script>
 <script src="shared/letter-pieces.js?v=7"></script>
 <script src="shared/cupcake-designer.js?v=38"></script>

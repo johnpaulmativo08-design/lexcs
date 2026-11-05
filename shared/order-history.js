@@ -276,7 +276,7 @@ function mapPreview(pin) {
 // Delivery Confirmation: shown as confirmed only once LexC's has confirmed the order; otherwise the true state
 function deliverySection(o) {
   const sch = schedule(o), d = delivery(o), pin = pinOf(o), addr = addressOf(o);
-  const fee = o.delivery_in_deposit && Number(o.delivery_fee) > 0 ? `${money(o.delivery_fee)}${o.delivery_distance_km != null ? ` <small>estimate · ${Number(o.delivery_distance_km).toFixed(1)} km</small>` : ''}`
+  const fee = o.delivery_in_deposit && Number(o.delivery_fee) > 0 ? `${money(o.delivery_fee)}${o.delivery_distance_km != null ? ` <small>${o.delivery_pricing?.source === 'lalamove' ? 'Lalamove price' : 'estimate'}${Number(o.delivery_distance_km) > 0 ? ` · ${Number(o.delivery_distance_km).toFixed(1)} km` : ''}</small>` : ''}`
     : o.delivery_fee_status === 'quoted' && Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : 'Paid to the Lalamove rider';
   const st = o.status === 'cancelled' ? ['Cancelled', 'off'] : o.status === 'pending' ? ['Waiting for confirmation', 'wait']
     : d?.step === 'delivered' ? ['Delivered', 'done'] : d?.step === 'failed' ? ['Delivery issue', 'bad'] : d ? ['Out for delivery', 'move']

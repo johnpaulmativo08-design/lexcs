@@ -91,6 +91,7 @@
     const q = quote, row = (label, value, extra = '') => `<div class="co-fee-row${extra}"><span>${label}</span><strong>${value}</strong></div>`;
     const coverage = row('Coverage', `<span class="co-fee-ok">✓ Within ${esc(AREA?.name || 'our area')}</span>`);
     if (q.state === 'loading') return `<div class="co-fee" aria-busy="true">${coverage}${row('Driving distance', '<span class="skel skel-line co-fee-skel" aria-hidden="true"></span><span class="sr-only">Calculating…</span>')}${row('Estimated delivery fee', '<span class="skel skel-line co-fee-skel" aria-hidden="true"></span>', ' is-fee')}<p class="co-fee-note">Calculating the driving route and fee…</p></div>`;
+    if (q.state === 'ok' && q.data.source === 'lalamove') return `<div class="co-fee">${coverage}${q.data.distance_km > 0 ? row('Distance', kmOf(q.data.distance_km)) : ''}${row('Lalamove delivery fee', peso(q.data.fee), ' is-fee')}<p class="co-fee-note">Lalamove’s current price for a ${esc(String(q.data.vehicle || 'motorcycle').toLowerCase())}. Paid to LexC’s with your first payment; LexC’s books the rider.</p></div>`;
     if (q.state === 'ok') return `<div class="co-fee">${coverage}${row('Driving distance', kmOf(q.data.distance_km))}${row('Estimated delivery fee', peso(q.data.fee), ' is-fee')}<p class="co-fee-note">Estimate from LexC’s ${esc(String(q.data.vehicle || '').toLowerCase() || 'delivery')} rates, not a Lalamove quotation. Paid to LexC’s with your first payment; LexC’s books the rider.</p></div>`;
     if (q.state === 'not_priced') return `<div class="co-fee">${coverage}${q.data?.distance_km != null ? row('Driving distance', kmOf(q.data.distance_km)) : ''}<p class="co-fee-note">The delivery fee is paid to the Lalamove rider.</p></div>`;
     const retry = '<button type="button" class="co-fee-retry" data-fee-retry>Try again</button>';
@@ -99,6 +100,8 @@
       too_far: [`This spot is ${q.data?.distance_km != null ? kmOf(q.data.distance_km) + ' away, ' : ''}farther than we deliver. Choose Store Pick-up or a nearer spot.`, false],
       no_road: ['That pin is too far from a road. Move it onto your street or building.', false],
       busy: ['Too many fee checks in the last hour. Please wait a little, then try again.', true],
+      no_service: ['Lalamove doesn’t deliver to this spot. Move the pin, or choose Store Pick-up.', false],
+      lalamove_failed: ['We couldn’t get Lalamove’s price right now.', true],
       outside: [OUTSIDE, false],
     }[q.state] || ['The delivery fee isn’t available yet.', true];
     return `<div class="co-fee is-problem" role="alert">${q.state === 'outside' ? '' : coverage}<p class="co-fee-note">${esc(MSG[0])} ${MSG[1] ? retry : ''}</p><p class="co-fee-note">Store Pick-up is always available.</p></div>`;
@@ -124,7 +127,7 @@
         const data = await res.json().catch(() => null);
         const st = data?.status;
         next = st === 'ok' && Number.isFinite(Number(data.fee)) && data.quote_id ? { state: 'ok', data: { ...data, fee: Number(data.fee), distance_km: Number(data.distance_km) } }
-          : ['outside', 'not_priced', 'too_far', 'no_road', 'busy'].includes(st) ? { state: st, data }
+          : ['outside', 'not_priced', 'too_far', 'no_road', 'busy', 'no_service', 'lalamove_failed'].includes(st) ? { state: st, data }
           : res.status === 401 ? { state: 'login' } : { state: 'failed', data };
       }
     } catch { next = { state: 'failed' }; }
@@ -260,7 +263,7 @@
     return null;
   }
   // what checkout shows and sends: the fee only when the server priced it
-  function fee() { return mode === 'Lalamove' && quote.state === 'ok' ? { amount: quote.data.fee, quote_id: quote.data.quote_id, distance_km: quote.data.distance_km } : null; }
+  function fee() { return mode === 'Lalamove' && quote.state === 'ok' ? { amount: quote.data.fee, quote_id: quote.data.quote_id, distance_km: quote.data.distance_km, source: quote.data.source || 'rates' } : null; }
   function feeState() { return mode === 'Lalamove' ? quote.state : 'pickup'; }
 
   // start fetching the map library as soon as checkout opens, so the map is ready when a choice is tapped
