@@ -50,6 +50,15 @@ Deno.serve(async (request) => {
 
     // phase 98: the fee comes from a Lalamove quotation
     const { data: rates } = await admin.from('delivery_pricing').select('enabled, fee_source, lalamove_service').eq('id', 1).maybeSingle();
+    // Admin → Delivery rates "Try a Lalamove price": asks Lalamove, saves nothing, works while fees are off
+    if (body.test === true) {
+      const { data: role } = await admin.from('user_roles').select('role').eq('user_id', auth.user.id).maybeSingle();
+      if (role?.role !== 'admin') return json({ status: 'error', error: 'Admin access required.' }, 403);
+      const service = typeof body.service === 'string' && /^[A-Z0-9_]{2,40}$/.test(body.service) ? body.service : rates?.lalamove_service || 'MOTORCYCLE';
+      const q = await lalamoveQuotation({ from: { ...SHOP, address: SHOP_ADDRESS }, to: { lat, lng, address: label || `${town || 'Pampanga'} (${lat.toFixed(6)}, ${lng.toFixed(6)})` }, serviceType: service });
+      return json(q.ok ? { status: 'ok', test: true, fee: q.fee, distance_km: q.distance_km, service, sandbox: (Deno.env.get('LALAMOVE_API_KEY') || '').startsWith('pk_test_'), price_breakdown: q.price_breakdown }
+        : { status: q.reason, test: true, detail: q.detail || null });
+    }
     if (rates?.fee_source === 'lalamove') {
       if (!rates.enabled) return json({ status: 'not_priced' });
       const q = await lalamoveQuotation({

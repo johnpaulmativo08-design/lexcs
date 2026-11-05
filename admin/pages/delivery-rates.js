@@ -8,6 +8,8 @@ import {db,fail,loadingForm} from '../backend-ui.js?v=3';
 const TOWNS=['Angeles City','Apalit','Arayat','Bacolor','Candaba','Floridablanca','Guagua','Lubao','Mabalacat City','Macabebe','Magalang','Masantol','Mexico','Minalin','Porac','San Fernando','San Luis','San Simon','Santa Ana','Santa Rita','Santo Tomas','Sasmuan'];
 const num=(name,label,value,hint,extra='')=>'<label class="form-field">'+e(label)+'<input name="'+name+'" type="number" inputmode="decimal" min="0" step="0.01" value="'+e(value??'')+'" '+extra+'>'+(hint?'<small class="dr-hint">'+e(hint)+'</small>':'')+'</label>';
 const LALAMOVE=[['MOTORCYCLE','Motorcycle'],['SEDAN','Sedan'],['MPV','MPV'],['VAN','Van']];
+// sample drop-off spots for "Try a Lalamove price"
+const SPOTS=[['Angeles City Hall',15.1450,120.5887],['SM City Clark',15.1694,120.5803],['San Fernando (Robinsons Starmills)',15.0480,120.6880],['Porac town proper',15.0719,120.5417]];
 const pick=(name,label,value,options)=>'<label class="form-field">'+e(label)+'<select name="'+name+'">'+options.map(([v,t])=>'<option value="'+e(v)+'"'+(String(v)===String(value)?' selected':'')+'>'+e(t)+'</option>').join('')+'</select></label>';
 
 export async function renderDeliveryRates(content){
@@ -45,7 +47,9 @@ export async function renderDeliveryRates(content){
     '<p role="alert"></p><div class="dr-actions"><button class="button primary" type="submit">'+icon('save')+' Save rates</button>'+(r.updated_at?'<small class="dr-hint">Last saved '+e(new Date(r.updated_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}))+'</small>':'')+'</div>'+
    '</form>'+
    '<section class="panel dr-form dr-try"><h2>Try the saved rates</h2><div class="dr-grid"><label class="form-field">Driving distance (km)<input type="number" min="0" step="0.1" value="8.5" data-try-km></label>'+
-    '<label class="form-field">Town<select data-try-town><option value="">—</option>'+TOWNS.map(t=>'<option>'+e(t)+'</option>').join('')+'</select></label></div><p class="dr-result" data-try-out aria-live="polite"></p></section>';
+    '<label class="form-field">Town<select data-try-town><option value="">—</option>'+TOWNS.map(t=>'<option>'+e(t)+'</option>').join('')+'</select></label></div><p class="dr-result" data-try-out aria-live="polite"></p></section>'+
+   '<section class="panel dr-form dr-lala"><h2>Try a Lalamove price</h2><p class="dr-hint">Asks Lalamove with your saved keys. Free, books nothing, and works while delivery fees are off.</p><div class="dr-grid">'+
+    pick('lala_spot','Drop-off',0,SPOTS.map(([n],i)=>[i,n]))+'</div><div class="dr-actions"><button class="button" type="button" data-lala-try>Ask Lalamove</button></div><p class="dr-result" data-lala-out aria-live="polite"></p></section>';
 
   const form=content.querySelector('[data-rates]'),say=t=>{form.querySelector('[role=alert]').textContent=t;};
   // with Lalamove prices the own-rate fields are not used (max distance still applies)
@@ -53,6 +57,15 @@ export async function renderDeliveryRates(content){
    form.querySelectorAll('[data-own-rates] .form-field').forEach(l=>{if(!l.querySelector('[name=max_km]'))l.hidden=lala;});form.elements.base_fee.required=!lala;
    form.querySelector('[data-own-rates] legend').textContent=lala?'Limit':'Rate';form.querySelector('.dr-towns').hidden=lala;content.querySelector('.dr-try').hidden=lala;};
   form.elements.fee_source.onchange=source;source();
+  const lalaOut=content.querySelector('[data-lala-out]'),lalaBtn=content.querySelector('[data-lala-try]');
+  lalaBtn.onclick=async()=>{
+   const [name,lat,lng]=SPOTS[Number(content.querySelector('[name=lala_spot]').value)||0];lalaBtn.disabled=true;lalaOut.textContent='Asking Lalamove…';
+   try{const cfg=window.LexcSupabaseConfig,{data:{session}}=await db.client.auth.getSession();
+    const res=await fetch(cfg.url.replace(/\/+$/,'')+'/functions/v1/delivery-quote',{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.key,Authorization:'Bearer '+session.access_token},body:JSON.stringify({test:true,lat,lng,label:name,service:form.elements.lalamove_service.value})});
+    const d=await res.json().catch(()=>({}));
+    lalaOut.innerHTML=d.status==='ok'?'<strong>'+money(d.fee)+'</strong> <span>'+e(name+(d.distance_km>0?' · '+d.distance_km+' km':'')+' · '+d.service.toLowerCase()+(d.sandbox?' · sandbox (test) price':''))+'</span>'
+     :e({not_connected:'Lalamove keys are missing: add LALAMOVE_API_KEY and LALAMOVE_API_SECRET in Supabase → Edge Functions → Secrets.',no_service:'Lalamove doesn’t serve this spot with that vehicle.'}[d.status]||('Lalamove refused: '+(d.detail||d.error||d.status||res.status)));
+   }catch(error){lalaOut.textContent=error.message;}finally{lalaBtn.disabled=false;}};
   const out=content.querySelector('[data-try-out]');
   const tryIt=async()=>{
    const km=Number(content.querySelector('[data-try-km]').value),town=content.querySelector('[data-try-town]').value||null;
