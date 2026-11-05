@@ -63,3 +63,8 @@
 @media(max-width:720px){.prod{grid-template-columns:minmax(0,1fr);gap:12px}.prod-col{padding:14px;border-radius:22px}.prod-lede{font-size:1.35rem}}
 @media(prefers-reduced-motion:reduce){.prod-card,.prod-slot,.prod-go{transition:none}}
 .prod svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.prod-held{display:grid;gap:8px}.prod-held h3{font-size:.85rem;color:var(--p-muted)}
+.prod-slot.is-held{text-decoration:none;border-style:dashed;background:#fdfbfe}
+.prod-hint{margin:0;font-size:.78rem;color:var(--p-muted)}
+.prod-links{display:flex;flex-wrap:wrap;gap:6px 16px}
+.order-to-prod{margin-left:8px;font-weight:600;color:#6f53bc;text-decoration:none;white-space:nowrap}

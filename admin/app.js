@@ -1,10 +1,10 @@
-import { renderProduction } from './pages/production.js?v=1';
+import { renderProduction } from './pages/production.js?v=2';
 import { renderDashboard } from './pages/dashboard.js?v=18';
 import { renderProducts } from './pages/products.js?v=15';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=36';
 import { renderReports } from './pages/reports.js?v=19';
-import { renderOrders } from './pages/orders.js?v=52';
-import { renderBookings } from './pages/bookings.js?v=17';
+import { renderOrders } from './pages/orders.js?v=53';
+import { renderBookings } from './pages/bookings.js?v=18';
 import { renderDesignOptions } from './pages/design-options.js?v=14';
 import { renderProfile } from './pages/profile.js?v=13';
 import { renderDeliveryRates } from './pages/delivery-rates.js?v=5';
@@ -15,7 +15,7 @@ import { icon } from './components.js?v=4';
 import { ask } from '../shared/ask.js?v=1';
 
 const groups = [
-  ['', [['production', 'Production'], ['dashboard', 'Dashboard']]],
+  ['', [['dashboard', 'Dashboard'], ['production', 'Production']]],
   ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['delivery-rates', 'Delivery rates', null, 'delivery'], ['bookings', 'Reservations'],
     // Posts and review moderation: the storefront's Updates module, shown inside Admin (pages/updates.js).
     ['updates', 'Updates & reviews', null, 'gallery']]],
@@ -122,7 +122,7 @@ async function renderRoute() {
   content.dataset.adminPage = current;
   main.replaceChildren(content);
   const subpage = route.split('/')[1];
-  if (current === 'production') await renderProduction(content);
+  if (current === 'production') await renderProduction(content, subpage);
   else if (current === 'dashboard') await renderDashboard(content);
   else if (current === 'chat') { content.classList.add('chat-page'); await mountChat(content,{admin:true}); }
   else if (current === 'products') await renderProducts(content, subpage);
