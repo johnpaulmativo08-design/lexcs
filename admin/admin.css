@@ -867,3 +867,5 @@ main .operations-dashboard .ops-row .dash-balance{color:#1d1530;font-size:15.5px
 .dr-try h2{margin:0;font-size:1.05rem}
 .dr-result{margin:0}.dr-result strong{font-size:1.2rem;margin-right:6px}.dr-result span{color:var(--muted,#6e6274)}
 @media(max-width:600px){.dr-form{padding:14px}.dr-grid{grid-template-columns:1fr}.dr-grid--towns{grid-template-columns:1fr 1fr}}
+/* "Open Lalamove" next to the delivery status */
+.dlv-head .dlv-pill{margin-left:auto}.dlv-app{min-height:32px;padding:0 12px;font-size:12.5px;font-weight:800;background:#f26722;border-color:#f26722;color:#fff;text-decoration:none;display:inline-flex;align-items:center}.dlv-app:hover{background:#d9561a;border-color:#d9561a}
