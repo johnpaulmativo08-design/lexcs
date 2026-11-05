@@ -6,6 +6,7 @@
 import { escapeHtml as e, icon } from '../components.js?v=4';
 import { db } from '../backend-ui.js?v=3';
 import { ask } from '../../shared/ask.js?v=2';
+import { mountProductionPanel, clearProductionCache } from '../production-capacity.js?v=3';
 
 const DAY = 864e5;
 const manilaKey = (d = new Date()) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
@@ -26,7 +27,7 @@ export async function renderProduction(content, focus) {
   let selected = today, filter = 'all', picked = null;
   const timelines = new Map(), orders = new Map();
 
-  content.innerHTML = `<div class="prod">
+  content.innerHTML = `<section class="pc prod-cap" data-pc aria-label="Daily production capacity"></section><div class="prod">
     <section class="prod-col prod-today" data-today aria-busy="true"><div class="prod-skel"><span class="skel"></span><span class="skel"></span><span class="skel"></span></div></section>
     <section class="prod-col prod-plan" data-plan aria-busy="true"><div class="prod-skel"><span class="skel"></span><span class="skel"></span><span class="skel"></span></div></section>
     <section class="prod-col prod-detail" data-detail><div class="prod-empty">${icon('orders')}<p>Tap a bake to see its details.</p></div></section>
@@ -120,9 +121,20 @@ export async function renderProduction(content, focus) {
         : `<p class="prod-none">${filter === 'all' ? 'Nothing to bake on this day.' : 'No bakes in this step.'}</p>`}
       ${held.length && filter === 'all' ? `<div class="prod-held"><h3>Reserved times</h3>${held.map((h) => `<a class="prod-slot is-held" href="#bookings"><span class="prod-time"><b>${e(String(h.scheduled_start || '').slice(0, 5) || '—')}</b><small>${h.scheduled_end ? 'to ' + e(String(h.scheduled_end).slice(0, 5)) : ''}</small></span><span class="prod-what"><b>${e(h.customer_name)}</b><small>Reserved in Reservations</small></span></a>`).join('')}</div>` : ''}`;
     box.removeAttribute('aria-busy');
+    capacity();
     box.querySelectorAll('[data-day]').forEach((b) => (b.onclick = () => { selected = b.dataset.day; paintPlan(); }));
     box.querySelectorAll('[data-week]').forEach((b) => (b.onclick = () => { selected = plus(selected, Number(b.dataset.week)); paintPlan(); }));
     box.querySelectorAll('[data-filter]').forEach((b) => (b.onclick = () => { filter = b.dataset.filter; paintPlan(); }));
+  }
+
+  // ---- Daily Production Capacity (moved here from Reservations): follows the day picked in the week strip
+  let shownCap = null;
+  function capacity(force) {
+    if (!force && shownCap === selected) return;
+    shownCap = selected;
+    mountProductionPanel($('[data-pc]'), { date: selected,
+      onDate: (d) => { selected = d; paintPlan(); },
+      onSaved: () => { clearProductionCache(); timelines.clear(); shownCap = null; paintToday(true); paintPlan(true); } });
   }
 
   // ---- Details: one order's bake card and the single next step
