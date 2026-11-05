@@ -1,4 +1,6 @@
-// Admin → Production: the kitchen's day at a glance (Today), the bake plan for any day of the week (Schedule) and one
+// Admin → Production: the kitchen's day at a glance (Today, with the workload ring), the bake plan for any day of the
+// week with its kitchen-time control (Schedule: capacity slider, this date / all dates, cleaning per order, pending
+// orders and what accepting them would add) and one
 // order's bake card (Details). Read-only views over what already exists — nothing new is stored here:
 //   get_production_day (phase 96: kitchen minutes), get_bake_timeline (phase 97: bake windows), orders + order_items.
 // The one button moves the order along with the same set_order_status as Orders, so the database rules stay in charge
@@ -6,7 +8,7 @@
 import { escapeHtml as e, icon } from '../components.js?v=4';
 import { db } from '../backend-ui.js?v=3';
 import { ask } from '../../shared/ask.js?v=2';
-import { mountProductionPanel, clearProductionCache } from '../production-capacity.js?v=3';
+import { clearProductionCache } from '../production-capacity.js?v=3';
 
 const DAY = 864e5;
 const manilaKey = (d = new Date()) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
@@ -25,9 +27,18 @@ const FILTERS = [['all', 'All'], ['confirmed', 'To start'], ['preparing', 'Bakin
 export async function renderProduction(content, focus) {
   const today = manilaKey();
   let selected = today, filter = 'all', picked = null;
-  const timelines = new Map(), orders = new Map();
+  const timelines = new Map(), orders = new Map(), days = new Map();
+  const MAX = 750;
+  async function dayOf(date, fresh) {
+    if (!fresh && days.has(date)) return days.get(date);
+    const d = await db.rpc('get_production_day', { target_date: date });
+    days.set(date, d);
+    return d;
+  }
+  const level = (used, cap) => cap <= 0 ? (used > 0 ? 'heavy' : 'ok') : used > cap ? 'heavy' : used >= cap * 0.8 ? 'near' : 'ok';
+  const LEVEL = { ok: 'Within the safe limit', near: 'Getting full', heavy: 'Over capacity' };
 
-  content.innerHTML = `<section class="pc prod-cap" data-pc aria-label="Daily production capacity"></section><div class="prod">
+  content.innerHTML = `<div class="prod">
     <section class="prod-col prod-today" data-today aria-busy="true"><div class="prod-skel"><span class="skel"></span><span class="skel"></span><span class="skel"></span></div></section>
     <section class="prod-col prod-plan" data-plan aria-busy="true"><div class="prod-skel"><span class="skel"></span><span class="skel"></span><span class="skel"></span></div></section>
     <section class="prod-col prod-detail" data-detail><div class="prod-empty">${icon('orders')}<p>Tap a bake to see its details.</p></div></section>
@@ -57,11 +68,11 @@ export async function renderProduction(content, focus) {
   async function paintToday(fresh) {
     const box = $('[data-today]');
     try {
-      const [day, rows] = await Promise.all([db.rpc('get_production_day', { target_date: today }), timeline(today, fresh)]);
+      const [day, rows] = await Promise.all([dayOf(today, fresh), timeline(today, fresh)]);
       const list = (rows || []).filter((r) => r.status !== 'pending');
       await loadOrders(list.map((r) => r.order_id));
       const cap = Number(day?.workload_minutes) || 0, used = Number(day?.accepted_minutes) || 0;
-      const p = cap > 0 ? Math.round((used / cap) * 100) : used > 0 ? 100 : 0;
+      const p = cap > 0 ? Math.round((used / cap) * 100) : used > 0 ? 100 : 0, lv = level(used, cap);
       const count = (s) => list.filter((r) => r.status === s).length;
       const late = list.filter((r) => !r.fits).length;
       const hour = Number(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false }));
@@ -69,11 +80,12 @@ export async function renderProduction(content, focus) {
         <header class="prod-hello"><div><small>${e(longDay(today))}</small><h2>${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}</h2></div>
           <a class="prod-round is-dark" href="#bookings" title="Reserve a time" aria-label="Reserve a time">${icon('plus')}</a></header>
         <p class="prod-lede">Let’s bake <em>today’s orders</em></p>
-        <div class="prod-progress">
-          <div class="prod-ring" style="--p:${Math.min(100, p)}" role="img" aria-label="${p}% of today’s kitchen time used"><span>${p}%</span></div>
-          <dl><div><dt>Kitchen time</dt><dd>${e(mins(used))} <small>of ${e(mins(cap))}</small></dd></div>
-            <div><dt>Orders today</dt><dd>${list.length}</dd></div>
-            ${late ? `<div class="is-warn"><dt>Need attention</dt><dd>${late} won’t fit</dd></div>` : day?.pending_count ? `<div><dt>Waiting to confirm</dt><dd>${Number(day.pending_count)}</dd></div>` : ''}</dl>
+        <div class="prod-progress is-${lv}">
+          <div class="prod-ring" style="--p:${Math.min(100, p)}" role="img" aria-label="${p}% of today’s kitchen time used"><span>${p}%<small>used</small></span></div>
+          <dl><div><dd>${Math.round(used)} <small>min used</small></dd></div>
+            <div><dd>${Math.max(0, Math.round(cap - used))} <small>min remaining</small></dd></div>
+            <div><dt>of ${Math.round(cap)} min · ${e(mins(cap))}</dt></div>
+            <div class="prod-level"><dt>${late ? `${late} won’t fit in the bake window` : LEVEL[lv]}</dt></div></dl>
         </div>
         <div class="prod-row-head"><h3>Today’s bakes</h3><button type="button" class="prod-link" data-goto-today>View plan</button></div>
         <div class="prod-counts"><span><b>${count('confirmed')}</b> To start</span><span><b>${count('preparing')}</b> Baking</span><span><b>${count('ready')}</b> Ready</span></div>
@@ -97,7 +109,7 @@ export async function renderProduction(content, focus) {
     const start = plus(selected, -((new Date(selected + 'T12:00:00Z').getUTCDay() + 6) % 7));   // Monday
     const week = Array.from({ length: 7 }, (_, i) => plus(start, i));
     box.setAttribute('aria-busy', 'true');
-    const rows = await timeline(selected, fresh);
+    const [rows, day] = await Promise.all([timeline(selected, fresh), dayOf(selected, fresh).catch((error) => { console.warn('Production day:', error); return null; })]);
     // times the Admin reserved in Reservations (no order behind them) sit in the plan too
     let held = [];
     try { held = db.unwrap(await db.client.from('booking_entries').select('id,customer_name,scheduled_start,scheduled_end,status').eq('booking_date', selected).is('order_id', null).neq('status', 'cancelled')) || []; }
@@ -109,32 +121,67 @@ export async function renderProduction(content, focus) {
         <h2>${e(longDay(selected))}</h2><button type="button" class="prod-round" data-week="7" aria-label="Next week">›</button></div>
         <p class="prod-lede">Bake <em>schedule</em></p></header>
       <div class="prod-week" role="tablist" aria-label="Days">${week.map((k) => `<button type="button" role="tab" aria-selected="${k === selected}" data-day="${k}" class="${k === selected ? 'is-on' : ''}${k === today ? ' is-today' : ''}"><small>${e(weekday(k))}</small><b>${Number(k.slice(8))}</b></button>`).join('')}</div>
+      ${day ? kitchenCard(day) : ''}
       <div class="prod-filters">${FILTERS.map(([v, t]) => `<button type="button" data-filter="${v}" aria-pressed="${filter === v}">${t}</button>`).join('')}</div>
       ${rows === null ? '<p class="prod-none">The bake plan isn’t available. Run database/phase97-bake-timeline.sql.</p>'
         : shown.length ? `<ol class="prod-line">${shown.map((r) => {
           const o = orders.get(r.order_id);
-          return `<li><button type="button" class="prod-slot${r.fits ? '' : ' is-bad'}${picked === r.order_id ? ' is-picked' : ''}" data-pick="${e(r.order_id)}" data-date="${selected}">
+          return `<li><button type="button" class="prod-slot${r.fits ? '' : ' is-bad'}${r.status === 'pending' ? ' is-pending' : ''}${picked === r.order_id ? ' is-picked' : ''}" data-pick="${e(r.order_id)}" data-date="${selected}">
             <span class="prod-time"><b>${e(clock(r.bake_start_minutes).replace(/ [AP]M$/, ''))}</b><small>${e(clock(r.bake_start_minutes).slice(-2))}</small></span>
             <span class="prod-what"><b>${e(what(o))}</b><small>${e(mins(r.minutes))} · ${o?.fulfillment_method === 'lalamove' ? 'deliver' : 'pickup'} ${e(at(r.delivery_at))} · ${e(r.customer_name || '')}</small>
               ${r.fits ? chip(r.status) : '<span class="prod-chip is-bad">Doesn’t fit · starts before the kitchen opens</span>'}</span></button></li>`;
         }).join('')}</ol>`
         : `<p class="prod-none">${filter === 'all' ? 'Nothing to bake on this day.' : 'No bakes in this step.'}</p>`}
+      ${day && filter === 'all' && Number(day.pending_minutes) > 0 ? projection(day) : ''}
       ${held.length && filter === 'all' ? `<div class="prod-held"><h3>Reserved times</h3>${held.map((h) => `<a class="prod-slot is-held" href="#bookings"><span class="prod-time"><b>${e(String(h.scheduled_start || '').slice(0, 5) || '—')}</b><small>${h.scheduled_end ? 'to ' + e(String(h.scheduled_end).slice(0, 5)) : ''}</small></span><span class="prod-what"><b>${e(h.customer_name)}</b><small>Reserved in Reservations</small></span></a>`).join('')}</div>` : ''}`;
     box.removeAttribute('aria-busy');
-    capacity();
+    if (day) bindKitchen(box, day);
     box.querySelectorAll('[data-day]').forEach((b) => (b.onclick = () => { selected = b.dataset.day; paintPlan(); }));
     box.querySelectorAll('[data-week]').forEach((b) => (b.onclick = () => { selected = plus(selected, Number(b.dataset.week)); paintPlan(); }));
     box.querySelectorAll('[data-filter]').forEach((b) => (b.onclick = () => { filter = b.dataset.filter; paintPlan(); }));
   }
 
-  // ---- Daily Production Capacity (moved here from Reservations): follows the day picked in the week strip
-  let shownCap = null;
-  function capacity(force) {
-    if (!force && shownCap === selected) return;
-    shownCap = selected;
-    mountProductionPanel($('[data-pc]'), { date: selected,
-      onDate: (d) => { selected = d; paintPlan(); },
-      onSaved: () => { clearProductionCache(); timelines.clear(); shownCap = null; paintToday(true); paintPlan(true); } });
+  // ---- Kitchen time for the selected day (phase 96): capacity slider, this date / all dates, cleaning per order
+  function kitchenCard(d) {
+    const cap = Number(d.workload_minutes) || 0, used = Number(d.accepted_minutes) || 0, pend = Number(d.pending_minutes) || 0;
+    const w = (n) => Math.min(100, Math.max(0, (n / MAX) * 100));
+    return `<form class="prod-kitchen" data-kitchen>
+      <div class="prod-kitchen-top"><b>${icon('clock')} Kitchen time</b><output class="prod-chip is-dark" data-cap-out>${cap} min</output></div>
+      <div class="prod-bar"><span class="is-used" style="width:${w(used)}%"></span><span class="is-pend" style="left:${w(used)}%;width:${w(pend)}%"></span>
+        <input type="range" name="cap" min="0" max="${MAX}" step="5" value="${cap}" aria-label="Kitchen minutes for ${e(longDay(selected))}"></div>
+      <div class="prod-legend"><span class="is-used">Used ${Math.round(used)}</span><span class="is-pend">Pending +${Math.round(pend)}</span><span>${MAX} max · ${e(mins(cap))}</span></div>
+      <div class="prod-kitchen-save"><label><input type="radio" name="scope" value="day" checked> This date</label><label><input type="radio" name="scope" value="all"> All dates</label>
+        <button type="submit" class="prod-save" disabled>Save</button></div>
+      <small class="prod-hint">${d.workload_custom ? 'Set for this date.' : `Using the default (${Number(d.default_workload_minutes)} min).`}</small>
+      <div class="prod-clean"><label>Cleaning / setup per order <input name="clean" type="number" min="0" max="120" step="1" inputmode="numeric" value="${Number(d.cleaning_minutes) || 0}"> min</label><button type="button" class="prod-save" data-clean-save>Save</button></div>
+      <p class="prod-say" role="status"></p></form>`;
+  }
+  function projection(d) {
+    const cap = Number(d.workload_minutes) || 0, total = (Number(d.accepted_minutes) || 0) + (Number(d.pending_minutes) || 0), lv = level(total, cap);
+    return `<p class="prod-project is-${lv}">If you accept all: ${Math.round(total)} of ${Math.round(cap)} min${lv === 'heavy' ? ` — ${Math.round(total - cap)} min over capacity` : lv === 'near' ? ', nearly full' : ', still within capacity'}</p>`;
+  }
+  function bindKitchen(box, d) {
+    const f = box.querySelector('[data-kitchen]'); if (!f) return;
+    const out = f.querySelector('[data-cap-out]'), save = f.querySelector('button[type=submit]');
+    const say = (t, bad) => { const p = f.querySelector('.prod-say'); p.textContent = t; p.classList.toggle('is-bad', !!bad); };
+    const changed = () => { out.textContent = f.elements.cap.value + ' min'; save.disabled = Number(f.elements.cap.value) === Number(d.workload_minutes) && f.elements.scope.value === 'day'; };
+    f.addEventListener('input', changed); f.addEventListener('change', changed);
+    const after = async (msg) => { clearProductionCache(); days.clear(); timelines.clear(); await Promise.all([paintToday(true), paintPlan(true)]); const p = $('[data-kitchen] .prod-say'); if (p) p.textContent = msg; };
+    f.onsubmit = async (ev) => {
+      ev.preventDefault();
+      const minutes = Number(f.elements.cap.value), scope = f.elements.scope.value;
+      if (scope === 'all' && !(await ask(`Every date from today will use ${minutes} min (${mins(minutes)}). Dates you set one by one are reset to this.`, { title: 'Use this for all dates?', confirm: 'Apply to all dates' }))) return;
+      save.disabled = true; say('Saving…');
+      try { await db.rpc('save_production_capacity', { payload: { booking_date: selected, scope, workload_minutes: minutes } }); await after(`Saved: ${minutes} min${scope === 'all' ? ' for all dates' : ' for this date'}.`); }
+      catch (error) { say(error.message || 'Could not save.', true); save.disabled = false; }
+    };
+    f.querySelector('[data-clean-save]').onclick = async () => {
+      const n = Number(f.elements.clean.value);
+      if (!Number.isInteger(n) || n < 0 || n > 120) { say('Enter whole minutes from 0 to 120.', true); return; }
+      say('Saving…');
+      try { await db.rpc('save_production_capacity', { payload: { scope: 'all', cleaning_minutes: n } }); await after(`Saved: ${n} min cleaning / setup for each new order.`); }
+      catch (error) { say(error.message || 'Could not save.', true); }
+    };
   }
 
   // ---- Details: one order's bake card and the single next step
@@ -149,6 +196,7 @@ export async function renderProduction(content, focus) {
         ${(o.order_items || []).some((i) => i.customization) ? `<span class="prod-note">${e((o.order_items || []).map((i) => i.customization && typeof i.customization === 'object' ? Object.entries(i.customization).filter(([, v]) => typeof v === 'string' && v && v.length < 60).map(([, v]) => v).join(' · ') : '').filter(Boolean).join(' / '))}</span>` : ''}</div>
       <div class="prod-pair"><div class="prod-box"><small>Bake window</small><b>${e(clock(r.bake_start_minutes))} – ${e(clock(r.bake_finish_minutes))}</b></div>
         <div class="prod-box"><small>${o.fulfillment_method === 'lalamove' ? 'Deliver at' : 'Pickup at'}</small><b>${e(at(r.delivery_at))}</b></div></div>
+      <div class="prod-box"><small>Kitchen time</small><b>${e(mins(r.minutes))}${days.get(date) && Number(days.get(date).workload_minutes) > 0 ? ` <small>· ${Math.round((Number(r.minutes) / Number(days.get(date).workload_minutes)) * 100)}% of the day</small>` : ''}</b></div>
       ${r.fits ? '' : '<p class="prod-warn" role="alert">This bake would have to start before the kitchen opens. Move it, or start it the day before.</p>'}
       <div class="prod-steps" aria-label="Progress">${steps.map(([, t], i) => `<span class="${i < now ? 'is-done' : i === now ? 'is-now' : ''}">${t}</span>`).join('')}</div>
       <div class="prod-box"><small>Payment</small><b class="${paid ? 'is-ok' : ''}">${e(PAY[o.payment_status] || String(o.payment_status || '—').replace(/_/g, ' '))}</b>${o.notes ? `<span class="prod-note">${e(o.notes)}</span>` : ''}</div>
