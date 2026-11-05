@@ -1,15 +1,17 @@
 // Admin → Delivery rates (phase 94). The owner's own delivery rates; the site uses them to ESTIMATE the delivery fee
 // from the driving distance (shop → customer's pin). They are not Lalamove's prices: enter rates you have checked.
 // Saved with public.save_delivery_pricing (admin only); the example uses public.preview_delivery_fee (saved rates).
+// Phase 98: or the fee comes from a real Lalamove quotation (fee_source 'lalamove'); then the rates below are not used.
 import {escapeHtml as e,icon,money,notice} from '../components.js?v=3';
 import {db,fail,loadingForm} from '../backend-ui.js?v=3';
 
 const TOWNS=['Angeles City','Apalit','Arayat','Bacolor','Candaba','Floridablanca','Guagua','Lubao','Mabalacat City','Macabebe','Magalang','Masantol','Mexico','Minalin','Porac','San Fernando','San Luis','San Simon','Santa Ana','Santa Rita','Santo Tomas','Sasmuan'];
 const num=(name,label,value,hint,extra='')=>'<label class="form-field">'+e(label)+'<input name="'+name+'" type="number" inputmode="decimal" min="0" step="0.01" value="'+e(value??'')+'" '+extra+'>'+(hint?'<small class="dr-hint">'+e(hint)+'</small>':'')+'</label>';
+const LALAMOVE=[['MOTORCYCLE','Motorcycle'],['SEDAN','Sedan'],['MPV','MPV'],['VAN','Van']];
 const pick=(name,label,value,options)=>'<label class="form-field">'+e(label)+'<select name="'+name+'">'+options.map(([v,t])=>'<option value="'+e(v)+'"'+(String(v)===String(value)?' selected':'')+'>'+e(t)+'</option>').join('')+'</select></label>';
 
 export async function renderDeliveryRates(content){
- const head='<header class="module-heading"><div><h1>Delivery rates</h1><p>Your rates for estimating the Lalamove delivery fee from the driving distance.</p></div></header>';
+ const head='<header class="module-heading"><div><h1>Delivery rates</h1><p>The delivery fee at checkout: Lalamove’s own price, or an estimate from your rates.</p></div></header>';
  content.innerHTML=head+loadingForm(6);
  try{
   let r;
@@ -18,10 +20,14 @@ export async function renderDeliveryRates(content){
   r=r||{};
   const sur=Object.fromEntries((r.surcharges||[]).map(s=>[s.town,s.amount]));
   content.innerHTML=head+
-   notice('These are estimates from your own rates, not Lalamove quotations. Enter rates you have checked in the Lalamove app for the vehicle you book. Customers pay this fee to LexC’s with their first payment; you then book and pay the rider.')+
+   notice('Customers pay the delivery fee to LexC’s with their first payment; you then book and pay the rider in the Lalamove app. A Lalamove price is a free quotation: it books nothing, and the price can change by the time you book.')+
    '<form class="panel dr-form form-body" data-rates>'+
     '<label class="dr-switch"><input type="checkbox" name="enabled"'+(r.enabled?' checked':'')+'><span><strong>Charge delivery fees at checkout</strong><small>When off, delivery works as before: ₱0 at checkout and the customer pays the rider.</small></span></label>'+
-    '<fieldset class="dr-group"><legend>Rate</legend><div class="dr-grid">'+
+    '<fieldset class="dr-group"><legend>Where the fee comes from</legend><div class="dr-grid">'+
+     pick('fee_source','Delivery fee',r.fee_source||'rates',[['lalamove','Lalamove quotation (real price)'],['rates','My own rates (estimate)']])+
+     pick('lalamove_service','Lalamove vehicle',r.lalamove_service||'MOTORCYCLE',LALAMOVE)+
+    '</div><small class="dr-hint" data-lalamove-hint>Needs your Lalamove API keys in Supabase → Edge Functions → Secrets (see DELIVERY_FEE_SETUP.md).</small></fieldset>'+
+    '<fieldset class="dr-group" data-own-rates><legend>Rate</legend><div class="dr-grid">'+
      '<label class="form-field">Vehicle<input name="vehicle" maxlength="40" value="'+e(r.vehicle||'Motorcycle')+'" required></label>'+
      num('base_fee','Base fee (₱)',r.base_fee,'Charged for every delivery.','required')+
      num('included_km','Distance included in the base fee (km)',r.included_km??0,'0 if every km is charged.')+
@@ -42,6 +48,11 @@ export async function renderDeliveryRates(content){
     '<label class="form-field">Town<select data-try-town><option value="">—</option>'+TOWNS.map(t=>'<option>'+e(t)+'</option>').join('')+'</select></label></div><p class="dr-result" data-try-out aria-live="polite"></p></section>';
 
   const form=content.querySelector('[data-rates]'),say=t=>{form.querySelector('[role=alert]').textContent=t;};
+  // with Lalamove prices the own-rate fields are not used (max distance still applies)
+  const source=()=>{const lala=form.elements.fee_source.value==='lalamove';form.elements.lalamove_service.closest('label').hidden=!lala;form.querySelector('[data-lalamove-hint]').hidden=!lala;
+   form.querySelectorAll('[data-own-rates] .form-field').forEach(l=>{if(!l.querySelector('[name=max_km]'))l.hidden=lala;});form.elements.base_fee.required=!lala;
+   form.querySelector('[data-own-rates] legend').textContent=lala?'Limit':'Rate';form.querySelector('.dr-towns').hidden=lala;content.querySelector('.dr-try').hidden=lala;};
+  form.elements.fee_source.onchange=source;source();
   const out=content.querySelector('[data-try-out]');
   const tryIt=async()=>{
    const km=Number(content.querySelector('[data-try-km]').value),town=content.querySelector('[data-try-town]').value||null;
@@ -54,12 +65,12 @@ export async function renderDeliveryRates(content){
   form.onsubmit=async event=>{
    event.preventDefault();say('');const f=form.elements,button=form.querySelector('button[type=submit]');
    const surcharges=[...form.querySelectorAll('[data-town]')].filter(i=>i.value!==''&&Number(i.value)>0).map(i=>({town:i.dataset.town,amount:i.value}));
-   if(f.enabled.checked&&f.base_fee.value===''){say('Enter the base fee before switching delivery fees on.');f.base_fee.focus();return;}
+   if(f.enabled.checked&&f.fee_source.value==='rates'&&f.base_fee.value===''){say('Enter the base fee before switching delivery fees on.');f.base_fee.focus();return;}
    button.disabled=true;
    try{
-    await db.rpc('save_delivery_pricing',{settings:{enabled:f.enabled.checked,vehicle:f.vehicle.value,base_fee:f.base_fee.value,included_km:f.included_km.value,per_km_fee:f.per_km_fee.value,
+    await db.rpc('save_delivery_pricing',{settings:{enabled:f.enabled.checked,fee_source:f.fee_source.value,lalamove_service:f.lalamove_service.value,vehicle:f.vehicle.value,base_fee:f.base_fee.value,included_km:f.included_km.value,per_km_fee:f.per_km_fee.value,
      km_counting:f.km_counting.value,minimum_fee:f.minimum_fee.value,round_to:f.round_to.value,round_mode:f.round_mode.value,max_km:f.max_km.value,surcharges,source_note:f.source_note.value}});
-    say(f.enabled.checked?'Saved. New delivery orders now get these fees.':'Saved. Delivery fees are off: customers pay the rider.');tryIt();
+    say(!f.enabled.checked?'Saved. Delivery fees are off: customers pay the rider.':f.fee_source.value==='lalamove'?'Saved. Checkout now asks Lalamove for the price of each delivery.':'Saved. New delivery orders now get these fees.');tryIt();
    }catch(error){say(error.message);}finally{button.disabled=false;}
   };
  }catch(error){fail(content,error);}
