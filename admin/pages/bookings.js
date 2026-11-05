@@ -1,6 +1,6 @@
 import { escapeHtml as e, icon, money, notice, showDetails } from '../components.js?v=3';
 import { db, fail, skel, loadingList, loadingForm } from '../backend-ui.js?v=3';
-import { mountProductionPanel, clearProductionCache } from '../production-capacity.js?v=1';
+import { mountProductionPanel, clearProductionCache } from '../production-capacity.js?v=2';
 const DAY=86400000, key=d=>new Date(d).toISOString().slice(0,10), plus=(d,n)=>key(new Date(new Date(d+'T12:00:00Z').getTime()+n*DAY));
 const weekStart=d=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));return key(x)};
 const day=d=>new Intl.DateTimeFormat('en-PH',{weekday:'short',month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(d+'T12:00:00Z'));

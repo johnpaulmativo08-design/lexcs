@@ -6,15 +6,19 @@
 //  * Workload Overview — accepted minutes ÷ the day's capacity.
 //  * Incoming Reservation Preview — each pending order: where it would take the day, and whether it is a
 //    "Heavy production workload" (over capacity). Customers never see any of this.
-// Data: get_production_day / save_production_capacity (database/phase96-production-capacity.sql).
+//  * Bake Timeline (phase 97) — each order's bake, packed backwards from its delivery (finished 1 hr before),
+//    inside the 4:00 AM – 4:30 PM window. Orders that cannot fit are flagged. Warnings only.
+// Data: get_production_day / save_production_capacity (database/phase96-production-capacity.sql),
+//       get_bake_timeline (database/phase97-bake-timeline.sql).
 import { escapeHtml as e } from './components.js?v=3';
 import { db } from './backend-ui.js?v=3';
 import { ask } from '../shared/ask.js?v=1';
 
 const MAX = 750, MAX_SLOTS = 30, STEP = 5;
 const cache = new Map();
+const timelines = new Map();
 let flash = null;   // the last "Saved …" message, shown again after the page reloads its data
-export const clearProductionCache = () => cache.clear();
+export const clearProductionCache = () => { cache.clear(); timelines.clear(); };
 
 export const hrs = (min) => {
   const m = Math.max(0, Math.round(Number(min) || 0)), h = Math.floor(m / 60), r = m % 60;
@@ -43,6 +47,16 @@ async function load(date, fresh) {
   return data;
 }
 
+// the bake timeline is optional: if phase 97 is not run yet, the panel still works without it
+async function loadTimeline(date, fresh) {
+  if (!fresh && timelines.has(date)) return timelines.get(date);
+  let rows = null;
+  try { rows = (await db.rpc('get_bake_timeline', { target_date: date })) || []; }
+  catch (error) { console.warn('Bake timeline (run database/phase97-bake-timeline.sql):', error); }
+  timelines.set(date, rows);
+  return rows;
+}
+
 /**
  * @param {HTMLElement} host
  * @param {{date:string, onDate:(d:string)=>void, onSaved:()=>void}} o
@@ -57,11 +71,37 @@ export async function mountProductionPanel(host, { date, onDate, onSaved }) {
     host.innerHTML = `<div class="pc-setup" role="alert">${svg(ICON.info)}<div><strong>Daily production capacity is not set up yet.</strong><p>Run <code>database/phase96-production-capacity.sql</code> in Supabase → SQL Editor, then reload this page.</p><small>${e(error.message || '')}</small></div></div>`;
     return;
   }
+  const timeline = await loadTimeline(date);
   if (!host.isConnected) return;
-  draw(host, d, { date, onDate, onSaved });
+  draw(host, d, { date, onDate, onSaved }, timeline);
 }
 
-function draw(host, d, ctx) {
+// Bake Timeline card: clock times in Manila, minutes after midnight
+const clock = (min) => {
+  const v = Math.min(1439, Math.max(0, Math.round(Number(min) || 0))), h = Math.floor(v / 60), m = v % 60;
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+};
+const deliveredAt = (iso) => new Date(iso).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' });
+function bakeSection(rows) {
+  if (rows === null) return '';   // phase 97 not run yet
+  const ordered = [...rows].sort((a, b) => a.bake_start_minutes - b.bake_start_minutes);
+  const misfits = ordered.filter((r) => !r.fits).length;
+  return `
+  <section class="pc-card pc-bake${misfits ? ' is-heavy' : ''}" aria-labelledby="pc-bake-title">
+    <h3 id="pc-bake-title">${svg(ICON.bars, 'pc-ico pc-ico--tile')} Bake Timeline</h3>
+    <p class="pc-sub">Bake between 4:00 AM and 4:30 PM, and finish each order 1 hour before its delivery. Warnings only: nothing is blocked.</p>
+    ${ordered.length ? `<ul class="pc-pending">${ordered.map((r) => `
+      <li class="${r.fits ? '' : 'is-heavy'}">
+        <span><b>#${e(r.order_number)}</b> ${e(r.customer_name || 'Customer')} <small>${e(r.status)}</small></span>
+        <span>Bake ${clock(r.bake_start_minutes)} – ${clock(r.bake_finish_minutes)} · ${Number(r.minutes)} min</span>
+        <em>Deliver ${deliveredAt(r.delivery_at)} · finish by ${clock(r.deadline_minutes)}${r.fits ? '' : ' · <b>does not fit before 4:00 AM</b>'}</em>
+      </li>`).join('')}</ul>`
+      : '<p class="pc-sub">No orders to bake on this date.</p>'}
+    ${misfits ? `<p class="pc-msg is-heavy">${svg(ICON.alert)}${misfits} order${misfits === 1 ? '' : 's'} cannot finish baking inside the window. Accepting ${misfits === 1 ? 'it' : 'them'} will ask first.</p>` : ''}
+  </section>`;
+}
+
+function draw(host, d, ctx, timeline = null) {
   const cap = Number(d.workload_minutes), used = Number(d.accepted_minutes), pending = Number(d.pending_minutes);
   const slots = Number(d.slots), booked = Number(d.active_bookings), free = Math.max(0, slots - booked);
   const projected = used + pending, usedPct = pct(used, cap);
@@ -165,6 +205,7 @@ function draw(host, d, ctx) {
       <span>${projected > cap ? `${projected - cap} min over your capacity.` : `${cap - projected} min will remain after ${pendingOrders.length ? 'these orders' : 'today’s accepted orders'}.`}</span></div>
     </div>
   </section>
+  ${bakeSection(timeline)}
   <p class="pc-status" role="status" data-pc-status></p>`;
 
   bind(host, d, ctx);
