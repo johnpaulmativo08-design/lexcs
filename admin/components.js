@@ -4,6 +4,7 @@ export const notice = message => `<p class="notice">${escapeHtml(message)}</p>`;
 export const empty = message => `<div class="empty">${escapeHtml(message)}</div>`;
 export function icon(name, className = '') {
   const paths = {
+    production: '<path d="M6 13a4 4 0 1 1 2.3-7.3A4.5 4.5 0 0 1 16.6 6 3.5 3.5 0 1 1 18 13"/><path d="M6 13h12v7H6z"/><path d="M10 17h4"/>',
     dashboard: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
     inventory: '<path d="M4 7h16v14H4V7ZM3 3h18v4H3V3Z"/><path d="M9 12h6"/>',
     products: '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4.5 7.5 7.5 4 7.5-4M12 11.5V21"/>',
