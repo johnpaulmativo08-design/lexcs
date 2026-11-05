@@ -2,7 +2,7 @@
 //  * Daily Production Capacity — a slider (0–750 min) for the kitchen minutes the Admin will take that day. Its track
 //    also shows the minutes already ACCEPTED (confirmed and later) — that part moves by itself as orders are
 //    confirmed or cancelled — plus how much is still pending.
-//  * Client Reservation Slots — how many customers can book the date (1–30).
+//  * (Client Reservation Slots panel removed; the saved slot limit still applies. Admin reserves times in Manage Availability.)
 //  * Workload Overview — accepted minutes ÷ the day's capacity.
 //  * Incoming Reservation Preview — each pending order: where it would take the day, and whether it is a
 //    "Heavy production workload" (over capacity). Customers never see any of this.
@@ -146,28 +146,6 @@ function draw(host, d, ctx, timeline = null) {
   </section>
 
   <div class="pc-row">
-    <section class="pc-card pc-slots" aria-labelledby="pc-slots-title">
-      <h3 id="pc-slots-title">${svg(ICON.people, 'pc-ico pc-ico--tile')} Client Reservation Slots</h3>
-      <p class="pc-sub">Set the maximum number of client slots for this date.</p>
-      <form class="pc-slots__form" data-pc-slots-form>
-        <div class="pc-stepper">
-          <button type="button" data-pc-step="-1" aria-label="Fewer slots">−</button>
-          <input name="slots" type="number" min="${Math.max(1, booked)}" max="${MAX_SLOTS}" value="${slots}" inputmode="numeric" aria-label="Client slots">
-          <button type="button" data-pc-step="1" aria-label="More slots">+</button>
-          <span>/ ${MAX_SLOTS} slots max</span>
-        </div>
-        <fieldset class="pc-scope"><legend>Apply to:</legend>
-          <label><input type="radio" name="scope" value="day" checked> This Date Only</label>
-          <label><input type="radio" name="scope" value="all"> All Dates</label>
-        </fieldset>
-        <button class="button primary" type="submit" data-pc-slots-save disabled>Save slots</button>
-      </form>
-      <div class="pc-tiles">
-        <div><b>${booked}</b><span>Used Slots</span></div>
-        <div class="is-free"><b>${free}</b><span>Available Slots</span></div>
-      </div>
-    </section>
-
     <section class="pc-card pc-overview" aria-labelledby="pc-over-title">
       <h3 id="pc-over-title">${svg(ICON.pie, 'pc-ico pc-ico--tile')} Workload Overview</h3>
       <p class="pc-sub">Your current production workload.</p>
@@ -262,25 +240,4 @@ function bind(host, d, { date, onDate, onSaved }) {
     catch (error) { say(error.message || 'Could not save.', 'bad'); }
   });
 
-  const slotsForm = host.querySelector('[data-pc-slots-form]'), n = slotsForm.elements.slots, slotsSave = host.querySelector('[data-pc-slots-save]');
-  const slotsChanged = () => { slotsSave.disabled = Number(n.value) === Number(d.slots) && slotsForm.elements.scope.value === 'day'; };
-  slotsForm.querySelectorAll('[data-pc-step]').forEach((b) => b.addEventListener('click', () => {
-    n.value = Math.min(MAX_SLOTS, Math.max(Number(n.min) || 1, (Number(n.value) || 0) + Number(b.dataset.pcStep))); slotsChanged();
-  }));
-  slotsForm.addEventListener('input', slotsChanged); slotsForm.addEventListener('change', slotsChanged);
-  slotsForm.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    const value = Number(n.value), scope = slotsForm.elements.scope.value;
-    if (!Number.isInteger(value) || value < 1 || value > MAX_SLOTS) { say(`Enter a whole number from 1 to ${MAX_SLOTS}.`, 'bad'); return; }
-    if (scope === 'day' && value < Number(d.active_bookings)) { say(`This date already has ${d.active_bookings} reservations.`, 'bad'); return; }
-    if (scope === 'all' && !(await ask(`Every date from today will allow ${value} client slot${value === 1 ? '' : 's'}. A date that already has more reservations keeps its limit.`, { title: 'Use this for all dates?', confirm: 'Apply to all dates' }))) return;
-    slotsSave.disabled = true; say('Saving…');
-    try {
-      const result = await db.rpc('save_production_capacity', { payload: { booking_date: date, scope, slots: value } });
-      const skipped = result?.skipped || [];
-      clearProductionCache();
-      say(skipped.length ? `Saved ${value} slots. Kept ${skipped.map(longDate).join(', ')} as is — already more reservations than that.` : `Saved: ${value} client slots${scope === 'all' ? ' for all dates' : ''}.`, 'ok');
-      onSaved();
-    } catch (error) { say(error.message || 'Could not save.', 'bad'); slotsSave.disabled = false; }
-  });
 }
