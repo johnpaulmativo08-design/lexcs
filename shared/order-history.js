@@ -297,7 +297,8 @@ function deliverySection(o) {
       ${o.notes ? row(I.note, 'Delivery instructions', esc(o.notes)) : ''}
     </div>
     ${/* the rider is on the way with a Lalamove link: the delivery card below shows the live tracker instead of the pin */
-      d && ['booked', 'picked_up'].includes(d.step) && /^https:\/\/([a-z0-9-]+\.)*lalamove\.com\//i.test(d.tracking_url || '') ? '' : mapPreview(pin)}
+      d && ['booked', 'picked_up'].includes(d.step) && /^https:\/\/([a-z0-9-]+\.)*lalamove\.com\//i.test(d.tracking_url || '') ? ''
+      : pin && o.status !== 'cancelled' && window.LexcRoute ? window.LexcRoute.card({ lat: pin.lat, lng: pin.lng, fee: Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : '' }) : mapPreview(pin)}
     ${d && window.LexcDelivery ? `<div class="oh-dc-rider">${window.LexcDelivery.card(d)}</div>` : ''}
   </section>`;
 }
