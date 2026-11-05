@@ -49,7 +49,12 @@ export async function renderDeliveryRates(content){
    '<section class="panel dr-form dr-try"><h2>Try the saved rates</h2><div class="dr-grid"><label class="form-field">Driving distance (km)<input type="number" min="0" step="0.1" value="8.5" data-try-km></label>'+
     '<label class="form-field">Town<select data-try-town><option value="">—</option>'+TOWNS.map(t=>'<option>'+e(t)+'</option>').join('')+'</select></label></div><p class="dr-result" data-try-out aria-live="polite"></p></section>'+
    '<section class="panel dr-form dr-lala"><h2>Try a Lalamove price</h2><p class="dr-hint">Asks Lalamove with your saved keys. Free, books nothing, and works while delivery fees are off.</p><div class="dr-grid">'+
-    pick('lala_spot','Drop-off',0,SPOTS.map(([n],i)=>[i,n]))+'</div><div class="dr-actions"><button class="button" type="button" data-lala-try>Ask Lalamove</button></div><p class="dr-result" data-lala-out aria-live="polite"></p></section>';
+    pick('lala_spot','Drop-off',0,SPOTS.map(([n],i)=>[i,n]))+'</div><div class="dr-actions"><button class="button" type="button" data-lala-try>Ask Lalamove</button></div><p class="dr-result" data-lala-out aria-live="polite"></p></section>'+
+   // phase 99: the shortest road route shown on delivery orders before a rider is booked
+   '<section class="panel dr-form dr-route" data-route-settings><h2>Route preview</h2><p class="dr-hint">Before a rider is booked, delivery orders show the shortest road route from the shop to the drop-off (OpenStreetMap, roads only). The fee is marked as a draft until a real Lalamove rider is booked.</p>'+
+    '<label class="dr-switch"><input type="checkbox" name="route_preview"'+(r.route_preview===false?'':' checked')+'><span><strong>Show the route to customers</strong><small>When off, customers see only their drop-off pin.</small></span></label>'+
+    '<label class="dr-switch"><input type="checkbox" name="route_show_time"'+(r.route_show_time===false?'':' checked')+'><span><strong>Show the rough travel time</strong><small>A car at normal speed, so treat it as a guide.</small></span></label>'+
+    '<div class="dr-actions"><button class="button" type="button" data-route-save>Save route preview</button></div><p class="dr-result" data-route-out aria-live="polite"></p></section>';
 
   const form=content.querySelector('[data-rates]'),say=t=>{form.querySelector('[role=alert]').textContent=t;};
   // with Lalamove prices the own-rate fields are not used (max distance still applies)
@@ -74,6 +79,11 @@ export async function renderDeliveryRates(content){
     out.innerHTML=p?'<strong>'+money(p.fee)+'</strong> <span>'+e(money(p.base_fee)+' base'+(Number(p.extra_km)>0?' + '+p.extra_km+' km × '+money(p.per_km_fee):'')+(Number(p.surcharge)>0?' + '+money(p.surcharge)+' '+p.town:'')+(Number(p.minimum_fee)>Number(p.before_rounding)?' · minimum applied':'')+(Number(p.before_rounding)!==Number(p.fee)?' · rounded from '+money(p.before_rounding):''))+'</span>':'Save a base fee first.';}
    catch(error){out.textContent=error.message;}};
   content.querySelector('[data-try-km]').oninput=tryIt;content.querySelector('[data-try-town]').onchange=tryIt;tryIt();
+
+  const routeBox=content.querySelector('[data-route-settings]'),routeOut=routeBox.querySelector('[data-route-out]');
+  routeBox.querySelector('[data-route-save]').onclick=async()=>{routeOut.textContent='Saving…';
+   try{await db.rpc('save_route_preview',{show_route:routeBox.querySelector('[name=route_preview]').checked,show_time:routeBox.querySelector('[name=route_show_time]').checked});routeOut.textContent='Saved.';}
+   catch(error){routeOut.textContent=/save_route_preview|schema cache|function/i.test(error.message||'')?'Run database/phase99-route-preview.sql in the Supabase SQL editor first.':error.message;}};
 
   form.onsubmit=async event=>{
    event.preventDefault();say('');const f=form.elements,button=form.querySelector('button[type=submit]');
