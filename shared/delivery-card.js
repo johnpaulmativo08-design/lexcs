@@ -1,6 +1,8 @@
 // Lalamove delivery card for customers (My Orders and the order chat) — phase 79; "I received my order" — phase 88.
 // The details are copied by LexC's from the Lalamove app; the customer confirms the delivery themself.
 // window.LexcDelivery.card(row, options) · any [data-received="<order id>"] button confirms (tap twice).
+// While the rider is on the way, a lalamove.com tracking link is shown live inside the card (Lalamove's own page in a
+// frame); the "Track live on Lalamove" button stays under it in case Lalamove's page will not load in the frame.
 (function(){
  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
  const time=value=>{if(!value)return '';const d=new Date(value),day=k=>k.toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
@@ -31,6 +33,7 @@
    (step==='failed'||options.compact?'':'<ol class="lx-dlv-track" aria-label="Delivery progress">'+STEPS.map(([,label],i)=>'<li class="'+(i<rank?'is-done':i===rank?'is-now':'')+'"'+(i===rank?' aria-current="step"':'')+'><span aria-hidden="true"></span>'+esc(label)+'</li>').join('')+'</ol>')+
    (!options.compact&&(rider||phone||fee)&&now!=='delivered'?'<dl class="lx-dlv-info">'+(rider?'<dt>Rider</dt><dd>'+esc(rider)+'</dd>':'')+(phone?'<dt>Contact</dt><dd><a href="tel:'+esc(phone)+'">'+esc(d.rider_phone)+'</a></dd>':'')+(fee?'<dt>Delivery fee</dt><dd>'+esc(fee)+' <small>pay the rider</small></dd>':'')+'</dl>':'')+
    (!options.compact&&!/\/admin\//.test(location.pathname)&&['booked','picked_up'].includes(now)&&d.order_id?'<button type="button" class="lx-dlv-received" data-received="'+esc(d.order_id)+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>I received my order</span></button>':'')+
+   (live&&lalamove&&!options.compact&&['booked','picked_up'].includes(step)?'<div class="lx-dlv-map"><span class="skel" aria-hidden="true"></span><iframe src="'+esc(link.href)+'" title="Live Lalamove tracking" loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div>':'')+
    (live&&['booked','picked_up'].includes(step)?'<a class="lx-dlv-live" href="'+esc(link.href)+'" target="_blank" rel="noopener noreferrer"><span class="lx-dlv-pulse" aria-hidden="true"></span>'+(lalamove?'Track live on Lalamove':'Open tracking link')+'<span aria-hidden="true">↗</span></a>':'')+
   '</section>';
  }
