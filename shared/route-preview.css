@@ -12,3 +12,6 @@
 html[data-theme=dark] .lx-route{background:#1b141f;border-color:#3b2f4d}html[data-theme=dark] .lx-route-label,html[data-theme=dark] .lx-route-fee{color:#f3e9f7}
 html[data-theme=dark] .lx-route-note{background:#2e2417;color:#f3c77e}
 @media(max-width:480px){.lx-route-map{height:210px}}
+.lx-route-drop{display:block;width:40px;height:60px;object-fit:contain;filter:drop-shadow(0 3px 4px rgba(43,21,48,.25))}
+.lx-route-ride{transition:none}.lx-route-rider{display:block;width:46px;height:58px;object-fit:contain;filter:drop-shadow(0 3px 3px rgba(43,21,48,.28));transform-origin:50% 85%}
+.lx-route-ride.is-east .lx-route-rider{transform:scaleX(-1)}
