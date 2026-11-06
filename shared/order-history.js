@@ -152,6 +152,23 @@ const pinOf = (o) => {
 };
 
 // ---------------------------------------------------------------------------------------------- list
+// payment deadlines (phase 102): a friendly line on the card — downpayment countdown, balance due, or auto-cancelled
+const timeLeft = (ms) => { const m = Math.max(0, Math.round(ms / 6e4)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60); return d ? `${d} d ${h} h` : h ? `${h} h ${m % 60} min` : `${m % 60} min`; };
+function deadlineLine(o) {
+  if (o.status === 'cancelled' && o.auto_cancelled_at) return `<p class="oh-deadline is-off">${svg(I.clock)}<span>Cancelled automatically: the downpayment wasn’t received in time. <a href="./">Book again</a></span></p>`;
+  if (!['confirmed', 'preparing', 'ready'].includes(o.status) || !(remaining(o) > 0)) return '';
+  const paid = Number(o.amount_paid || 0), now = Date.now();
+  if (paid === 0 && o.downpayment_due_at && o.payment_status !== 'verification_pending') {
+    const due = Date.parse(o.downpayment_due_at);
+    return `<p class="oh-deadline${due - now <= 108e5 ? ' is-soon' : ''}">${svg(I.clock)}<span>Downpayment due in <b data-oh-countdown="${esc(o.downpayment_due_at)}">${timeLeft(due - now)}</b> · by ${esc(stamp(o.downpayment_due_at))}</span></p>`;
+  }
+  if (paid > 0 && o.balance_due_at) {
+    const due = Date.parse(o.balance_due_at);
+    return now <= due ? `<p class="oh-deadline">${svg(I.clock)}<span>Balance due by ${esc(stamp(o.balance_due_at))}</span></p>`
+      : `<p class="oh-deadline is-soon">${svg(I.clock)}<span>Balance past due${o.late_fee_waived ? ' · late fee waived' : ' · online payments include a late fee (₱50 per 3 h, up to ₱300)'}</span></p>`;
+  }
+  return '';
+}
 function card(o) {
   const items = o.order_items || [], count = items.reduce((n, i) => n + Number(i.quantity || 0), 0), sch = schedule(o), act = nextAction(o), st = orderStatus(o), ps = paymentStatus(o);
   const shown = items.slice(0, 2), more = items.length - shown.length, d = delivery(o);
@@ -173,6 +190,7 @@ function card(o) {
       ${pill(ps, ' is-pay')}
     </div>
     ${confirmedDelivery ? `<p class="oh-confirm-flag${d?.step === 'failed' ? ' is-bad' : ''}">${svg(d?.step === 'failed' ? I.alert : I.check)}${d?.step === 'failed' ? 'Delivery issue — see details' : d ? (d.step === 'delivered' ? 'Delivered' : 'Out for delivery') : 'Delivery confirmed'}${sch && !d ? ' · ' + esc(sch.short) : ''}</p>` : ''}
+    ${deadlineLine(o)}
     <div class="oh-card-actions">
       ${act ? `<a class="oh-btn is-${act.tone}" href="${esc(act.href)}">${esc(act.label)}</a>` : ''}
       <button type="button" class="oh-btn is-quiet" data-oh-open="${esc(o.id)}">View details${svg(I.chev)}</button>
@@ -453,3 +471,5 @@ if (typeof baseAuth === 'function') window.updateNavAuth = function updateNavAut
 };
 
 window.LexcOrders = Object.freeze({ show, open, refresh, goTo });
+// payment deadline countdowns on the cards stay current
+setInterval(() => document.querySelectorAll('[data-oh-countdown]').forEach((el) => { el.textContent = timeLeft(Date.parse(el.dataset.ohCountdown) - Date.now()); }), 30000);

@@ -396,3 +396,13 @@ html,body{overflow-x:clip}
 .qr-timer b{font-variant-numeric:tabular-nums;color:var(--plum,#5c3d6e)}
 .qr-steps{margin:8px 0 0;padding-left:20px;display:grid;gap:6px;color:var(--text,#3a2840);font-size:.92rem;line-height:1.45}
 .qr-steps small{color:var(--ui-muted,#705c7c)}
+/* payment deadlines (phase 102): a calm countdown card above the payment steps */
+.deadline-card{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:16px;border:1px solid #e6dcf2;background:#faf6fd;margin-bottom:14px}
+.deadline-card strong{display:block;font-size:.95rem;color:#2b1530}.deadline-card p{margin:4px 0 0;font-size:.85rem;line-height:1.5;color:#5b4d6b}
+.deadline-card [data-countdown]{font-variant-numeric:tabular-nums;color:#6f4fa8}
+.deadline-ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#efe5f9;color:#6f4fa8;font-size:1rem}
+.deadline-card.is-soon{background:#fff7ec;border-color:#f3dcb4}.deadline-card.is-soon .deadline-ic{background:#ffeccc;color:#9a640d}.deadline-card.is-soon [data-countdown]{color:#9a640d}
+.deadline-card.is-ok{background:#effaf4;border-color:#c4e8d3}.deadline-card.is-ok .deadline-ic{background:#dcf3e6;color:#1f7a4c}
+.deadline-card.is-off{background:#fbf2f5;border-color:#f0cdd8}.deadline-card.is-off .deadline-ic{background:#f8e1e8;color:#a3324b}
+.deadline-card .primary-link{display:inline-block;margin-top:10px;padding:8px 16px;border-radius:999px;background:#2b1530;color:#fff;font-weight:700;font-size:.84rem;text-decoration:none}
+html[data-theme=dark] .deadline-card{background:#211a28;border-color:#3b2f47}html[data-theme=dark] .deadline-card strong{color:#f3e9f7}html[data-theme=dark] .deadline-card p{color:#cbbcd9}

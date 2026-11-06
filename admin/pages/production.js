@@ -69,7 +69,7 @@ export async function renderProduction(content, focus) {
     const need = ids.filter((id) => !orders.has(id));
     if (need.length) {
       const list = db.unwrap(await db.client.from('orders')
-        .select('id,order_number,status,payment_status,fulfillment_method,receiving_start,notes,customer_name,created_at,order_items(name_snapshot,variant_label_snapshot,quantity)')
+        .select('*,order_items(name_snapshot,variant_label_snapshot,quantity)')   // * so new columns (phase 102 deadlines) come along when they exist
         .in('id', need)) || [];
       list.forEach((o) => orders.set(o.id, o));
     }
@@ -327,10 +327,13 @@ export async function renderProduction(content, focus) {
     const o = orders.get(t.r.order_id), s = statusOf(t), paid = ['paid', 'partially_paid'].includes(o?.payment_status);
     const action = s === 'pending' ? `<button type="button" class="ps-chip is-take" data-act="take" data-id="${e(t.r.order_id)}">Take order</button>`
       : paid ? `<button type="button" class="ps-chip" data-act="start" data-id="${e(t.r.order_id)}">Start</button>` : `<span class="ps-chip is-wait" title="Start opens once a payment is marked received">Waiting for payment</span>`;
+    // phase 102: an unpaid confirmed order cancels itself at its downpayment deadline
+    const cancels = s === 'confirmed' && !paid && o?.downpayment_due_at && o.payment_status !== 'verification_pending' ? Date.parse(o.downpayment_due_at) - Date.now() : null;
+    const flag = cancels == null ? '' : `<small class="ps-cancels${cancels < 108e5 ? ' is-soon' : ''}">${cancels <= 0 ? 'Downpayment overdue · cancelling' : `Auto-cancels in ${mins(cancels / MIN)} without the downpayment`}</small>`;
     return `<div class="ps-ticket-card is-${TONE[s]}${late(t) ? ' is-bad' : ''}${picked === t.r.order_id ? ' is-picked' : ''}${placing === t.r.order_id ? ' is-placing' : ''}" data-pick="${e(t.r.order_id)}"${plansReady ? ` draggable="true" data-drag="${e(t.r.order_id)}"` : ''}>
       <small><span class="ps-grip" aria-hidden="true">⋮⋮</span> #${e(t.r.order_number)} · ${e(shortDay(t.day))}${t.day !== selected ? ' (tomorrow)' : ''} · ${e(mins(t.r.minutes))}</small>
       <b>${e(what(o))}</b><small>${t.planned ? 'Planned' : s === 'pending' ? 'New order · auto plan' : 'Auto plan'} ${e(atDay(t.start, selected))} · ${o?.fulfillment_method === 'lalamove' ? 'deliver' : 'pickup'} ${e(atDay(Date.parse(t.r.delivery_at), selected))}</small>
-      ${late(t) ? '<small class="is-bad">Finishes after its deadline</small>' : ''}${action}</div>`;
+      ${late(t) ? '<small class="is-bad">Finishes after its deadline</small>' : ''}${flag}${action}</div>`;
   }
   function paintTicket() {
     const box = $('[data-ticket]'), t = taskOf(picked), o = orders.get(picked);

@@ -788,3 +788,8 @@ input.qty-num:focus{border-color:#2b1530;box-shadow:inset 0 0 0 1px #2b1530;back
 .co-card .customer-order-more[open] summary::after{transform:rotate(180deg)}
 .co-card .customer-order-more summary:hover::after{background-color:#ece4fa}
 @media(prefers-reduced-motion:reduce){.co-card .customer-order-more summary::after{transition:none}}
+/* payment deadlines agreement at checkout (phase 102) */
+.co-agree{display:flex;gap:10px;align-items:flex-start;margin:4px 0 14px;padding:12px 14px;border:1px solid #e6dcf2;border-radius:14px;background:#faf6fd;font-size:.82rem;line-height:1.5;color:#4b3a63;cursor:pointer}
+.co-agree input{flex:none;width:18px;height:18px;margin-top:2px;accent-color:#6f4fa8}
+.co-agree b{color:#2b1530}.co-agree.is-needed{border-color:#d4537e;box-shadow:0 0 0 3px rgba(212,83,126,.12)}
+html[data-theme=dark] .co-agree{background:#211a28;border-color:#3b2f47;color:#cbbcd9}html[data-theme=dark] .co-agree b{color:#f3e9f7}

@@ -1,0 +1,280 @@
+-- Phase 102 · Payment deadlines, automatic cancellation and the late payment fee (Terms 3.3 and 3.4).
+--
+-- The rules (owner's decisions, Nov 2026):
+--   Downpayment (60%)
+--   * Due 24 hours after LexC's CONFIRMS the order (customers cannot pay while it is pending, so the clock starts at
+--     confirmation). For a short-notice order — pickup/delivery less than 48 hours after confirmation — it is due
+--     2 hours after confirmation. It is never due after the pickup/delivery time itself.
+--   * "Paid in time" = the receipt was uploaded, or an online (PayMongo) payment was started, before the deadline —
+--     even if LexC's checks it later.
+--   * A rejected receipt gives the customer 3 hours from the rejection to send a new one, even past the deadline.
+--   * No downpayment by the deadline → the order is cancelled automatically (the date and slot are freed). No money
+--     was paid, so there is nothing to refund. The customer is told in the order chat and can book again.
+--   * Reminders in the order chat 6 hours and 1 hour before the deadline.
+--   Remaining balance (40%)
+--   * Due 24 hours before pickup/delivery (never before the downpayment deadline).
+--   * Online (electronic) balance payments after that deadline carry a late fee of ₱50 for every started 3 hours,
+--     up to ₱300 in total. The fee is fixed when the customer prepares the payment (what they see is what they pay).
+--   * Paying the balance in cash at pickup has no late fee (cash is settled with LexC's at pickup, outside the site).
+--   * The fee stops once the order is completed. The Admin can waive it on any order.
+--   Only orders confirmed AFTER this phase get deadlines; older orders are not affected (they were tests).
+--
+-- How it works:
+--   * orders gets downpayment_due_at, balance_due_at, late_fee_waived, late_fee_paid, the reminder counters and
+--     auto_cancelled_at; order_payment_attempts gets late_fee (the part of the amount that is the fee).
+--   * A trigger sets both deadlines when an order goes pending → confirmed; the confirmation chat message now says
+--     the exact downpayment deadline.
+--   * start_order_payment adds the late fee to a balance payment; review_order_payment counts the fee separately
+--     (amount_paid stays the order money, late_fee_paid the fees), so the existing totals and checks are unchanged.
+--   * private.run_payment_deadlines() sends the reminders and cancels late orders; pg_cron runs it every 5 minutes.
+--
+-- What it does NOT do: change prices, the 60% rate, the delivery or rush fee, payments already made, or any order
+-- confirmed before this phase. Rehearse with database/tests/phase102-rehearsal.sql (undoes itself), then run this
+-- whole file once in the Supabase SQL editor. Safe to re-run.
+begin;
+
+-- 1. what each order keeps -----------------------------------------------------------------------------------------
+alter table public.orders add column if not exists downpayment_due_at timestamptz;
+alter table public.orders add column if not exists balance_due_at timestamptz;
+alter table public.orders add column if not exists late_fee_waived boolean not null default false;
+alter table public.orders add column if not exists late_fee_paid numeric(10,2) not null default 0 check (late_fee_paid >= 0);
+alter table public.orders add column if not exists downpayment_reminders smallint not null default 0;
+alter table public.orders add column if not exists balance_reminders smallint not null default 0;
+alter table public.orders add column if not exists auto_cancelled_at timestamptz;
+alter table public.order_payment_attempts add column if not exists late_fee numeric(10,2) not null default 0 check (late_fee >= 0);
+
+-- 2. the late fee for an order at a moment: ₱50 per started 3 hours after the balance deadline, at most ₱300 ---------
+create or replace function private.order_late_fee(o public.orders, at_time timestamptz default now())
+returns numeric language sql stable set search_path = '' as $$
+  select case
+    when o.late_fee_waived or o.balance_due_at is null or o.total_amount is null
+      or o.amount_paid <= 0 or o.amount_paid >= o.total_amount        -- only a balance after the downpayment
+      or o.status in ('cancelled', 'completed') or at_time <= o.balance_due_at then 0::numeric
+    else least(300, 50 * ceil(extract(epoch from (at_time - o.balance_due_at)) / 10800))::numeric
+  end
+$$;
+revoke all on function private.order_late_fee(public.orders, timestamptz) from public;
+
+-- the fee shown to the customer (their own order) or the Admin, right now
+create or replace function public.order_late_fee_now(target_order uuid) returns numeric
+language plpgsql stable security definer set search_path = '' as $$
+declare o public.orders;
+begin
+  select * into o from public.orders where id = target_order and (customer_id = auth.uid() or private.is_admin());
+  if not found then return 0; end if;
+  return private.order_late_fee(o, now());
+end $$;
+revoke all on function public.order_late_fee_now(uuid) from public, anon;
+grant execute on function public.order_late_fee_now(uuid) to authenticated;
+
+-- 3. deadlines are set when LexC's confirms (named a_… so it runs before the other "before update" triggers) ------
+create or replace function private.set_payment_deadlines() returns trigger
+language plpgsql set search_path = '' as $$
+declare short boolean;
+begin
+  if old.status = 'pending' and new.status = 'confirmed' and new.downpayment_due_at is null then
+    short := new.receiving_start is not null and new.receiving_start - now() < interval '48 hours';
+    new.downpayment_due_at := least(now() + case when short then interval '2 hours' else interval '24 hours' end,
+                                    coalesce(new.receiving_start, 'infinity'::timestamptz));
+    new.balance_due_at := case when new.receiving_start is null then null
+                               else greatest(new.downpayment_due_at, new.receiving_start - interval '24 hours') end;
+  end if;
+  return new;
+end $$;
+revoke all on function private.set_payment_deadlines() from public;
+drop trigger if exists a_payment_deadlines on public.orders;
+create trigger a_payment_deadlines before update of status on public.orders
+  for each row execute function private.set_payment_deadlines();
+
+-- Manila time for messages, e.g. "Sat, Nov 8, 11:00 PM"
+create or replace function private.manila_when(t timestamptz) returns text language sql immutable set search_path = '' as $$
+  select to_char(t at time zone 'Asia/Manila', 'Dy, Mon FMDD, FMHH12:MI AM')
+$$;
+revoke all on function private.manila_when(timestamptz) from public;
+
+-- 4. the confirmation message says the deadline (the rest of chat_order_event is unchanged) -----------------------
+create or replace function private.chat_order_event() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare thread_id uuid; opens_payment boolean:=old.status='pending' and new.status='confirmed';
+begin
+  if new.status is not distinct from old.status then return new; end if;
+  select id into thread_id from public.chat_conversations where order_id=new.id;
+  if thread_id is null and opens_payment then
+    insert into public.chat_conversations(customer_id,order_id,state) values(new.customer_id,new.id,'active')
+      on conflict (order_id) where order_id is not null do update set updated_at=now() returning id into thread_id;
+  end if;
+  if thread_id is not null then
+    insert into public.chat_messages(conversation_id,sender_type,message_type,body)
+      values(thread_id,'system','status_update',case when opens_payment
+        then 'LexC''s confirmed your order. You can now pay the downpayment or the full amount: open My Orders → View order & payment.'
+          || case when new.downpayment_due_at is not null then ' Please pay the 60% downpayment by ' || private.manila_when(new.downpayment_due_at)
+               || ', or the order is cancelled automatically.' else '' end
+        when new.status = 'cancelled' and new.auto_cancelled_at is not null
+        then 'Order status changed to cancelled. The downpayment wasn''t received by ' || private.manila_when(new.downpayment_due_at)
+          || ', so this reservation was cancelled automatically. You''re welcome to book again from the shop.'
+        else 'Order status changed to '||replace(new.status,'_',' ')||'. Check My Orders for the latest details.' end);
+    update public.chat_conversations set updated_at=now() where id=thread_id;
+  end if;
+  return new;
+end $$;
+
+-- 5. a balance payment includes the late fee (live start_order_payment, plus the fee in the balance branches) ------
+create or replace function private.start_order_payment(target_order uuid, method_code text, pay_option text default null, custom_amount numeric default null)
+returns public.order_payment_attempts language plpgsql security definer set search_path = '' as $$
+declare o public.orders; m public.payment_methods; p public.order_payment_attempts; due numeric(12,2); kind text; fee numeric(10,2) := 0;
+begin
+  if auth.uid() is null then raise exception 'Sign in to pay for an order.' using errcode='42501'; end if;
+  if pay_option is not null and pay_option not in ('downpayment','full') then
+    raise exception 'Choose the downpayment or the full payment.' using errcode='22023';
+  end if;
+  select * into o from public.orders where id=target_order and customer_id=auth.uid() for update;
+  if not found then raise exception 'Order not found.' using errcode='42501'; end if;
+  if o.status='cancelled' then raise exception 'Cancelled orders cannot be paid.' using errcode='22023'; end if;
+  if o.status='pending' then
+    raise exception 'Please wait for LexC''s to confirm your order before paying.' using errcode='22023';
+  end if;
+  if o.total_amount is null or o.deposit_due is null then
+    raise exception 'Waiting for the final delivery quote before payment.' using errcode='22023';
+  end if;
+  if o.amount_paid>=o.total_amount then raise exception 'This order is already fully paid.' using errcode='22023'; end if;
+  select * into m from public.payment_methods where code=method_code and active;
+  if not found then raise exception 'Payment method is unavailable.' using errcode='22023'; end if;
+  if o.amount_paid>0 then
+    if pay_option='full' or o.amount_paid>=o.deposit_due then kind:='balance'; fee:=private.order_late_fee(o, now()); due:=o.total_amount-o.amount_paid+fee;
+    else kind:='downpayment'; due:=o.deposit_due-o.amount_paid; end if;
+  elsif pay_option='full' or o.deposit_due>=o.total_amount then kind:='full'; due:=o.total_amount;
+  else kind:='downpayment'; due:=o.deposit_due; end if;
+  if due<=0 then raise exception 'No payment is due.' using errcode='22023'; end if;
+  select * into p from public.order_payment_attempts
+    where order_id=o.id and status in ('awaiting_payment','verification_pending') for update;
+  if found then
+    if p.status='verification_pending' then return p; end if;
+    -- no proof sent yet: the customer may switch account or amount (the late fee is worked out again)
+    update public.order_payment_attempts set payment_method_id=m.id,amount=due,payment_kind=kind,late_fee=fee
+      where id=p.id returning * into p;
+    return p;
+  end if;
+  insert into public.order_payment_attempts(order_id,customer_id,payment_method_id,amount,payment_kind,late_fee)
+    values(o.id,o.customer_id,m.id,due,kind,fee) returning * into p;
+  return p;
+end $$;
+revoke all on function private.start_order_payment(uuid, text, text, numeric) from public;
+grant execute on function private.start_order_payment(uuid, text, text, numeric) to authenticated;
+
+-- 6. checking a payment counts the fee apart from the order money (live review_order_payment, fee-aware) ----------
+create or replace function private.review_order_payment(target_payment uuid, decision text, review_reason text)
+returns public.order_payment_attempts language plpgsql security definer set search_path = '' as $$
+declare p public.order_payment_attempts; o public.orders; verified_total numeric(12,2); fees numeric(10,2);
+begin
+  if auth.uid() is null or not private.is_admin() then raise exception 'Admin access required.' using errcode='42501'; end if;
+  if decision not in ('paid','rejected') then raise exception 'Choose paid or rejected.'; end if;
+  if nullif(btrim(coalesce(review_reason,'')),'') is null then raise exception 'Record the bank verification or rejection reason.'; end if;
+  select * into p from public.order_payment_attempts where id=target_payment;
+  if not found then raise exception 'Payment attempt not found.'; end if;
+  select * into o from public.orders where id=p.order_id for update;
+  select * into p from public.order_payment_attempts where id=target_payment for update;
+  if p.status<>'verification_pending' then raise exception 'Payment has already been processed.'; end if;
+  if decision='paid' then
+    if o.status='cancelled' then raise exception 'Cancelled order requires separate resolution before payment approval.'; end if;
+    if o.total_amount is null or o.amount_paid+(p.amount-p.late_fee)>o.total_amount then raise exception 'Payment exceeds the order balance.'; end if;
+    update public.order_payment_attempts set status='paid',verified_at=now(),verified_by=auth.uid(),
+      verification_note=left(btrim(review_reason),1000)
+      where id=p.id returning * into p;
+    select coalesce(sum(amount-late_fee),0), coalesce(sum(late_fee),0) into verified_total, fees from public.order_payment_attempts
+      where order_id=o.id and status='paid';
+    update public.orders set amount_paid=verified_total, late_fee_paid=fees,
+      payment_status=case when verified_total>=total_amount then 'paid' when verified_total>=deposit_due then 'partially_paid' else 'unpaid' end,
+      paid_at=case when verified_total>=total_amount then now() else paid_at end where id=o.id;
+  else
+    update public.order_payment_attempts set status='rejected',rejected_at=now(),
+      rejection_reason=left(btrim(review_reason),1000) where id=p.id returning * into p;
+    update public.orders set payment_status='rejected' where id=o.id;
+  end if;
+  return p;
+end $$;
+revoke all on function private.review_order_payment(uuid, text, text) from public;
+grant execute on function private.review_order_payment(uuid, text, text) to authenticated;
+
+-- 7. the Admin can waive (or restore) the late fee; a balance payment not yet sent asks the new amount -------------
+create or replace function private.waive_late_fee(target_order uuid, waive boolean) returns public.orders
+language plpgsql security definer set search_path = '' as $$
+declare o public.orders; fee numeric(10,2);
+begin
+  if auth.uid() is null or not private.is_admin() then raise exception 'Admin access required.' using errcode='42501'; end if;
+  update public.orders set late_fee_waived = coalesce(waive, true) where id = target_order returning * into o;
+  if o.id is null then raise exception 'Order not found.' using errcode='22023'; end if;
+  fee := private.order_late_fee(o, now());
+  update public.order_payment_attempts set amount = amount - late_fee + fee, late_fee = fee
+   where order_id = o.id and status = 'awaiting_payment' and payment_kind = 'balance'
+     and provider_checkout_id is null and amount - late_fee + fee > 0;
+  return o;
+end $$;
+revoke all on function private.waive_late_fee(uuid, boolean) from public;
+grant execute on function private.waive_late_fee(uuid, boolean) to authenticated;
+create or replace function public.waive_late_fee(target_order uuid, waive boolean default true) returns public.orders
+language sql security invoker set search_path = '' as $$ select private.waive_late_fee(target_order, waive) $$;
+revoke all on function public.waive_late_fee(uuid, boolean) from public, anon;
+grant execute on function public.waive_late_fee(uuid, boolean) to authenticated;
+
+-- 8. reminders and automatic cancellation (at_time lets the rehearsal move the clock) ---------------------------
+create or replace function private.run_payment_deadlines(at_time timestamptz default now()) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare o public.orders; thread uuid; due timestamptz; grace timestamptz; cancelled int := 0; reminded int := 0;
+begin
+  for o in
+    select * from public.orders
+     where status = 'confirmed' and downpayment_due_at is not null and amount_paid = 0
+       and payment_status <> 'verification_pending'
+     order by downpayment_due_at
+  loop
+    -- a receipt rejected near the deadline: 3 hours from the rejection to send a new one
+    select max(rejected_at) + interval '3 hours' into grace from public.order_payment_attempts where order_id = o.id and status = 'rejected';
+    due := greatest(o.downpayment_due_at, coalesce(grace, '-infinity'::timestamptz));
+    -- an online payment started in the last 35 minutes may still arrive (its QR lasts 30)
+    if exists (select 1 from public.order_payment_attempts where order_id = o.id and status = 'awaiting_payment'
+                and provider_checkout_id is not null and updated_at > at_time - interval '35 minutes') then continue; end if;
+    select id into thread from public.chat_conversations where order_id = o.id;
+    if at_time > due then
+      perform 1 from public.availability_slots where id = o.slot_id for update;
+      update public.orders set status = 'cancelled', auto_cancelled_at = at_time where id = o.id and status = 'confirmed';
+      cancelled := cancelled + 1;
+    elsif due - at_time <= interval '1 hour' and o.downpayment_reminders < 2 then
+      update public.orders set downpayment_reminders = 2 where id = o.id;
+      if thread is not null then insert into public.chat_messages(conversation_id, sender_type, message_type, body)
+        values (thread, 'system', 'status_update', 'Reminder: about 1 hour left to pay the 60% downpayment (by ' || private.manila_when(due) || '). After that the reservation is cancelled automatically.'); end if;
+      reminded := reminded + 1;
+    elsif due - at_time <= interval '6 hours' and o.downpayment_reminders < 1 then
+      update public.orders set downpayment_reminders = 1 where id = o.id;
+      if thread is not null then insert into public.chat_messages(conversation_id, sender_type, message_type, body)
+        values (thread, 'system', 'status_update', 'Reminder: please pay the 60% downpayment by ' || private.manila_when(due) || ' to keep your reservation.'); end if;
+      reminded := reminded + 1;
+    end if;
+  end loop;
+  -- balance: one reminder 6 hours before its deadline, one note when the late fee starts
+  for o in
+    select * from public.orders
+     where status in ('confirmed', 'preparing', 'ready') and balance_due_at is not null and amount_paid > 0 and amount_paid < total_amount
+       and not late_fee_waived and balance_reminders < 2 and balance_due_at - at_time <= interval '6 hours'
+  loop
+    select id into thread from public.chat_conversations where order_id = o.id;
+    if at_time > o.balance_due_at and o.balance_reminders < 2 then
+      update public.orders set balance_reminders = 2 where id = o.id;
+      if thread is not null then insert into public.chat_messages(conversation_id, sender_type, message_type, body)
+        values (thread, 'system', 'status_update', 'The balance deadline (' || private.manila_when(o.balance_due_at) || ') has passed. Online balance payments now include a late fee of ₱50 for every 3 hours, up to ₱300. Paying in cash at pickup has no late fee.'); end if;
+    elsif o.balance_reminders < 1 then
+      update public.orders set balance_reminders = 1 where id = o.id;
+      if thread is not null then insert into public.chat_messages(conversation_id, sender_type, message_type, body)
+        values (thread, 'system', 'status_update', 'Reminder: the remaining balance is due by ' || private.manila_when(o.balance_due_at) || '. After that, online payments include a ₱50 late fee for every 3 hours.'); end if;
+    end if;
+    reminded := reminded + 1;
+  end loop;
+  return jsonb_build_object('cancelled', cancelled, 'reminded', reminded);
+end $$;
+revoke all on function private.run_payment_deadlines(timestamptz) from public, anon, authenticated;
+
+-- 9. run it every 5 minutes (pg_cron is part of Supabase; this switches it on) ------------------------------------
+create extension if not exists pg_cron with schema pg_catalog;
+select cron.schedule('lexc-payment-deadlines', '*/5 * * * *', $cron$select private.run_payment_deadlines()$cron$);
+
+commit;
+notify pgrst, 'reload schema';
