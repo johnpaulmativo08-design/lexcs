@@ -111,8 +111,24 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 .ps-skel{display:grid;gap:10px}.ps-skel .skel{height:56px;border-radius:12px}.ps-skel .skel:first-child{height:96px}
 .ps-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;background:var(--plum);color:#fff;border-radius:999px;padding:10px 18px;font-weight:700;font-size:.82rem;box-shadow:0 10px 30px rgba(36,21,50,.25);animation:ps-in .2s ease both;transition:opacity .4s,transform .4s}
 .ps-toast.is-bad{background:var(--bad)}.ps-toast.is-out{opacity:0;transform:translate(-50%,6px)}
-@media(max-width:1180px){.ps{grid-template-columns:minmax(240px,.9fr) minmax(0,1.5fr)}.ps-ticket{grid-column:1/-1}}
+@media(max-width:1180px){.ps{grid-template-columns:minmax(240px,.9fr) minmax(0,1.5fr)}.ps-right{grid-column:1/-1}}
 @media(max-width:760px){.ps{grid-template-columns:minmax(0,1fr);gap:12px}.ps-col{padding:13px;border-radius:18px}.ps-board{order:-1}.ps-timer b{font-size:1.45rem}}
 @media(prefers-reduced-motion:reduce){.ps *,.ps *::before{animation:none!important;transition:none!important}}
 /* Orders → kitchen time note: link into Production */
 .order-to-prod{margin-left:8px;font-weight:600;color:#6f53bc;text-decoration:none;white-space:nowrap}
+/* right column: mini calendar above the order ticket */
+.ps-right{display:grid;gap:16px;min-width:0;align-content:start}
+.ps-cal{gap:8px}.ps-cal>.ps-row b{font-size:.88rem}
+.ps-icon.is-sm{width:28px;height:28px;font-size:1rem}
+.ps-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
+.ps-cal-grid small{font-size:.66rem;font-weight:700}
+.ps-cal-grid button{position:relative;aspect-ratio:1;max-height:38px;border:0;border-radius:10px;background:transparent;color:var(--ink);font:600 .78rem 'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:background .15s}
+.ps-cal-grid button:hover{background:var(--soft)}
+.ps-cal-grid button.is-today{box-shadow:inset 0 0 0 1.5px var(--pink)}
+.ps-cal-grid button.is-on{background:var(--plum);color:#fff;box-shadow:none}
+.ps-cal-grid button i{position:absolute;left:50%;bottom:4px;width:5px;height:5px;border-radius:50%;transform:translateX(-50%);background:var(--violet-2)}
+.ps-cal-grid button i.is-many{background:var(--pink)}.ps-cal-grid button.is-on i{background:#e7c6f0}
+/* 24-hour track: bakes carried over midnight */
+.ps-block.is-carry-in{border-top-left-radius:0;border-bottom-left-radius:0;border-left-style:dashed}
+.ps-block.is-carry-out{border-top-right-radius:0;border-bottom-right-radius:0;border-right-style:dashed}
+.ps-hours span:last-child{transform:translateX(-100%)}

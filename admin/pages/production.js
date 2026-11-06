@@ -2,7 +2,9 @@
 // (Take order → Start → Baking timer → Ready → Handed over) on a track of the day's bake window.
 //   Left: the shift — workload ring, kitchen time (capacity) control, stage counts, on-time streak.
 //   Middle: the shift board — day track with a live "now" marker, the order(s) baking with a running timer, up next.
-//   Right: the order ticket — stage times, kitchen time, payment, the one next action.
+//   Right: a mini month calendar (days with tasks are dotted), then the order ticket — stage times, payment, action.
+// The track runs 12:00 AM – 11:59 PM: a bake for tomorrow morning that starts tonight shows on tonight's track too
+// (phase 100 lets the shift start the evening before).
 // Nothing new is stored. Data: get_production_day / save_production_capacity (phase 96), get_bake_timeline and
 // production_settings bake window (phase 97), orders + order_items, booking_entries (reserved times), and the status
 // messages the database posts in each order's chat (when it was confirmed, started, ready, completed).
@@ -31,27 +33,32 @@ const skel = (n) => `<div class="ps-skel" role="status" aria-label="Loading">${'
 
 export async function renderProduction(content, focus) {
   const today = manilaKey();
-  let selected = today, picked = null, tick = 0, celebrate = null;
+  let selected = today, picked = null, tick = 0, celebrate = null, calMonth = today.slice(0, 7);
   const orders = new Map(), stamps = new Map();
-  let state = { rows: [], day: null, held: [], window: { start: 240, end: 990 } };
+  let state = { rows: [], tonight: [], day: null, held: [], window: { start: 240, end: 990 } };
+  const allRows = () => state.rows.concat(state.tonight);
 
   content.innerHTML = `<div class="ps" data-ps>
     <aside class="ps-col ps-left" data-left aria-busy="true">${skel(4)}</aside>
     <section class="ps-col ps-board" data-board aria-busy="true">${skel(3)}</section>
-    <aside class="ps-col ps-ticket" data-ticket><div class="ps-empty">${icon('orders')}<p>Pick a task to open its ticket.</p></div></aside>
+    <aside class="ps-right"><section class="ps-col ps-cal" data-cal aria-label="Calendar"></section>
+      <section class="ps-col ps-ticket" data-ticket><div class="ps-empty">${icon('orders')}<p>Pick a task to open its ticket.</p></div></section></aside>
   </div>`;
   const $ = (s) => content.querySelector(s);
 
   // ---------------------------------------------------------------- data
   async function load(fresh) {
     if (fresh) { clearProductionCache(); orders.clear(); stamps.clear(); }
-    const [rows, day, held, win] = await Promise.all([
+    const [rows, day, held, win, tomorrow] = await Promise.all([
       db.rpc('get_bake_timeline', { target_date: selected }).catch((error) => { console.warn('Bake timeline:', error); return []; }),
       db.rpc('get_production_day', { target_date: selected }).catch((error) => { console.warn('Production day:', error); return null; }),
       db.client.from('booking_entries').select('id,customer_name,scheduled_start,scheduled_end,status').eq('booking_date', selected).is('order_id', null).neq('status', 'cancelled').then((r) => r.data || [], () => []),
       db.client.from('production_settings').select('bake_start_minutes,bake_end_minutes').maybeSingle().then((r) => r.data, () => null),
+      db.rpc('get_bake_timeline', { target_date: plus(selected, 1) }).catch(() => []),
     ]);
-    const ids = (rows || []).map((r) => r.order_id);
+    // tomorrow's bakes that start before midnight are baked tonight
+    const tonight = (tomorrow || []).filter((r) => Number(r.bake_start_minutes) < 0).map((r) => ({ ...r, tomorrow: true }));
+    const ids = (rows || []).concat(tonight).map((r) => r.order_id);
     const need = ids.filter((id) => !orders.has(id));
     if (need.length) {
       const list = db.unwrap(await db.client.from('orders')
@@ -60,7 +67,7 @@ export async function renderProduction(content, focus) {
       list.forEach((o) => orders.set(o.id, o));
     }
     await loadStamps(ids);
-    state = { rows: rows || [], day, held: held || [], window: { start: Number(win?.bake_start_minutes ?? 240), end: Number(win?.bake_end_minutes ?? 990) } };
+    state = { rows: rows || [], tonight, day, held: held || [], window: { start: Number(win?.bake_start_minutes ?? 240), end: Number(win?.bake_end_minutes ?? 990) } };
   }
   // when each order reached each stage: the status messages in its chat (same source as the customer's order history)
   async function loadStamps(ids) {
@@ -94,7 +101,7 @@ export async function renderProduction(content, focus) {
     const done = count('ready') + count('completed'), streak = rows.filter(onTime).length;
     const hour = Number(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false }));
     box.innerHTML = `
-      <header class="ps-head"><div><small>${e(longDay(selected))} · shift ${e(clock(state.window.start))} – ${e(clock(state.window.end))}</small>
+      <header class="ps-head"><div><small>${e(longDay(selected))} · shift ${e(clock(state.window.start))}${state.window.start < 0 ? ' the evening before' : ''} – ${e(clock(state.window.end))}</small>
         <h2>${selected === today ? (hour < 12 ? 'Good morning, chef' : hour < 18 ? 'Good afternoon, chef' : 'Good evening, chef') : 'Shift plan'}</h2></div>
         <a class="ps-icon is-dark" href="#bookings" title="Reserve a time" aria-label="Reserve a time">${icon('plus')}</a></header>
       <div class="ps-meter is-${lv}">
@@ -149,8 +156,10 @@ export async function renderProduction(content, focus) {
   // ---------------------------------------------------------------- middle: the shift board
   function paintBoard() {
     const box = $('[data-board]'), rows = state.rows.slice().sort((a, b) => (a.bake_start_minutes ?? 0) - (b.bake_start_minutes ?? 0));
-    const baking = rows.filter((r) => statusOf(r) === 'preparing');
-    const next = rows.filter((r) => ['confirmed', 'pending'].includes(statusOf(r)));
+    const tonightNext = state.tonight.filter((r) => ['confirmed', 'pending'].includes(statusOf(r)));
+    const tonightBaking = state.tonight.filter((r) => statusOf(r) === 'preparing');
+    const baking = rows.filter((r) => statusOf(r) === 'preparing').concat(tonightBaking);
+    const next = rows.filter((r) => ['confirmed', 'pending'].includes(statusOf(r))).concat(tonightNext);
     const finished = rows.filter((r) => ['ready', 'completed'].includes(statusOf(r)));
     const live = selected === today;
     box.innerHTML = `
@@ -172,25 +181,30 @@ export async function renderProduction(content, focus) {
     if (celebrate) { box.querySelector(`[data-done-id="${celebrate}"]`)?.classList.add('is-new'); celebrate = null; }
   }
   function track(rows) {
-    const { start, end } = state.window, span = Math.max(60, end - start);
-    const pos = (m) => Math.min(100, Math.max(0, ((m - start) / span) * 100));
-    const hours = []; for (let h = Math.ceil(start / 120) * 120; h <= end; h += 120) hours.push(h);
+    const pos = (m) => Math.min(100, Math.max(0, (m / 1440) * 100));
+    const hours = [0, 180, 360, 540, 720, 900, 1080, 1260];
     const now = selected === today ? manilaMinutes() : null;
     const toMin = (t) => { const [hh, mm] = String(t || '').split(':').map(Number); return Number.isFinite(hh) ? hh * 60 + (mm || 0) : null; };
     const held = state.held.map((h) => { const a = toMin(h.scheduled_start), b = toMin(h.scheduled_end) ?? (a == null ? null : a + 60); if (a == null) return '';
-      return `<span class="ps-block is-held" style="left:${pos(a)}%;width:${Math.max(3, pos(b) - pos(a))}%" title="Reserved · ${e(h.customer_name)}">${e(h.customer_name)}</span>`; }).join('');
-    return `<div class="ps-track" aria-label="Day plan from ${e(clock(start))} to ${e(clock(end))}">
-      <div class="ps-hours" aria-hidden="true">${hours.map((h) => `<span style="left:${pos(h)}%">${e(clock(h).replace(':00', ''))}</span>`).join('')}</div>
-      <div class="ps-lane">${held}${rows.map((r) => {
-        const s = statusOf(r), left = pos(r.bake_start_minutes ?? start), width = Math.max(3, pos(r.bake_finish_minutes ?? start) - left);
-        return `<button type="button" class="ps-block is-${TONE[s] || 'start'}${r.fits ? '' : ' is-bad'}${picked === r.order_id ? ' is-picked' : ''}" style="left:${left}%;width:${width}%" data-pick="${e(r.order_id)}" title="#${e(r.order_number)} · ${e(clock(r.bake_start_minutes))} – ${e(clock(r.bake_finish_minutes))}">#${e(r.order_number)}</button>`;
-      }).join('')}
-      ${now != null && now >= start && now <= end ? `<span class="ps-now" style="left:${pos(now)}%" data-now><i>now</i></span>` : ''}</div></div>`;
+      return `<span class="ps-block is-held" style="left:${pos(a)}%;width:${Math.max(2, pos(b) - pos(a))}%" title="Reserved · ${e(h.customer_name)}">${e(h.customer_name)}</span>`; }).join('');
+    const block = (r, from, to, extra, label, title) => {
+      const s = statusOf(r), left = pos(from), width = Math.max(2, pos(to) - left);
+      return `<button type="button" class="ps-block is-${TONE[s] || 'start'}${extra}${r.fits ? '' : ' is-bad'}${picked === r.order_id ? ' is-picked' : ''}" style="left:${left}%;width:${width}%" data-pick="${e(r.order_id)}" title="${e(title)}">${e(label)}</button>`;
+    };
+    const today_ = rows.map((r) => { const st = Number(r.bake_start_minutes ?? 0), fin = Number(r.bake_finish_minutes ?? st);
+      return st < 0 ? block(r, 0, fin, ' is-carry-in', `← #${r.order_number}`, `#${r.order_number} · started ${clock(st)} the evening before – ${clock(fin)}`)
+        : block(r, st, fin, '', `#${r.order_number}`, `#${r.order_number} · ${clock(st)} – ${clock(fin)}`); }).join('');
+    const tonight = state.tonight.map((r) => block(r, Number(r.bake_start_minutes) + 1440, 1440, ' is-carry-out', `#${r.order_number} →`,
+      `#${r.order_number} · for tomorrow · start ${clock(r.bake_start_minutes)} tonight, done ${clock(r.bake_finish_minutes)} tomorrow`)).join('');
+    return `<div class="ps-track" aria-label="Day plan from 12:00 AM to 11:59 PM">
+      <div class="ps-hours" aria-hidden="true">${hours.map((h) => `<span style="left:${pos(h)}%">${e(clock(h).replace(':00', ''))}</span>`).join('')}<span style="left:100%">11:59 PM</span></div>
+      <div class="ps-lane">${held}${today_}${tonight}
+      ${now != null ? `<span class="ps-now" style="left:${pos(now)}%" data-now><i>now</i></span>` : ''}</div></div>`;
   }
   function elapsed(r) {
     const t = stamps.get(r.order_id)?.preparing;
     if (t) return (Date.now() - Date.parse(t)) / 1000;
-    return selected === today && r.bake_start_minutes != null ? (manilaMinutes() - r.bake_start_minutes) * 60 + new Date().getSeconds() : 0;   // no start time recorded: from the planned start
+    return selected === today && r.bake_start_minutes != null ? (manilaMinutes() - (r.tomorrow ? Number(r.bake_start_minutes) + 1440 : r.bake_start_minutes)) * 60 + new Date().getSeconds() : 0;   // no start time recorded: from the planned start
   }
   const timerNote = (r, el) => Number(r.minutes) ? `${Math.min(Math.round(el / 60), 999)} of ${Math.round(r.minutes)} min · finish by ${clock(r.deadline_minutes)}` : `No prep time set · finish by ${clock(r.deadline_minutes)}`;
   function activeCard(r) {
@@ -207,8 +221,8 @@ export async function renderProduction(content, focus) {
     const action = s === 'pending' ? `<button type="button" class="ps-chip is-take" data-act="take" data-id="${e(r.order_id)}">Take order</button>`
       : paid ? `<button type="button" class="ps-chip" data-act="start" data-id="${e(r.order_id)}">Start</button>` : `<span class="ps-chip is-wait" title="Start opens once a payment is marked received">Waiting for payment</span>`;
     return `<div class="ps-ticket-card is-${TONE[s]}${r.fits ? '' : ' is-bad'}${picked === r.order_id ? ' is-picked' : ''}" data-pick="${e(r.order_id)}">
-      <small>#${e(r.order_number)} · ${s === 'pending' ? 'new order' : 'start ' + e(clock(r.bake_start_minutes))}</small>
-      <b>${e(what(o))}</b><small>${e(mins(r.minutes))} · ${o?.fulfillment_method === 'lalamove' ? 'deliver' : 'pickup'} ${e(at(r.delivery_at))}</small>
+      <small>#${e(r.order_number)} · ${s === 'pending' ? 'new order' : 'start ' + e(clock(r.bake_start_minutes))}${r.tomorrow ? ' tonight' : Number(r.bake_start_minutes) < 0 ? ' the evening before' : ''}</small>
+      <b>${e(what(o))}</b><small>${e(mins(r.minutes))} · ${o?.fulfillment_method === 'lalamove' ? 'deliver' : 'pickup'} ${r.tomorrow ? 'tomorrow ' : ''}${e(at(r.delivery_at))}</small>
       ${r.fits ? '' : '<small class="is-bad">Doesn’t fit the shift</small>'}${action}</div>`;
   }
   function doneRow(r) {
@@ -222,9 +236,34 @@ export async function renderProduction(content, focus) {
     return `<p class="ps-project is-${lv}">If you take every new order: ${Math.round(total)} of ${Math.round(cap)} min${lv === 'heavy' ? ` — ${Math.round(total - cap)} min over` : lv === 'near' ? ', nearly full' : ', still within capacity'}</p>`;
   }
 
+  // ---------------------------------------------------------------- right: mini calendar
+  const busyDays = new Map();   // 'YYYY-MM' -> Map(day -> count of orders)
+  async function paintCal() {
+    const box = $('[data-cal]'), [y, m] = calMonth.split('-').map(Number), first = new Date(Date.UTC(y, m - 1, 1)), days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    if (!busyDays.has(calMonth)) {
+      busyDays.set(calMonth, new Map());
+      try {
+        const from = `${calMonth}-01T00:00:00+08:00`, to = `${plus(`${calMonth}-${String(days).padStart(2, '0')}`, 1)}T00:00:00+08:00`;
+        const list = db.unwrap(await db.client.from('orders').select('receiving_start').gte('receiving_start', from).lt('receiving_start', to).neq('status', 'cancelled')) || [];
+        const map = busyDays.get(calMonth); list.forEach((o) => { const k = manilaKey(new Date(o.receiving_start)); map.set(k, (map.get(k) || 0) + 1); });
+      } catch (error) { console.warn('Calendar:', error); }
+    }
+    const busy = busyDays.get(calMonth), lead = (first.getUTCDay() + 6) % 7;
+    const title = new Intl.DateTimeFormat('en-PH', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(first);
+    const cells = Array.from({ length: lead }, () => '<span></span>').concat(Array.from({ length: days }, (_, i) => {
+      const k = `${calMonth}-${String(i + 1).padStart(2, '0')}`, n = busy.get(k) || 0;
+      return `<button type="button" data-cal-day="${k}" class="${k === selected ? 'is-on' : ''}${k === today ? ' is-today' : ''}" aria-pressed="${k === selected}" aria-label="${e(longDay(k))}${n ? ` · ${n} order${n === 1 ? '' : 's'}` : ''}">${i + 1}${n ? `<i class="${n >= 4 ? 'is-many' : ''}"></i>` : ''}</button>`;
+    }));
+    box.innerHTML = `<div class="ps-row"><button type="button" class="ps-icon is-sm" data-cal-step="-1" aria-label="Previous month">‹</button><b>${e(title)}</b><button type="button" class="ps-icon is-sm" data-cal-step="1" aria-label="Next month">›</button></div>
+      <div class="ps-cal-grid" aria-hidden="true">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d) => `<small>${d}</small>`).join('')}</div>
+      <div class="ps-cal-grid">${cells.join('')}</div>`;
+    box.querySelectorAll('[data-cal-step]').forEach((b) => (b.onclick = () => { const d = new Date(Date.UTC(y, m - 1 + Number(b.dataset.calStep), 1)); calMonth = d.toISOString().slice(0, 7); paintCal(); }));
+    box.querySelectorAll('[data-cal-day]').forEach((b) => (b.onclick = () => go(b.dataset.calDay)));
+  }
+
   // ---------------------------------------------------------------- right: the order ticket
   function paintTicket() {
-    const box = $('[data-ticket]'), r = state.rows.find((x) => x.order_id === picked), o = orders.get(picked);
+    const box = $('[data-ticket]'), r = allRows().find((x) => x.order_id === picked), o = orders.get(picked);
     if (!r || !o) { box.innerHTML = `<div class="ps-empty">${icon('orders')}<p>Pick a task to open its ticket.</p></div>`; return; }
     const t = stamps.get(o.id) || {}, s = o.status, paid = ['paid', 'partially_paid'].includes(o.payment_status), cap = Number(state.day?.workload_minutes) || 0;
     const steps = [['Order taken', o.created_at, true], ['Confirmed', t.confirmed, s !== 'pending'], ['Baking', t.preparing, ['preparing', 'ready', 'completed'].includes(s)], ['Ready', t.ready, ['ready', 'completed'].includes(s)], ['Handed over', t.completed, s === 'completed']];
@@ -236,8 +275,8 @@ export async function renderProduction(content, focus) {
     box.innerHTML = `
       <header class="ps-row"><h2>Order ticket</h2><small>#${e(o.order_number)}</small></header>
       <div class="ps-stub is-${TONE[s]}"><small>${e(o.customer_name || r.customer_name || 'Customer')}</small><b>${e(what(o))}</b>
-        <small>${o.fulfillment_method === 'lalamove' ? 'Deliver' : 'Pickup'} ${e(at(r.delivery_at))} · bake ${e(clock(r.bake_start_minutes))} – ${e(clock(r.bake_finish_minutes))}</small></div>
-      ${r.fits ? '' : '<p class="ps-warn">This task would have to start before the shift opens. Move it, or start it the day before.</p>'}
+        <small>${o.fulfillment_method === 'lalamove' ? 'Deliver' : 'Pickup'} ${r.tomorrow ? 'tomorrow ' : ''}${e(at(r.delivery_at))} · bake ${e(clock(r.bake_start_minutes))}${r.tomorrow ? ' tonight' : Number(r.bake_start_minutes) < 0 ? ' the evening before' : ''} – ${e(clock(r.bake_finish_minutes))}</small></div>
+      ${r.fits ? '' : '<p class="ps-warn">This task would have to start before the shift opens. Move it, or start it earlier.</p>'}
       <ol class="ps-steps">${steps.map(([label, time, done], i) => `<li class="${i === nowStep ? 'is-now' : done ? 'is-done' : ''}"><span aria-hidden="true">${done && i !== nowStep ? icon('check') : ''}</span><b>${label}</b>${time && done ? `<small>${e(at(time))}</small>` : ''}</li>`).join('')}</ol>
       <dl class="ps-facts"><div><dt>Kitchen time</dt><dd>${e(mins(r.minutes))}${cap > 0 ? ` · ${Math.round((Number(r.minutes) / cap) * 100)}% of the day` : ''}</dd></div>
         <div><dt>Payment</dt><dd class="${paid ? 'is-ok' : ''}">${e(PAY[o.payment_status] || '—')}</dd></div>
@@ -289,20 +328,20 @@ export async function renderProduction(content, focus) {
   // ---------------------------------------------------------------- refresh, day switching, the running clock
   async function refresh(fresh, busy = true) {
     if (busy) $('[data-board]')?.setAttribute('aria-busy', 'true');
-    try { await load(fresh); paintLeft(); paintBoard(); paintTicket(); }
+    try { await load(fresh); if (fresh) busyDays.clear(); paintLeft(); paintBoard(); paintTicket(); paintCal(); }
     catch (error) {
       console.warn('Production:', error);
       $('[data-board]').innerHTML = `<div class="ps-empty" role="alert"><p>The shift could not load.</p><button class="ps-btn" type="button" data-retry>Try again</button></div>`;
       $('[data-board] [data-retry]').onclick = () => refresh(true);
     }
   }
-  function go(date) { selected = date; picked = null; refresh(false); }
+  function go(date) { selected = date; calMonth = date.slice(0, 7); picked = null; refresh(false); }
   clearInterval(window.__lexcShiftTimer);
   window.__lexcShiftTimer = setInterval(() => {
     if (!content.isConnected || !content.querySelector('[data-ps]')) { clearInterval(window.__lexcShiftTimer); return; }
     tick++;
     content.querySelectorAll('[data-oven]').forEach((card) => {
-      const r = state.rows.find((x) => x.order_id === card.dataset.oven); if (!r) return;
+      const r = allRows().find((x) => x.order_id === card.dataset.oven); if (!r) return;
       const el = elapsed(r), total = Math.max(1, Number(r.minutes) || 0) * 60;
       card.querySelector('[data-timer]').textContent = mmss(el);
       card.querySelector('[data-progress]').style.width = Math.min(100, (el / total) * 100) + '%';
@@ -310,8 +349,8 @@ export async function renderProduction(content, focus) {
       card.querySelector('[data-timer-note]').textContent = timerNote(r, el);
     });
     if (tick % 30 === 0 && selected === today) {
-      const now = manilaMinutes(), { start, end } = state.window, marker = content.querySelector('[data-now]'), c = content.querySelector('[data-now-clock]');
-      if (marker) marker.style.left = Math.min(100, Math.max(0, ((now - start) / Math.max(60, end - start)) * 100)) + '%';
+      const now = manilaMinutes(), marker = content.querySelector('[data-now]'), c = content.querySelector('[data-now-clock]');
+      if (marker) marker.style.left = (now / 1440) * 100 + '%';
       if (c) c.textContent = clock(now);
     }
   }, 1000);
@@ -320,7 +359,7 @@ export async function renderProduction(content, focus) {
   if (focus && /^[0-9a-f-]{36}$/i.test(focus)) {
     try {
       const [o] = db.unwrap(await db.client.from('orders').select('id,receiving_start').eq('id', focus)) || [];
-      if (o?.receiving_start) { selected = manilaKey(new Date(o.receiving_start)); picked = focus; }
+      if (o?.receiving_start) { selected = manilaKey(new Date(o.receiving_start)); calMonth = selected.slice(0, 7); picked = focus; }
     } catch (error) { console.warn('Production focus:', error); }
   }
   await refresh(false);
