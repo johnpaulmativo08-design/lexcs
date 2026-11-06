@@ -26,7 +26,21 @@ const paymentSection=o=>{
   :pending?'<div class="od-due">'+glyph('info')+'<div><small>Balance</small><strong>Set after the quote</strong></div></div>'
   :left>0?'<div class="od-due">'+glyph(waiting?'info':'warn')+'<div><small>Balance to collect</small><strong>'+money(left)+'</strong>'+(waiting?'<em>A payment proof is waiting to be checked</em>':'')+'</div></div>'
   :'<div class="od-due">'+glyph('ok')+'<div><small>Payment</small><strong>Fully paid</strong></div></div>';
- return lines+due;
+ return lines+due+deadlines(o,left);
+};
+// Payment deadlines (phase 102): downpayment 24 h after confirming (2 h for short notice), balance 24 h before
+// pickup/delivery; late online balance payments add ₱50 per started 3 h (max ₱300). The Admin can waive the fee.
+const lateFeeNow=o=>{const paid=Number(o.amount_paid||0);if(o.late_fee_waived||!o.balance_due_at||!(paid>0)||paid>=Number(o.total_amount)||['cancelled','completed'].includes(o.status))return 0;const over=Date.now()-Date.parse(o.balance_due_at);return over<=0?0:Math.min(300,50*Math.ceil(over/108e5));};
+const deadlines=(o,left)=>{
+ if(!o.downpayment_due_at&&!o.balance_due_at)return '';
+ const at=v=>e(when(v,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})),past=v=>Date.now()>Date.parse(v),paid=Number(o.amount_paid||0);
+ const dp=o.status==='cancelled'&&o.auto_cancelled_at?'Cancelled automatically — no downpayment by '+at(o.downpayment_due_at)
+  :paid>0?'Received':o.payment_status==='verification_pending'?'Sent in time · waiting for your check':past(o.downpayment_due_at)?'Past due · cancels automatically shortly':'Due by '+at(o.downpayment_due_at);
+ const fee=lateFeeNow(o),late=o.balance_due_at&&past(o.balance_due_at)&&left>0&&paid>0&&!['cancelled','completed'].includes(o.status);
+ return '<dl class="od-sum od-deadlines"><div><dt>Downpayment deadline</dt><dd>'+dp+'</dd></div>'+
+  (o.balance_due_at?'<div><dt>Balance deadline</dt><dd>'+at(o.balance_due_at)+(late?'<small>'+(o.late_fee_waived?'Late fee waived':'Late fee now '+money(fee)+' (online payments; cash at pickup has none)')+'</small>':'')+'</dd></div>':'')+
+  (Number(o.late_fee_paid)>0?'<div><dt>Late fee received</dt><dd>'+money(o.late_fee_paid)+'</dd></div>':'')+'</dl>'+
+  (late||o.late_fee_waived?'<button type="button" class="button od-waive" data-waive="'+(o.late_fee_waived?'0':'1')+'">'+(o.late_fee_waived?'Restore late fee':'Waive late fee')+'</button>':'');
 };
 const STEPS=[['pending','Order placed','bag'],['confirmed','Confirmed','check'],['preparing','Baking','cake'],['ready','Ready','box'],['completed','Completed','done']];
 const timeline=o=>{
@@ -106,6 +120,9 @@ export async function renderOrders(content){
    dialog.classList.add('order-dialog');
    mountOrderInventory(dialog,o,{onChanged:()=>{}});
    mountOrderDelivery(dialog,o);
+   const waive=dialog.querySelector('[data-waive]');
+   const tell=t=>{const toast=document.querySelector('#toast');if(!toast)return;toast.textContent=t;toast.hidden=false;setTimeout(()=>{toast.hidden=true;},5000);};
+   if(waive)waive.onclick=async()=>{waive.disabled=true;try{await db.rpc('waive_late_fee',{target_order:o.id,waive:waive.dataset.waive==='1'});tell(waive.dataset.waive==='1'?'Late fee waived for Order #'+o.order_number+'.':'Late fee restored.');dialog.close();await renderOrders(content);}catch(error){waive.disabled=false;tell(/waive_late_fee|schema cache/i.test(error.message||'')?'Run database/phase102-payment-deadlines.sql first.':error.message);}};
    const quote=dialog.querySelector('#delivery-quote');
    if(quote)quote.onsubmit=async event=>{
     event.preventDefault();const submit=quote.querySelector('button');submit.disabled=true;

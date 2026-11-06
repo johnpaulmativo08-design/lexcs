@@ -105,6 +105,9 @@ async function submitCheckout(){
  if(problem)return needField(problem.id,problem.message);
  if(!field('coDate')||!field('coTime'))return showToast('Choose a reservation date and receiving time.');
  if(!selectedDelivery||!selectedPayment)return showToast('Choose fulfillment and a payment method.');
+ // payment deadlines (phase 102): the customer agrees to the downpayment / balance deadlines first
+ const agree=document.getElementById('coAgreeDeadlines');
+ if(agree&&!agree.checked){agree.focus();agree.closest('.co-agree')?.classList.add('is-needed');agree.scrollIntoView({block:'center',behavior:'smooth'});return showToast('Please tick the payment deadlines box to place your order.');}
  // delivery only inside the delivery area (Pampanga), with a map pin (shared/checkout-map.js)
  const areaProblem=selectedDelivery==='Lalamove'?window.LexcCheckoutMap?.problem?.():null;
  if(areaProblem){document.getElementById('coMapCard')?.scrollIntoView({block:'center',behavior:'smooth'});return showToast(areaProblem);}

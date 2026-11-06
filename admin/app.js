@@ -1,9 +1,9 @@
-import { renderProduction } from './pages/production.js?v=9';
+import { renderProduction } from './pages/production.js?v=10';
 import { renderDashboard } from './pages/dashboard.js?v=18';
 import { renderProducts } from './pages/products.js?v=15';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=36';
 import { renderReports } from './pages/reports.js?v=19';
-import { renderOrders } from './pages/orders.js?v=53';
+import { renderOrders } from './pages/orders.js?v=54';
 import { renderBookings } from './pages/bookings.js?v=19';
 import { renderDesignOptions } from './pages/design-options.js?v=14';
 import { renderProfile } from './pages/profile.js?v=13';

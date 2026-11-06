@@ -127,7 +127,7 @@ function render(){
   const before=lastSeenStatus(),verifiedNow=before==='verification_pending'&&(['partially_paid','paid'].includes(status)||status==='unpaid'&&Number(order.amount_paid)>0);
   if(verifiedNow&&remaining===0)paymentArea=paymentArea.replace('<section class="card state-card"><span class="state-icon paid-icon" aria-hidden="true">✓</span>','<section class="card state-card mo-success">'+successMark());
   const verifiedFlash=verifiedNow&&remaining!==0?'<div class="verified-flash" role="status">'+successMark(true)+'<span><strong>'+(status==='partially_paid'?'Downpayment verified':'Payment verified')+'</strong> LexC’s matched your transfer.</span></div>':'';
-  root.innerHTML=orderStrip+'<div class="layout"><div class="payment-main">'+verifiedFlash+paymentArea+paymentHistory()+'</div>'+orderSummary+'</div>';
+  root.innerHTML=orderStrip+'<div class="layout"><div class="payment-main">'+deadlineCard(remaining)+verifiedFlash+paymentArea+paymentHistory()+'</div>'+orderSummary+'</div>';
   if(justSubmitted&&active?.status==='verification_pending')pageTitle.textContent='Payment submitted';
   if(placedFresh&&awaitingConfirmation())pageTitle.textContent='Order received';
   justSubmitted=false;placedFresh=false;rememberStatus();
@@ -196,11 +196,37 @@ function render(){
 }
 // How much to pay now: the (rest of the) downpayment or everything left (phase 95 removed "different amount").
 const centavos=v=>Math.round(Number(v)*100);
+// Payment deadlines (phase 102): the downpayment is due 24 h after LexC's confirms (2 h for short-notice orders), the
+// balance 24 h before pickup/delivery; late online balance payments add ₱50 per started 3 hours, up to ₱300.
+// Shown here as a countdown; the database decides the real deadline, the automatic cancellation and the fee.
+const dueWhen=v=>new Date(v).toLocaleString('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+const timeLeft=ms=>{const m=Math.max(0,Math.round(ms/6e4)),d=Math.floor(m/1440),h=Math.floor((m%1440)/60);return d?d+' d '+h+' h':h?h+' h '+(m%60)+' min':(m%60)+' min';};
+function lateFee(at=Date.now()){
+  const paid=Number(order.amount_paid||0),total=Number(order.total_amount);
+  if(order.late_fee_waived||!order.balance_due_at||!(paid>0)||paid>=total||['cancelled','completed'].includes(order.status))return 0;
+  const over=at-Date.parse(order.balance_due_at);return over<=0?0:Math.min(300,50*Math.ceil(over/108e5));
+}
+function deadlineCard(remaining){
+  if(order.status==='cancelled'&&order.auto_cancelled_at)return '<section class="card deadline-card is-off"><span class="deadline-ic" aria-hidden="true">⏱</span><div><strong>This reservation was cancelled automatically</strong><p>The downpayment wasn’t received by '+e(dueWhen(order.downpayment_due_at))+'. You’re welcome to book again, subject to availability.</p><a class="primary-link" href="../">Book again</a></div></section>';
+  if(!['confirmed','preparing','ready'].includes(order.status)||remaining===0||remaining===null)return '';
+  const paid=Number(order.amount_paid||0),now=Date.now();
+  if(paid===0&&order.downpayment_due_at){
+    if(order.payment_status==='verification_pending')return '<section class="card deadline-card is-ok"><span class="deadline-ic" aria-hidden="true">✓</span><div><strong>Sent in time</strong><p>Your payment arrived before the deadline. LexC’s is checking it now.</p></div></section>';
+    const due=Date.parse(order.downpayment_due_at),soon=due-now<=36e5*3;
+    return '<section class="card deadline-card'+(soon?' is-soon':'')+'"><span class="deadline-ic" aria-hidden="true">⏱</span><div><strong>Downpayment due in <span data-countdown="'+e(order.downpayment_due_at)+'">'+timeLeft(due-now)+'</span></strong><p>Please pay the '+depositPercent()+'% downpayment by <b>'+e(dueWhen(due))+'</b>. If it isn’t paid by then, the reservation is cancelled automatically.'+(order.payment_status==='rejected'?' Your last receipt wasn’t accepted: you have 3 hours from then to send a new one.':'')+'</p></div></section>';
+  }
+  if(paid>0&&order.balance_due_at){
+    const due=Date.parse(order.balance_due_at),fee=lateFee(now);
+    if(now<=due)return '<section class="card deadline-card"><span class="deadline-ic" aria-hidden="true">⏱</span><div><strong>Balance due in <span data-countdown="'+e(order.balance_due_at)+'">'+timeLeft(due-now)+'</span></strong><p>Please settle the remaining '+money(remaining)+' by <b>'+e(dueWhen(due))+'</b>. After that, online payments include a ₱50 late fee for every 3 hours (up to ₱300). Paying in cash at pickup has no late fee.</p></div></section>';
+    return '<section class="card deadline-card is-soon"><span class="deadline-ic" aria-hidden="true">⏱</span><div><strong>'+(order.late_fee_waived?'Balance past due · late fee waived':'Balance past due · late fee '+money(fee))+'</strong><p>The balance was due '+e(dueWhen(due))+'. '+(order.late_fee_waived?'LexC’s waived the late fee for this order.':'Online payments now include ₱50 for every 3 hours late, up to ₱300. Paying in cash at pickup has no late fee.')+'</p></div></section>';
+  }
+  return '';
+}
 function planChoice(active){
   const paid=Number(order.amount_paid||0),total=Number(order.total_amount),deposit=Number(order.deposit_due),left=(centavos(total)-centavos(paid))/100;
   if(deposit>=total&&paid===0)return '<div class="plan-single"><span>Full payment</span><strong>'+money(total)+'</strong></div>';
   const rest=(centavos(deposit)-centavos(paid))/100;
-  const options=paid>=deposit?[['balance','Remaining balance',left,'Nothing left to pay']]:[['downpayment',paid>0?'Rest of the downpayment':'Downpayment ('+depositPercent()+'%)',rest,'Pay '+money(left-rest)+' later'],['full',paid>0?'Everything left':'Full payment',left,'Nothing left to pay']];
+  const fee=lateFee(),options=paid>=deposit?[['balance','Remaining balance',left+fee,fee?'Includes the ₱'+fee+' late fee':'Nothing left to pay']]:[['downpayment',paid>0?'Rest of the downpayment':'Downpayment ('+depositPercent()+'%)',rest,'Pay '+money(left-rest)+' later'],['full',paid>0?'Everything left':'Full payment',left,'Nothing left to pay']];
   const match=active&&options.find(o=>centavos(active.amount)===centavos(o[2]));
   const picked=match?match[0]:options[0][0];
   const plan=([value,title,amount,note])=>'<label class="plan-choice"><input type="radio" name="plan" value="'+value+'" data-amount="'+amount+'" '+(picked===value?'checked':'')+'><span><strong>'+title+'</strong><b>'+money(amount)+'</b><small>'+note+'</small></span></label>';
@@ -332,3 +358,5 @@ async function silentCheck(){
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&watching()){clearTimeout(pollTimer);silentCheck();}});
 load().catch(error=>{root.setAttribute('aria-busy','false');root.innerHTML='<section class="card state-card"><h2>Payment could not load</h2><p class="error">'+e(paymentError(error,'Check your connection and try again. Your order remains saved.'))+'</p><button class="button" type="button" id="retry-payment">Try again</button><a class="button secondary" href="'+e(ordersURL)+'">My Orders</a></section>';root.querySelector('#retry-payment').onclick=load;});
+// payment deadlines: keep the countdowns current (every 30 s); the page reloads its data on its own schedule
+setInterval(()=>{document.querySelectorAll('[data-countdown]').forEach(el=>{el.textContent=timeLeft(Date.parse(el.dataset.countdown)-Date.now());});},30000);

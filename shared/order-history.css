@@ -195,3 +195,9 @@
 @media(prefers-reduced-motion:reduce){.oh-card,.oh-card:hover{transition:none;transform:none}.oh-sheet[open]{animation:none}}
 /* the cart drawer's link to the full order history */
 .customer-orders-history{display:inline;margin:0;padding:0;border:0;background:none;color:#6f4fa8;font:700 inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+/* payment deadlines (phase 102) */
+.oh-deadline{display:flex;align-items:center;gap:8px;margin:0;padding:8px 12px;border-radius:12px;background:#f6f0fb;color:#4b3a63;font-size:.8rem}
+.oh-deadline .oh-ic{width:16px;height:16px;flex:none;color:#6f4fa8}.oh-deadline b{font-variant-numeric:tabular-nums;color:#6f4fa8}
+.oh-deadline.is-soon{background:#fff5e6;color:#7a520b}.oh-deadline.is-soon .oh-ic,.oh-deadline.is-soon b{color:#9a640d}
+.oh-deadline.is-off{background:#fbeff3;color:#8a2f45}.oh-deadline.is-off .oh-ic{color:#a3324b}.oh-deadline a{color:inherit;font-weight:700}
+html[data-theme=dark] .oh-deadline{background:#251c2a;color:#d6c6dc}html[data-theme=dark] .oh-deadline.is-soon{background:#2e2417;color:#f3c77e}html[data-theme=dark] .oh-deadline.is-off{background:#2e1c24;color:#f2a7b8}

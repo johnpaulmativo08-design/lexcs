@@ -150,3 +150,4 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 .ps-planned{color:var(--violet)}
 .ps-subrow{margin-top:2px}.ps-subrow small{font-size:.72rem}
 .ps-board .ps-tickets{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.ps-cancels{color:var(--warm)!important;font-weight:600}.ps-cancels.is-soon{color:var(--bad)!important}
