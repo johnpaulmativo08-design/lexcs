@@ -21,7 +21,7 @@ begin
 
   -- preview: 10% of the item, at most ₱50
   p := public.preview_voucher('rehearsal10', items);
-  ok := (p->>'discount')::numeric = least(50, round((select v from rehearsal_ids where k = 'variant') * 0.1, 2)) or (p->>'discount')::numeric > 0;
+  ok := (p->>'discount')::numeric = least(50, round((select r.v from rehearsal_ids r where r.k = 'variant') * 0.1, 2)) or (p->>'discount')::numeric > 0;
   report := report || E'\n' || case when ok then 'PASS' else 'FAIL' end || format('  preview: ₱%s off', p->>'discount');
   -- clear messages
   foreach msg in array array['NOPE123', 'REHEARSALOLD', 'REHEARSALOFF', 'REHEARSALBIG'] loop
