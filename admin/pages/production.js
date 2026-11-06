@@ -3,7 +3,8 @@
 //   Left: the shift — workload ring, kitchen time (capacity) control, stage counts, on-time streak.
 //   Middle: the shift board — day track (12:00 AM – 11:59 PM) with a live "now" marker, the order(s) baking with a
 //     running timer, and what is done.
-//   Right: a mini month calendar, the order ticket, and Up next (this day's and tomorrow's tasks to start).
+//   Right: a mini month calendar, the order ticket, and Plan ahead (tomorrow's tasks to start, to bake from tonight).
+//   This day's own tasks to start stay in the middle, under the track (Up next).
 // Planning (phase 101): drag a task onto the track — or tap it, "Place on the track", then tap a time — to choose
 // when its bake starts; the bar is as long as the order's prep minutes. A plan for tomorrow's order made tonight shows
 // on both days. Orders without a plan keep the automatic plan (phase 97). Overlaps are fine; late bakes are flagged.
@@ -184,6 +185,7 @@ export async function renderProduction(content, focus) {
     const baking = touching.filter((t) => statusOf(t) === 'preparing');
     const finished = state.tasks.filter((t) => ofDay(t) && ['ready', 'completed'].includes(statusOf(t)));
     const toStart = state.tasks.some((t) => ['confirmed', 'pending'].includes(statusOf(t)));
+    const upNext = state.tasks.filter((t) => ofDay(t) && ['confirmed', 'pending'].includes(statusOf(t))).sort((a, b) => a.start - b.start);
     const live = selected === today;
     box.innerHTML = `
       <header class="ps-boardhead">
@@ -196,6 +198,7 @@ export async function renderProduction(content, focus) {
       <p class="ps-hint-line" data-drop-hint>${placing ? `Tap a time on the track to start #${e(orders.get(placing)?.order_number || '')}. <button type="button" class="ps-linkbtn" data-cancel-place>Cancel</button>` : plansReady ? 'Drag a task from Up next onto the track to plan when its bake starts.' : 'To plan bakes on the track, run database/phase101-bake-plans.sql in the Supabase SQL editor.'}</p>
       ${baking.length ? `<div class="ps-active">${baking.map(activeCard).join('')}</div>`
         : `<div class="ps-idle">${icon('clock')}<p>${toStart ? 'Nothing in the oven. Start the next task when you’re ready.' : state.tasks.some(ofDay) ? 'All tasks for this day are done.' : 'No tasks planned for this day.'}</p></div>`}
+      ${upNext.length ? `<div class="ps-row ps-subrow"><h3 class="ps-sub">Up next</h3><small>${upNext.length} to start${plansReady ? ' · drag onto the track' : ''}</small></div><div class="ps-tickets">${upNext.map(ticketCard).join('')}</div>` : ''}
       ${finished.length ? `<h3 class="ps-sub">Done</h3><div class="ps-done">${finished.map(doneRow).join('')}</div>` : ''}
       ${state.day && Number(state.day.pending_minutes) > 0 ? projection(state.day) : ''}`;
     box.removeAttribute('aria-busy');
@@ -313,10 +316,12 @@ export async function renderProduction(content, focus) {
     box.querySelectorAll('[data-cal-day]').forEach((b) => (b.onclick = () => go(b.dataset.calDay)));
   }
   function paintNext() {
-    const box = $('[data-next]'), list = state.tasks.filter((t) => ['confirmed', 'pending'].includes(statusOf(t)) && (ofDay(t) || onDay(t) || t.day === plus(selected, 1)))
-      .sort((a, b) => a.start - b.start);
-    box.innerHTML = `<div class="ps-row"><h3>Up next</h3><small>${list.length ? `${list.length} to start · drag onto the track` : ''}</small></div>
-      ${list.length ? `<div class="ps-tickets">${list.map(ticketCard).join('')}</div>` : '<p class="ps-hint">Nothing waiting to start for this day or tomorrow.</p>'}`;
+    // tomorrow's tasks to start: bake them tonight by dragging onto this day's track
+    const next = plus(selected, 1), list = state.tasks.filter((t) => t.day === next && ['confirmed', 'pending'].includes(statusOf(t))).sort((a, b) => a.start - b.start);
+    box.hidden = !list.length;
+    box.innerHTML = `<div class="ps-row"><h3>Plan ahead · ${e(shortDay(next))}</h3><small>${list.length} to start</small></div>
+      <p class="ps-hint">${plansReady ? `Drag onto ${e(shortDay(selected))}’s track to bake it the night before.` : 'Planning turns on once database/phase101-bake-plans.sql is run.'}</p>
+      <div class="ps-tickets">${list.map(ticketCard).join('')}</div>`;
   }
   function ticketCard(t) {
     const o = orders.get(t.r.order_id), s = statusOf(t), paid = ['paid', 'partially_paid'].includes(o?.payment_status);

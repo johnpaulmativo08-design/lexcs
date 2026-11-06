@@ -148,3 +148,5 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 .ps-hint-line .is-ok{color:var(--ok);font-weight:700}.ps-hint-line .is-bad{color:var(--bad);font-weight:700}
 .ps-linkbtn{border:0;background:none;padding:0;color:var(--violet);font:700 .74rem 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .ps-planned{color:var(--violet)}
+.ps-subrow{margin-top:2px}.ps-subrow small{font-size:.72rem}
+.ps-board .ps-tickets{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
