@@ -793,3 +793,17 @@ input.qty-num:focus{border-color:#2b1530;box-shadow:inset 0 0 0 1px #2b1530;back
 .co-agree input{flex:none;width:18px;height:18px;margin-top:2px;accent-color:#6f4fa8}
 .co-agree b{color:#2b1530}.co-agree.is-needed{border-color:#d4537e;box-shadow:0 0 0 3px rgba(212,83,126,.12)}
 html[data-theme=dark] .co-agree{background:#211a28;border-color:#3b2f47;color:#cbbcd9}html[data-theme=dark] .co-agree b{color:#f3e9f7}
+/* voucher code at checkout (phase 103) */
+.co-voucher{display:grid;gap:6px;margin:4px 0 12px}
+.co-voucher-label{font-size:.78rem;font-weight:700;color:#4b3a63}
+.co-voucher-row{display:flex;gap:8px}.co-voucher-row input{flex:1;min-width:0;padding:10px 12px;border:1px solid #e1d6ee;border-radius:12px;font:600 .9rem 'Plus Jakarta Sans',sans-serif;text-transform:uppercase;letter-spacing:.04em;background:#fff;color:#2b1530}
+.co-voucher-row input:focus{outline:2px solid #8a63d2;outline-offset:1px}
+.co-voucher-apply,.co-voucher-remove{border:0;border-radius:12px;padding:0 16px;background:#2b1530;color:#fff;font:700 .82rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.co-voucher-apply:disabled{opacity:.6;cursor:wait}
+.co-voucher-on{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#effaf4;border:1px solid #c4e8d3}
+.co-voucher-on span:nth-child(2){flex:1;display:grid}.co-voucher-on b{color:#1f7a4c}.co-voucher-on small{font-size:.74rem;color:#4b6b5a}
+.co-voucher-tag{border-radius:8px;padding:3px 8px;background:#1f7a4c;color:#fff;font:800 .74rem 'Plus Jakarta Sans',sans-serif;letter-spacing:.04em}
+.co-voucher-remove{background:transparent;color:#4b6b5a;padding:6px 8px;text-decoration:underline}
+.co-voucher-msg{margin:0;font-size:.76rem;color:#7a6890}.co-voucher-msg:empty{display:none}.co-voucher-msg.is-ok{color:#1f7a4c}.co-voucher-msg.is-bad{color:#a3324b}
+.checkout-discount-row span:last-child{color:#1f7a4c;font-weight:700}.checkout-discount-row b{font-weight:800;letter-spacing:.03em}
+html[data-theme=dark] .co-voucher-row input{background:#1b141f;border-color:#3b2f47;color:#f3e9f7}html[data-theme=dark] .co-voucher-on{background:#1f3229;border-color:#2f5a44}html[data-theme=dark] .co-voucher-label{color:#cbbcd9}

@@ -685,7 +685,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 .cart-drawer{background:#fff;box-shadow:-4px 0 24px rgba(35,19,50,.1);transition:transform .25s ease}.cart-drawer-header,.cart-drawer-footer{border-color:#eee8f2}.cart-drawer-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700}.cart-item-emoji{border-radius:10px;background:#f7f3fa;overflow:hidden}.cart-item-emoji img{width:100%;height:100%;object-fit:cover}.cart-note{font-size:.76rem;color:var(--mid)}
 .checkout-wrap{max-width:1080px}.checkout-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;margin-bottom:6px}.checkout-intro{color:var(--mid);font-size:.9rem;line-height:1.55;margin:0 0 24px}.checkout-layout{grid-template-columns:minmax(250px,.85fr) minmax(0,1.15fr);gap:20px}.checkout-summary-box,.checkout-form-box{background:#fff;border:1px solid #e8e2ee;border-radius:14px;box-shadow:none;padding:24px}.checkout-section-head{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.05rem}.checkout-order-item-price{color:var(--plum)}.checkout-grand{font-family:'Plus Jakarta Sans',sans-serif;border-top:1px solid #e8e2ee}.co-input,.co-datetime-btn,.co-option{border:1px solid #ded6e7;border-radius:10px}.co-option{box-shadow:none}.co-option.selected{background:#f3ecfb}.co-field-group[hidden]{display:none}.co-submit-btn{border-radius:10px;box-shadow:none}.co-back-btn{border-radius:10px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}.checkout-summary-box{position:static;order:2}.checkout-form-box{order:1}.cart-drawer{width:100vw}}
 </style>
-<link rel="stylesheet" href="shared/customer-flow.css?v=53"><link rel="stylesheet" href="shared/notifications.css?v=21"><link rel="stylesheet" href="shared/order-history.css?v=4">
+<link rel="stylesheet" href="shared/customer-flow.css?v=54"><link rel="stylesheet" href="shared/notifications.css?v=21"><link rel="stylesheet" href="shared/order-history.css?v=4">
 <link rel="stylesheet" href="shared/auth-flow.css?v=5">
 <link rel="stylesheet" href="shared/delivery-card.css?v=3"><link rel="stylesheet" href="shared/route-preview.css?v=2">
 <link rel="stylesheet" href="shared/product-detail.css?v=11">
@@ -1347,7 +1347,9 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
         <section class="checkout-summary-box" aria-labelledby="checkout-summary-heading">
           <h3 class="checkout-section-head" id="checkout-summary-heading">Order summary</h3>
           <div id="checkoutOrderList" class="checkout-order-list"></div>
+          <div class="co-voucher" id="coVoucher" aria-label="Voucher code"></div>
           <div class="checkout-total-row"><span>Subtotal</span><span id="checkoutSubtotal">₱0</span></div>
+          <div class="checkout-total-row checkout-discount-row" id="checkoutDiscountRow" hidden><span>Voucher <b data-discount-code></b></span><span data-discount></span></div>
           <div class="checkout-total-row checkout-rush-row" id="checkoutRushRow" hidden><span>⚡ Rush fee (next-day order)</span><span>₱200.00</span></div>
           <div class="checkout-total-row" id="checkoutDeliveryRow" style="display:none;"><span>Lalamove fee</span><span id="checkoutDeliveryFee">₱0</span></div>
           <div class="checkout-total-row checkout-grand"><span>Order total</span><span id="checkoutGrandTotal">₱0</span></div>
@@ -1651,9 +1653,10 @@ function updateCheckoutDelivery() {
     deliveryFeeEl.textContent = fee ? checkoutMoney(deliveryCents / 100) : feeState === 'not_priced' ? 'Paid to the rider'
       : feeState === 'loading' ? 'Calculating…' : feeState === 'idle' ? 'Pin your address' : 'Not available';
   } else { deliveryRow.style.display = 'none'; }
-  // no VAT (phase 95: LexC's is not VAT-registered)
-  const total = Math.round(subtotal * 100) + deliveryCents;
-  const required = Math.round(subtotal * 100 * 0.6) + deliveryCents;
+  // no VAT (phase 95: LexC's is not VAT-registered); a voucher (phase 103) comes off before the 60% is worked out
+  const discountCents = Math.max(0, Math.min(Math.round((window.LexcVoucher?.discount?.() || 0) * 100), Math.round(subtotal * 100) - rush * 100));
+  const total = Math.round(subtotal * 100) - discountCents + deliveryCents;
+  const required = Math.round((Math.round(subtotal * 100) - discountCents) * 0.6) + deliveryCents;
   const show = cents => waiting ? '—' : checkoutMoney(cents / 100);
   grandEl.textContent = show(total);
   document.getElementById('checkoutRequired').textContent = show(required);
@@ -2859,7 +2862,7 @@ loginReady();
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script><script src="shared/delivery-area.js?v=1"></script><script src="shared/checkout-map.js?v=12"></script>
-<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/customer-backend.js?v=49"></script>
+<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/customer-backend.js?v=50"></script><script src="shared/voucher-checkout.js?v=1"></script>
 <script src="shared/product-detail.js?v=20"></script>
 <script src="shared/menu-layout.js?v=5"></script>
 <script src="shared/fresh-feed.js?v=16"></script>
