@@ -37,6 +37,12 @@ begin
     values (o.id, o.customer_id, (select id from public.payment_methods where code = method), o.deposit_due, 'downpayment', 'rejected',
       o.downpayment_due_at - interval '2 hours', 'REHEARSAL102', 'paymongo', 'pay_rehearsal102', o.downpayment_due_at - interval '1 hour', 'rehearsal');
   update public.orders set payment_status = 'rejected' where id = o.id;
+  -- the downpayment as it really happens: a paid payment record, then the order's paid amount
+  insert into public.order_payment_attempts(order_id, customer_id, payment_method_id, amount, payment_kind, status, submitted_at, transaction_reference,
+      provider, provider_payment_id, verified_at, verified_by, verification_note)
+    select o2.id, o2.customer_id, (select id from public.payment_methods where code = method), o2.deposit_due, 'downpayment', 'paid', now(), 'REHEARSAL102D',
+      'paymongo', 'pay_rehearsal102d', now(), admin_id, 'rehearsal downpayment'
+      from public.orders o2 where o2.id = (select id from rehearsal_ids where k = 'balance');
   update public.orders set amount_paid = deposit_due, payment_status = 'partially_paid' where id = (select id from rehearsal_ids where k = 'balance');
   select * into o from public.orders where id = (select id from rehearsal_ids where k = 'late');
 
