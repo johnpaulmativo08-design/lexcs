@@ -132,3 +132,19 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 .ps-block.is-carry-in{border-top-left-radius:0;border-bottom-left-radius:0;border-left-style:dashed}
 .ps-block.is-carry-out{border-top-right-radius:0;border-bottom-right-radius:0;border-right-style:dashed}
 .ps-hours span:last-child{transform:translateX(-100%)}
+/* planning (phase 101): drag a task onto the track, or tap then tap */
+.ps-next{gap:10px}.ps-next .ps-tickets{grid-template-columns:minmax(0,1fr)}
+.ps-ticket-card[draggable=true]{cursor:grab}.ps-ticket-card[draggable=true]:active{cursor:grabbing}
+.ps-ticket-card.is-dragging,.ps-block.is-dragging{opacity:.45}
+.ps-ticket-card.is-placing{box-shadow:0 0 0 2px var(--pink)}
+.ps-grip{color:#b9a9cc;letter-spacing:-2px;margin-right:2px}
+.ps-track.is-target .ps-lane,.ps-track.is-placing .ps-lane{box-shadow:inset 0 0 0 1.5px var(--violet-2);background-color:#f4edfc}
+.ps-track.is-placing .ps-lane{cursor:crosshair}
+.ps-ghost{position:absolute;top:4px;bottom:4px;border-radius:8px;border:1.5px dashed var(--violet-2);background:rgba(138,99,210,.14);pointer-events:none;transition:left .06s linear}
+.ps-ghost::before{content:"";position:absolute;left:-1px;top:-8px;bottom:-8px;width:2px;background:var(--violet-2);border-radius:2px}
+.ps-ghost.is-bad{border-color:#d4537e;background:rgba(212,83,126,.12)}.ps-ghost.is-bad::before{background:#d4537e}
+.ps-block.is-planned{box-shadow:inset 0 -2px 0 var(--violet-2)}.ps-block[draggable=true]{cursor:grab}
+.ps-hint-line{margin:-4px 0 0;font-size:.76rem;color:var(--muted);min-height:1.2em}
+.ps-hint-line .is-ok{color:var(--ok);font-weight:700}.ps-hint-line .is-bad{color:var(--bad);font-weight:700}
+.ps-linkbtn{border:0;background:none;padding:0;color:var(--violet);font:700 .74rem 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.ps-planned{color:var(--violet)}
