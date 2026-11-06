@@ -317,7 +317,7 @@ export async function renderProduction(content, focus) {
   }
   function paintNext() {
     // tomorrow's tasks to start: bake them tonight by dragging onto this day's track
-    const next = plus(selected, 1), list = state.tasks.filter((t) => t.day === next && ['confirmed', 'pending'].includes(statusOf(t))).sort((a, b) => a.start - b.start);
+    const box = $('[data-next]'), next = plus(selected, 1), list = state.tasks.filter((t) => t.day === next && ['confirmed', 'pending'].includes(statusOf(t))).sort((a, b) => a.start - b.start);
     box.hidden = !list.length;
     box.innerHTML = `<div class="ps-row"><h3>Plan ahead · ${e(shortDay(next))}</h3><small>${list.length} to start</small></div>
       <p class="ps-hint">${plansReady ? `Drag onto ${e(shortDay(selected))}’s track to bake it the night before.` : 'Planning turns on once database/phase101-bake-plans.sql is run.'}</p>
