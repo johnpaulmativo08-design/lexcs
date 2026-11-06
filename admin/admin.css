@@ -872,3 +872,21 @@ main .operations-dashboard .ops-row .dash-balance{color:#1d1530;font-size:15.5px
 /* order details: payment deadlines (phase 102) */
 .od-deadlines{margin-top:10px;padding-top:10px;border-top:1px dashed #e6dcf2}.od-deadlines small{display:block;color:#9a640d;font-weight:600}
 .od-waive{margin-top:8px;font-size:12.5px}
+/* Vouchers (pages/vouchers.js, phase 103) */
+.vc-stats{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0 0 14px;color:#5f5674;font-size:13px}.vc-stats b{color:#241532;font-size:15px;margin-right:4px}
+.vc-table td{vertical-align:top}.vc-table small{display:block;color:#7a6f8a;font-size:11.5px;margin-top:2px}
+.vc-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;color:#241532}
+.vc-pill{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:800;background:#f3eff8;color:#5f5674}
+.vc-pill.is-ok{background:#e6f5ed;color:#1f7a4c}.vc-pill.is-wait{background:#fff2dc;color:#9a640d}.vc-pill.is-off{background:#f1eef4;color:#7a6f8a}
+.vc-actions{white-space:nowrap}.vc-actions .button{padding:6px 10px;font-size:12.5px}.vc-danger{color:#a3324b}
+.vc-empty{padding:22px;color:#5f5674}.vc-empty p{margin:0 0 10px}.vc-muted{color:#7a6f8a;margin:0}
+.vc-history{margin-top:16px}.vc-history h2{font-size:15px;margin:0 0 10px}
+.vc-history ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.vc-history li{display:grid;grid-template-columns:auto auto 1fr auto;gap:4px 12px;align-items:baseline;padding:8px 0;border-bottom:1px solid #f0ebf6;font-size:13px}
+.vc-history li small{grid-column:1/-1;color:#7a6f8a}.vc-history li b{color:#1f7a4c}
+.vc-form{display:grid;gap:14px}.vc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 14px}
+.vc-scope{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 18px}.vc-scope legend{font-weight:700;margin-bottom:6px}
+.vc-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 12px;max-height:220px;overflow:auto;padding:10px;border:1px solid #ece4f5;border-radius:12px}
+.vc-pick label,.vc-scope label,.vc-switch{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+.vc-error{margin:0;color:#a3324b;font-size:13px}.vc-error:empty{display:none}
+@media(max-width:760px){.vc-table thead{display:none}.vc-table tr{display:grid;gap:4px;padding:10px 0;border-bottom:1px solid #f0ebf6}.vc-table td{border:0;padding:2px 0}}

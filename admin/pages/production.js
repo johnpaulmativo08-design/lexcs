@@ -12,7 +12,7 @@
 // order_bake_plans / set_bake_plan (phase 101), orders + order_items, booking_entries (reserved times), and the
 // status messages in each order's chat (when it was confirmed, started, ready, completed).
 // Every stage button is set_order_status, the same as Orders, so payment, inventory and status rules stay in the database.
-import { escapeHtml as e, icon } from '../components.js?v=4';
+import { escapeHtml as e, icon } from '../components.js?v=5';
 import { db } from '../backend-ui.js?v=3';
 import { ask } from '../../shared/ask.js?v=2';
 import { clearProductionCache } from '../production-capacity.js?v=3';

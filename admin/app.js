@@ -1,4 +1,4 @@
-import { renderProduction } from './pages/production.js?v=10';
+import { renderProduction } from './pages/production.js?v=11';
 import { renderDashboard } from './pages/dashboard.js?v=18';
 import { renderProducts } from './pages/products.js?v=15';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=36';
@@ -7,22 +7,23 @@ import { renderOrders } from './pages/orders.js?v=54';
 import { renderBookings } from './pages/bookings.js?v=19';
 import { renderDesignOptions } from './pages/design-options.js?v=14';
 import { renderProfile } from './pages/profile.js?v=13';
+import { renderVouchers } from './pages/vouchers.js?v=1';
 import { renderDeliveryRates } from './pages/delivery-rates.js?v=6';
 import { mountChat } from '../shared/chat.js?v=41';
 import { mountChatWidget } from '../shared/chat-widget.js?v=44';
 import { renderUpdates } from './pages/updates.js?v=2';
-import { icon } from './components.js?v=4';
+import { icon } from './components.js?v=5';
 import { ask } from '../shared/ask.js?v=1';
 
 const groups = [
   ['', [['dashboard', 'Dashboard'], ['production', 'Production']]],
-  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['delivery-rates', 'Delivery rates', null, 'delivery'], ['bookings', 'Reservations'],
+  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['delivery-rates', 'Delivery rates', null, 'delivery'], ['vouchers', 'Vouchers'], ['bookings', 'Reservations'],
     // Posts and review moderation: the storefront's Updates module, shown inside Admin (pages/updates.js).
     ['updates', 'Updates & reviews', null, 'gallery']]],
   ['Analytics', [['reports', 'Reports']]],
   ['Account', [['profile', 'Profile']]],
 ];
-const titles = { production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', 'delivery-rates': 'Delivery rates', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
+const titles = { production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', 'delivery-rates': 'Delivery rates', vouchers: 'Vouchers', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
@@ -131,6 +132,7 @@ async function renderRoute() {
   else if (current === 'orders') await renderOrders(content);
   else if (current === 'bookings') await renderBookings(content);
   else if (current === 'delivery-rates') await renderDeliveryRates(content);
+  else if (current === 'vouchers') await renderVouchers(content);
   else if (current === 'designs') await renderDesignOptions(content);
   else if (current === 'updates') renderUpdates(content);
   else if (current === 'profile') await renderProfile(content, subpage);
