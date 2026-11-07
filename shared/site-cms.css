@@ -1,0 +1,10 @@
+/* Website CMS on the site (shared/site-cms.js, phase 104): section visibility settings and the announcement bar */
+.cms-hidden{display:none!important}
+@media (max-width:700px){.cms-hide-m{display:none!important}}
+@media (min-width:701px){.cms-hide-d{display:none!important}}
+.cms-ann{position:relative;z-index:60;display:flex;align-items:center;gap:12px;padding:10px 48px 10px 16px;background:#2b1530;color:#fff;font:500 .86rem/1.4 'Plus Jakarta Sans',sans-serif}
+.cms-ann img{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:none}
+.cms-ann p{margin:0;flex:1}.cms-ann strong{font-weight:800;margin-right:4px}
+.cms-ann a{flex:none;border-radius:999px;padding:6px 14px;background:#fff;color:#2b1530;font-weight:800;text-decoration:none;font-size:.8rem}
+.cms-ann button{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1}
+@media (max-width:600px){.cms-ann{flex-wrap:wrap}.cms-ann a{order:3}}

@@ -1,0 +1,203 @@
+-- Phase 104 · Website CMS: edit the customer pages from Admin → Edit Website, with drafts and publishing.
+--
+-- What it stores:
+--   * public.site_content — one row per editable section of a page (page + section key). Each row keeps a DRAFT
+--     and the PUBLISHED version as JSON: { fields: {…text, links, image paths…}, style: {…}, settings: {visible,
+--     order, hide_mobile, hide_desktop} }. Visitors only ever receive published content (public.get_site_content);
+--     drafts are read and written by the Admin only. Fonts and site-wide settings live under page 'global'.
+--   * public.site_faqs — the homepage FAQs (question, answer, order, active). At most 10 can be active: a trigger
+--     refuses the 11th, whatever the screen does. Visitors read active FAQs only.
+--   * public.site_announcements — announcements with a draft / published / archived status, optional image, link
+--     and button, and display start/end. Visitors read published ones inside their dates only.
+--   * Storage bucket "site-media" for CMS images: anyone can view; only the Admin can upload, replace or delete;
+--     JPG, PNG or WebP up to 5 MB.
+-- Text is stored as text. The site writes it with textContent (or a tiny bold/italic/line-break formatter that
+-- escapes everything else), so stored content cannot inject scripts. Links must be http(s), mailto:, tel:, # or a
+-- site path; anything else is refused when saving.
+--
+-- What it does NOT do: change products, orders, payments or any existing data. Until something is published, the
+-- site shows exactly what it shows today. Safe to re-run.
+begin;
+
+-- 1. section content: draft + published -------------------------------------------------------------------------
+create table if not exists public.site_content (
+  page text not null check (page ~ '^[a-z][a-z0-9-]{1,30}$'),
+  section text not null check (section ~ '^[a-z][a-z0-9-]{1,40}$'),
+  draft jsonb not null default '{}'::jsonb check (jsonb_typeof(draft) = 'object' and pg_column_size(draft) < 60000),
+  published jsonb check (published is null or (jsonb_typeof(published) = 'object' and pg_column_size(published) < 60000)),
+  draft_updated_at timestamptz not null default now(),
+  published_at timestamptz,
+  updated_by uuid references public.profiles(id),
+  primary key (page, section)
+);
+alter table public.site_content enable row level security;
+revoke all on public.site_content from anon, authenticated;
+grant select on public.site_content to authenticated;
+drop policy if exists site_content_admin_read on public.site_content;
+create policy site_content_admin_read on public.site_content for select to authenticated using ((select private.is_admin()));
+
+-- links stored in content must be safe to put in href
+create or replace function private.cms_safe_link(v text) returns boolean language sql immutable set search_path = '' as $$
+  select v is null or v = '' or v ~* '^(https?://|mailto:|tel:|#|/|\?|[a-z0-9][a-z0-9/_.-]*(\?[^ <>"'']*)?$)' and v !~* '^\s*(javascript|data|vbscript):'
+$$;
+create or replace function private.cms_check_links(j jsonb) returns void language plpgsql immutable set search_path = '' as $$
+declare k text; v jsonb;
+begin
+  for k, v in select * from jsonb_each(coalesce(j, '{}')) loop
+    if jsonb_typeof(v) = 'object' or jsonb_typeof(v) = 'array' then perform private.cms_check_links(case when jsonb_typeof(v) = 'array' then (select jsonb_object_agg(i::text, e) from jsonb_array_elements(v) with ordinality t(e, i)) else v end);
+    elsif jsonb_typeof(v) = 'string' and (k like '%href%' or k like '%link%' or k like '%url%') and not private.cms_safe_link(v #>> '{}') then
+      raise exception 'That link isn''t allowed: %', left(v #>> '{}', 80) using errcode = '22023';
+    elsif jsonb_typeof(v) = 'string' and (v #>> '{}') ~* '<\s*script|javascript:|on[a-z]+\s*=' then
+      raise exception 'Scripts aren''t allowed in website text.' using errcode = '22023';
+    end if;
+  end loop;
+end $$;
+revoke all on function private.cms_check_links(jsonb) from public;
+
+-- Admin: save a section's draft
+create or replace function public.save_site_draft(target_page text, target_section text, content jsonb) returns public.site_content
+language plpgsql security definer set search_path = '' as $$
+declare r public.site_content;
+begin
+  if auth.uid() is null or not private.is_admin() then raise exception 'Admin access required.' using errcode = '42501'; end if;
+  if jsonb_typeof(content) <> 'object' then raise exception 'Invalid content.' using errcode = '22023'; end if;
+  perform private.cms_check_links(content);
+  insert into public.site_content(page, section, draft, draft_updated_at, updated_by) values (target_page, target_section, content, now(), auth.uid())
+  on conflict (page, section) do update set draft = excluded.draft, draft_updated_at = now(), updated_by = auth.uid()
+  returning * into r;
+  return r;
+end $$;
+-- Admin: publish every draft of a page (or 'global' for fonts)
+create or replace function public.publish_site_page(target_page text) returns integer
+language plpgsql security definer set search_path = '' as $$
+declare n integer;
+begin
+  if auth.uid() is null or not private.is_admin() then raise exception 'Admin access required.' using errcode = '42501'; end if;
+  update public.site_content set published = draft, published_at = now(), updated_by = auth.uid()
+   where page = target_page and published is distinct from draft;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+-- Admin: throw away unpublished drafts of a page (back to what is published; never-published sections are removed)
+create or replace function public.discard_site_drafts(target_page text) returns integer
+language plpgsql security definer set search_path = '' as $$
+declare n integer; m integer;
+begin
+  if auth.uid() is null or not private.is_admin() then raise exception 'Admin access required.' using errcode = '42501'; end if;
+  update public.site_content set draft = published, draft_updated_at = now() where page = target_page and published is not null and draft is distinct from published;
+  get diagnostics n = row_count;
+  delete from public.site_content where page = target_page and published is null;
+  get diagnostics m = row_count;
+  return n + m;
+end $$;
+-- Admin: reset a published section to the site's built-in content
+create or replace function public.reset_site_section(target_page text, target_section text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null or not private.is_admin() then raise exception 'Admin access required.' using errcode = '42501'; end if;
+  delete from public.site_content where page = target_page and section = target_section;
+end $$;
+-- Everyone: the published content of the site (all pages in one call; small)
+create or replace function public.get_site_content() returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select coalesce(jsonb_object_agg(page || '/' || section, published), '{}'::jsonb) from public.site_content where published is not null
+$$;
+do $$ declare f text; begin
+  foreach f in array array['save_site_draft(text, text, jsonb)', 'publish_site_page(text)', 'discard_site_drafts(text)', 'reset_site_section(text, text)'] loop
+    execute 'revoke all on function public.' || f || ' from public, anon';
+    execute 'grant execute on function public.' || f || ' to authenticated';
+  end loop;
+end $$;
+revoke all on function public.get_site_content() from public;
+grant execute on function public.get_site_content() to anon, authenticated;
+
+-- 2. FAQs: at most 10 active ---------------------------------------------------------------------------------------
+create table if not exists public.site_faqs (
+  id uuid primary key default gen_random_uuid(),
+  question text not null check (length(btrim(question)) between 3 and 200),
+  answer text not null check (length(btrim(answer)) between 3 and 2000),
+  sort_order integer not null default 0,
+  is_active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+create or replace function private.faq_limit() returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.is_active and (select count(*) from public.site_faqs where is_active and id <> new.id) >= 10 then
+    raise exception 'Only 10 FAQs can be active. Turn one off first.' using errcode = '22023';
+  end if;
+  if new.question ~* '<\s*script|javascript:' or new.answer ~* '<\s*script|javascript:' then raise exception 'Scripts aren''t allowed in FAQs.' using errcode = '22023'; end if;
+  new.updated_at := now();
+  return new;
+end $$;
+drop trigger if exists site_faqs_limit on public.site_faqs;
+create trigger site_faqs_limit before insert or update on public.site_faqs for each row execute function private.faq_limit();
+alter table public.site_faqs enable row level security;
+revoke all on public.site_faqs from anon, authenticated;
+grant select on public.site_faqs to anon, authenticated;
+grant insert, update, delete on public.site_faqs to authenticated;
+drop policy if exists site_faqs_read on public.site_faqs;
+create policy site_faqs_read on public.site_faqs for select to anon, authenticated using (is_active or (select private.is_admin()));
+drop policy if exists site_faqs_admin_write on public.site_faqs;
+create policy site_faqs_admin_write on public.site_faqs for all to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
+
+-- 3. announcements -------------------------------------------------------------------------------------------------
+create table if not exists public.site_announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (length(btrim(title)) between 2 and 120),
+  body text check (body is null or length(body) <= 600),
+  image_path text check (image_path is null or image_path ~ '^[A-Za-z0-9/_.-]{1,200}$'),
+  link_url text check (link_url is null or length(link_url) <= 300),
+  button_text text check (button_text is null or length(button_text) <= 40),
+  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
+  starts_at timestamptz,
+  ends_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ends_at is null or starts_at is null or ends_at > starts_at)
+);
+create or replace function private.announcement_check() returns trigger language plpgsql set search_path = '' as $$
+begin
+  if not private.cms_safe_link(new.link_url) then raise exception 'That link isn''t allowed.' using errcode = '22023'; end if;
+  if concat(new.title, new.body, new.button_text) ~* '<\s*script|javascript:' then raise exception 'Scripts aren''t allowed in announcements.' using errcode = '22023'; end if;
+  new.updated_at := now();
+  return new;
+end $$;
+drop trigger if exists site_announcements_check on public.site_announcements;
+create trigger site_announcements_check before insert or update on public.site_announcements for each row execute function private.announcement_check();
+alter table public.site_announcements enable row level security;
+revoke all on public.site_announcements from anon, authenticated;
+grant select on public.site_announcements to anon, authenticated;
+grant insert, update, delete on public.site_announcements to authenticated;
+drop policy if exists site_announcements_read on public.site_announcements;
+create policy site_announcements_read on public.site_announcements for select to anon, authenticated
+  using ((status = 'published' and (starts_at is null or starts_at <= now()) and (ends_at is null or ends_at > now())) or (select private.is_admin()));
+drop policy if exists site_announcements_admin_write on public.site_announcements;
+create policy site_announcements_admin_write on public.site_announcements for all to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
+
+-- 4. images: bucket "site-media" (public read, Admin write, JPG/PNG/WebP ≤ 5 MB) ------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('site-media', 'site-media', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update set public = true, file_size_limit = 5242880, allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp'];
+drop policy if exists site_media_admin_insert on storage.objects;
+create policy site_media_admin_insert on storage.objects for insert to authenticated with check (bucket_id = 'site-media' and (select private.is_admin()));
+drop policy if exists site_media_admin_update on storage.objects;
+create policy site_media_admin_update on storage.objects for update to authenticated using (bucket_id = 'site-media' and (select private.is_admin()));
+drop policy if exists site_media_admin_delete on storage.objects;
+create policy site_media_admin_delete on storage.objects for delete to authenticated using (bucket_id = 'site-media' and (select private.is_admin()));
+
+-- 5. start the FAQ list with the FAQs that are on the site today (only if the table is empty) -------------------------
+insert into public.site_faqs(question, answer, sort_order)
+select q, a, n from (values
+  (1, 'How to order?', 'You can place an order using the online reservation checkout, or reach us through our Facebook page — LexC''s Snacktime.'),
+  (2, 'Do you accept bulk orders?', 'Yes! We accept bulk pastry orders for events, parties, and corporate occasions. Message us at least 3–5 days in advance so we can prepare.'),
+  (3, 'Can I customize my order?', 'Yes! We make themed pastries for birthdays and events. Message us through the chat with your theme, colors and date, and we’ll help you plan your order.'),
+  (4, 'Do you offer delivery?', 'Yes, we deliver anywhere in Pampanga (Angeles City and Clark included) by Lalamove, paid to the rider. Pickup is also available at our home kitchen in Dau, Mabalacat City. You’ll see the map at checkout.'),
+  (5, 'How far in advance should I order?', 'For standard orders, 1–2 days ahead is ideal. For themed or bulk orders, please order at least 5–7 days in advance.'),
+  (6, 'What payment methods do you accept?', 'Online checkout offers manual GCash and MariBank InstaPay QR transfers. After placing your order, send the exact required amount to the chosen account and submit the bank reference and receipt. We confirm payment only after checking the actual incoming transfer. For Lalamove delivery, you pay the rider directly.'),
+  (7, 'Are your pastries made with preservatives?', 'No — all our pastries are made fresh from scratch without artificial preservatives. We recommend consuming within 2–3 days for best quality.'),
+  (8, 'Do you cater to dietary restrictions?', 'We can accommodate some requests — please message us directly to discuss allergy or dietary concerns before ordering.')
+) v(n, q, a)
+where not exists (select 1 from public.site_faqs);
+
+commit;
+notify pgrst, 'reload schema';
