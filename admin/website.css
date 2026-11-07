@@ -1,0 +1,56 @@
+/* Admin → Edit Website (pages/website.js, phase 104): preview on the left, a contextual panel on the right */
+.ws{display:grid;gap:14px;color:#241532}
+.ws-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;background:#fff;border:1px solid #ece4f5;border-radius:16px;position:sticky;top:0;z-index:5}
+.ws-bar small{color:#7a6f8a;font-size:12px}.ws-bar h1{margin:0;font-size:18px}
+.ws-state{border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;background:#f3eff8;color:#5f5674}
+.ws-state.is-dirty{background:#fff2dc;color:#9a640d}.ws-state.is-draft{background:#efe5f9;color:#5a3a8c}.ws-state.is-live{background:#e6f5ed;color:#1f7a4c}
+.ws-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-left:auto}
+.ws-tools .button{padding:7px 12px;font-size:13px}.ws-tools .button:disabled{opacity:.45;cursor:default}
+.ws-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;cursor:pointer}.ws-toggle input{accent-color:#6f4fa8;width:16px;height:16px}
+.ws-seg{display:inline-flex;border:1px solid #e3d8f0;border-radius:999px;overflow:hidden}
+.ws-seg button,.ws-seg label{border:0;background:#fff;padding:6px 11px;font:600 12px 'Plus Jakarta Sans',sans-serif;color:#5f5674;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.ws-seg button[aria-pressed=true],.ws-seg label:has(input:checked){background:#2b1530;color:#fff}.ws-seg input{position:absolute;opacity:0;pointer-events:none}
+.ws-body{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+.ws-stage{background:#f4f1f7;border:1px solid #ece4f5;border-radius:16px;padding:12px;display:grid;justify-items:center;min-height:70vh}
+.ws-frame{position:relative;width:100%;height:76vh;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 6px 24px rgba(36,21,50,.08);transition:width .25s ease}
+.ws-frame.is-tablet{width:820px;max-width:100%}.ws-frame.is-phone{width:390px;max-width:100%}
+.ws-frame iframe{position:relative;z-index:1;width:100%;height:100%;border:0}.ws-skel{position:absolute;inset:0;z-index:0;border-radius:0}
+.ws-panel{background:#fff;border:1px solid #ece4f5;border-radius:16px;padding:16px;display:grid;gap:12px;position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto}
+.ws-panel h2{margin:0;font-size:16px}.ws-hint{margin:0;color:#7a6f8a;font-size:12.5px;line-height:1.5}
+.ws-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.ws-list li{display:flex;align-items:center;gap:6px}
+.ws-list li>button{flex:1;display:flex;justify-content:space-between;gap:8px;text-align:left;border:1px solid transparent;background:#faf8fc;border-radius:10px;padding:9px 11px;font:600 13px 'Plus Jakarta Sans',sans-serif;color:#241532;cursor:pointer}
+.ws-list li>button:hover{border-color:#e3d8f0}.ws-list small{color:#8a63d2;font-weight:700}
+.ws-move{display:flex;gap:2px}.ws-move button{width:26px;height:26px;border:1px solid #ece4f5;border-radius:8px;background:#fff;cursor:pointer}
+.ws-links{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0}.ws-links a{color:#6f4fa8;font-weight:700;font-size:13px;text-decoration:none}
+.ws-back{justify-self:start;border:0;background:none;color:#6f4fa8;font:700 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;padding:0}
+.ws-tabs{display:flex;border-bottom:1px solid #ece4f5}
+.ws-tabs button{border:0;background:none;padding:8px 12px;font:700 13px 'Plus Jakarta Sans',sans-serif;color:#7a6f8a;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ws-tabs button[aria-selected=true]{color:#241532;border-bottom-color:#8a63d2}
+.ws-form{display:grid;gap:12px}
+.ws-field{display:grid;gap:5px;font-size:12.5px;font-weight:700;color:#4b3a63;border:0;padding:0;margin:0}.ws-field legend{padding:0;margin-bottom:5px}
+.ws-field input:not([type=color]):not([type=radio]),.ws-field textarea,.ws-field select{width:100%;padding:9px 11px;border:1px solid #e1d6ee;border-radius:10px;font:500 13px/1.45 'Plus Jakarta Sans',sans-serif;color:#241532;background:#fff;resize:vertical}
+.ws-field input:focus,.ws-field textarea:focus,.ws-field select:focus{outline:2px solid #8a63d2;outline-offset:0}
+.ws-field small{font-weight:500;color:#8a7f99}
+.ws-color{grid-template-columns:1fr auto auto;align-items:center}.ws-color input{width:40px;height:30px;border:1px solid #e1d6ee;border-radius:8px;padding:2px;background:#fff}
+.ws-img{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.ws-img img{width:84px;height:60px;object-fit:cover;border-radius:10px;border:1px solid #ece4f5}
+.ws-img-empty{width:84px;height:60px;border-radius:10px;border:1px dashed #d9cce6;display:grid;place-items:center;font-size:11px;color:#8a7f99;text-align:center}
+.ws-img .button{padding:6px 10px;font-size:12px;cursor:pointer}.ws-img.is-busy{opacity:.5;pointer-events:none}
+.ws-check{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.ws-check input{accent-color:#6f4fa8;width:16px;height:16px}
+.ws-reset{justify-self:start;font-size:12.5px;color:#a3324b}
+.ws-fonts{border:0;padding:0;margin:0;display:grid;gap:6px}.ws-fonts legend{font-weight:800;font-size:13px;margin-bottom:6px}
+.ws-font{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid #ece4f5;border-radius:12px;cursor:pointer}.ws-font:has(input:checked){border-color:#8a63d2;background:#faf6fd}
+.ws-font input{margin-top:3px;accent-color:#6f4fa8}.ws-font span{display:grid;gap:2px}.ws-font b{font-size:14px}.ws-font i{font-style:normal;font-size:17px;color:#2b1530}
+.ws-font small{font:500 11.5px 'Plus Jakarta Sans',sans-serif;color:#7a6f8a}
+.ws-count{margin:0 0 10px;font-weight:700;color:#5f5674}.ws-count.is-full{color:#9a640d}
+.ws-faqs,.ws-anns{display:grid;gap:10px}
+.ws-faq{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:12px;background:#fff;border:1px solid #ece4f5;border-radius:14px}
+.ws-faq.is-off{opacity:.65}.ws-faq-order{display:grid;gap:4px}.ws-faq-order button{width:28px;height:26px;border:1px solid #ece4f5;border-radius:8px;background:#fff;cursor:pointer}
+.ws-faq-fields{display:grid;gap:6px}
+.ws-faq-fields input,.ws-faq-fields textarea,.ws-ann input,.ws-ann select{width:100%;padding:8px 10px;border:1px solid #e1d6ee;border-radius:10px;font:500 13px/1.45 'Plus Jakarta Sans',sans-serif}
+.ws-faq-fields input{font-weight:700}.ws-faq-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ws-ann{display:grid;gap:10px;padding:14px;background:#fff;border:1px solid #ece4f5;border-radius:14px}
+.ws-ann-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.ws-ann-head select{width:auto}
+@media(max-width:1100px){.ws-body{grid-template-columns:minmax(0,1fr)}.ws-panel{position:static;max-height:none}.ws-frame{height:64vh}}
+@media(max-width:700px){.ws-bar{position:static}.ws-tools{margin-left:0}.ws-faq{grid-template-columns:1fr}.ws-faq-order{display:flex}}
+@media(prefers-reduced-motion:reduce){.ws-frame{transition:none}}
