@@ -6,6 +6,7 @@
   const S = () => window.LexcSiteSchema;
   const params = new URLSearchParams(location.search);
   const framed = window.parent !== window && params.get('cms') === 'edit';
+  const live = params.get('cms') === 'live';   // the Admin editing the site in place (shared/site-editor.js)
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const rich = (v) => esc(v).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
   const safeLink = (v) => !v || /^(https?:\/\/|mailto:|tel:|#|\/|\?|[a-z0-9][a-z0-9/_.-]*(\?[^ <>"']*)?$)/i.test(v) && !/^\s*(javascript|data|vbscript):/i.test(v);
@@ -87,9 +88,9 @@
   async function announcements() {
     try {
       const { data } = await window.LexcBackend.client.from('site_announcements').select('id,title,body,image_path,link_url,button_text,status,starts_at,ends_at').eq('status', 'published').order('starts_at', { ascending: false, nullsFirst: false }).limit(3);
-      const now = Date.now(), live = (data || []).filter((a) => (!a.starts_at || Date.parse(a.starts_at) <= now) && (!a.ends_at || Date.parse(a.ends_at) > now));
+      const now = Date.now(), now_ = (data || []).filter((a) => (!a.starts_at || Date.parse(a.starts_at) <= now) && (!a.ends_at || Date.parse(a.ends_at) > now));
       let seen = []; try { seen = JSON.parse(localStorage.getItem('lexc_ann_closed') || '[]'); } catch {}
-      const a = live.find((x) => !seen.includes(x.id)); if (!a || framed) return;
+      const a = now_.find((x) => !seen.includes(x.id)); if (!a || framed || live) return;
       const bar = document.createElement('aside'); bar.className = 'cms-ann'; bar.setAttribute('aria-label', 'Announcement');
       bar.innerHTML = `${a.image_path ? `<img src="${esc(imgUrl(a.image_path))}" alt="" width="40" height="40">` : ''}<p><strong>${esc(a.title)}</strong>${a.body ? ' ' + esc(a.body) : ''}</p>${a.link_url && safeLink(a.link_url) ? `<a href="${esc(a.link_url)}">${esc(a.button_text || 'Learn more')}</a>` : ''}<button type="button" aria-label="Close announcement">×</button>`;
       bar.querySelector('button').onclick = () => { bar.remove(); try { localStorage.setItem('lexc_ann_closed', JSON.stringify([...seen, a.id].slice(-20))); } catch {} };
@@ -146,11 +147,11 @@
       const { data } = await window.LexcBackend.client.rpc('get_site_content');
       content = data || {};
     } catch {}
-    if (framed) await loadDrafts();
+    if (framed || live) await loadDrafts();
     applyAll(); faqs(); announcements();
     if (framed) { outline(); window.parent.postMessage({ cms: 'ready' }, location.origin); }
   }
-  window.LexcSiteCms = { refresh: start };
+  window.LexcSiteCms = { refresh: start, live, content: () => content, set: (key, c) => { content[key] = c; applyAll(); }, applyAll, imgUrl, rich };
   const go = () => (window.LexcBackend ? start() : setTimeout(go, 150));
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 })();

@@ -7,7 +7,7 @@ import { renderOrders } from './pages/orders.js?v=54';
 import { renderBookings } from './pages/bookings.js?v=19';
 import { renderDesignOptions } from './pages/design-options.js?v=14';
 import { renderProfile } from './pages/profile.js?v=13';
-import { renderWebsite } from './pages/website.js?v=1';
+import { renderWebsite } from './pages/website.js?v=2';
 import { renderVouchers } from './pages/vouchers.js?v=1';
 import { renderDeliveryRates } from './pages/delivery-rates.js?v=6';
 import { mountChat } from '../shared/chat.js?v=41';
@@ -22,8 +22,8 @@ const groups = [
     // Posts and review moderation: the storefront's Updates module, shown inside Admin (pages/updates.js).
     ['updates', 'Updates & reviews', null, 'gallery']]],
   // Edit Website (phase 104): the customer pages, FAQs and announcements
-  ['Edit Website', [['website/home', 'Homepage', null, 'dashboard'], ['website/menu', 'Menu', null, 'products'], ['website/packages', 'Treats & packages', null, 'gallery'],
-    ['website/terms', 'Terms & Conditions', null, 'orders'], ['website/global', 'Header & fonts', null, 'edit'], ['website/faqs', 'FAQs', null, 'info'], ['website/announcements', 'Announcements', null, 'alert']]],
+  // the button opens the customer site itself with in-place editing (shared/site-editor.js)
+  ['Website', [['website-live', 'Edit website', '../?cms=live', 'edit'], ['website/faqs', 'FAQs', null, 'info'], ['website/announcements', 'Announcements', null, 'alert']]],
   ['Analytics', [['reports', 'Reports']]],
   ['Account', [['profile', 'Profile']]],
 ];
