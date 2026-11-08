@@ -80,7 +80,12 @@
     { id: 'terms', label: 'Terms & Conditions', route: 'register', sections: [
       { id: 'terms', label: 'Terms & Conditions', el: '#regTermsDialog', legal: true, style: ['text_color'], fields: [
         { k: 'title', label: 'Heading', type: 'text', sel: '#regTermsTitle' },
-        { k: 'body', label: 'Terms (one paragraph per block; start a block with **1. Title.** for a bold lead)', type: 'paras', sel: '.reg-terms' } ] } ] },
+        { k: 'sub', label: 'Line under the heading', type: 'text', sel: '.tc-sub' },
+        { k: 'intro', label: 'Welcome paragraph', type: 'text', sel: '.tc-intro' },
+        // the 9 sections (accordion): a title and its text (blank line between blocks, "• " for list lines, **bold**)
+        ...[1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap((n) => [
+          { k: 'sec' + n + '_title', label: 'Section ' + n + ' title', type: 'text', sel: '[data-tc-title="' + n + '"]' },
+          { k: 'sec' + n + '_body', label: 'Section ' + n + ' text', type: 'paras', sel: '[data-tc-body="' + n + '"]' }]) ] } ] },
     { id: 'global', label: 'Header & fonts', route: 'home', sections: [
       { id: 'header', label: 'Header navigation', el: 'nav .nav-links', style: [], fields: [
         { k: 'nav1', label: 'Home label', type: 'text', sel: 'li:nth-child(1) a' },
