@@ -1,0 +1,71 @@
+/* Designer Options + product editor refresh: the same look as Vouchers (hero, soft cards, dark selected states,
+   coloured icon tiles). Loaded after design-options.css and products.css, so these win on equal specificity. */
+
+/* ---------- Designer Options ---------- */
+.dx-hero{margin-bottom:20px}
+.dx-art{height:160px}
+.dx-card{position:absolute;display:flex;align-items:center;gap:10px;padding:12px 16px 12px 12px;border-radius:14px;background:#fff;box-shadow:0 10px 26px rgba(92,61,110,.14);animation:vx-bob 5s ease-in-out infinite;white-space:nowrap}
+.dx-card i{width:30px;height:30px;border-radius:50%;box-shadow:inset 0 -3px 0 rgba(0,0,0,.08)}
+.dx-card b{color:#2b1d3a;font-size:14px}.dx-card em{font-style:normal;font-size:12px;font-weight:800;color:#6b3fa0;background:#f3eefa;padding:2px 8px;border-radius:999px}
+.dx-card--a{top:6px;right:10px;transform:rotate(4deg)}
+.dx-card--b{top:58px;right:150px;transform:rotate(-5deg);animation-delay:-1.6s}
+.dx-card--c{bottom:4px;right:24px;transform:rotate(2deg);animation-delay:-3.2s}
+
+.dopt-products{gap:10px!important}
+.dopt-products button{border:1px solid #efe9f5!important;border-radius:18px!important;background:#fff!important;box-shadow:0 1px 2px rgba(36,21,50,.04)!important;transition:transform .16s cubic-bezier(.22,1,.36,1),box-shadow .16s,background .16s!important}
+.dopt-products button:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(92,61,110,.1)!important}
+.dopt-product-ico{display:grid!important;place-items:center;width:40px;height:40px;border-radius:13px;background:linear-gradient(145deg,#efe6fb,#fbe8f0);color:#6b3fa0}
+.dopt-products button[aria-pressed="true"]{background:#241532!important;border-color:#241532!important;color:#fff!important;box-shadow:0 10px 24px rgba(36,21,50,.22)!important}
+.dopt-products button[aria-pressed="true"] .dopt-product-name{color:#fff!important}
+.dopt-products button[aria-pressed="true"] .dopt-product-ico{background:rgba(255,255,255,.14);color:#fff}
+.dopt-products button[aria-pressed="true"] svg{color:#fff}
+
+.dopt-search{border:1px solid #ece5f3!important;border-radius:999px!important;background:#fff!important;box-shadow:0 1px 2px rgba(36,21,50,.04)}
+.dopt-filters{padding:4px!important;border:1px solid #ece5f3!important;border-radius:999px!important;background:#fff!important}
+.dopt-filters button{border-radius:999px!important}
+.dopt-filters button[aria-pressed="true"]{background:#241532!important;color:#fff!important}
+.dopt-filters button[aria-pressed="true"] b{color:#fff!important}
+
+.dopt-jump{padding:6px 0 10px!important;background:transparent!important}
+.dopt-sec{border:1px solid #ece5f3!important;background:#fff!important}
+.dopt-sec b{background:#f3eefa;color:#6b3fa0;border-radius:999px;padding:1px 7px;font-size:11.5px}
+.dopt-sec[aria-pressed="true"]{background:#241532!important;border-color:#241532!important;color:#fff!important}
+.dopt-sec[aria-pressed="true"] b{background:rgba(255,255,255,.18);color:#fff}
+
+.dopt-group{border:1px solid #efe9f5!important;border-radius:20px!important;box-shadow:0 1px 2px rgba(36,21,50,.04)!important;transition:box-shadow .18s,border-color .18s}
+.dopt-group:hover{box-shadow:0 10px 24px rgba(92,61,110,.08)!important}
+.dopt-group.is-open{border-color:#dccdea!important;box-shadow:0 14px 32px rgba(92,61,110,.1)!important}
+.dopt-group-ico{width:44px!important;height:44px!important;border-radius:14px!important}
+.dopt-group:nth-of-type(5n+1) .dopt-group-ico{background:#efe6fb!important;color:#6b3fa0!important}
+.dopt-group:nth-of-type(5n+2) .dopt-group-ico{background:#fde7f0!important;color:#b13f72!important}
+.dopt-group:nth-of-type(5n+3) .dopt-group-ico{background:#e6f5ed!important;color:#1f7a4c!important}
+.dopt-group:nth-of-type(5n+4) .dopt-group-ico{background:#fff2dc!important;color:#9a640d!important}
+.dopt-group:nth-of-type(5n+5) .dopt-group-ico{background:#e7f0fd!important;color:#2f5f9e!important}
+.dopt-group-title{font-size:16px!important}
+.dopt-pill{background:#f3eefa!important;color:#5c3d6e!important;font-weight:700!important}
+.dopt-caret{background:#f6f2fa!important;transition:transform .2s}
+.dopt-group.is-open .dopt-caret{transform:rotate(180deg)}
+.dopt-bar{border-radius:18px!important;background:#241532!important;color:#fff!important;box-shadow:0 18px 40px rgba(36,21,50,.3)!important}
+
+/* ---------- product editor drawer ---------- */
+.pe-drawer .stock-drawer__panel{background:#f8f5fb}
+.pe-drawer .stock-drawer__head{background:linear-gradient(120deg,#f1e8fd 0%,#f7f1fd 55%,#fdf2f7 100%);border-bottom:1px solid #ece2f7}
+.pe-drawer .stock-drawer__head h2{font-family:'Playfair Display',serif;font-size:24px;color:#241532}
+.pe-drawer .stock-drawer__head .stock-icon-button{background:rgba(255,255,255,.8);border-radius:50%}
+.pe-section{border:1px solid #efe9f5!important;border-radius:20px!important;background:#fff!important;box-shadow:0 1px 2px rgba(36,21,50,.04);margin-bottom:12px!important;overflow:hidden}
+.pe-section[open]{border-color:#dccdea!important;box-shadow:0 12px 28px rgba(92,61,110,.08)}
+.pe-section>summary{padding:16px 18px!important;transition:background .16s}
+.pe-section>summary:hover{background:#fbf8fe}
+.pe-section[open]>summary{border-bottom:1px solid #f1ebf6}
+.pe-step{display:grid!important;place-items:center;width:34px!important;height:34px!important;border-radius:11px!important;background:linear-gradient(145deg,#b994ec,#e9a3c4)!important;color:#fff!important;font-weight:800!important;box-shadow:0 4px 10px rgba(185,148,236,.35)}
+.pe-section[data-section="sizes"] .pe-step{background:linear-gradient(145deg,#f3a6c8,#f6c56b)!important;box-shadow:0 4px 10px rgba(243,166,200,.35)}
+.pe-section[data-section="recipe"] .pe-step{background:linear-gradient(145deg,#7fcfae,#8fc3f2)!important;box-shadow:0 4px 10px rgba(127,207,174,.35)}
+.pe-section>summary strong{font-size:16px;color:#241532}
+.pe-photo{align-items:center;padding:12px;border-radius:16px;background:linear-gradient(120deg,#faf6fe,#fdf5f9)}
+.pe-photo__frame{border-radius:14px!important;box-shadow:0 6px 16px rgba(92,61,110,.14)}
+.pe-drawer .form-field input,.pe-drawer .form-field select,.pe-drawer .form-field textarea,.pe-drawer textarea,.pe-drawer select{border-radius:12px!important;border-color:#e6dcf1!important;background:#fff!important;transition:border-color .16s,box-shadow .16s}
+.pe-drawer input:focus,.pe-drawer select:focus,.pe-drawer textarea:focus{border-color:#9b77d6!important;box-shadow:0 0 0 4px rgba(155,119,214,.15)!important}
+.pe-line,.pe-variant{border-color:#efe9f5!important;border-radius:14px!important;background:#fcfaff!important}
+.pe-foot{background:rgba(255,255,255,.86)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid #ece2f7!important}
+.pe-foot .button--primary{background:#241532;border-color:#241532;min-height:44px;padding:10px 22px;box-shadow:0 8px 20px rgba(36,21,50,.22)}
+@media (prefers-reduced-motion:reduce){.dx-card{animation:none}.dopt-products button,.dopt-group{transition:none}}
