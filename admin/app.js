@@ -1,13 +1,15 @@
+import { renderSettings, applyAdminSettings } from './pages/settings.js?v=1';
+applyAdminSettings();
 import { refreshNavBadges, startNavBadges } from './nav-badges.js?v=1';
-import { renderProduction } from './pages/production.js?v=11';
+import { renderProduction } from './pages/production.js?v=12';
 import { renderDashboard } from './pages/dashboard.js?v=18';
 import { renderProducts } from './pages/products.js?v=15';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=37';
 import { renderReports } from './pages/reports.js?v=19';
 import { renderOrders } from './pages/orders.js?v=56';
-import { renderBookings } from './pages/bookings.js?v=20';
+import { renderBookings } from './pages/bookings.js?v=21';
 import { renderDesignOptions } from './pages/design-options.js?v=15';
-import { renderProfile } from './pages/profile.js?v=13';
+import { renderProfile } from './pages/profile.js?v=14';
 import { renderWebsite } from './pages/website.js?v=2';
 import { renderVouchers } from './pages/vouchers.js?v=3';
 import { mountChat } from '../shared/chat.js?v=42';
@@ -21,13 +23,11 @@ const groups = [
   ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['vouchers', 'Vouchers'], ['bookings', 'Reservations'],
     // Posts and review moderation: the storefront's Updates module, shown inside Admin (pages/updates.js).
     ['updates', 'Updates & reviews', null, 'gallery']]],
-  // Edit Website (phase 104): the customer pages, FAQs and announcements
-  // the button opens the customer site itself with in-place editing (shared/site-editor.js)
-  ['Website', [['website-live', 'Edit website', '../?cms=live', 'edit'], ['website/faqs', 'FAQs', null, 'info']]],
   ['Analytics', [['reports', 'Reports']]],
-  ['Account', [['profile', 'Profile']]],
+  // Edit website and FAQs live in Settings (and on the Profile card)
+  ['Account', [['profile', 'Profile'], ['settings', 'Settings', null, 'eye']]],
 ];
-const titles = { production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Edit Website', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
+const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Edit Website', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
@@ -134,7 +134,7 @@ async function renderRoute() {
     content.append(calendar, kitchen);
     await Promise.all([renderBookings(calendar), renderProduction(kitchen, current === 'production' ? subpage : undefined)]);
     // the calendar redraws itself; keep Production right under it (inside its layout, beside the side panel)
-    const dock = () => { const layout = calendar.querySelector('.booking-reference-layout'); if (layout && kitchen.parentNode !== layout) (layout.querySelector('.booking-calendar') || layout.firstChild).after(kitchen); else if (!layout && kitchen.parentNode !== content) content.append(kitchen); };
+    const dock = () => { const layout = calendar.querySelector('.booking-reference-layout'); if (layout && kitchen.parentNode !== layout) (layout.querySelector('.booking-calendar') || layout.firstChild).after(kitchen); else if (!layout && kitchen.parentNode !== content) content.append(kitchen); window.LexcPaintChefHero?.(); };
     new MutationObserver(dock).observe(calendar, { childList: true }); dock();
     if (current === 'production') kitchen.scrollIntoView({ block: 'start' });
   }
@@ -149,6 +149,7 @@ async function renderRoute() {
   else if (current === 'designs') await renderDesignOptions(content);
   else if (current === 'updates') renderUpdates(content);
   else if (current === 'profile') await renderProfile(content, subpage);
+  else if (current === 'settings') renderSettings(content);
   // a tab strip that scrolls sideways on phones shows its current tab (e.g. Inventory → Conversions)
   content.querySelectorAll('.stock-tabs').forEach(nav => { const strip = nav.closest('.stock-tabrow') || nav, on = nav.querySelector('.is-active'); if (on && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = on.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft - (strip.clientWidth - on.offsetWidth) / 2; });
   refreshNavBadges(current);   // sidebar counts (nav-badges.js); opening a module clears its "new since" count

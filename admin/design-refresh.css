@@ -74,3 +74,24 @@
 .nav-item{position:relative}
 .nav-item .nav-count{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#d63a5f;color:#fff;font:800 11.5px/20px "Plus Jakarta Sans",sans-serif;text-align:center;box-shadow:0 2px 6px rgba(214,58,95,.3)}
 .nav-item.active .nav-count,.nav-item[aria-current="page"] .nav-count{background:#fff;color:#d63a5f}
+
+/* Admin → Settings */
+.st-hero{margin-bottom:18px}.st-hero .vx-hero-text p{margin-bottom:0}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.st-card{padding:20px;border-radius:20px;background:#fff;border:1px solid #efe9f5}
+.st-card h2{display:flex;align-items:center;gap:8px;margin:0 0 10px;font:700 16px "Plus Jakarta Sans",sans-serif;color:#241532}.st-card h2 svg{width:18px;height:18px;color:#6b3fa0}
+.st-card p{margin:0 0 12px;color:#5f5674;font-size:14px;line-height:1.55}.st-card small{color:#8a7d9c;font-size:12.5px}
+.st-card--site{background:linear-gradient(120deg,#f6effd,#fdf3f8);border-color:#ece2f7}
+.st-actions{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.st-sizes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.st-sizes button{display:grid;justify-items:center;gap:2px;padding:10px 4px;border:1px solid #e6dcf1;border-radius:14px;background:#fbf8fe;cursor:pointer;color:#3a2a4d;font-weight:800}
+.st-sizes button[aria-checked="true"]{background:#241532;border-color:#241532;color:#fff}.st-sizes small{font-size:11px;font-weight:600;color:inherit}
+.st-preview{margin:12px 0 0!important;padding:10px 12px;border-radius:12px;background:#f8f5fb}
+.st-switch{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:0;border:0;background:none;text-align:left;cursor:pointer;font:inherit}
+.st-switch span{display:grid;gap:2px}.st-switch b{color:#241532}.st-switch small{color:#8a7d9c}
+.st-switch i{flex:none;position:relative;width:44px;height:26px;border-radius:999px;background:#ddd3e8;transition:background .18s}
+.st-switch i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .18s}
+.st-switch[aria-checked="true"] i{background:#6b3fa0}.st-switch[aria-checked="true"] i::after{transform:translateX(18px)}
+.st-note{margin:14px 2px 24px;color:#8a7d9c;font-size:13px}
+html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+.profile-card .button.primary{margin-top:6px}

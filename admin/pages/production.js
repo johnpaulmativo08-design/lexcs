@@ -46,7 +46,7 @@ export async function renderProduction(content, focus) {
   content.innerHTML = `<div class="ps" data-ps>
     <aside class="ps-col ps-left" data-left aria-busy="true">${skel(4)}</aside>
     <section class="ps-col ps-board" data-board aria-busy="true">${skel(3)}</section>
-    <aside class="ps-right"><section class="ps-col ps-cal" data-cal aria-label="Calendar"></section>
+    <aside class="ps-right">
       <section class="ps-col ps-ticket" data-ticket><div class="ps-empty">${icon('orders')}<p>Pick a task to open its ticket.</p></div></section>
       <section class="ps-col ps-next" data-next aria-label="Up next"></section></aside>
   </div>`;
@@ -126,7 +126,7 @@ export async function renderProduction(content, focus) {
     const count = (s) => mine.filter((t) => statusOf(t) === s).length;
     const done = count('ready') + count('completed'), streak = mine.filter(onTime).length;
     const hour = Number(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false }));
-    box.innerHTML = `
+    const hero = `
       <header class="ps-head"><div><small>${e(longDay(selected))} · shift ${e(clock(state.window.start))}${state.window.start < 0 ? ' the evening before' : ''} – ${e(clock(state.window.end))}</small>
         <h2>${selected === today ? (hour < 12 ? 'Good morning, chef' : hour < 18 ? 'Good afternoon, chef' : 'Good evening, chef') : 'Shift plan'}</h2></div>
         <a class="ps-icon is-dark" href="#bookings" title="Reserve a time" aria-label="Reserve a time">${icon('plus')}</a></header>
@@ -135,6 +135,11 @@ export async function renderProduction(content, focus) {
         <dl><div><dd>${Math.round(used)}</dd><dt>min used</dt></div><div><dd>${Math.max(0, Math.round(cap - used))}</dd><dt>min left</dt></div></dl>
         <p class="ps-level">${LEVEL[lv]}</p>
       </div>
+      ${d ? `<p class="ps-guests"><b>${Number(d.active_bookings) || 0} / ${Number(d.slots) || 0}</b> customers booked${Number(d.slots) && Number(d.active_bookings) >= Number(d.slots) ? ' · <i>full</i>' : ''}</p>` : ''}`;
+    // Reservations shows this card in its side panel (bookings.js leaves [data-chef-slot] there); otherwise it stays here
+    const slot = document.querySelector('[data-chef-slot]');
+    if (slot) slot.innerHTML = `<div class="ps ps-hero-wrap"><div class="ps-col ps-left ps-hero">${hero}</div></div>`;
+    box.innerHTML = `${slot ? '' : hero}
       ${d ? kitchenCard(d) : ''}
       <div class="ps-counts" role="list">
         <span role="listitem"><b>${count('confirmed')}</b>To start</span><span role="listitem"><b>${count('preparing')}</b>Baking</span><span role="listitem" class="is-done"><b>${done}</b>Done</span>
@@ -151,6 +156,7 @@ export async function renderProduction(content, focus) {
       <div class="ps-bar"><span class="is-used" style="width:${w(used)}%"></span><span class="is-pend" style="left:${w(used)}%;width:${w(pend)}%"></span>
         <input type="range" name="cap" min="0" max="${MAX}" step="5" value="${cap}" aria-label="Kitchen minutes for ${e(longDay(selected))}"></div>
       <div class="ps-legend"><span class="is-used">Used ${Math.round(used)}</span><span class="is-pend">Pending +${Math.round(pend)}</span><span>${MAX} max</span></div>
+      <div class="ps-row ps-guests-row"><label>${icon('profile')} Customers per day <input name="slots" type="number" min="1" max="20" step="1" inputmode="numeric" value="${Math.min(20, Number(d.slots) || 1)}"></label><small>up to 20</small></div>
       <div class="ps-row ps-scope"><label><input type="radio" name="scope" value="day" checked> This date</label><label><input type="radio" name="scope" value="all"> All dates</label><button type="submit" class="ps-btn is-sm" disabled>Save</button></div>
       <div class="ps-row ps-clean"><label>Cleaning per order <input name="clean" type="number" min="0" max="120" step="1" inputmode="numeric" value="${Number(d.cleaning_minutes) || 0}"> min</label><button type="button" class="ps-btn is-sm is-ghost" data-clean-save>Save</button></div>
       <p class="ps-say" role="status">${d.workload_custom ? 'Set for this date.' : `Using the default (${Number(d.default_workload_minutes)} min).`}</p></form>`;
@@ -159,15 +165,16 @@ export async function renderProduction(content, focus) {
     const f = box.querySelector('[data-kitchen]'); if (!f) return;
     const out = f.querySelector('[data-cap-out]'), save = f.querySelector('button[type=submit]');
     const say = (t, bad) => { const p = f.querySelector('.ps-say'); p.textContent = t; p.classList.toggle('is-bad', !!bad); };
-    const changed = () => { out.textContent = f.elements.cap.value + ' min'; save.disabled = Number(f.elements.cap.value) === Number(d.workload_minutes) && f.elements.scope.value === 'day'; };
+    const changed = () => { out.textContent = f.elements.cap.value + ' min'; save.disabled = Number(f.elements.cap.value) === Number(d.workload_minutes) && Number(f.elements.slots.value) === Number(d.slots) && f.elements.scope.value === 'day'; };
     f.addEventListener('input', changed); f.addEventListener('change', changed);
     const after = async (msg) => { await refresh(true); const p = $('[data-kitchen] .ps-say'); if (p) { p.textContent = msg; p.classList.add('is-ok'); } };
     f.onsubmit = async (ev) => {
       ev.preventDefault();
-      const minutes = Number(f.elements.cap.value), scope = f.elements.scope.value;
-      if (scope === 'all' && !(await ask(`Every date from today will use ${minutes} min (${mins(minutes)}). Dates you set one by one are reset to this.`, { title: 'Use this for all dates?', confirm: 'Apply to all dates' }))) return;
+      const minutes = Number(f.elements.cap.value), scope = f.elements.scope.value, slots = Number(f.elements.slots.value);
+      if (!Number.isInteger(slots) || slots < 1 || slots > 20) { say('Customers per day must be from 1 to 20.', true); return; }
+      if (scope === 'all' && !(await ask(`Every date from today will take up to ${slots} customer${slots === 1 ? '' : 's'} and ${minutes} min (${mins(minutes)}). Dates you set one by one are reset to this.`, { title: 'Use this for all dates?', confirm: 'Apply to all dates' }))) return;
       save.disabled = true; say('Saving…');
-      try { await db.rpc('save_production_capacity', { payload: { booking_date: selected, scope, workload_minutes: minutes } }); await after(`Saved: ${minutes} min${scope === 'all' ? ' for all dates' : ' for this date'}.`); }
+      try { const r = await db.rpc('save_production_capacity', { payload: { booking_date: selected, scope, workload_minutes: minutes, slots } }); const skipped = (r?.skipped || []).length; await after(`Saved: ${slots} customers, ${minutes} min${scope === 'all' ? ' for all dates' : ' for this date'}.${skipped ? ` ${skipped} date(s) already had more bookings and kept their limit.` : ''}`); }
       catch (error) { say(error.message || 'Could not save.', true); save.disabled = false; }
     };
     f.querySelector('[data-clean-save]').onclick = async () => {
@@ -178,6 +185,8 @@ export async function renderProduction(content, focus) {
       catch (error) { say(error.message || 'Could not save.', true); }
     };
   }
+
+  window.LexcPaintChefHero = () => { if (state.day !== null || state.tasks.length) paintLeft(); };
 
   // ---------------------------------------------------------------- middle: the shift board
   function paintBoard() {
@@ -294,6 +303,7 @@ export async function renderProduction(content, focus) {
   // ---------------------------------------------------------------- right: mini calendar, ticket, up next
   const busyDays = new Map();   // 'YYYY-MM' -> Map(day -> count of orders)
   async function paintCal() {
+    if (!$('[data-cal]')) return;   // the mini calendar was removed (the Reservations calendar picks days)
     const box = $('[data-cal]'), [y, m] = calMonth.split('-').map(Number), first = new Date(Date.UTC(y, m - 1, 1)), days = new Date(Date.UTC(y, m, 0)).getUTCDate();
     if (!busyDays.has(calMonth)) {
       busyDays.set(calMonth, new Map());
