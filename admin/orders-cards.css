@@ -1,0 +1,59 @@
+/* Orders as day cards: header with day switcher, filter pills, a grid of order cards (who, state, items, total, actions). */
+.ox-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 18px}
+.ox-head h1{margin:0;color:#241532;font:700 40px/1.05 'Playfair Display',serif}
+.ox-head p{margin:6px 0 0;color:#6f6482;font-size:14.5px;max-width:520px}
+.ox-day{display:flex;align-items:center;gap:6px;padding:5px;border-radius:999px;background:#fff;border:1px solid #ece5f3;box-shadow:0 1px 2px rgba(36,21,50,.04)}
+.ox-icon{width:36px;height:36px;border:0;border-radius:50%;background:#f5f0fa;color:#3a2a4d;font-size:22px;line-height:1;cursor:pointer}
+.ox-icon:hover{background:#ebe2f6}
+.ox-date{position:relative;padding:0 10px;color:#241532;font-weight:800;font-size:14.5px;cursor:pointer;white-space:nowrap}
+.ox-date input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.ox-today{border:0;border-radius:999px;padding:8px 14px;background:#241532;color:#fff;font-weight:800;font-size:13px;cursor:pointer}
+.ox-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px}
+.ox-tabs{display:flex;gap:4px;padding:4px;border-radius:999px;background:#fff;border:1px solid #ece5f3;max-width:100%;overflow-x:auto}
+.ox-tabs button{display:inline-flex;align-items:center;gap:7px;border:0;background:none;padding:8px 14px;border-radius:999px;color:#6f6482;font:700 14px 'Plus Jakarta Sans',sans-serif;cursor:pointer;white-space:nowrap}
+.ox-tabs button svg{width:16px;height:16px}
+.ox-tabs button span{min-width:20px;padding:1px 6px;border-radius:999px;background:#f3eefa;color:#6b3fa0;font-size:11.5px;text-align:center}
+.ox-tabs button.has-alert span{background:#fde7ef;color:#b13f72}
+.ox-tabs button.is-on{background:#241532;color:#fff}.ox-tabs button.is-on span{background:rgba(255,255,255,.18);color:#fff}
+.ox-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ox-search{display:flex;align-items:center;gap:8px;min-width:240px;padding:0 14px;height:42px;border-radius:999px;background:#fff;border:1px solid #ece5f3}
+.ox-search svg{width:18px;height:18px;color:#8a7d9c}
+.ox-search input{flex:1;border:0!important;outline:0;background:none!important;box-shadow:none!important;font:500 14px 'Plus Jakarta Sans',sans-serif;padding:0!important;min-width:0}
+.ox-history{display:inline-flex;align-items:center;gap:7px;height:42px;padding:0 16px;border-radius:999px;border:1px solid #ece5f3;background:#fff;color:#3a2a4d;font-weight:700;font-size:14px;cursor:pointer}
+.ox-history svg{width:16px;height:16px}.ox-history.is-on{background:#241532;color:#fff;border-color:#241532}
+.ox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin:0 0 28px}
+.ox-card{display:flex;flex-direction:column;padding:18px;border-radius:20px;background:#fff;border:1px solid #efe9f5;box-shadow:0 1px 2px rgba(36,21,50,.04);transition:box-shadow .18s,transform .18s cubic-bezier(.22,1,.36,1)}
+.ox-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(92,61,110,.1)}
+.ox-card.is-cancelled{opacity:.6}
+.ox-card>header{display:grid;grid-template-columns:46px 1fr auto;align-items:center;gap:12px}
+.ox-avatar{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;color:#fff;font:800 15px 'Plus Jakarta Sans',sans-serif;background:#8d6bc0}
+.ox-avatar.is-warning{background:#e9a3c4}.ox-avatar.is-success{background:#7b54b3}.ox-avatar.is-info{background:#5c3d6e}.ox-avatar.is-neutral{background:#b8adc6}
+.ox-who{display:grid;min-width:0}.ox-who strong{color:#241532;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ox-who small{color:#7a6f8a;font-size:12px;font-weight:600}
+.ox-state{display:grid;justify-items:end;gap:4px}
+.ox-badge{padding:4px 10px;border-radius:8px;font-size:12px;font-weight:800;white-space:nowrap;background:#f3eefa;color:#5c3d6e}
+.ox-badge.is-warning{background:#fde7ef;color:#a3325f}.ox-badge.is-success{background:#efe6fb;color:#5f3796}.ox-badge.is-info{background:#e6f5ed;color:#1f7a4c}.ox-badge.is-neutral{background:#f1eef4;color:#7a6f8a}
+.ox-state small{display:flex;align-items:center;gap:5px;color:#8a7d9c;font-size:11px;white-space:nowrap}
+.ox-state i{width:6px;height:6px;border-radius:50%;background:#b39bd3}.ox-state i.is-warning{background:#e46f9f}.ox-state i.is-info{background:#2fa36b}
+.ox-when{display:flex;justify-content:space-between;margin:14px 0 0;padding:0 0 12px;border-bottom:1px solid #f1ebf6;color:#3a2a4d;font-size:13px;font-weight:600}
+.ox-flag{margin:10px 0 0;padding:6px 10px;border-radius:10px;background:#fde7ef;color:#a3325f;font-size:12px;font-weight:800}
+.ox-items{width:100%;margin:10px 0 0;border-collapse:collapse;font-size:13px}
+.ox-items th{padding:4px 0;color:#9a8fab;font-weight:600;font-size:12px;text-align:left}
+.ox-items th:nth-child(2),.ox-items td:nth-child(2){text-align:center;width:44px}
+.ox-items th:last-child,.ox-items td:last-child{text-align:right;width:90px}
+.ox-items td{padding:5px 0;color:#2b1d3a;vertical-align:top}
+.ox-items td small{display:block;color:#9a8fab;font-size:11.5px}
+.ox-more{margin:2px 0 0;text-align:center;color:#8a7d9c;font-size:12px;font-weight:700}
+.ox-total{display:flex;justify-content:space-between;align-items:baseline;margin:auto 0 0;padding:12px 0 6px;border-top:1px solid #f1ebf6;color:#3a2a4d;font-weight:600}
+.ox-card .ox-items+.ox-total,.ox-card .ox-more+.ox-total{margin-top:10px}
+.ox-total b{color:#241532;font:800 20px 'Plus Jakarta Sans',sans-serif}
+.ox-pay{margin:0 0 12px}
+.ox-card footer{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ox-btn{height:42px;border:0;border-radius:12px;background:#f3eefa;color:#3a2a4d;font:700 14px 'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:background .16s}
+.ox-btn:hover{background:#e9e0f5}
+.ox-btn.is-main{background:#241532;color:#fff}.ox-btn.is-main:hover{background:#3b2650}
+.ox-empty{display:grid;justify-items:center;text-align:center;gap:6px;margin:0 0 28px;padding:44px 20px;border-radius:24px;background:#fff;border:1px dashed #dccdea}
+.ox-empty span{display:grid;place-items:center;width:56px;height:56px;border-radius:18px;background:linear-gradient(145deg,#efe6fb,#fbe8f0);color:#6b3fa0}
+.ox-empty span svg{width:26px;height:26px}
+.ox-empty strong{color:#241532;font-size:17px}.ox-empty p{margin:0;color:#7a6f8a;font-size:14px}
+@media (max-width:700px){.ox-head h1{font-size:32px}.ox-day{width:100%;justify-content:space-between}.ox-search{min-width:0;flex:1}.ox-tools{width:100%}.ox-grid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.ox-card{transition:none}.ox-card:hover{transform:none}}
