@@ -82,3 +82,6 @@ html[data-theme=dark] .vw-ticket{--notch:#241a2e;background:#30233f;color:#f1e9f
 html[data-theme=dark] .vw-text b{color:#d9c0ff}
 html[data-theme=dark] .vw-code input{background:#1c1424;border-color:#3a2c48;color:#f1e9f8}
 html[data-theme=dark] .co-method-logo{background:#fff}
+/* the method list uses its own round tick; hide the generic "selected" check badge */
+.co-pay-sheet .co-method.selected::after{display:none!important}
+.co-method-tick{justify-self:center;align-self:center;box-sizing:border-box}
