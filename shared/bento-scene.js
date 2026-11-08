@@ -337,8 +337,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     finishPiping(); clearTimeout(peekTimer); peekUntil = 0;
     layersOn = !!on;
     if (layersOn) { if (arranging) setArrange(false); loadCakeParts(); buildLayers(true); showBody(); return; }
-    if (reducedMotion || !layers.children.length) { showBody(); return; }
-    iceCake();
+    decor.visible = true; showBody();   // no icing animation between steps; the finish plays only when it is picked
   }
   // Leaving the Layers step: the frosting rises over the sponge layers from the bottom up while a piping bag spirals
   // round the cake (two clipping planes share one level: frosting below it is shown, layers below it are hidden);
@@ -365,6 +364,8 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const bag = makeBag(frost), start = Math.atan2(camera.position.z, camera.position.x) - 0.6, turns = 1.5 + stack.length * 0.5;
     bag.scale.setScalar(Math.max(1.2, RB * 1.1));   // the whole cake is scaled down to fit, so a big cake needs a bigger bag to read
     const finish = () => {
+      for (const m of frostMats) m.clippingPlanes = null;
+      layers.visible = false;
       for (const m of cover) fondant(m, fon);
       decor.visible = true;
       if (mode) { peekUntil = performance.now() + 1400; peekTimer = setTimeout(showBody, 1450); }
@@ -377,7 +378,11 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
       let left = n;
       tiers.forEach((t, i) => drapeFondant(pal[tierOf(i).frosting_color] || pal[d.frosting_color] || frost, t.r, t.y + t.h, t.y, () => { if (--left <= 0) finish(); }));
     };
-    if (mode === 'fondant') { bag.removeFromParent(); bag.userData.fillMat.dispose(); drape(); return; }
+    if (mode === 'fondant') {
+      bag.removeFromParent(); bag.userData.fillMat.dispose();
+      if (clip) { below.constant = -1e6; for (const m of frostMats) m.clippingPlanes = [below]; layers.visible = true; }   // old finish off: bare layers
+      drape(); return;
+    }
     piping(1500 + stack.length * 450, (k) => {
       const level = -0.02 + k * (top + 0.02); at.set(0, level, 0); world.localToWorld(at);
       below.constant = at.y + 0.0005; above.constant = -at.y;
