@@ -85,3 +85,42 @@ html[data-theme=dark] .co-method-logo{background:#fff}
 /* the method list uses its own round tick; hide the generic "selected" check badge */
 .co-pay-sheet .co-method.selected::after{display:none!important}
 .co-method-tick{justify-self:center;align-self:center;box-sizing:border-box}
+
+/* saved address card + list (phase 109) */
+.co-addr-card{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;width:100%;margin:0 0 14px;padding:14px;border:1.5px solid #e1d6ee;border-radius:16px;background:#fff;text-align:left;font:inherit;color:#2b1530;cursor:pointer}
+.co-addr-card[hidden]{display:none}
+.co-addr-card:hover{border-color:#c9b2ec;box-shadow:0 6px 16px rgba(92,61,110,.08)}
+.co-addr-pin svg{width:24px;height:24px;fill:none;stroke:#e46f9f;stroke-width:2}
+.co-addr-text{display:grid;gap:2px;min-width:0}.co-addr-text b{font-size:.95rem}.co-addr-text small{color:#857798;font-size:.8rem;font-weight:600}
+.co-addr-text span{color:#5f5072;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.co-addr-go{color:#a497b4;font-size:1.4rem}
+.co-addr-list{display:grid;gap:8px}
+.co-addr-row{display:grid;grid-template-columns:1fr auto;align-items:start;gap:6px;padding:12px;border:1px solid #ece5f3;border-radius:14px}
+.co-addr-opt{display:grid;grid-template-columns:22px 1fr;gap:12px;padding:0;border:0;background:none;text-align:left;font:inherit;color:#2b1530;cursor:pointer}
+.co-addr-opt i{width:20px;height:20px;margin-top:2px;border-radius:50%;border:2px solid #d5c8e3}
+.co-addr-opt[aria-checked="true"] i{border:6px solid #e46f9f}
+.co-addr-opt span{display:grid;gap:3px}.co-addr-opt small{color:#857798;font-weight:600}.co-addr-opt span span{color:#5f5072;font-size:.88rem;line-height:1.45}
+.co-addr-opt em{justify-self:start;margin-top:4px;padding:1px 8px;border:1px solid #e46f9f;border-radius:4px;color:#d14a82;font-style:normal;font-size:.75rem}
+.co-addr-del{padding:4px 8px;border:0;background:none;color:#a3324b;font-size:.78rem;font-weight:700;cursor:pointer}
+.co-addr-new{width:100%;margin-top:12px;padding:12px;border:1.5px dashed #cdbde3;border-radius:14px;background:#fbf8fe;color:#6b3fa0;font-weight:800;cursor:pointer}
+html[data-theme=dark] .co-addr-card,html[data-theme=dark] .co-addr-row{background:#241a2e;border-color:#3a2c48;color:#f1e9f8}
+html[data-theme=dark] .co-addr-text span,html[data-theme=dark] .co-addr-opt span span{color:#c4b5d6}html[data-theme=dark] .co-addr-opt{color:#f1e9f8}
+html[data-theme=dark] .co-addr-new{background:#2a1f33;border-color:#4a3a5e;color:#d9c0ff}
+
+/* cancel an order: reason + the daily rule (phase 109) */
+.cx-dialog{width:min(460px,calc(100vw - 24px));padding:0;border:0;border-radius:22px;background:#fff;color:#2b1530;box-shadow:0 30px 70px rgba(40,20,60,.3)}
+.cx-dialog::backdrop{background:rgba(30,16,40,.5)}
+.cx-card{display:grid;gap:10px;padding:22px}
+.cx-card h2{margin:0;font:700 20px 'Plus Jakarta Sans',sans-serif}
+.cx-sub{margin:0;color:#5f5072;font-size:.9rem;line-height:1.5}
+.cx-label{margin-top:4px;font-weight:700;font-size:.85rem}
+.cx-card select,.cx-card textarea{width:100%;padding:11px 12px;border:1.5px solid #e1d6ee;border-radius:12px;font:inherit;background:#fff;color:inherit}
+.cx-rule{padding:12px 14px;border-radius:14px;background:#f5effc;border:1px solid #e6dcf1;font-size:.86rem;line-height:1.5}
+.cx-rule p{margin:4px 0 0}.cx-rule.is-danger{background:#fde8ee;border-color:#f3b4c6;color:#7d1f3d}
+.cx-error{min-height:1em;margin:0;color:#a3324b;font-size:.82rem}
+.cx-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cx-keep,.cx-go{min-height:46px;border-radius:999px;font-weight:800;cursor:pointer;font-size:.95rem}
+.cx-keep{border:1.5px solid #d8cbe8;background:#fff;color:#4b2a6b}
+.cx-go{border:0;background:#5c3d6e;color:#fff}.cx-go.is-danger{background:#b5244d}
+html[data-theme=dark] .cx-dialog,html[data-theme=dark] .cx-card select,html[data-theme=dark] .cx-card textarea,html[data-theme=dark] .cx-keep{background:#241a2e;color:#f1e9f8;border-color:#4a3a5e}
+html[data-theme=dark] .cx-sub{color:#c4b5d6}html[data-theme=dark] .cx-rule{background:#33264a;border-color:#4a3a5e}html[data-theme=dark] .cx-rule.is-danger{background:#4a1d2c;border-color:#7d2b45;color:#ffd6e1}
