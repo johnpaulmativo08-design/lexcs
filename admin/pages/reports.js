@@ -107,8 +107,8 @@ function bindMoneyChart(root){
 }
 export async function renderReports(content,subpage){
  const head=(text)=>'<header class="module-heading"><div><h1>Reports</h1><p>'+e(text)+'</p></div></header>';
- const tabs=active=>'<nav class="rep-tabs" aria-label="Report views"><a href="#reports"'+(active==='overview'?' aria-current="page"':'')+'>Overview</a><a href="#reports/transactions"'+(active==='transactions'?' aria-current="page"':'')+'>Orders</a><a href="#reports/payments"'+(active==='payments'?' aria-current="page"':'')+'>Payments</a><a href="#reports/revenue"'+(active==='revenue'?' aria-current="page"':'')+'>Revenue by month</a></nav>';
- const page=['transactions','payments','revenue'].includes(subpage)?subpage:'overview';
+ const tabs=active=>'<nav class="rep-tabs" aria-label="Report views"><a href="#reports"'+(active==='overview'?' aria-current="page"':'')+'>Overview</a><a href="#reports/transactions"'+(active==='transactions'?' aria-current="page"':'')+'>Orders</a><a href="#reports/payments"'+(active==='payments'?' aria-current="page"':'')+'>Payments</a></nav>';
+ const page=['transactions','payments'].includes(subpage)?subpage:'overview';   // Revenue by month removed (old links open the overview)
  content.innerHTML=head('How the business is doing, compared with the period before.')+tabs(page)+loadingMetrics(5)+(page==='overview'?'<div class="rep-grid">'+card('Sales',loadingList(4))+card('Best sellers',loadingList(5))+'</div>':loadingTable(['Date','Order','Customer','Amount','Status'],6));
  try{
   const [orders,lines,payments,methods,profiles]=await Promise.all([

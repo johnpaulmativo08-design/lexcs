@@ -1,11 +1,11 @@
-import { renderSettings, applyAdminSettings } from './pages/settings.js?v=1';
+import { renderSettings, applyAdminSettings } from './pages/settings.js?v=2';
 applyAdminSettings();
 import { refreshNavBadges, startNavBadges } from './nav-badges.js?v=1';
 import { renderProduction } from './pages/production.js?v=12';
 import { renderDashboard } from './pages/dashboard.js?v=18';
 import { renderProducts } from './pages/products.js?v=15';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=37';
-import { renderReports } from './pages/reports.js?v=19';
+import { renderReports } from './pages/reports.js?v=20';
 import { renderOrders } from './pages/orders.js?v=56';
 import { renderBookings } from './pages/bookings.js?v=21';
 import { renderDesignOptions } from './pages/design-options.js?v=15';
@@ -25,7 +25,7 @@ const groups = [
     ['updates', 'Updates & reviews', null, 'gallery']]],
   ['Analytics', [['reports', 'Reports']]],
   // Edit website and FAQs live in Settings (and on the Profile card)
-  ['Account', [['profile', 'Profile'], ['settings', 'Settings', null, 'eye']]],
+  ['Account', [['profile', 'Profile']]],   // Settings opens from the Profile card
 ];
 const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Edit Website', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
@@ -117,7 +117,7 @@ async function renderRoute() {
   document.querySelector('#page-title').textContent = "LexC's Snacktime";
   document.title = `${titles[current]} — LexC's Snacktime`;
   navigation.querySelectorAll('a').forEach(link => {
-    const active = link.dataset.page === current || link.dataset.page === route || (current === 'production' && link.dataset.page === 'bookings') || (route === 'website' && link.dataset.page === 'website/home');
+    const active = link.dataset.page === current || link.dataset.page === route || (current === 'settings' && link.dataset.page === 'profile') || (current === 'production' && link.dataset.page === 'bookings') || (route === 'website' && link.dataset.page === 'website/home');
     link.classList.toggle('active', active);
     if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
   });
