@@ -1,6 +1,11 @@
 // Admin → Settings: the customer Settings choices that make sense for the owner (text size, motion), plus the
 // website tools (Edit website opens the real site with in-place editing; FAQs). Saved on this device.
 import { escapeHtml as e, icon } from '../components.js?v=3';
+import { db } from '../backend-ui.js?v=3';
+
+// Payment methods customers can choose (phase 110: public.set_payment_method_active, admin only).
+const PAY_NAMES = { gcash: ['GCash', 'Scan-to-pay QR, receipt upload'], maribank: ['MariBank', 'InstaPay QR, receipt upload'], paymongo: ['QRPh', 'Pay online, confirmed automatically'] };
+let payMethods = null, payBusy = '', payMsg = '';
 
 const SIZES = [['sm', 'Small', 0.92], ['md', 'Default', 1], ['lg', 'Large', 1.1], ['xl', 'Extra large', 1.2]];
 const read = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -35,12 +40,24 @@ export function renderSettings(content) {
           <p class="st-preview">Order #1042 · Bento Cake – Chocolate Moist · ₱426.00</p></section>
         <section class="st-card"><h2>${icon('refresh')} Motion</h2>
           <button type="button" class="st-switch" role="switch" aria-checked="${reduce}" data-motion><span><b>Reduce motion</b><small>Turns off animations and sliding effects.</small></span><i aria-hidden="true"></i></button></section>
+        <section class="st-card st-card--pay"><h2>${icon('revenue')} Payment methods</h2>
+          ${payMethods === null ? '<p class="st-preview">Loading…</p>' : payMethods.length ? payMethods.map((m) => { const [n, note] = PAY_NAMES[m.code] || [m.display_name, '']; return `<button type="button" class="st-switch" role="switch" aria-checked="${m.active}" data-pay-code="${e(m.code)}" ${payBusy ? 'disabled' : ''}><span><b>${e(n)}</b><small>${m.active ? 'Shown to customers' : 'Hidden from customers'}${note ? ' · ' + e(note) : ''}</small></span><i aria-hidden="true"></i></button>`; }).join('') : '<p class="st-preview">Payment methods could not be loaded.</p>'}
+          <p class="st-preview" role="status">${e(payMsg || 'Hidden methods disappear from checkout and the payment page. At least one stays on.')}</p></section>
         <section class="st-card"><h2>${icon('alert')} Notifications</h2>
           <p>New orders, payment proofs, reviews and voucher uses are emailed to your Gmail. The sidebar shows a count on each module with something new.</p></section>
       </div><p class="st-note">Day or night, text size and motion are saved on this device.</p>`;
     content.querySelectorAll('[data-theme]').forEach((b) => (b.onclick = () => { save('lexc_admin_theme', b.dataset.theme); applyAdminSettings(); draw(); }));
     content.querySelectorAll('[data-size]').forEach((b) => (b.onclick = () => { save('lexc_admin_text', b.dataset.size); applyAdminSettings(); draw(); }));
+    content.querySelectorAll('[data-pay-code]').forEach((b) => (b.onclick = async () => {
+      const m = payMethods.find((x) => x.code === b.dataset.payCode); if (!m || payBusy) return;
+      payBusy = m.code; payMsg = ''; draw();
+      try { await db.rpc('set_payment_method_active', { method_code: m.code, turn_on: !m.active }); m.active = !m.active; payMsg = `${(PAY_NAMES[m.code] || [m.display_name])[0]} is now ${m.active ? 'shown' : 'hidden'}.`; }
+      catch (error) { payMsg = /set_payment_method_active/.test(error?.message || '') ? 'This switch needs database phase 110 first.' : (error?.message || 'Could not change it. Try again.'); }
+      payBusy = ''; draw();
+    }));
     content.querySelector('[data-motion]').onclick = () => { save('lexc_admin_motion', read('lexc_admin_motion') === 'reduce' ? 'full' : 'reduce'); applyAdminSettings(); draw(); };
   };
   draw();
+  db.client.from('payment_methods').select('code,display_name,active').order('created_at').then(db.unwrap)
+    .then((rows) => { payMethods = rows || []; }).catch(() => { payMethods = []; }).finally(() => { if (content.isConnected) draw(); });
 }

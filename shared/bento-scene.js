@@ -334,33 +334,50 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     if (hex && hex !== layersHex) { layersHex = hex; fadeColor(fillMat, hex); }
     else if (!fillMat.userData.faded) fadeColor(fillMat, layersHex);
     if (!!on === layersOn) { request(); return; }
-    finishPiping();
+    finishPiping(); clearTimeout(peekTimer); peekUntil = 0;
     layersOn = !!on;
     if (layersOn) { if (arranging) setArrange(false); loadCakeParts(); buildLayers(true); showBody(); return; }
     if (reducedMotion || !layers.children.length) { showBody(); return; }
     iceCake();
   }
-  // Leaving the Layers step, two parts: first the frosting rises over the sponge layers from the bottom up while a
-  // piping bag spirals round the cake (two clipping planes share one level: frosting below it is shown, layers below
-  // it are hidden); then, since every LexC's cake is fondant, a half-draped sheet comes down over each tier and settles
-  // down its sides. The cake turns from buttercream to the smooth fondant finish under the sheet, then the
-  // decorations settle on.
-  function iceCake() {
+  // Leaving the Layers step: the frosting rises over the sponge layers from the bottom up while a piping bag spirals
+  // round the cake (two clipping planes share one level: frosting below it is shown, layers below it are hidden);
+  // then, only when the Cake finish is Fondant, a half-draped sheet comes down over each tier and settles down its
+  // sides, turning the buttercream into the smooth fondant finish. Then the decorations settle on.
+  // Picking a Cake finish plays just that finish (mode 'frosting' = the piping bag, 'fondant' = the sheet), shows the
+  // finished cake for a moment, then goes back to the layers when still on the Layers step.
+  let peekUntil = 0, peekTimer = 0;
+  function iceCake(mode) {
+    const fon = (lastDesign || {}).coat !== 'frosting', clip = layers.children.length > 0;
     const useModel = !!model && shapeKey === 'bento';
     const frostMats = new Set(); forEachMesh(useModel ? model.root : body, (m) => (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => frostMats.add(x)));
     const cover = new Set(useModel ? [] : [cakeMat, lowerMat, midMat]);
     if (useModel) for (const part of [model.parts.cake, model.parts.top_frosting]) if (part) forEachMesh(part, (m) => cover.add(m.material));
     for (const m of cover) fondant(m, false);                      // buttercream while it is being frosted
+    if (mode) { clearTimeout(peekTimer); peekUntil = Infinity; }
     const below = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), above = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), at = new THREE.Vector3();
-    for (const m of frostMats) m.clippingPlanes = [below];
-    spongeMat.clippingPlanes = fillMat.clippingPlanes = [above];
+    if (clip && mode !== 'fondant') { for (const m of frostMats) m.clippingPlanes = [below]; spongeMat.clippingPlanes = fillMat.clippingPlanes = [above]; }
     if (model) model.root.visible = useModel;
-    fixed.visible = !useModel; lift.visible = true; layers.visible = true; decor.visible = false;
+    fixed.visible = !useModel; lift.visible = true; layers.visible = clip && mode !== 'fondant'; decor.visible = false;
     const stack = shapeKey === 'bento' ? [{ r: 1, h: H, y: 0 }] : TIERS, top = H + 0.04;
     const radiusAt = (y) => (stack.find((t) => y <= t.y + t.h) || stack[stack.length - 1]).r;
     const frost = '#' + cakeMat.color.getHexString();   // build() keeps cakeMat at the top tier's frosting colour
     const bag = makeBag(frost), start = Math.atan2(camera.position.z, camera.position.x) - 0.6, turns = 1.5 + stack.length * 0.5;
     bag.scale.setScalar(Math.max(1.2, RB * 1.1));   // the whole cake is scaled down to fit, so a big cake needs a bigger bag to read
+    const finish = () => {
+      for (const m of cover) fondant(m, fon);
+      decor.visible = true;
+      if (mode) { peekUntil = performance.now() + 1400; peekTimer = setTimeout(showBody, 1450); }
+      showBody();
+      animate((k) => { decor.scale.setScalar(0.94 + 0.06 * k); decor.position.y = (1 - k) * 0.08; }, 380);
+    };
+    const drape = () => {
+      const tiers = shapeKey === 'bento' ? [{ r: R, h: H, y: 0 }] : TIERS, n = tiers.length, d = lastDesign || {}, pal = lastPalette || {};
+      const tierOf = (i) => (i === n - 1 ? d : (i > 0 ? d.middle || d.lower : d.lower)) || {};
+      let left = n;
+      tiers.forEach((t, i) => drapeFondant(pal[tierOf(i).frosting_color] || pal[d.frosting_color] || frost, t.r, t.y + t.h, t.y, () => { if (--left <= 0) finish(); }));
+    };
+    if (mode === 'fondant') { bag.removeFromParent(); bag.userData.fillMat.dispose(); drape(); return; }
     piping(1500 + stack.length * 450, (k) => {
       const level = -0.02 + k * (top + 0.02); at.set(0, level, 0); world.localToWorld(at);
       below.constant = at.y + 0.0005; above.constant = -at.y;
@@ -371,17 +388,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
       spongeMat.clippingPlanes = fillMat.clippingPlanes = null;
       bag.removeFromParent(); bag.userData.fillMat.dispose();
       layers.visible = false;
-      // then the fondant: one sheet per tier, all at once
-      const tiers = shapeKey === 'bento' ? [{ r: R, h: H, y: 0 }] : TIERS, n = tiers.length, d = lastDesign || {}, pal = lastPalette || {};
-      const tierOf = (i) => (i === n - 1 ? d : (i > 0 ? d.middle || d.lower : d.lower)) || {};
-      let left = n;
-      const done = () => {
-        if (--left > 0) return;
-        for (const m of cover) fondant(m, true);
-        decor.visible = true; showBody();
-        animate((k) => { decor.scale.setScalar(0.94 + 0.06 * k); decor.position.y = (1 - k) * 0.08; }, 380);
-      };
-      tiers.forEach((t, i) => drapeFondant(pal[tierOf(i).frosting_color] || pal[d.frosting_color] || frost, t.r, t.y + t.h, t.y, done));
+      if (fon && mode !== 'frosting') drape(); else finish();
     });
   }
   const clearDecor = () => {
@@ -596,9 +603,13 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   let messagePlane = null;
   function update(design, palette) {
     const prev = lastDesign;
+    // the same design drawn again (the panel redraws twice per tap): keep any animation that is playing
+    if (prev && palette === lastPalette && JSON.stringify(prev) === JSON.stringify(design)) { lastDesign = design; return; }
     lastDesign = design; lastPalette = palette; messagePlane = null;
     finishPiping();
     try { build(design, palette); } finally { currentPick = null; }
+    // a new Cake finish plays its own animation: Fondant = the sheet drapes, Frosting = the piping bag
+    if (prev && prev !== design && !packing && !reducedMotion && (prev.coat === 'frosting') !== (design.coat === 'frosting')) { iceCake(design.coat === 'frosting' ? 'frosting' : 'fondant'); return; }
     if (!prev || prev === design || !model || packing || shapeKey !== 'bento') return;
     // Piping animations for what was just added (not while typing the message letter by letter).
     const before = new Set(prev.border || []), frost = palette[design.shell_color] || palette[design.frosting_color] || '#ffffff';
@@ -612,7 +623,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const dmat = (color, rough = 0.62, metal = 0) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
     const hexOf = (code, fallback = '#ffffff') => palette[code] || fallback;
     const frost = hexOf(design.frosting_color);
-    fadeColor(cakeMat, frost); fondant(cakeMat, true);
+    fadeColor(cakeMat, frost); fondant(cakeMat, design.coat !== 'frosting');
     clearDecor();
     if (model && shapeKey === 'bento') return updateModel(design, palette, hexOf, frost);
     const rand = seeded(97);
@@ -628,7 +639,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
         // bottom tier = design.lower; the middle tier of a 3-tier cake = design.middle (the bottom's choices if absent)
         TIERS.slice(0, -1).forEach((t, i) => {
           const mid = i > 0, d = (mid ? design.middle || design.lower : design.lower) || {}, tierFrost = hexOf(d.frosting_color, frost);
-          fadeColor(mid ? midMat : lowerMat, tierFrost); fondant(mid ? midMat : lowerMat, true);
+          fadeColor(mid ? midMat : lowerMat, tierFrost); fondant(mid ? midMat : lowerMat, design.coat !== 'frosting');
           const tierDesign = { accents: d.accents || [], border: d.border || [], bow_color: d.bow_color, drip_color: d.drip_color, shell_color: d.shell_color, layout: {}, topper: 'none', message: '' };
           pickPrefix = mid ? 'middle:' : 'lower:';
           R = RB = t.r; TIER_Y = t.y; H = t.y + t.h; TEXT_R = TIERS[i + 1].r + 0.04;   // decorations stay on the step outside the tier above
@@ -790,7 +801,7 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
     const accents = new Set(design.accents || []), borders = new Set(design.border || []);
     const recolor = (o, hex) => o && forEachMesh(o, (m) => { fadeColor(m.material, hex); if (m.material.sheenColor && m.material.sheen > 0.8) m.material.sheenColor.copy(shade(hex, 0.28)); });
     recolor(P.cake, frost); recolor(P.top_frosting, frost);
-    for (const part of [P.cake, P.top_frosting]) if (part) forEachMesh(part, (m) => fondant(m.material, true));
+    for (const part of [P.cake, P.top_frosting]) if (part) forEachMesh(part, (m) => fondant(m.material, design.coat !== 'frosting'));
     const shellHex = design.shell_color && palette[design.shell_color] ? palette[design.shell_color] : frost;
     if (P.border_top_shell) { P.border_top_shell.visible = borders.has('shell_top'); recolor(P.border_top_shell, shade(shellHex, 0.03)); }
     if (P.border_bottom_shell) { P.border_bottom_shell.visible = borders.has('shell_bottom'); recolor(P.border_bottom_shell, shade(shellHex, 0.03)); }
@@ -1067,7 +1078,8 @@ export function createBentoScene(host, { reducedMotion = false, onPick = null, o
   function showBody() {
     const useModel = !!model && shapeKey === 'bento';
     if (model) model.root.visible = useModel;
-    fixed.visible = !useModel && !layersOn; lift.visible = !layersOn; layers.visible = layersOn;
+    const lay = layersOn && performance.now() >= peekUntil;
+    fixed.visible = !useModel && !lay; lift.visible = !lay; layers.visible = lay;
     request();
   }
   function setShape(next = {}) {
