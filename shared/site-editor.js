@@ -21,7 +21,7 @@
       <label class="se-toggle"><input type="checkbox" data-se-edit checked> Edit mode</label>
       <span class="se-grow"></span>
       <button type="button" data-se-fonts>Fonts</button>
-      <a href="admin/#website/faqs">FAQs</a><a href="admin/#website/announcements">Announcements</a>
+      <a href="admin/#website/faqs">FAQs</a>
       <button type="button" data-se-discard>Discard</button>
       <button type="button" data-se-save>Save draft</button>
       <button type="button" class="is-primary" data-se-publish>Publish</button>

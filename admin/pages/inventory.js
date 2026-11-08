@@ -154,12 +154,17 @@ export async function getWorkloadAlerts() {
       message: `${w.customer_name || 'Customer'} · ${day}: accepting brings the day to ${w.projected_minutes} of ${w.workload_minutes} min (+${w.minutes} min).` };
   });
 }
+// Live alerts (payments, workload) have no read flag in the database, so the ones already seen in the bell are remembered on this device.
+const SEEN_KEY='lexc-admin-seen-alerts';
+const alertKey=(a)=>`${a.kind||'workload'}:${a.order.id}:${a.order.payment_status||''}`;
+const seenAlerts=()=>{try{return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||'[]'))}catch{return new Set()}};
+const rememberAlerts=(list)=>{try{localStorage.setItem(SEEN_KEY,JSON.stringify(list.map(alertKey).slice(0,300)))}catch{}};
 export async function refreshInventoryNotificationBadge() {
   const badge = document.querySelector('#notification-count');
   if (!badge) return;
   try {
     const [snapshot, payments, workload] = await Promise.all([getInventorySnapshot(), getPaymentAlerts().catch(() => []), getWorkloadAlerts().catch(() => [])]);
-    const unread = (snapshot.notifications || []).filter((item) => !item.is_read).length + payments.length + workload.length;
+    const unread = (snapshot.notifications || []).filter((item) => !item.is_read).length + [...payments, ...workload].filter((a) => !seenAlerts().has(alertKey(a))).length;
     badge.textContent = unread > 99 ? '99+' : String(unread);
     badge.hidden = unread === 0;
   } catch {
@@ -207,6 +212,10 @@ export async function openInventoryNotifications(opener) {
         </article>`).join('') : empty('No inventory notifications', 'Stock, expiry, and batch alerts will appear here.')}
       <a class="inventory-notifications__all" href="#inventory/history">View archive &amp; expired batches →</a>
     </section>`;
+  // Opening the bell counts as seeing it: the shown inventory items are marked read and the live alerts remembered.
+  rememberAlerts([...payments, ...workload]);
+  Promise.all(visibleNotifications.filter((item) => !item.is_read).map((item) => db.rpc('read_inventory_notifications', { notification_id: item.id, mark_all: false })))
+    .catch((error) => console.warn('Mark seen:', error)).finally(() => refreshInventoryNotificationBadge());
   popover.addEventListener('click', async (event) => {
     const read = event.target.closest('[data-mark-read]');
     const all = event.target.closest('[data-mark-all]');

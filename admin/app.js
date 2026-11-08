@@ -1,7 +1,7 @@
 import { renderProduction } from './pages/production.js?v=11';
 import { renderDashboard } from './pages/dashboard.js?v=18';
 import { renderProducts } from './pages/products.js?v=15';
-import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=36';
+import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=37';
 import { renderReports } from './pages/reports.js?v=19';
 import { renderOrders } from './pages/orders.js?v=54';
 import { renderBookings } from './pages/bookings.js?v=19';
@@ -23,7 +23,7 @@ const groups = [
     ['updates', 'Updates & reviews', null, 'gallery']]],
   // Edit Website (phase 104): the customer pages, FAQs and announcements
   // the button opens the customer site itself with in-place editing (shared/site-editor.js)
-  ['Website', [['website-live', 'Edit website', '../?cms=live', 'edit'], ['website/faqs', 'FAQs', null, 'info'], ['website/announcements', 'Announcements', null, 'alert']]],
+  ['Website', [['website-live', 'Edit website', '../?cms=live', 'edit'], ['website/faqs', 'FAQs', null, 'info']]],
   ['Analytics', [['reports', 'Reports']]],
   ['Account', [['profile', 'Profile']]],
 ];
