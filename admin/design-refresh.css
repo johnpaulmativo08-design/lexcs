@@ -69,3 +69,8 @@
 .pe-foot{background:rgba(255,255,255,.86)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid #ece2f7!important}
 .pe-foot .button--primary{background:#241532;border-color:#241532;min-height:44px;padding:10px 22px;box-shadow:0 8px 20px rgba(36,21,50,.22)}
 @media (prefers-reduced-motion:reduce){.dx-card{animation:none}.dopt-products button,.dopt-group{transition:none}}
+
+/* sidebar counts (nav-badges.js): a small red number at the end of the module name; hidden when there is nothing new */
+.nav-item{position:relative}
+.nav-item .nav-count{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#d63a5f;color:#fff;font:800 11.5px/20px "Plus Jakarta Sans",sans-serif;text-align:center;box-shadow:0 2px 6px rgba(214,58,95,.3)}
+.nav-item.active .nav-count,.nav-item[aria-current="page"] .nav-count{background:#fff;color:#d63a5f}
