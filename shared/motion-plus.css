@@ -1,0 +1,63 @@
+/* Satisfying motion, layered on top of motion.css: springy presses, lifts, pops for picks and ticks, sheets that
+   settle, sections that rise into view, and a soft ripple on main buttons. All of it is skipped when the phone asks
+   for less motion or Settings → Reduce motion is on. Only transform and opacity animate (smooth on phones). */
+:root{--mp-spring:cubic-bezier(.34,1.56,.64,1);--mp-out:cubic-bezier(.22,1,.36,1);--mp-fast:160ms;--mp-mid:280ms}
+
+@media (prefers-reduced-motion:no-preference){
+  html:not([data-motion="reduce"]) :is(button,.btn-primary,.btn-outline,a.button,[role="button"],.co-option,.bd-chip,.bd-card,.cd-preset,.bd-preset,.filter-item,.co-tap,.vw-ticket,.co-addr-card,.dt-cal-day,.dt-slot){
+    transition:transform var(--mp-fast) var(--mp-out),box-shadow var(--mp-mid) var(--mp-out),background-color var(--mp-mid) var(--mp-out),border-color var(--mp-mid) var(--mp-out),color var(--mp-mid) var(--mp-out),opacity var(--mp-mid)}
+  /* press: a quick squish, released with a little spring */
+  html:not([data-motion="reduce"]) :is(button,.btn-primary,.btn-outline,a.button,[role="button"],.co-option,.bd-chip,.bd-card,.cd-preset,.bd-preset,.filter-item,.co-tap,.vw-ticket,.co-addr-card,.dt-cal-day,.dt-slot):not(:disabled):active{transform:scale(.96);transition-duration:90ms}
+  /* lift on hover (mouse only) */
+  @media (hover:hover){
+    html:not([data-motion="reduce"]) :is(.product-card,.pd-card,.pkg-card,.pf-card,.bd-card,.cd-preset,.bd-preset,.vw-ticket,.co-tap,.co-addr-card):hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(92,61,110,.14)}
+    html:not([data-motion="reduce"]) :is(.product-card,.pd-card,.pkg-card) img{transition:transform .6s var(--mp-out)}
+    html:not([data-motion="reduce"]) :is(.product-card,.pd-card,.pkg-card):hover img{transform:scale(1.045)}
+  }
+  /* the thing you just picked pops (motion-plus.js adds .mp-pick to it, even after the screen redraws) */
+  html:not([data-motion="reduce"]) .mp-pick{animation:mp-pick 420ms var(--mp-spring)}
+  @keyframes mp-pick{0%{transform:scale(.92)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
+  /* checkboxes tick with a bounce */
+  html:not([data-motion="reduce"]) input[type="checkbox"]:checked,html:not([data-motion="reduce"]) input[type="radio"]:checked{animation:mp-tick 360ms var(--mp-spring)}
+  @keyframes mp-tick{0%{transform:scale(.6)}70%{transform:scale(1.18)}100%{transform:scale(1)}}
+  /* sheets and dialogs settle in */
+  html:not([data-motion="reduce"]) :is(.cx-dialog,.tc-dialog,.reg-terms-dialog,.lx-appear)[open]{animation:mp-pop 380ms var(--mp-spring)}
+  html:not([data-motion="reduce"]) :is(.cx-dialog,.tc-dialog,.reg-terms-dialog,.lx-appear)[open]::backdrop{animation:mp-fade 260ms ease-out}
+  @keyframes mp-pop{0%{opacity:0;transform:translateY(14px) scale(.96)}100%{opacity:1;transform:none}}
+  @keyframes mp-fade{from{opacity:0}to{opacity:1}}
+  html:not([data-motion="reduce"]) .vw-sheet-card{transition:transform 420ms var(--mp-spring),opacity 240ms ease!important}
+  /* page changes: the new page rises in */
+  html:not([data-motion="reduce"]) .page.active{animation:mp-page 420ms var(--mp-out)}
+  @keyframes mp-page{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+  /* sections rise into view while scrolling (motion-plus.js adds .mp-reveal / .is-in) */
+  html:not([data-motion="reduce"]) .mp-reveal{opacity:0;transform:translateY(26px);transition:opacity 700ms var(--mp-out),transform 700ms var(--mp-out)}
+  html:not([data-motion="reduce"]) .mp-reveal.is-in{opacity:1;transform:none}
+  html:not([data-motion="reduce"]) .mp-reveal.is-in .mp-stagger>*{animation:mp-page 560ms var(--mp-out) both}
+  .mp-stagger>*:nth-child(2){animation-delay:60ms!important}.mp-stagger>*:nth-child(3){animation-delay:120ms!important}.mp-stagger>*:nth-child(4){animation-delay:180ms!important}
+  .mp-stagger>*:nth-child(5){animation-delay:240ms!important}.mp-stagger>*:nth-child(6){animation-delay:300ms!important}.mp-stagger>*:nth-child(n+7){animation-delay:340ms!important}
+  /* badges that change (cart count, notifications) bounce */
+  html:not([data-motion="reduce"]) .mp-bump{animation:mp-bump 520ms var(--mp-spring)}
+  @keyframes mp-bump{0%{transform:scale(1)}30%{transform:scale(1.35)}60%{transform:scale(.9)}100%{transform:scale(1)}}
+  /* chevrons and carets turn smoothly */
+  html:not([data-motion="reduce"]) :is(.tc-caret,.co-addr-go,.co-tap-action){transition:transform 300ms var(--mp-spring)}
+  html:not([data-motion="reduce"]) .co-tap:hover .co-tap-action{transform:translateX(3px)}
+}
+/* ripple on the main buttons (motion-plus.js adds the span) */
+.mp-ripple{position:absolute;border-radius:50%;pointer-events:none;background:currentColor;opacity:.22;transform:scale(0);animation:mp-ripple 600ms var(--mp-out) forwards}
+@keyframes mp-ripple{to{transform:scale(1);opacity:0}}
+/* Admin: each screen rises in, menu items slide a touch, cards lift */
+@media (prefers-reduced-motion:no-preference){
+  html:not([data-motion="reduce"]) #content>[data-admin-page]{animation:mp-page 380ms var(--mp-out)}
+  html:not([data-motion="reduce"]) .nav-item{transition:transform 220ms var(--mp-out),background-color 220ms,color 220ms}
+  @media (hover:hover){
+    html:not([data-motion="reduce"]) .nav-item:not(.active):hover{transform:translateX(3px)}
+    html:not([data-motion="reduce"]) :is(.ox-card,.vt-ticket,.vx-stat,.st-card):hover{transform:translateY(-2px)}
+  }
+  html:not([data-motion="reduce"]) :is(.ox-card,.vt-ticket,.vx-stat,.st-card){transition:transform 260ms var(--mp-out),box-shadow 260ms var(--mp-out)}
+  html:not([data-motion="reduce"]) :is(.ox-grid,.vt-list,.vx-stats,.st-grid)>*{animation:mp-page 520ms var(--mp-out) both}
+  html:not([data-motion="reduce"]) :is(.ox-grid,.vt-list,.vx-stats,.st-grid)>*:nth-child(2){animation-delay:50ms}
+  html:not([data-motion="reduce"]) :is(.ox-grid,.vt-list,.vx-stats,.st-grid)>*:nth-child(3){animation-delay:100ms}
+  html:not([data-motion="reduce"]) :is(.ox-grid,.vt-list,.vx-stats,.st-grid)>*:nth-child(4){animation-delay:150ms}
+  html:not([data-motion="reduce"]) :is(.ox-grid,.vt-list,.vx-stats,.st-grid)>*:nth-child(n+5){animation-delay:200ms}
+  html:not([data-motion="reduce"]) #admin-dialog[open]{animation:mp-pop 360ms var(--mp-spring)}
+}
