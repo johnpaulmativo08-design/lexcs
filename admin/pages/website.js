@@ -13,7 +13,7 @@ let guardBound = false;
 
 function loadSchema() {
   return SCHEMA() ? Promise.resolve() : new Promise((resolve, reject) => {
-    const s = Object.assign(document.createElement('script'), { src: '../shared/site-cms-schema.js?v=1' });
+    const s = Object.assign(document.createElement('script'), { src: '../shared/site-cms-schema.js?v=2' });
     s.onload = resolve; s.onerror = reject; document.head.append(s);
   });
 }

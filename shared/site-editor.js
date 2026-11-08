@@ -50,7 +50,7 @@
   }
   function goPage(id) {
     const p = S().page(id); if (!p) return;
-    if (p.route === 'register') { window.navigate?.('register'); setTimeout(() => { const d = document.getElementById('regTermsDialog'); if (d && !d.open) d.show(); mark(); }, 350); }
+    if (p.route === 'register') { window.navigate?.('register'); setTimeout(() => { const d = document.getElementById('regTermsDialog'); if (d && !d.open) d.show(); d?.querySelectorAll('details').forEach((x) => { x.open = true; }); mark(); }, 350); }   // every Terms section open to edit
     else { window.navigate?.(p.route); setTimeout(mark, 350); }
   }
 
