@@ -1295,3 +1295,8 @@ html[data-theme=dark] .customer-review-cta{border-color:#e0b64a!important;color:
 html[data-theme=dark] .auth-label,html[data-theme=dark] #page-login .auth-label,html[data-theme=dark] #page-register .auth-label{color:#dccbe8!important}
 html[data-theme=dark] .auth-check,html[data-theme=dark] .reg-agree,html[data-theme=dark] .auth-legal,html[data-theme=dark] .auth-resend,html[data-theme=dark] .otp-timer,html[data-theme=dark] .otp-status{color:#cdbbdb!important}
 html[data-theme=dark] .auth-check input,html[data-theme=dark] .reg-agree input{accent-color:#b994ec}
+/* log in / sign up boxes: dark box, light typed text (was light text on a white box) */
+html[data-theme=dark] .auth-input,html[data-theme=dark] #page-login .auth-input,html[data-theme=dark] #page-register .auth-input,html[data-theme=dark] .otp input{background:#2a1f33!important;color:#f3eaf8!important;-webkit-text-fill-color:#f3eaf8;border-color:#5a4870!important;caret-color:#d9c0ff}
+html[data-theme=dark] .auth-input::placeholder{color:#a898b8!important;-webkit-text-fill-color:#a898b8;opacity:1}
+html[data-theme=dark] .auth-input:focus{border-color:#b994ec!important;box-shadow:0 0 0 3px rgba(185,148,236,.25)!important}
+html[data-theme=dark] .auth-input:-webkit-autofill{-webkit-box-shadow:0 0 0 40px #2a1f33 inset!important;-webkit-text-fill-color:#f3eaf8!important}
