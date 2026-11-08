@@ -47,3 +47,9 @@ html[data-theme=dark] .tc-head .reg-title,html[data-theme=dark] .tc-body strong{
 html[data-theme=dark] .tc-sec>summary:hover,html[data-theme=dark] .tc-sec>summary:focus-visible{background:#45345e;color:#fff}
 html[data-theme=dark] .tc-sec[open]>summary{background:#3b2c52}
 html[data-theme=dark] .tc-x{background:#33264a;color:#efe6f8}html[data-theme=dark] .tc-cancel{color:#d9c0ff}
+
+/* opened by Edit website (not as a pop-up): keep it centred on screen, under the editing bar, at its normal size */
+.reg-terms-dialog.tc-dialog[open]:not(:modal){position:fixed;inset:64px 0 12px;z-index:900;margin:0 auto;height:auto;max-height:calc(100dvh - 76px);box-shadow:0 0 0 100vmax rgba(40,20,60,.45),0 30px 80px rgba(60,30,90,.35)}
+.reg-terms-dialog.tc-dialog[open]:not(:modal) .tc-main{max-height:calc(100dvh - 76px)}
+/* the same type everywhere (the page around it may use another font) */
+.tc-dialog,.tc-dialog p,.tc-dialog small,.tc-dialog label,.tc-dialog summary,.tc-dialog .tc-body,.tc-dialog .tc-sub,.tc-dialog .tc-intro,.tc-dialog button{font-family:"Plus Jakarta Sans",system-ui,sans-serif}
