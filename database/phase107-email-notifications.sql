@@ -32,6 +32,7 @@ create table if not exists private.email_outbox (
   last_error text
 );
 create index if not exists email_outbox_waiting on private.email_outbox (created_at) where sent_at is null;
+alter table private.email_outbox enable row level security;   -- no policies: only the private functions below use it
 revoke all on private.email_outbox from public, anon, authenticated;
 
 create or replace function private.email_queue(to_whom text, customer uuid, ord uuid, what text, subj text, msg text) returns void
