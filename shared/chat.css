@@ -303,3 +303,15 @@ body.chat-page:not([data-admin-page]){font-family:'Plus Jakarta Sans',system-ui,
 .chat-receipt-pay:hover{text-decoration:underline}
 .chat-receipt .chat-receipt-view{justify-self:start;padding:6px 0;border:0;background:none;color:#5d349e;font:inherit;font-size:.76rem;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .chat-receipt .chat-receipt-view:disabled{opacity:.6;cursor:progress}
+
+/* bolder, easier-to-see lines between the chat areas, rows, bubbles and the message box */
+.chat-workspace{--chat-line:#cdbde3;border-width:2px!important;border-color:#cdbde3!important}
+.chat-inbox{border-right:2px solid var(--chat-line)!important}
+.chat-context{border-left:2px solid var(--chat-line)!important}
+.chat-page-header{border-bottom:2px solid var(--chat-line)!important}
+.chat-row{border-bottom:1.5px solid #ded2ee!important}
+.chat-compose{border-top:2px solid var(--chat-line)!important}
+.chat-compose textarea,.chat-compose input{border:1.5px solid #cdbde3!important}
+.chat-bubble{border-width:1.5px!important;border-color:#d6c8ea}
+.chat-proof,.chat-context-payment{border-color:#d6c8ea!important;border-width:1.5px!important}
+html[data-theme=dark] .chat-workspace{--chat-line:#4a3a5e;border-color:#4a3a5e!important}html[data-theme=dark] .chat-row{border-bottom-color:#3d2f50!important}html[data-theme=dark] .chat-bubble{border-color:#4a3a5e}

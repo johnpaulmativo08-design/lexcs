@@ -5,7 +5,7 @@
   const STEPS = [['layers', 'Layers'], ['style', 'Style'], ['decorate', 'Decorate'], ['message', 'Message'], ['review', 'Review']];
   // Tapping a part of the 3D cake opens its option: [step, section legend, name shown on hover].
   const PICK = {
-    frosting: ['style', 'frosting', 'Fondant'], border: ['decorate', 'border', 'Frosting'], drip: ['decorate', 'drip', 'Frosting drip'],
+    frosting: ['style', 'frosting', 'Cake finish'], border: ['decorate', 'border', 'Frosting'], drip: ['decorate', 'drip', 'Frosting drip'],
     pearls: ['decorate', 'accent', 'Pearls'], bows: ['decorate', 'bows', 'Ribbon bows'], flowers: ['decorate', 'accent', 'Piped flowers'],
     leaves: ['decorate', 'accent', 'Piped leaves'], sprinkles: ['decorate', 'accent', 'Sprinkles'], gold_leaf: ['decorate', 'accent', 'Gold leaf'],
     message: ['message', null, 'Message'], topper: ['decorate', 'topper', 'Topper']
@@ -59,8 +59,8 @@
   let textTimer = 0, view3d = !window.LexcAppearance?.dataSaver?.(), packed = false; // Data saver: start on the flat view, 3D on tap
 
   const blank = () => ({ variant_id: product.product_variants.filter((v) => v.is_active)[0]?.id, frosting_color: 'white', border: [], accents: [], bow_color: 'pink',
-    message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {}, drip_color: '', shell_color: '', font: 'rounded', inspiration: [] });
-  const design = () => ({ designer: 'bento', frosting_color: state.frosting_color, border: [...state.border], accents: [...state.accents],
+    coat: 'fondant', message: '', lettering: 'piped', lettering_color: 'purple', topper: 'none', topper_text: '', qty: 1, layout: {}, drip_color: '', shell_color: '', font: 'rounded', inspiration: [] });
+  const design = () => ({ designer: 'bento', coat: state.coat === 'frosting' ? 'frosting' : 'fondant', frosting_color: state.frosting_color, border: [...state.border], accents: [...state.accents],
     bow_color: state.accents.includes('ribbon_bows') ? state.bow_color : null, message: state.message.trim(),
     lettering: state.message.trim() ? state.lettering : null, lettering_color: state.message.trim() ? state.lettering_color : null,
     topper: state.topper, topper_text: ['number', 'custom'].includes(state.topper) ? state.topper_text : '', layout: JSON.parse(JSON.stringify(state.layout || {})),
@@ -197,7 +197,8 @@
     if (state.shell_color && !palette[state.shell_color]) state.shell_color = '';
     if (!opt('font', state.font)) state.font = opt('font', 'rounded') ? 'rounded' : (options.font?.[0]?.code || 'rounded');
     state.topper_text = state.topper === 'custom' ? customTopper(state.topper_text) : String(state.topper_text || '').replace(/\D/g, '').slice(0, 3);
-    state.qty = Math.min(20, Math.max(1, Number(state.qty) || 1));
+    state.qty = Math.min(15, Math.max(1, Number(state.qty) || 1));   // customizable items: up to 15 per order line (phase 108)
+    if (state.coat !== 'frosting') state.coat = 'fondant';
     if (!variant()) state.variant_id = product.product_variants.find((v) => v.is_active)?.id;
     const cleanTier = (t) => {
       t = t && typeof t === 'object' ? t : {};
@@ -220,7 +221,7 @@
   function saveDraft() { if (document.documentElement.classList.contains('design-viewer')) return; try { if (editIndex === null) localStorage.setItem(DRAFT_KEY, JSON.stringify({ product_id: product.id, state, step })); } catch {} }
   function undo() { if (!past.length) return; future.push(snapshot()); state = JSON.parse(past.pop()); afterChange(true); }
   function redo() { if (!future.length) return; past.push(snapshot()); state = JSON.parse(future.pop()); afterChange(true); }
-  function resetDesign() { commit((s) => Object.assign(s, blank(), { qty: s.qty, variant_id: s.variant_id })); showToast('Design reset to a plain white cake. Tap Undo to bring it back.'); }
+  function resetDesign() { visited.clear(); commit((s) => Object.assign(s, blank(), { qty: s.qty, variant_id: s.variant_id })); renderBody(); showToast('Design reset to a plain white cake. Tap Undo to bring it back.'); }
   function applyPreset(key) {
     const p = PRESETS.find((x) => x.key === key); if (!p) return;
     commit((s) => Object.assign(s, blank(), JSON.parse(JSON.stringify(p.state)), { qty: s.qty, variant_id: s.variant_id }));
@@ -662,8 +663,10 @@
       <fieldset class="bd-group"><legend>Presets <small>Optional · all editable</small></legend>
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
+      <fieldset class="bd-group" data-bd-section="coat"><legend>Cake finish <small>Free · pick one</small></legend>
+        <div class="bd-coat" role="radiogroup" aria-label="Cake finish">${[['fondant', 'Fondant', 'Smooth sugar paste, clean edges'], ['frosting', 'Frosting', 'Soft buttercream, homemade look']].map(([k, l, n]) => `<button type="button" role="radio" class="bd-coat-opt" data-bd-coat="${k}" aria-checked="${(state.coat || 'fondant') === k}"><strong>${l}</strong><small>${n}</small></button>`).join('')}</div></fieldset>
       ${tierSwitch()}
-      <fieldset class="bd-group" data-bd-section="frosting"><legend>Fondant color${onLower() ? ' · ' + tier + ' tier' : ''} <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', sub(s).frosting_color, 'Fondant color')}</fieldset>`;
+      <fieldset class="bd-group" data-bd-section="frosting"><legend>${state.coat === 'frosting' ? 'Frosting' : 'Fondant'} color${onLower() ? ' · ' + tier + ' tier' : ''} <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', sub(s).frosting_color, (state.coat === 'frosting' ? 'Frosting' : 'Fondant') + ' color')}</fieldset>`;
     if (step === 'decorate') {
       const top = s; { const s = sub(top);   // the tier being decorated
       const count = s.accents.filter((c) => c !== 'fondant').length, room = max;
@@ -708,7 +711,7 @@
       <ul class="bd-summary" aria-label="Your design">
         <li><span>Cake</span><strong>${esc(product.name)} · ${esc(cakeLine(v))} ${money(v?.price || 0)}</strong></li>
         <li><span>Layers</span><strong>${esc(layersText())}</strong></li>
-        <li><span>Frosting</span><strong>${esc(opt('color', s.frosting_color)?.label)}${isTiered() ? ' (top tier)' : ''}</strong></li>
+        <li><span>${s.coat === 'frosting' ? 'Frosting' : 'Fondant'}</span><strong>${esc(opt('color', s.frosting_color)?.label)}${isTiered() ? ' (top tier)' : ''}</strong></li>
         ${[[tierCount() === 3 && s.middle, 'Middle tier'], [isTiered() && s.lower, 'Bottom tier']].map(([t, name]) => t ? `<li><span>${name}</span><strong>${esc(opt('color', t.frosting_color)?.label)} frosting${[...t.border.map((c) => opt('border', c)?.label.replace('Shell border — ', 'Shell ')), ...t.accents.map((c) => opt('accent', c)?.label)].filter(Boolean).map((l) => ', ' + esc(l)).join('')}</strong></li>` : '').join('')}
         <li><span>Border</span><strong>${s.border.length ? s.border.map((c) => esc(opt('border', c).label.replace('Shell border — ', 'Shell '))).join(', ') + (s.shell_color ? ' (' + esc(opt('color', s.shell_color)?.label) + ')' : '') : 'None'}</strong></li>
         <li><span>Decorations</span><strong>${s.accents.length ? s.accents.map((c) => esc(opt('accent', c).label) + (c === 'ribbon_bows' ? ' (' + esc(opt('color', s.bow_color)?.label) + ')' : '')).join(', ') : 'None'}</strong></li>
@@ -844,6 +847,7 @@
       if ('bdUndo' in t.dataset) return undo();
       if ('bdRedo' in t.dataset) return redo();
       if ('bdReset' in t.dataset) return resetDesign();
+      if (t.dataset.bdCoat) { commit((s) => { s.coat = t.dataset.bdCoat === 'frosting' ? 'frosting' : 'fondant'; }); return renderBody(); }
       if ('bdChat' in t.dataset) return openChat();
       if ('bdShare' in t.dataset) return shareDesign();
       if ('bdViewcart' in t.dataset) { navigate('shop'); return openCart(); }
