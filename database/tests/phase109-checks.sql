@@ -2,9 +2,9 @@
 do $rehearsal$
 declare report text := ''; ok boolean; pay jsonb := (select p from rehearsal_payload); res jsonb; r jsonb; n integer; ids uuid[] := '{}'; s uuid; prior integer;
   cust uuid := (select id from rehearsal_ids where k = 'customer'); other_id uuid := (select id from rehearsal_ids where k = 'other');
-  late uuid := pg_temp.slot_at(6, 21); days uuid[] := array[pg_temp.slot_at(6, 10), pg_temp.slot_at(7, 10), pg_temp.slot_at(8, 10), pg_temp.slot_at(9, 10), pg_temp.slot_at(10, 10)];
+  late uuid := pg_temp.slot_at(12, 21); days uuid[] := array[pg_temp.slot_at(13, 10), pg_temp.slot_at(14, 10), pg_temp.slot_at(15, 10), pg_temp.slot_at(16, 10), pg_temp.slot_at(17, 10)];
 begin
-  report := report || E'\n' || case when late is not null then 'PASS' else 'FAIL' end || '  a 9 PM receiving slot exists 6 days ahead';
+  report := report || E'\n' || case when late is not null then 'PASS' else 'FAIL' end || '  a 9 PM receiving slot exists 12 days ahead';
   select count(*) into prior from public.order_cancellations c where c.customer_id = cust
      and c.created_at >= ((now() at time zone 'Asia/Manila')::date)::timestamp at time zone 'Asia/Manila';
   delete from public.customer_order_pauses p where p.customer_id = cust;   -- start clean (rolled back)
