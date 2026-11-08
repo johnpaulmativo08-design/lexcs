@@ -254,7 +254,7 @@ function makeTreatDesigner(K) {
         <div class="bd-chips" role="radiogroup">${product().product_variants.filter((v) => v.is_active).map((v) => `<button type="button" role="radio" class="bd-chip" data-dd-variant="${v.id}" aria-checked="${s.variant_id === v.id}">${esc(v.label)} · ${money(v.price)}</button>`).join('')}</div>
       </fieldset>`}
       <fieldset class="bd-group"><legend>Presets <small>Optional · all editable</small></legend>
-        <div class="cd-presets">${PRESETS.filter((p) => products[p.box]).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
+        <div class="cd-presets">${PRESETS.filter((p) => products[p.box] && (K.designer !== 'donut' || (s.box === 'party' ? p.key === 'pinkpurple' : p.box === s.box))).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
       </fieldset>`;
     if (step === 'glaze') {
       const [lo, hi] = { same: [1, 1], alternate: [2, 2] }[s.pattern] || [2, 16];
