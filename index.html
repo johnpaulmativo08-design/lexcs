@@ -689,11 +689,11 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <link rel="stylesheet" href="shared/auth-flow.css?v=5">
 <link rel="stylesheet" href="shared/delivery-card.css?v=3"><link rel="stylesheet" href="shared/route-preview.css?v=2">
 <link rel="stylesheet" href="shared/product-detail.css?v=11">
-<link rel="stylesheet" href="shared/chat-widget.css?v=19">
+<link rel="stylesheet" href="shared/chat-widget.css?v=20">
 <link rel="stylesheet" href="shared/fresh-feed.css?v=10">
 <link rel="stylesheet" href="shared/landing.css?v=14">
-<link rel="stylesheet" href="shared/bento-designer.css?v=26">
-<link rel="stylesheet" href="shared/cupcake-designer.css?v=13">
+<link rel="stylesheet" href="shared/bento-designer.css?v=27">
+<link rel="stylesheet" href="shared/cupcake-designer.css?v=14">
 <link rel="stylesheet" href="shared/selected-ui.css?v=3">
 <link rel="stylesheet" href="shared/menu-layout.css?v=9">
 <link rel="stylesheet" href="shared/motion.css?v=6">
@@ -702,7 +702,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 <script>if(/[?&]embed=admin(&|$)/.test(location.search))document.documentElement.classList.add('admin-embed');
 // Admin → View in 3D: the designer shows only its 3D stage (no menu, panel, price, cart; nothing saved)
 if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classList.add('admin-embed','design-viewer');</script>
-<link rel="stylesheet" href="shared/theme/appearance.css?v=19"><link rel="stylesheet" href="shared/theme/site-text.css?v=2"><script src="shared/appearance.js?v=12" data-page="site"></script>
+<link rel="stylesheet" href="shared/theme/appearance.css?v=19"><link rel="stylesheet" href="shared/theme/site-text.css?v=2"><script src="shared/appearance.js?v=13" data-page="site"></script>
 </head>
 <body>
 
@@ -2100,7 +2100,7 @@ function addToCartById(id, selectedIndex, quantity = 1) {
   
   const existing = cart.find(c => c.id === id && c.sizeLabel === size.label);
   if (existing) {
-    existing.qty += quantity;
+    existing.qty = Math.min(cartLimits(existing)[1], existing.qty + quantity);
     existing.selected = true;
   } else {
     cart.push({ id, product_id: p.product_id, variant_id: size.id, name: p.name, emoji: p.emoji, sizeLabel: size.label, price: size.price, regular_price: size.regular, qty: quantity, selected: true });
@@ -2134,6 +2134,7 @@ function closeCart() {
 }
 
 function renderCart() {
+  clampCartLines();
   document.getElementById('cartItemsList').setAttribute('aria-busy','false');
   persistCart();
   const selectedItems = cartSelectedItems();
@@ -2203,11 +2204,26 @@ function variantMin(variantId) {
   for (const p of (typeof liveCatalog !== 'undefined' ? liveCatalog : [])) { const v = (p.product_variants || []).find(x => x.id === variantId); if (v) return Math.max(1, Number(v.min_qty) || 1); }
   return 1;
 }
+// how many of one cart line can be ordered (phase 108; the database checks the same):
+// cake pops 24–500 pieces · customizable products (made in a designer) up to 15 · other menu items up to 30
+function cartLimits(item) {
+  if (!item) return [1, 30];
+  const product = (typeof liveCatalog !== 'undefined' ? liveCatalog : []).find(p => p.id === item.product_id);
+  const designer = item.customization?.designer || product?.customization_config?.designer;
+  if (designer === 'cakepop') return [24, 500];
+  const min = variantMin(item.variant_id);
+  return [min, designer || product?.kind === 'customizable' ? 15 : 30];
+}
+// keeps every cart line inside its limits (e.g. an old cart with 79 cakes becomes 15)
+function clampCartLines() {
+  let changed = null;
+  for (const item of cart) { const [lo, hi] = cartLimits(item); const q = Math.min(hi, Math.max(lo, item.qty)); if (q !== item.qty) { item.qty = q; changed = item; } }
+  if (changed) showToast(`${changed.name}: quantity set to ${changed.qty}, the most you can order at once.`);
+}
 function changeQty(i, delta) {
-  const min = variantMin(cart[i]?.variant_id);
+  const [min, max] = cartLimits(cart[i]);
+  if (cart[i] && delta > 0 && cart[i].qty + delta > max) { showToast(`Up to ${max} ${cart[i].customization?.designer === 'cakepop' ? 'cake pops' : 'of this item'} per order. Message LexC’s for bigger orders.`); return; }
   if (cart[i] && min > 1 && cart[i].qty + delta > 0 && cart[i].qty + delta < min) { showToast(`${cart[i].name} has a minimum of ${min}. Tap remove to take it out.`); return; }
-  // cake pops are sold per piece, 1–300 (the minimum comes from the database, like every product)
-  if (cart[i]?.customization?.designer === 'cakepop' && cart[i].qty + delta > 300) { showToast('Up to 300 cake pops per order. Message LexC’s for bigger orders.'); return; }
   if (cart[i]?.customization?.designer === 'cakepop' && cart[i].qty + delta <= 0) { cart.splice(i, 1); renderCart(); return; }
   cart[i].qty += delta;
   if (cart[i].qty <= 0) cart.splice(i, 1);
@@ -2217,8 +2233,7 @@ function changeQty(i, delta) {
 // typed quantity: kept between the option's minimum and 99 (300 for cake pops, sold per piece); an empty box keeps the old number
 function setCartQty(i, value) {
   const item = cart[i]; if (!item) return;
-  const pops = item.customization?.designer === 'cakepop';
-  const min = variantMin(item.variant_id), max = pops ? 300 : 99, typed = parseInt(value, 10);
+  const [min, max] = cartLimits(item), typed = parseInt(value, 10);
   if (!typed) { renderCart(); return; }
   const qty = Math.min(max, Math.max(min, typed));
   if (typed < min) showToast(`${item.name} has a minimum of ${min}.`);
@@ -2897,10 +2912,10 @@ loginReady();
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/inspiration.js?v=1"></script>
 <script src="shared/profile.js?v=19"></script><script src="shared/notifications.js?v=9"></script><script type="module" src="shared/order-history.js?v=8"></script>
-<script src="shared/bento-designer.js?v=59"></script>
+<script src="shared/bento-designer.js?v=60"></script>
 <script src="shared/letter-pieces.js?v=7"></script>
-<script src="shared/cupcake-designer.js?v=38"></script>
-<script src="shared/treat-designer.js?v=28"></script>
+<script src="shared/cupcake-designer.js?v=39"></script>
+<script src="shared/treat-designer.js?v=30"></script>
 <script src="shared/motion.js?v=4" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="lcw-label">Chat</span><span data-chat-count hidden></span></button>

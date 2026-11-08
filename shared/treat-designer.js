@@ -33,7 +33,7 @@ function makeTreatDesigner(K) {
   const palette = () => Object.fromEntries((options().color || []).map((c) => [c.code, c.hex]));
   const opt = (group, code) => (options()[group] || []).find((o) => o.code === code);
   const variant = () => product()?.product_variants.find((v) => v.id === state.variant_id && v.is_active);
-  const PER_PIECE = K.designer === 'cakepop', MIN_PIECES = 1, MAX_PIECES = 300, START_PIECES = 12;   // any number from 1 to 300; a new design starts at 12
+  const PER_PIECE = K.designer === 'cakepop', MIN_PIECES = 24, MAX_PIECES = 500, START_PIECES = 24;   // cake pops: 24 to 500 pieces (phase 108); a new design starts at 24
   const pieces = () => PER_PIECE ? state.qty : countOf(variant()?.label);
   const countOf = (label) => Number(String(label).match(/(\d+)\s*pcs/i)?.[1]) || Number(String(label).match(/\d+/)?.[0]) || 25;
   const flavorsList = () => (options().flavor || []).filter((o) => o.code !== 'mix');
@@ -69,7 +69,7 @@ function makeTreatDesigner(K) {
   function normalise() {
     if (!products[state.box]) state.box = Object.keys(products)[0];
     if (!variant()) state.variant_id = product().product_variants.find((v) => v.is_active)?.id;
-    state.qty = PER_PIECE ? Math.min(MAX_PIECES, Math.max(MIN_PIECES, Math.round(Number(state.qty) || START_PIECES))) : Math.min(20, Math.max(1, Number(state.qty) || 1));
+    state.qty = PER_PIECE ? Math.min(MAX_PIECES, Math.max(MIN_PIECES, Math.round(Number(state.qty) || START_PIECES))) : Math.min(15, Math.max(1, Number(state.qty) || 1));   // up to 15 per order line (phase 108)
     const flav = new Set(flavorsList().map((o) => o.code));
     state.flavors = [...new Set(state.flavors)].filter((f) => flav.has(f)).slice(0, K.maxFlavors); if (!state.flavors.length) state.flavors = [flavorsList()[0]?.code || 'vanilla'];
     if (K.styles && !opt('style', state.style)) state.style = 'round';
@@ -254,7 +254,7 @@ function makeTreatDesigner(K) {
         <div class="bd-chips" role="radiogroup">${product().product_variants.filter((v) => v.is_active).map((v) => `<button type="button" role="radio" class="bd-chip" data-dd-variant="${v.id}" aria-checked="${s.variant_id === v.id}">${esc(v.label)} · ${money(v.price)}</button>`).join('')}</div>
       </fieldset>`}
       <fieldset class="bd-group"><legend>Presets <small>Optional · all editable</small></legend>
-        <div class="cd-presets">${PRESETS.filter((p) => products[p.box]).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
+        <div class="cd-presets">${PRESETS.filter((p) => products[p.box] && (K.designer !== 'donut' || (s.box === 'party' ? p.key === 'pinkpurple' : p.box === s.box))).map((p) => `<button type="button" class="cd-preset" data-dd-preset="${p.key}"><span class="cd-preset-pic" aria-hidden="true">${presetPic(p)}</span><strong>${esc(p.name)}</strong><small>${K.styles ? (p.s.style === 'donut' ? 'Donut pops' : 'Round pops') : p.box === 'party' ? 'Party box' : 'Themed'}</small></button>`).join('')}</div>
       </fieldset>`;
     if (step === 'glaze') {
       const [lo, hi] = { same: [1, 1], alternate: [2, 2] }[s.pattern] || [2, 16];

@@ -43,6 +43,8 @@
   const palette = () => Object.fromEntries((options().color || []).map((c) => [c.code, c.hex]));
   const opt = (group, code) => (options()[group] || []).find((o) => o.code === code);
   const variant = () => product()?.product_variants.find((v) => v.id === state.variant_id && v.is_active);
+  // an assorted box takes at most one colour per cupcake (12 cupcakes → 12 colours), and never more than 16
+  const assortedMax = () => Math.max(2, Math.min(16, countOf(variant()?.label)));
   const countOf = (label) => Number(String(label).match(/(\d+)\s*pcs/i)?.[1]) || Number(String(label).match(/\d+/)?.[0]) || 12;
 
   function blank(size = 'mini') {
@@ -75,7 +77,7 @@
   function normalise() {
     if (!products[state.size]) state.size = Object.keys(products)[0];
     if (!variant()) state.variant_id = product().product_variants.find((v) => v.is_active)?.id;
-    state.qty = Math.min(20, Math.max(1, Number(state.qty) || 1));
+    state.qty = Math.min(15, Math.max(1, Number(state.qty) || 1));   // up to 15 per order line (phase 108)
     if (!opt('flavor', state.flavor)) state.flavor = 'chocolate';
     if (!opt('pattern', state.pattern)) state.pattern = 'same';
     const pal = palette();
@@ -83,7 +85,7 @@
       const part = state[k];
       if (!opt('style', part.style)) part.style = 'rosette';
       part.colors = [...new Set(part.colors)].filter((c) => pal[c]);
-      const [lo, hi] = state.pattern === 'assorted' && k === 'a' ? [2, 16] : RULE[part.style];
+      const [lo, hi] = state.pattern === 'assorted' && k === 'a' ? [2, assortedMax()] : RULE[part.style];
       part.colors = part.colors.slice(0, hi);
       const fill = ['white', 'baby_pink', 'azure', 'lavender', 'butter', 'mint'].filter((c) => pal[c]);
       for (const c of fill) if (part.colors.length < lo && !part.colors.includes(c)) part.colors.push(c);
@@ -274,7 +276,7 @@
   const swatchBtn = (k, code, c, on, n) => `<button type="button" class="bd-swatch${on ? ' is-on' : ''}${Number(c.price) > 0 ? ` has-price" data-price="+${money(c.price)}` : ''}" style="background:${c.hex}" data-cd-color="${k}" data-value="${code}" aria-pressed="${on}" aria-label="${esc(c.label)}${Number(c.price) > 0 ? ', +' + money(c.price) : ''}${on ? ', color ' + n : ''}" title="${esc(c.label)}${Number(c.price) > 0 ? ' +' + money(c.price) : ''}">${on && n ? `<i class="cd-num">${n}</i>` : ''}</button>`;
   function colorPicker(k) {
     const part = state[k], assorted = state.pattern === 'assorted' && k === 'a';
-    const [lo, hi] = assorted ? [2, 16] : RULE[part.style];
+    const [lo, hi] = assorted ? [2, assortedMax()] : RULE[part.style];
     const pal = options().color || [], known = new Set(COLOR_GROUPS.flatMap(([, cs]) => cs));
     const groups = COLOR_GROUPS.map(([name, codes]) => [name, codes.map((c) => pal.find((o) => o.code === c)).filter(Boolean)]);
     const extra = pal.filter((c) => !known.has(c.code)); if (extra.length) groups.push(['More', extra]);
@@ -450,7 +452,7 @@
   // ---- events --------------------------------------------------------------------------------------------
   function toggleColor(k, code) {
     commit((s) => {
-      const part = s[k], assorted = s.pattern === 'assorted' && k === 'a', [, hi] = assorted ? [2, 16] : RULE[part.style];
+      const part = s[k], assorted = s.pattern === 'assorted' && k === 'a', [, hi] = assorted ? [2, assortedMax()] : RULE[part.style];
       const i = part.colors.indexOf(code);
       if (i >= 0) { if (part.colors.length > 1) part.colors.splice(i, 1); return; }
       if (hi === 1) { part.colors = [code]; return; }

@@ -1290,3 +1290,8 @@ html[data-theme=dark] .customer-pay-pill.is-part{background:#221a27;color:#a6c3d
 html[data-theme=dark] .customer-pay-pill.is-review{background:#342b1b;color:#e1caad}
 html[data-theme=dark] .customer-pay-pill.is-issue{background:#241b29;color:#d79eab}
 html[data-theme=dark] .customer-review-cta{border-color:#e0b64a!important;color:#e2d1b1!important;background:#211926!important}
+
+/* log in / sign up: labels and small text readable on the dark background */
+html[data-theme=dark] .auth-label,html[data-theme=dark] #page-login .auth-label,html[data-theme=dark] #page-register .auth-label{color:#dccbe8!important}
+html[data-theme=dark] .auth-check,html[data-theme=dark] .reg-agree,html[data-theme=dark] .auth-legal,html[data-theme=dark] .auth-resend,html[data-theme=dark] .otp-timer,html[data-theme=dark] .otp-status{color:#cdbbdb!important}
+html[data-theme=dark] .auth-check input,html[data-theme=dark] .reg-agree input{accent-color:#b994ec}
