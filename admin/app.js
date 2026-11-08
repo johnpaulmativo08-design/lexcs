@@ -1,4 +1,4 @@
-import { renderSettings, applyAdminSettings } from './pages/settings.js?v=2';
+import { renderSettings, applyAdminSettings } from './pages/settings.js?v=3';
 applyAdminSettings();
 import { refreshNavBadges, startNavBadges } from './nav-badges.js?v=1';
 import { renderProduction } from './pages/production.js?v=12';
