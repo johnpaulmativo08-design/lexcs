@@ -1349,7 +1349,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           <div id="checkoutOrderList" class="checkout-order-list"></div>
           <div class="checkout-total-row"><span>Subtotal</span><span id="checkoutSubtotal">₱0</span></div>
           <div class="checkout-total-row checkout-discount-row" id="checkoutDiscountRow" hidden><span>Voucher <b data-discount-code></b></span><span data-discount></span></div>
-          <div class="checkout-total-row checkout-rush-row" id="checkoutRushRow" hidden><span>⚡ Rush fee (next-day order)</span><span>₱200.00</span></div>
+          <div class="checkout-total-row checkout-rush-row" id="checkoutRushRow" hidden><span>⚡ Rush fee</span><span data-rush-amount>₱0.00</span></div>
           <div class="checkout-total-row" id="checkoutDeliveryRow" style="display:none;"><span>Lalamove fee</span><span id="checkoutDeliveryFee">₱0</span></div>
           <div class="checkout-total-row checkout-grand"><span>Order total</span><span id="checkoutGrandTotal">₱0</span></div>
           <div class="checkout-total-row checkout-due-row"><span id="checkoutRequiredLabel">First payment (60%)</span><strong id="checkoutRequired">₱0.00</strong></div>
@@ -1640,9 +1640,10 @@ function updateCheckoutDelivery() {
   const deliveryRow = document.getElementById('checkoutDeliveryRow');
   const deliveryFeeEl = document.getElementById('checkoutDeliveryFee');
   const grandEl = document.getElementById('checkoutGrandTotal');
-  // next-day orders pay a ₱200 rush fee (the database adds the same fee)
-  const rush = typeof isRushDate === 'function' && isRushDate(document.getElementById('coDate')?.value) ? RUSH_FEE : 0;
+  // rush fee by days ahead (phase 106: 2 days ₱400, 3–4 days ₱200, 5+ none); the database adds the same fee
+  const rush = typeof rushFeeFor === 'function' ? rushFeeFor(document.getElementById('coDate')?.value) : 0;
   document.getElementById('checkoutRushRow').hidden = !rush;
+  document.querySelector('#checkoutRushRow [data-rush-amount]').textContent = '₱' + rush.toFixed(2);
   const subtotal = cartSelectedItems().reduce((s, c) => s + Math.round(Number(c.price) * 100) * c.qty, 0) / 100 + rush;
   // Delivery fee (phase 94): worked out on the server from the driving distance; all of it is in the first payment. While it is loading or unavailable the totals show a dash, never ₱0.
   const fee = selectedDelivery === 'Lalamove' ? window.LexcCheckoutMap?.fee?.() : null;
@@ -2324,7 +2325,7 @@ async function openDateTimeModal() {
   document.body.style.overflow = 'hidden';
   overlay.querySelector('.dt-modal-back').focus();
   await renderDtCalendar();
-  const firstOpenDay = [...dtAvailability.values()].find(day => !day.is_closed && Number(day.remaining_slots) > 0 && day.has_receiving_slot);
+  const firstOpenDay = [...dtAvailability.values()].find(day => day.booking_date >= earliestBookingDay() && !day.is_closed && Number(day.remaining_slots) > 0 && day.has_receiving_slot);
   if (firstOpenDay) {
     dtSelectedDate = firstOpenDay.booking_date;
     await renderDtCalendar();
@@ -2382,7 +2383,8 @@ async function renderDtCalendar() {
     const isToday = thisDate.getTime() === today.getTime();
     const dateStr = `${dtYear}-${String(dtMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const state = dtAvailability.get(dateStr);
-    const unavailable = !state || state.is_closed || state.remaining_slots <= 0 || !state.has_receiving_slot;
+    const tooSoon = !isPast && dateStr < earliestBookingDay();   // phase 106: two days' notice
+    const unavailable = tooSoon || !state || state.is_closed || state.remaining_slots <= 0 || !state.has_receiving_slot;
     const isSelected = dtSelectedDate === dateStr;
     let cls = 'dt-cal-day';
     if (isPast) cls += ' past';
@@ -2394,8 +2396,8 @@ async function renderDtCalendar() {
     if (state?.is_closed) cls += ' closed';
     // how many slots are left is for LexC's only (phase 96): customers see Open / Full
     const onclick = isPast || unavailable ? '' : `onclick="dtSelectDate('${dateStr}')"`;
-    const reason = isPast ? 'Past dates are unavailable' : !state ? 'Availability is unavailable' : state.is_closed ? 'Admin closed this date' : state.remaining_slots<=0 ? 'This date is fully reserved' : !state.has_receiving_slot ? 'No receiving time is available' : 'Available for reservations';
-    const stateText = isPast ? 'Past' : !state ? 'Unavailable' : state.is_closed ? 'Closed' : state.remaining_slots<=0 ? 'Full' : !state.has_receiving_slot ? 'Unavailable' : 'Open';
+    const reason = isPast ? 'Past dates are unavailable' : tooSoon ? 'Orders need at least 2 days’ notice' : !state ? 'Availability is unavailable' : state.is_closed ? 'Admin closed this date' : state.remaining_slots<=0 ? 'This date is fully reserved' : !state.has_receiving_slot ? 'No receiving time is available' : 'Available for reservations';
+    const stateText = isPast ? 'Past' : tooSoon ? 'Too soon' : !state ? 'Unavailable' : state.is_closed ? 'Closed' : state.remaining_slots<=0 ? 'Full' : !state.has_receiving_slot ? 'Unavailable' : 'Open';
     html += `<button class="${cls}" ${onclick} title="${reason}" ${isPast||unavailable?'disabled':''}><span>${d}</span><small class="dt-day-state">${stateText}</small></button>`;
   }
   grid.innerHTML = html;
@@ -2864,14 +2866,14 @@ loginReady();
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script><script src="shared/delivery-area.js?v=1"></script><script src="shared/checkout-map.js?v=12"></script>
-<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/checkout-pay-row.js?v=1"></script><script src="shared/customer-backend.js?v=51"></script><script src="shared/voucher-checkout.js?v=2"></script><script src="shared/site-cms-schema.js?v=1"></script><script src="shared/site-cms.js?v=2"></script><script src="shared/site-editor.js?v=3"></script>
+<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/checkout-pay-row.js?v=1"></script><script src="shared/customer-backend.js?v=52"></script><script src="shared/voucher-checkout.js?v=2"></script><script src="shared/site-cms-schema.js?v=1"></script><script src="shared/site-cms.js?v=2"></script><script src="shared/site-editor.js?v=3"></script>
 <script src="shared/product-detail.js?v=20"></script>
 <script src="shared/menu-layout.js?v=5"></script>
 <script src="shared/fresh-feed.js?v=16"></script>
 <script src="shared/landing.js?v=4"></script>
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/inspiration.js?v=1"></script>
-<script src="shared/profile.js?v=19"></script><script src="shared/notifications.js?v=9"></script><script type="module" src="shared/order-history.js?v=7"></script>
+<script src="shared/profile.js?v=19"></script><script src="shared/notifications.js?v=9"></script><script type="module" src="shared/order-history.js?v=8"></script>
 <script src="shared/bento-designer.js?v=59"></script>
 <script src="shared/letter-pieces.js?v=7"></script>
 <script src="shared/cupcake-designer.js?v=38"></script>
@@ -2879,6 +2881,6 @@ loginReady();
 <script src="shared/motion.js?v=4" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="lcw-label">Chat</span><span data-chat-count hidden></span></button>
-<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=44';mountChatWidget();</script>
+<script type="module">import {mountChatWidget} from './shared/chat-widget.js?v=45';mountChatWidget();</script>
 </body>
 </html>

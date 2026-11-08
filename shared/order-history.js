@@ -351,7 +351,7 @@ function paymentSection(o) {
     <div class="oh-sum">
       ${line('Subtotal', money(o.items_subtotal))}
       ${Number(o.customization_total) > 0 ? line('Design options', money(o.customization_total)) : ''}
-      ${Number(o.rush_fee) > 0 ? line('Rush fee (next-day)', money(o.rush_fee)) : ''}
+      ${Number(o.rush_fee) > 0 ? line('Rush fee', money(o.rush_fee)) : ''}
       ${delivery ? line('Delivery fee', delivery) : ''}
       ${Number(o.vat_amount) > 0 ? line('VAT', money(o.vat_amount)) : ''}
       ${line('Total', o.total_amount == null ? 'To be confirmed' : money(o.total_amount), ' is-total')}

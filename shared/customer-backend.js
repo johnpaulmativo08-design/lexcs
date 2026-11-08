@@ -22,9 +22,13 @@ const phDate=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year
 const phTime=value=>new Date(value).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hour12:false});
 // receiving times are one hour each (9 AM–5 PM): show the start, e.g. "9:00 AM"
 const slotLabel=s=>{const h=Number(new Date(s.starts_at).toLocaleString('en-US',{timeZone:'Asia/Manila',hour:'numeric',hour12:false}))%24;return h===12?'12 NN':(h%12||12)+(h<12?' AM':' PM');};
-// orders for the day after they are placed pay a ₱200 rush fee (phase 59)
-const RUSH_FEE=200;
-function isRushDate(date){if(!date)return false;const t=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));t.setDate(t.getDate()+1);return date===t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
+// phase 106: customers order at least 2 days ahead; rush fee by days ahead (2 days ₱400, 3–4 days ₱200, 5+ none).
+// The database works out the same fee and refuses earlier days; this only shows it.
+function lxManilaToday(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});}
+function daysAhead(date){return Math.round((Date.parse(date+'T12:00:00Z')-Date.parse(lxManilaToday()+'T12:00:00Z'))/86400000);}
+function earliestBookingDay(){const t=new Date(lxManilaToday()+'T12:00:00Z');t.setUTCDate(t.getUTCDate()+2);return t.toISOString().slice(0,10);}
+function rushFeeFor(date){if(!date)return 0;const n=daysAhead(date);return n<=2?400:n<=4?200:0;}
+function isRushDate(date){return rushFeeFor(date)>0;}
 const bookingDateLabel=value=>new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric'}).format(new Date(value+'T12:00:00+08:00'));
 async function loadStorefront(){
  window.lexcCatalogState='loading';
@@ -77,7 +81,7 @@ async function renderDtSlots(){
   const from=new Date(date+'T00:00:00+08:00'),to=new Date(from.getTime()+86400000);
   const slots=await LexcBackend.rpc('get_availability',{from_date:from.toISOString(),to_date:to.toISOString()});
   if(dtSelectedDate!==date)return;liveSlots=slots;
-  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>Available · Pick a receiving time (9 AM–5 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Next-day order: a ₱'+RUSH_FEE+' rush fee is added.</span>':'')+'</div>';
+  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>Available · Pick a receiving time (9 AM–5 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Short notice: a ₱'+rushFeeFor(date)+' rush fee is added (no fee from 5 days ahead).</span>':'')+'</div>';
   list.innerHTML=slots.length?summary+slots.map(s=>'<button type="button" class="dt-slot'+(s.remaining<=0?' full':'')+'" data-slot="'+s.id+'" '+(s.remaining<=0?'disabled':'')+'><span class="dt-slot-time">'+slotLabel(s)+'</span><span class="dt-slot-status '+(s.remaining>0?'avail':'full')+'">'+(s.remaining>0?'Available':'Fully reserved')+'</span></button>').join(''):summary+'<div class="dt-slot-summary">No receiving window is available for this date. Please choose another available date.</div>';
   list.setAttribute('aria-busy','false');
   list.querySelectorAll('[data-slot]').forEach(button=>button.onclick=()=>{
@@ -92,7 +96,7 @@ function confirmDateTime(){
  document.getElementById('coDate').value=dtSelectedDate;document.getElementById('coTime').value=dtSelectedSlot;
  document.getElementById('coDate').dataset.slotId=selectedSlotId;
  document.getElementById('coDateLabel').textContent=bookingDateLabel(dtSelectedDate);document.getElementById('coTimeLabel').textContent=dtSelectedSlot;closeDateTimeModal();
- updateCheckoutDelivery();if(isRushDate(dtSelectedDate))showToast('Next-day order: a ₱'+RUSH_FEE+' rush fee is added to your total.');
+ updateCheckoutDelivery();if(isRushDate(dtSelectedDate))showToast('Short notice: a ₱'+rushFeeFor(dtSelectedDate)+' rush fee is added to your total.');
 }
 async function submitCheckout(){
  if(checkoutSaving)return;if(!currentUser){navigate('checkout');return;}
