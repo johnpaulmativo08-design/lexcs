@@ -2,3 +2,8 @@
 # PayMongo cannot send a Supabase login, so its webhook skips JWT checks; it checks PayMongo's signature instead.
 [functions.paymongo-webhook]
 verify_jwt = false
+
+# The email sender is called every minute by pg_cron (phase 107), which has no Supabase login; the call carries no
+# data, the function only sends emails already queued by the database.
+[functions.send-email]
+verify_jwt = false
