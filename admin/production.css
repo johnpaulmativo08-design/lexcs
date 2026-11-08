@@ -151,3 +151,6 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 .ps-subrow{margin-top:2px}.ps-subrow small{font-size:.72rem}
 .ps-board .ps-tickets{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 .ps-cancels{color:var(--warm)!important;font-weight:600}.ps-cancels.is-soon{color:var(--bad)!important}
+
+/* Production sits inside Reservations, under the orders calendar */
+.booking-production{margin-top:32px;padding-top:24px;border-top:1px solid var(--line,#e8e2ee);scroll-margin-top:80px}

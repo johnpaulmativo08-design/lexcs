@@ -17,7 +17,7 @@ import { icon } from './components.js?v=5';
 import { ask } from '../shared/ask.js?v=1';
 
 const groups = [
-  ['', [['dashboard', 'Dashboard'], ['production', 'Production']]],
+  ['', [['dashboard', 'Dashboard']]],
   ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['delivery-rates', 'Delivery rates', null, 'delivery'], ['vouchers', 'Vouchers'], ['bookings', 'Reservations'],
     // Posts and review moderation: the storefront's Updates module, shown inside Admin (pages/updates.js).
     ['updates', 'Updates & reviews', null, 'gallery']]],
@@ -117,7 +117,7 @@ async function renderRoute() {
   document.querySelector('#page-title').textContent = "LexC's Snacktime";
   document.title = `${titles[current]} — LexC's Snacktime`;
   navigation.querySelectorAll('a').forEach(link => {
-    const active = link.dataset.page === current || link.dataset.page === route || (route === 'website' && link.dataset.page === 'website/home');
+    const active = link.dataset.page === current || link.dataset.page === route || (current === 'production' && link.dataset.page === 'bookings') || (route === 'website' && link.dataset.page === 'website/home');
     link.classList.toggle('active', active);
     if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
   });
@@ -127,14 +127,20 @@ async function renderRoute() {
   content.dataset.adminPage = current;
   main.replaceChildren(content);
   const subpage = route.split('/')[1];
-  if (current === 'production') await renderProduction(content, subpage);
+  // Production lives inside Reservations, under the orders calendar; #production/<order> still opens it there
+  if (current === 'bookings' || current === 'production') {
+    const calendar = document.createElement('div'), kitchen = document.createElement('section');
+    kitchen.className = 'booking-production'; kitchen.id = 'production'; kitchen.setAttribute('aria-label', 'Production');
+    content.append(calendar, kitchen);
+    await Promise.all([renderBookings(calendar), renderProduction(kitchen, current === 'production' ? subpage : undefined)]);
+    if (current === 'production') kitchen.scrollIntoView({ block: 'start' });
+  }
   else if (current === 'dashboard') await renderDashboard(content);
   else if (current === 'chat') { content.classList.add('chat-page'); await mountChat(content,{admin:true}); }
   else if (current === 'products') await renderProducts(content, subpage);
   else if (current === 'inventory') await renderInventory(content, subpage);
   else if (current === 'reports') await renderReports(content, subpage);
   else if (current === 'orders') await renderOrders(content);
-  else if (current === 'bookings') await renderBookings(content);
   else if (current === 'delivery-rates') await renderDeliveryRates(content);
   else if (current === 'vouchers') await renderVouchers(content);
   else if (current === 'website') await renderWebsite(content, subpage);
