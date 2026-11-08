@@ -47,7 +47,8 @@ const FILTERS=[['all','All'],['on','Offered'],['off','Hidden'],['paid','With ext
 const STORE='lexc_admin_design_product';
 // Sections whose name the owner can change; the cake designer shows the saved name (customization_config.group_titles).
 const RENAMABLE={bento:['border','accent','topper']};
-const heading='<header class="module-heading dopt-heading"><div><h1>Designer Options</h1><p>Set an extra price for any choice in the bento, cupcake, donut and cake pop designers (₱0 = free), and turn an option off to hide it from customers. Open a section with its button.</p></div></header>';
+const heading='<header class="vx-hero dx-hero"><div class="vx-hero-text"><span class="vx-eyebrow">'+'Customer designers'+'</span><h1>Designer Options</h1><p>Set an extra price for any choice in the bento, cupcake, donut and cake pop designers (₱0 = free), and turn an option off to hide it from customers.</p></div>'
+ +'<div class="vx-hero-art dx-art" aria-hidden="true"><span class="dx-card dx-card--a"><i style="background:#f3a6c8"></i><b>Strawberry drip</b><em>+₱30</em></span><span class="dx-card dx-card--b"><i style="background:#b994ec"></i><b>Ube frosting</b><em>Free</em></span><span class="dx-card dx-card--c"><i style="background:#f6c56b"></i><b>Gold topper</b><em>+₱50</em></span><span class="vx-spark vx-spark--1"></span><span class="vx-spark vx-spark--2"></span></div></header>';
 const priceLocked=o=>o.code==='none';
 const activeLocked=o=>o.code==='none'||(o.group_key==='lettering'&&o.code==='piped')||(o.group_key==='font'&&o.code==='rounded');
 const peso=n=>'₱'+Number(n).toLocaleString('en-PH',{maximumFractionDigits:2});

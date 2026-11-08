@@ -5,7 +5,7 @@ import { openInventoryNotifications, refreshInventoryNotificationBadge, renderIn
 import { renderReports } from './pages/reports.js?v=19';
 import { renderOrders } from './pages/orders.js?v=55';
 import { renderBookings } from './pages/bookings.js?v=19';
-import { renderDesignOptions } from './pages/design-options.js?v=14';
+import { renderDesignOptions } from './pages/design-options.js?v=15';
 import { renderProfile } from './pages/profile.js?v=13';
 import { renderWebsite } from './pages/website.js?v=2';
 import { renderVouchers } from './pages/vouchers.js?v=3';
