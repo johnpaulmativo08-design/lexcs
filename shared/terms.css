@@ -44,3 +44,6 @@ html[data-theme=dark] .reg-terms-dialog.tc-dialog,html[data-theme=dark] .tc-body
 html[data-theme=dark] .tc-list.reg-terms{background:#1c1424;border-color:#3a2c48}
 html[data-theme=dark] .tc-sec{background:#33264a}html[data-theme=dark] .tc-sec>summary{color:#efe6f8}html[data-theme=dark] .tc-ico,html[data-theme=dark] .tc-caret{stroke:#d9c0ff}
 html[data-theme=dark] .tc-head .reg-title,html[data-theme=dark] .tc-body strong{color:#e7d8fb}html[data-theme=dark] .tc-sub,html[data-theme=dark] .tc-intro,html[data-theme=dark] .tc-agree{color:#c4b5d6}
+html[data-theme=dark] .tc-sec>summary:hover,html[data-theme=dark] .tc-sec>summary:focus-visible{background:#45345e;color:#fff}
+html[data-theme=dark] .tc-sec[open]>summary{background:#3b2c52}
+html[data-theme=dark] .tc-x{background:#33264a;color:#efe6f8}html[data-theme=dark] .tc-cancel{color:#d9c0ff}

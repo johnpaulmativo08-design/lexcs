@@ -7,7 +7,12 @@ const read = (k) => { try { return localStorage.getItem(k); } catch { return nul
 const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private window: this visit only */ } };
 
 // applied on every Admin page load (app.js calls this first)
+const phoneDark = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+phoneDark?.addEventListener?.('change', () => applyAdminSettings());
 export function applyAdminSettings() {
+  const theme = read('lexc_admin_theme') || 'light', dark = theme === 'dark' || (theme === 'auto' && !!phoneDark?.matches);
+  document.documentElement.dataset.adminTheme = dark ? 'dark' : 'light';
+  document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
   const size = SIZES.find(([k]) => k === read('lexc_admin_text')) || SIZES[1];
   document.documentElement.style.zoom = size[2] === 1 ? '' : String(size[2]);
   document.documentElement.dataset.motion = read('lexc_admin_motion') === 'reduce' ? 'reduce' : 'full';
@@ -22,6 +27,9 @@ export function renderSettings(content) {
           <p>Open your shop with editing on: click any text or photo to change it, then Save draft or Publish.</p>
           <div class="st-actions"><a class="button primary" href="../?cms=live">${icon('edit')} Edit website</a><a class="button" href="#website/faqs">${icon('info')} FAQs</a></div>
           <small>FAQs also open from the editing bar on the site.</small></section>
+        <section class="st-card"><h2>${icon('eye')} Day or night</h2>
+          <div class="st-sizes st-themes" role="radiogroup" aria-label="Day or night">${[['light', 'Day', '☀'], ['dark', 'Night', '☾'], ['auto', 'Auto', '◐']].map(([k, l, g]) => `<button type="button" role="radio" aria-checked="${(read('lexc_admin_theme') || 'light') === k}" data-theme="${k}"><span aria-hidden="true">${g}</span><small>${l}</small></button>`).join('')}</div>
+          <p class="st-preview">Auto follows your phone or computer’s light or dark mode.</p></section>
         <section class="st-card"><h2>${icon('eye')} Text size</h2>
           <div class="st-sizes" role="radiogroup" aria-label="Text size">${SIZES.map(([k, l], n) => `<button type="button" role="radio" aria-checked="${k === size}" data-size="${k}"><span style="font-size:${13 + n * 3}px" aria-hidden="true">A</span><small>${e(l)}</small></button>`).join('')}</div>
           <p class="st-preview">Order #1042 · Bento Cake – Chocolate Moist · ₱426.00</p></section>
@@ -29,7 +37,8 @@ export function renderSettings(content) {
           <button type="button" class="st-switch" role="switch" aria-checked="${reduce}" data-motion><span><b>Reduce motion</b><small>Turns off animations and sliding effects.</small></span><i aria-hidden="true"></i></button></section>
         <section class="st-card"><h2>${icon('alert')} Notifications</h2>
           <p>New orders, payment proofs, reviews and voucher uses are emailed to your Gmail. The sidebar shows a count on each module with something new.</p></section>
-      </div><p class="st-note">Text size and motion are saved on this device.</p>`;
+      </div><p class="st-note">Day or night, text size and motion are saved on this device.</p>`;
+    content.querySelectorAll('[data-theme]').forEach((b) => (b.onclick = () => { save('lexc_admin_theme', b.dataset.theme); applyAdminSettings(); draw(); }));
     content.querySelectorAll('[data-size]').forEach((b) => (b.onclick = () => { save('lexc_admin_text', b.dataset.size); applyAdminSettings(); draw(); }));
     content.querySelector('[data-motion]').onclick = () => { save('lexc_admin_motion', read('lexc_admin_motion') === 'reduce' ? 'full' : 'reduce'); applyAdminSettings(); draw(); };
   };

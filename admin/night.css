@@ -1,0 +1,10 @@
+/* Admin night mode (Settings → Day or night). Admin's many screens use fixed light colours, so night mode turns the
+   whole page dark by inverting it and rotating the hues back (purples stay purple); photos, previews, maps and 3D
+   views are flipped back so they keep their real colours. */
+html[data-admin-theme="dark"]{filter:invert(1) hue-rotate(180deg);background:#fff}
+html[data-admin-theme="dark"] img,html[data-admin-theme="dark"] video,html[data-admin-theme="dark"] canvas,html[data-admin-theme="dark"] iframe,
+html[data-admin-theme="dark"] picture,html[data-admin-theme="dark"] [style*="background-image"],html[data-admin-theme="dark"] .keep-colors{filter:invert(1) hue-rotate(180deg)}
+html[data-admin-theme="dark"] picture img{filter:none}
+html[data-admin-theme="dark"] .st-themes button[aria-checked="true"]{outline:2px solid #6b3fa0}
+/* modal pop-ups and drawers are drawn above the page, outside its filter: invert them on their own */
+html[data-admin-theme="dark"] dialog:modal{filter:invert(1) hue-rotate(180deg)}
