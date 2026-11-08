@@ -1,0 +1,44 @@
+/* Admin → Vouchers as tickets: a list of cut-out tickets, and one big ticket per voucher (rules, tear line, code). */
+.vt-tabs{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0 16px}
+.vt-tabs button{border:0;background:none;padding:6px 12px;border-radius:999px;color:#7a6f8a;font:700 14px 'Plus Jakarta Sans',sans-serif;cursor:pointer}
+.vt-tabs button+button{border-left:1px solid #e3dcea;border-radius:0 999px 999px 0}
+.vt-tabs button.is-on{color:#241532;background:#f3eefa;border-radius:999px}
+.vt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;margin-bottom:22px}
+.vt-ticket{--cut:#faf8fc;position:relative;display:grid;grid-template-columns:76px 1px 1fr auto;align-items:center;gap:0 16px;min-height:112px;padding:14px 18px 14px 14px;border:0;border-radius:14px;background:#fff;box-shadow:0 1px 2px rgba(36,21,50,.06),0 6px 18px rgba(36,21,50,.07);text-align:left;cursor:pointer;font:inherit;color:inherit;transition:transform .18s cubic-bezier(.22,1,.36,1),box-shadow .18s}
+.vt-ticket::before,.vt-ticket::after{content:"";position:absolute;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:var(--cut);box-shadow:inset 0 1px 2px rgba(36,21,50,.08)}
+.vt-ticket::before{left:-9px}.vt-ticket::after{right:-9px}
+.vt-ticket:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(36,21,50,.06),0 12px 26px rgba(36,21,50,.1)}
+.vt-ticket:focus-visible{outline:3px solid #b9a3e3;outline-offset:2px}
+.vt-ticket.is-off{opacity:.62}
+.vt-stub{display:grid;place-items:center;width:62px;height:62px;margin:auto;border-radius:50%;background:linear-gradient(145deg,#efe6fb,#fbe8f0);color:#6b3fa0;font:800 26px 'Plus Jakarta Sans',sans-serif}
+.vt-cut{align-self:stretch;width:0;border-left:2px dashed #d8cde6;margin:-2px 0}
+.vt-body{display:grid;gap:2px;min-width:0}
+.vt-code{display:flex;align-items:center;gap:8px;margin:0;color:#3a2a4d;font:700 14px 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis}
+.vt-code em{font-style:normal;font-size:10.5px;letter-spacing:.04em;padding:2px 7px;border-radius:999px;background:#e9f6ef;color:#1f7a4c}
+.vt-big{display:flex;align-items:baseline;gap:4px;margin:0;color:#2b1d3a}
+.vt-num{font:800 34px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em}
+.vt-cur{font-size:15px;font-weight:700}.vt-unit{font-size:12px;font-weight:700;letter-spacing:.06em;color:#5f5674}
+.vt-until{color:#a197ad;font-size:11.5px;letter-spacing:.03em}
+.vt-side{display:grid;justify-items:end;gap:6px}.vt-uses{color:#7a6f8a;font-size:12px;white-space:nowrap}
+.vt-detail-head{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:8px;max-width:440px;margin:0 auto 14px}
+.vt-detail-head h1{margin:0;text-align:center;font:700 18px 'Plus Jakarta Sans',sans-serif;letter-spacing:.04em;color:#3a2a4d}
+.vt-back{width:40px;height:40px;border:0;border-radius:50%;background:#f3eefa;color:#3a2a4d;font-size:26px;line-height:1;cursor:pointer}
+.vt-detail{--cut:#faf8fc;position:relative;max-width:440px;margin:0 auto;padding:28px 28px 18px;border-radius:18px;background:#fff;box-shadow:0 2px 4px rgba(36,21,50,.05),0 16px 40px rgba(36,21,50,.1)}
+.vt-detail-top{display:flex;align-items:center;justify-content:center;gap:22px}
+.vt-detail .vt-stub{width:96px;height:96px;font-size:40px;margin:0}
+.vt-detail .vt-code{font-size:16px}.vt-detail .vt-num{font-size:46px}
+.vt-desc{margin:22px 8px 0;text-align:center;color:#3a2a4d;font-weight:700;font-size:14px;line-height:1.55;letter-spacing:.02em}
+.vt-rules{margin:16px 6px 0;padding:0 0 0 18px;color:#5f5674;font-size:13px;line-height:1.7;letter-spacing:.02em}
+.vt-tear{position:relative;height:0;margin:22px -28px;border-top:2px dashed #ddd3e8}
+.vt-tear::before,.vt-tear::after{content:"";position:absolute;top:-12px;width:22px;height:22px;border-radius:50%;background:var(--cut);box-shadow:inset 0 1px 3px rgba(36,21,50,.1)}
+.vt-tear::before{left:-11px}.vt-tear::after{right:-11px}
+.vt-bars{display:flex;justify-content:center;align-items:stretch;height:46px;gap:0}
+.vt-bars i{display:block;background:#241532}.vt-bars i.gap{background:transparent}
+.vt-codeline{margin:6px 0 0;text-align:center;font:600 12px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.32em;color:#3a2a4d}
+.vt-foot{display:flex;justify-content:space-between;gap:10px;margin:16px 0 0;color:#a197ad;font-size:11.5px;letter-spacing:.03em}
+.vt-actions{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;max-width:440px;margin:18px auto 6px}
+.vt-switch{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid #e3dcea;border-radius:999px;font-weight:700;font-size:14px;color:#3a2a4d;cursor:pointer}
+.vt-switch input{accent-color:#6b3fa0;width:18px;height:18px}
+.vt-hint{max-width:440px;margin:0 auto 24px;text-align:center;color:#7a6f8a;font-size:13px}
+@media (max-width:560px){.vt-list{grid-template-columns:1fr}.vt-ticket{grid-template-columns:58px 1px 1fr;gap:0 12px}.vt-side{grid-column:3;justify-items:start;grid-auto-flow:column;align-items:center}.vt-stub{width:50px;height:50px;font-size:21px}.vt-detail{padding:22px 18px 16px}.vt-tear{margin:20px -18px}.vt-detail .vt-stub{width:72px;height:72px;font-size:30px}.vt-detail .vt-num{font-size:38px}}
+@media (prefers-reduced-motion:reduce){.vt-ticket{transition:none}.vt-ticket:hover{transform:none}}
