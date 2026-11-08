@@ -94,21 +94,68 @@ export async function renderOrders(content){
   const moved=new Map(orders.map(o=>[o.id,Date.parse(o.updated_at||o.created_at)]));
   try{(db.unwrap(await db.client.from('order_deliveries').select('order_id,updated_at'))||[]).forEach(d=>{const t=Date.parse(d.updated_at);if(t>(moved.get(d.order_id)||0))moved.set(d.order_id,t);});}catch(error){console.warn('Delivery times not loaded:',error);}
   orders.sort((a,b)=>(moved.get(b.id)||0)-(moved.get(a.id)||0));
-  content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders, payments, and fulfillment progress.</p></div></header>'+notice('Manual QR payments are counted only after Admin verifies the actual bank credit.')+toolbar('<select id="status"><option value="">All statuses</option>'+['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>'<option>'+s+'</option>').join('')+'</select>')+'<div class="report-links"><button class="button primary" data-view="current">'+icon('orders')+' Current Orders</button><button class="button" data-view="history">'+icon('clock')+' Order History</button></div><div id="orders-table"></div><section id="order-payments" class="panel payment-tests-panel"><div class="payment-test-heading"><h2>Order payments</h2></div>'+loadingTable(['Order','Customer','Submitted','Required amount','Method','Reference','Status','Action'])+'</section>';
-  // when the customer placed the order: date on top, time underneath (Philippine time)
+  // Orders as cards for ONE day (by the pickup/delivery date, Philippine time) — today unless the owner moves the day.
+  // "Needs confirming" lists pending orders from every day so nothing waits unseen; Order History keeps the old table.
+  const manilaDay=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
+  const today=manilaDay(Date.now());let day=today,tab='all';
+  const shift=(d,n)=>{const x=new Date(d+'T12:00:00+08:00');x.setDate(x.getDate()+n);return manilaDay(x);};
+  const dayLabel=d=>{const label=new Date(d+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric',year:'numeric'});return d===today?'Today · '+label:d===shift(today,1)?'Tomorrow · '+label:d===shift(today,-1)?'Yesterday · '+label:label;};
+  const TABS=[['all','All'],['pending','Needs confirming'],['process','In process'],['ready','Ready'],['done','Completed']];
+  const inTab=(o,t)=>t==='all'?o.status!=='cancelled':t==='pending'?o.status==='pending':t==='process'?['confirmed','preparing'].includes(o.status):t==='ready'?o.status==='ready':o.status==='completed';
+  content.innerHTML='<header class="ox-head"><div><h1>Orders</h1><p>Orders to hand over on the selected day. Manual QR payments count only after you check the bank credit.</p></div>'
+   +'<div class="ox-day"><button type="button" class="ox-icon" data-day="-1" aria-label="Previous day">‹</button><label class="ox-date"><span data-day-label></span><input type="date" data-day-pick aria-label="Pick a day"></label><button type="button" class="ox-icon" data-day="1" aria-label="Next day">›</button><button type="button" class="ox-today" data-day="0">Today</button></div></header>'
+   +'<div class="ox-bar"><nav class="ox-tabs" aria-label="Filter orders" data-tabs></nav><div class="ox-tools"><label class="ox-search">'+icon('search')+'<input class="search" type="search" placeholder="Search a name or order #" aria-label="Search orders"></label><button type="button" class="ox-history" data-view="history">'+icon('clock')+' Order History</button></div></div>'
+   +'<select id="status" hidden><option value=""></option></select><div id="orders-table"></div><section id="order-payments" class="panel payment-tests-panel"><div class="payment-test-heading"><h2>Order payments</h2></div>'+loadingTable(['Order','Customer','Submitted','Required amount','Method','Reference','Status','Action'])+'</section>';
   const orderedAt=value=>{const d=new Date(value),opt={timeZone:'Asia/Manila'};return e(d.toLocaleDateString('en-PH',{...opt,month:'short',day:'numeric',year:'numeric'}))+'<br><small>'+e(d.toLocaleTimeString('en-PH',{...opt,hour:'numeric',minute:'2-digit'}))+'</small>';};
-  // "Updated …" under the order time when something happened after it was placed (why it moved to the top)
-  const updatedAt=o=>{const t=moved.get(o.id),c=Date.parse(o.created_at);if(!t||t-c<60000)return '';const d=new Date(t),opt={timeZone:'Asia/Manila'},today=d.toLocaleDateString('en-CA',opt)===new Date().toLocaleDateString('en-CA',opt);return '<br><small class="order-moved">Updated '+e(today?d.toLocaleTimeString('en-PH',{...opt,hour:'numeric',minute:'2-digit'}):d.toLocaleDateString('en-PH',{...opt,month:'short',day:'numeric'}))+'</small>';};
+  const updatedAt=o=>{const t=moved.get(o.id),c=Date.parse(o.created_at);if(!t||t-c<60000)return '';const d=new Date(t),opt={timeZone:'Asia/Manila'},isToday=d.toLocaleDateString('en-CA',opt)===new Date().toLocaleDateString('en-CA',opt);return '<br><small class="order-moved">Updated '+e(isToday?d.toLocaleTimeString('en-PH',{...opt,hour:'numeric',minute:'2-digit'}):d.toLocaleDateString('en-PH',{...opt,month:'short',day:'numeric'}))+'</small>';};
   const orderTone=status=>status==='completed'?'success':status==='cancelled'?'neutral':status==='pending'?'warning':status==='ready'?'info':'success';
-   const payTone=status=>status==='paid'||status==='partially_paid'?'success':status==='refunded'?'neutral':status==='failed'||status==='rejected'?'danger':'warning';
+  const payTone=status=>status==='paid'||status==='partially_paid'?'success':status==='refunded'?'neutral':status==='failed'||status==='rejected'?'danger':'warning';
   const readableStatus=status=>String(status||'Unknown').replaceAll('_',' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+  const hhmm=t=>new Date(t).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'});
+  const initials=n=>String(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+  // what the order is waiting for, in a few words, and the main button for it
+  const stage=o=>o.status==='pending'?['Needs confirming','Waiting for you','Review order']
+   :o.payment_status==='verification_pending'?[readableStatus(o.status),'Payment proof to check','Check payment']
+   :o.status==='confirmed'&&!['paid','partially_paid'].includes(o.payment_status)?['Confirmed','Waiting for payment','Open order']
+   :o.status==='confirmed'?['Confirmed','Paid · ready to bake','Start making']
+   :o.status==='preparing'?['In the kitchen','Baking now','Mark ready']
+   :o.status==='ready'?['Ready',o.fulfillment_method==='lalamove'?'Waiting for the rider':'Ready for pickup','Complete']
+   :o.status==='completed'?['Completed','Handed over','See details']:['Cancelled','','See details'];
+  const card=o=>{const [badge,sub,cta]=stage(o),items=o.order_items||[],shown=items.slice(0,4),tone=orderTone(o.status);
+   return '<article class="ox-card is-'+e(o.status)+'"><header><span class="ox-avatar is-'+tone+'">'+e(initials(o.customer_name))+'</span><div class="ox-who"><strong>'+e(o.customer_name||'Customer')+'</strong><small>Order #'+e(o.order_number)+' / '+(o.fulfillment_method==='lalamove'?'Delivery':'Pickup')+'</small></div>'
+    +'<div class="ox-state"><span class="ox-badge is-'+tone+'">'+e(badge)+'</span>'+(sub?'<small><i class="is-'+tone+'"></i>'+e(sub)+'</small>':'')+'</div></header>'
+    +'<p class="ox-when"><span>'+e(new Date(o.receiving_start).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric'}))+'</span><span>'+e(hhmm(o.receiving_start))+'</span></p>'
+    +(workloads.get(o.id)?.heavy?'<p class="ox-flag">Heavy workload for this day</p>':'')
+    +'<table class="ox-items"><thead><tr><th>Items</th><th>Qty</th><th>Price</th></tr></thead><tbody>'+shown.map(i=>'<tr><td>'+e(i.name_snapshot||'Item')+(i.variant_label_snapshot?' <small>'+e(i.variant_label_snapshot)+'</small>':'')+'</td><td>'+e(i.quantity)+'</td><td>'+money(Number(i.line_total??(Number(i.unit_price||0)*Number(i.quantity||1))))+'</td></tr>').join('')+'</tbody></table>'
+    +(items.length>4?'<p class="ox-more">+'+(items.length-4)+' more</p>':'')
+    +'<p class="ox-total"><span>Total</span><b>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</b></p>'
+    +'<p class="ox-pay">'+(o.status==='pending'&&o.payment_status==='unpaid'?statusIndicator('Payment opens after confirm','neutral'):statusIndicator(readableStatus(o.payment_status),payTone(o.payment_status)))+'</p>'
+    +'<footer><button type="button" class="ox-btn" data-order="'+e(o.id)+'">See details</button><button type="button" class="ox-btn is-main" data-order="'+e(o.id)+'">'+e(cta)+'</button></footer></article>';};
   const draw=()=>{
-   const search=content.querySelector('.search').value.toLowerCase(),status=content.querySelector('#status').value;
-   const filtered=orders.filter(o=>(['completed','cancelled'].includes(o.status)===history)&&(!status||o.status===status)&&JSON.stringify([o.order_number,o.customer_name]).toLowerCase().includes(search));
-   content.querySelector('#orders-table').innerHTML=grid(['Order','Customer','Ordered','Total','Payment','Status','Due date','Action'],filtered.map(o=>'<tr><td>#'+e(o.order_number)+'</td><td>'+e(o.customer_name)+'</td><td class="order-placed">'+orderedAt(o.created_at)+updatedAt(o)+'</td><td>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</td><td>'+(o.status==='pending'&&o.payment_status==='unpaid'?statusIndicator('Opens after confirm','neutral'):statusIndicator(readableStatus(o.payment_status),payTone(o.payment_status)))+'</td><td>'+statusIndicator(readableStatus(o.status),orderTone(o.status))+(workloads.get(o.id)?.heavy?'<span class="order-heavy" title="Over the day’s production capacity">Heavy workload</span>':'')+'</td><td>'+new Date(o.receiving_start).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium'})+'</td><td><button class="button" data-order="'+e(o.id)+'">'+icon('eye')+' View</button></td></tr>').join('')||'<tr><td colspan="8" class="empty">No matching orders. Try a different search or status.</td></tr>');
+   const search=content.querySelector('.search').value.toLowerCase().trim(),hit=o=>!search||JSON.stringify([o.order_number,o.customer_name]).toLowerCase().includes(search);
+   content.querySelector('[data-day-label]').textContent=dayLabel(day);content.querySelector('[data-day-pick]').value=day;
+   content.querySelector('.ox-today').hidden=day===today;
+   content.querySelector('.ox-history').classList.toggle('is-on',history);
+   if(history){
+    content.querySelector('[data-tabs]').innerHTML='<button type="button" class="is-on" data-back>'+icon('orders')+' Back to the day</button>';
+    const filtered=orders.filter(o=>['completed','cancelled'].includes(o.status)&&hit(o));
+    content.querySelector('#orders-table').innerHTML=grid(['Order','Customer','Ordered','Total','Payment','Status','Due date','Action'],filtered.map(o=>'<tr><td>#'+e(o.order_number)+'</td><td>'+e(o.customer_name)+'</td><td class="order-placed">'+orderedAt(o.created_at)+updatedAt(o)+'</td><td>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</td><td>'+statusIndicator(readableStatus(o.payment_status),payTone(o.payment_status))+'</td><td>'+statusIndicator(readableStatus(o.status),orderTone(o.status))+'</td><td>'+new Date(o.receiving_start).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium'})+'</td><td><button class="button" data-order="'+e(o.id)+'">'+icon('eye')+' View</button></td></tr>').join('')||'<tr><td colspan="8" class="empty">No past orders match.</td></tr>');
+    content.querySelector('[data-back]').onclick=()=>{history=false;draw();};
+    return;
+   }
+   const ofDay=orders.filter(o=>manilaDay(o.receiving_start)===day&&hit(o)),pendingAll=orders.filter(o=>o.status==='pending'&&hit(o));
+   const count=t=>t==='pending'?pendingAll.length:ofDay.filter(o=>inTab(o,t)).length;
+   content.querySelector('[data-tabs]').innerHTML=TABS.map(([k,l])=>'<button type="button" data-tab="'+k+'" class="'+(k===tab?'is-on':'')+(k==='pending'&&count(k)?' has-alert':'')+'" aria-pressed="'+(k===tab)+'">'+l+'<span>'+count(k)+'</span></button>').join('');
+   content.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;draw();});
+   // "Needs confirming" covers every day: a new order for next week must not wait unseen
+   const list=(tab==='pending'?pendingAll.sort((a,b)=>Date.parse(a.receiving_start)-Date.parse(b.receiving_start)):ofDay.filter(o=>inTab(o,tab)).sort((a,b)=>Date.parse(a.receiving_start)-Date.parse(b.receiving_start)));
+   content.querySelector('#orders-table').innerHTML=list.length?'<div class="ox-grid">'+list.map(card).join('')+'</div>'
+    :'<div class="ox-empty"><span>'+icon('orders')+'</span><strong>'+(search?'No orders match your search.':tab==='pending'?'Nothing waiting for confirmation.':'No orders for '+(day===today?'today':'this day')+'.')+'</strong><p>'+(tab==='pending'||search?'':'Use the arrows to see another day'+(pendingAll.length?', or check '+pendingAll.length+' order'+(pendingAll.length===1?'':'s')+' waiting in Needs confirming':'')+'.')+'</p></div>';
   };
-  content.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{history=b.dataset.view==='history';draw();});
-  content.querySelector('.search').oninput=draw;content.querySelector('#status').onchange=draw;
+  content.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{const n=Number(b.dataset.day);day=n?shift(day,n):today;history=false;draw();});
+  content.querySelector('[data-day-pick]').onchange=ev=>{if(ev.target.value){day=ev.target.value;history=false;draw();}};
+  content.querySelector('[data-view="history"]').onclick=()=>{history=!history;draw();};
+  content.querySelector('.search').oninput=draw;
   content.onclick=event=>{
    const b=event.target.closest('[data-order]');if(!b)return;
    const o=orders.find(o=>o.id===b.dataset.order);
@@ -157,9 +204,9 @@ export async function renderOrders(content){
   // Dashboard links reuse the existing order detail dialog and status actions.
   const detailId=location.hash.split('/')[1]==='detail'?location.hash.split('/')[2]:null;
   const target=orders.find(o=>o.id===detailId);
-  if(target){history=['completed','cancelled'].includes(target.status);content.querySelector('.search').value=String(target.order_number);}
+  if(target){history=['completed','cancelled'].includes(target.status);day=manilaDay(target.receiving_start);}
   draw();
   await Promise.all([renderOrderPayments(content,orders,()=>renderOrders(content))]);
-  if(target)content.querySelector('[data-order="'+target.id+'"]').click();
+  if(target)content.querySelector('[data-order="'+target.id+'"]')?.click();
  }catch(error){fail(content,error);}
 }
