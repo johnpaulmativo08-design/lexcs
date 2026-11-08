@@ -158,3 +158,16 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 #content .booking-reference-layout>.booking-production{grid-column:1;grid-row:2;margin-top:8px}
 #content .booking-reference-layout>.booking-side{grid-row:1 / span 2}
 @media(max-width:1366px){#content .booking-reference-layout>.booking-side{grid-row:3}}
+
+/* the chef card in the Reservations side panel (replaces the old x / 6 reservations card) */
+.booking-chef .ps-hero-wrap{display:block;padding:0;margin:0;background:none;min-height:0}
+.booking-chef .ps-hero{padding:14px;border-radius:18px}
+.booking-chef:empty{min-height:150px;border-radius:18px;background:linear-gradient(90deg,#f3eefa,#faf7fd,#f3eefa);background-size:200% 100%;animation:ps-shimmer 1.4s linear infinite}
+@keyframes ps-shimmer{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.booking-chef:empty{animation:none}}
+.ps-guests{margin:10px 2px 0;font-size:.85rem;color:#5f5674}.ps-guests b{color:#241532;font-size:1rem}.ps-guests i{font-style:normal;color:#b13f72;font-weight:800}
+.ps-guests-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.85rem}
+.ps-guests-row label{display:flex;align-items:center;gap:6px;font-weight:700}
+.ps-guests-row svg{width:15px;height:15px}
+.ps-guests-row input{width:58px;padding:5px 8px;border:1px solid #ddd3e8;border-radius:9px;font:inherit;text-align:center}
+.ps-guests-row small{color:#8a7d9c}
