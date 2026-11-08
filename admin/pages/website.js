@@ -28,6 +28,8 @@ export async function renderWebsite(content, sub) {
   }
   if (sub === 'faqs') return renderFaqs(content);
   if (sub === 'announcements') return renderAnnouncements(content);
+  // pages are edited in place on the site now (Admin → Edit website opens it with ?cms=live)
+  if (!['faqs', 'announcements'].includes(sub)) { location.href = '../?cms=live'; return; }
   const page = SCHEMA().page(sub) || SCHEMA().page('home');
   if (dirty.size && !(await ask('You have unsaved changes on another page. Leave them?', { title: 'Unsaved changes', confirm: 'Leave without saving', tone: 'danger' }))) { history.back(); return; }
   dirty = new Map();
