@@ -95,7 +95,7 @@ revoke all on function private.enforce_booking_horizon() from public;
 -- Phase 106 checks: the fee table, two days' notice for customers, and the fee on a real order.
 do $rehearsal$
 declare report text := ''; ok boolean; pay jsonb := (select p from rehearsal_payload); res jsonb; o public.orders; d integer; s uuid;
-  customer_id uuid := (select id from rehearsal_ids where k = 'customer'); admin_id uuid := (select id from rehearsal_ids where k = 'admin');
+  customer_id uuid := (select id from rehearsal_ids where k = 'customer'); slots uuid[] := array[pg_temp.slot_in(0), pg_temp.slot_in(1), pg_temp.slot_in(2), pg_temp.slot_in(3), null, null, pg_temp.slot_in(6)]; admin_id uuid := (select id from rehearsal_ids where k = 'admin');
 begin
   foreach d in array array[2, 3, 4, 5, 9] loop
     report := report || E'\n' || case when private.rush_fee_for((now() at time zone 'Asia/Manila')::date + d) = case when d <= 2 then 400 when d <= 4 then 200 else 0 end then 'PASS' else 'FAIL' end
@@ -106,7 +106,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', customer_id, 'role', 'authenticated')::text, true);
   perform set_config('role', 'authenticated', true);
   foreach d in array array[0, 1] loop
-    s := pg_temp.slot_in(d);
+    s := slots[d + 1];
     if s is null then report := report || format(E'\nSKIP  no open slot %s day(s) ahead to try', d); continue; end if;
     begin
       res := public.create_order(pay || jsonb_build_object('request_id', gen_random_uuid(), 'slot_id', s));
@@ -115,7 +115,7 @@ begin
   end loop;
 
   foreach d in array array[2, 3, 6] loop
-    s := pg_temp.slot_in(d);
+    s := slots[d + 1];
     if s is null then report := report || format(E'\nSKIP  no open slot %s days ahead to try', d); continue; end if;
     res := public.create_order(pay || jsonb_build_object('request_id', gen_random_uuid(), 'slot_id', s));
     perform set_config('role', 'postgres', true);
