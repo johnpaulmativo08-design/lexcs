@@ -154,3 +154,7 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 
 /* Production sits inside Reservations, under the orders calendar */
 .booking-production{margin-top:32px;padding-top:24px;border-top:1px solid var(--line,#e8e2ee);scroll-margin-top:80px}
+/* docked inside the reservation layout: under the calendar; the side panel spans both rows on wide screens */
+#content .booking-reference-layout>.booking-production{grid-column:1;grid-row:2;margin-top:8px}
+#content .booking-reference-layout>.booking-side{grid-row:1 / span 2}
+@media(max-width:1366px){#content .booking-reference-layout>.booking-side{grid-row:3}}
