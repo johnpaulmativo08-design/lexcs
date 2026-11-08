@@ -57,24 +57,45 @@ export async function renderVouchers(content, openId = null) {
   try { tab = sessionStorage.getItem('lexc-vc-tab') || 'all'; } catch { /* private window */ }
   const byId = (id) => vouchers.find((v) => v.id === id);
 
+  const count = (k) => vouchers.filter((v) => k === 'all' || statusOf(v, used.get(v.id) || 0)[1] === k).length;
+  // ready-made starting points for the empty page (they only fill the form; nothing is saved until Save)
+  const presets = [['SWEET10', 'percent', 10, 0, '10% off', '10% off your order'], ['HELLO50', 'fixed', 50, 0, '₱50 off', '₱50 off for first-time customers'], ['BIG100', 'fixed', 100, 1000, '₱100 off ₱1,000+', '₱100 off orders of ₱1,000 or more']];
+  const tile = (iconName, value, label, tone) => `<div class="vx-stat vx-stat--${tone}"><span class="vx-stat-icon" aria-hidden="true">${icon(iconName)}</span><span><b>${value}</b><small>${label}</small></span></div>`;
+
   const list = () => {
     const shown = vouchers.filter((v) => tab === 'all' || statusOf(v, used.get(v.id) || 0)[1] === tab);
-    content.innerHTML = head + `
-    <p class="vc-stats"><span><b>${active}</b> active</span><span><b>${totalUses}</b> uses</span><span><b>${money(totalGiven)}</b> discount given</span></p>
+    content.innerHTML = `
+    <header class="vx-hero">
+      <div class="vx-hero-text"><span class="vx-eyebrow">${icon('vouchers')} Promotions</span><h1>Vouchers</h1><p>Discount codes customers can claim and use at checkout.</p>
+        <button class="button primary vx-new" type="button" data-new>${icon('plus')} New voucher</button></div>
+      <div class="vx-hero-art" aria-hidden="true"><span class="vx-mini vx-mini--a"><i>%</i><b>10</b><em>% OFF</em></span><span class="vx-mini vx-mini--b"><i>₱</i><b>50</b><em>OFF</em></span><span class="vx-spark vx-spark--1"></span><span class="vx-spark vx-spark--2"></span><span class="vx-spark vx-spark--3"></span></div>
+    </header>
+    <div class="vx-stats">${tile('check', active, 'Active now', 'green')}${tile('clock', count('wait'), 'Scheduled', 'amber')}${tile('orders', totalUses, 'Times used', 'violet')}${tile('revenue', money(totalGiven), 'Discount given', 'pink')}</div>
     ${hasShown ? '' : '<p class="notice">To let customers see and pick vouchers, run database/phase105-voucher-wallet.sql in the Supabase SQL editor.</p>'}
-    <nav class="vt-tabs" aria-label="Filter vouchers">${tabs.map(([k, l]) => `<button type="button" data-tab="${k}" class="${k === tab ? 'is-on' : ''}" aria-pressed="${k === tab}">${l}</button>`).join('')}</nav>
+    ${vouchers.length ? `<nav class="vx-tabs" aria-label="Filter vouchers">${tabs.map(([k, l]) => `<button type="button" data-tab="${k}" class="${k === tab ? 'is-on' : ''}" aria-pressed="${k === tab}">${l}<span>${count(k)}</span></button>`).join('')}</nav>` : ''}
     ${shown.length ? `<div class="vt-list">${shown.map((v) => { const u = used.get(v.id) || 0, [label, tone] = statusOf(v, u);
       return `<button type="button" class="vt-ticket is-${tone}" data-open="${e(v.id)}" aria-label="Open voucher ${e(v.code)}">
         ${stub(v)}<span class="vt-cut" aria-hidden="true"></span>
         <span class="vt-body"><span class="vt-code">${e(v.code)}${v.show_to_customers ? '<em>Shown</em>' : ''}</span><span class="vt-big">${big(v)}</span>
         <span class="vt-until">${e(until(v))}</span></span>
         <span class="vt-side"><span class="vc-pill is-${tone}">${label}</span><span class="vt-uses">${u}${v.usage_limit ? ` / ${v.usage_limit}` : ''} used</span></span></button>`; }).join('')}</div>`
-    : vouchers.length ? '<div class="panel vc-empty"><p>No vouchers here.</p></div>'
-    : '<div class="panel vc-empty"><p><b>No vouchers yet.</b> Create a code like SWEET10 for 10% off, or ₱50 off a minimum order.</p></div>'}
-    <section class="panel vc-history"><h2>Recent uses</h2>
-      ${redemptions.length ? `<ul>${redemptions.slice(0, 30).map((x) => `<li><span class="vc-code">${e(x.code)}</span><a href="#orders/detail/${e(x.order_id)}">Order #${e(x.orders?.order_number ?? '')}</a><span>${e(x.orders?.customer_name || '')}</span><b>−${money(x.discount_amount)}</b><small>${e(day(x.created_at))}${x.orders?.status === 'cancelled' ? ' · cancelled, use returned' : ''}</small></li>`).join('')}</ul>` : '<p class="vc-muted">Codes used at checkout show here.</p>'}
+    : vouchers.length ? `<div class="vx-empty vx-empty--small"><p><b>Nothing here.</b> No ${e(tabs.find(([k]) => k === tab)[1].toLowerCase())} vouchers right now.</p></div>`
+    : `<section class="vx-empty">
+        <div class="vx-empty-art" aria-hidden="true"><span class="vx-stack vx-stack--back"></span><span class="vx-stack vx-stack--mid"></span><span class="vx-stack vx-stack--front"><i>%</i><b>SWEET10</b></span></div>
+        <h2>Create your first voucher</h2><p>Reward loyal customers, welcome new ones, or push a slow week. Start from an idea below or make your own.</p>
+        <div class="vx-presets">${presets.map((p, i) => `<button type="button" class="vx-preset" data-preset="${i}"><span>${p[1] === 'percent' ? '%' : '₱'}</span><b>${e(p[4])}</b><small>${e(p[0])}</small></button>`).join('')}</div>
+        <button class="button primary" type="button" data-new>${icon('plus')} Start from scratch</button>
+      </section>`}
+    <section class="vx-history"><header><h2>Recent uses</h2>${redemptions.length ? `<span>${redemptions.length} in total</span>` : ''}</header>
+      ${redemptions.length ? `<ul>${redemptions.slice(0, 30).map((x) => `<li><span class="vx-code">${e(x.code)}</span><span class="vx-who"><a href="#orders/detail/${e(x.order_id)}">Order #${e(x.orders?.order_number ?? '')}</a><small>${e(x.orders?.customer_name || '')} · ${e(day(x.created_at))}${x.orders?.status === 'cancelled' ? ' · cancelled, use returned' : ''}</small></span><b>−${money(x.discount_amount)}</b></li>`).join('')}</ul>`
+      : `<p class="vx-history-empty">${icon('clock')} Each time a customer uses a code at checkout, it shows here with the order and the amount saved.</p>`}
     </section>`;
-    content.querySelector('[data-new]').onclick = () => edit(null);
+    content.querySelectorAll('[data-new]').forEach((b) => (b.onclick = () => edit(null)));
+    content.querySelectorAll('[data-preset]').forEach((b) => (b.onclick = () => {
+      const [code, type, value, min, , note] = presets[Number(b.dataset.preset)], f = edit(null)?.querySelector('form'); if (!f) return;
+      f.elements.code.value = code; f.elements.discount_type.value = type; f.elements.discount_value.value = value; f.elements.min_purchase.value = min; f.elements.description.value = note;
+      f.dispatchEvent(new Event('change'));
+    }));
     content.querySelectorAll('[data-tab]').forEach((b) => (b.onclick = () => { tab = b.dataset.tab; try { sessionStorage.setItem('lexc-vc-tab', tab); } catch { /* ignore */ } list(); }));
     content.querySelectorAll('[data-open]').forEach((b) => (b.onclick = () => detail(byId(b.dataset.open))));
   };
@@ -160,5 +181,6 @@ export async function renderVouchers(content, openId = null) {
         dialog.close(); if (after) await after(); else await renderVouchers(content);
       } catch (error) { button.disabled = false; say(error.message); }
     };
+    return dialog;
   }
 }
