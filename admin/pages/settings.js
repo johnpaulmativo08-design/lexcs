@@ -59,5 +59,5 @@ export function renderSettings(content) {
   };
   draw();
   db.client.from('payment_methods').select('code,display_name,active').order('created_at').then(db.unwrap)
-    .then((rows) => { payMethods = rows || []; }).catch(() => { payMethods = []; }).finally(() => { if (content.isConnected) draw(); });
+    .then((rows) => { payMethods = (rows || []).filter((m) => PAY_NAMES[m.code]); })   // only the methods in use (not the old Maya one).catch(() => { payMethods = []; }).finally(() => { if (content.isConnected) draw(); });
 }
