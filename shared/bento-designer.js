@@ -655,6 +655,8 @@
   function bodyMarkup() {
     const s = state, max = Number(cfg().max_accents || 6);
     if (step === 'layers') return `
+      <fieldset class="bd-group" data-bd-section="coat"><legend>Cake finish <small>Free · pick one</small></legend>
+        <div class="bd-coat" role="radiogroup" aria-label="Cake finish">${[['fondant', 'Fondant', 'Smooth sugar paste, clean edges'], ['frosting', 'Frosting', 'Soft buttercream, homemade look']].map(([k, l, n]) => `<button type="button" role="radio" class="bd-coat-opt" data-bd-coat="${k}" aria-checked="${(state.coat || 'fondant') === k}"><strong>${l}</strong><small>${n}</small></button>`).join('')}</div></fieldset>
       <p class="bd-note bd-layers-intro">Start with the cake itself: sponge layers and their filling, one inch each. The flavor is the filling — its color shows on the cake.</p>
       ${cakePicker()}
       <div class="bd-layers-sum" style="--fill:${fillingHex()}"><i aria-hidden="true"></i><span>${esc(layersText())}</span></div>`;
@@ -663,8 +665,6 @@
       <fieldset class="bd-group"><legend>Presets <small>Optional · all editable</small></legend>
         <div class="bd-presets">${PRESETS.map((p) => { const extra = extrasFor(p.state); const ring = (p.state.accents || []).includes('pearls_gold') ? '#d4af37' : (p.state.accents || []).includes('pearls_silver') ? '#c9ccd3' : 'transparent';
           return `<button type="button" class="bd-preset" data-bd-preset="${p.key}"><span class="bd-preset-cake" aria-hidden="true" style="--f:${palette[p.state.frosting_color] || '#fff'};--r:${ring};--l:${palette[p.state.lettering_color] || '#4f3163'}">${p.state.message ? '<i></i>' : ''}</span><strong>${esc(p.name)}</strong><span>${esc(p.note)}${extra ? ' · +' + money(extra) : ''}</span></button>`; }).join('')}</div></fieldset>
-      <fieldset class="bd-group" data-bd-section="coat"><legend>Cake finish <small>Free · pick one</small></legend>
-        <div class="bd-coat" role="radiogroup" aria-label="Cake finish">${[['fondant', 'Fondant', 'Smooth sugar paste, clean edges'], ['frosting', 'Frosting', 'Soft buttercream, homemade look']].map(([k, l, n]) => `<button type="button" role="radio" class="bd-coat-opt" data-bd-coat="${k}" aria-checked="${(state.coat || 'fondant') === k}"><strong>${l}</strong><small>${n}</small></button>`).join('')}</div></fieldset>
       ${tierSwitch()}
       <fieldset class="bd-group" data-bd-section="frosting"><legend>${state.coat === 'frosting' ? 'Frosting' : 'Fondant'} color${onLower() ? ' · ' + tier + ' tier' : ''} <small>${(options.color || []).length} colors · ${(options.color || []).some((c) => Number(c.price) > 0) ? 'some add a small extra' : 'free'}</small></legend>${swatches('frosting_color', sub(s).frosting_color, (state.coat === 'frosting' ? 'Frosting' : 'Fondant') + ' color')}</fieldset>`;
     if (step === 'decorate') {

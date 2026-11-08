@@ -447,14 +447,9 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.ohReview) { closeSheet(); return window.showReviewForm?.(t.dataset.ohReview); }
   if (t.dataset.ohCancel) {
     const o = data.orders.find((x) => x.id === t.dataset.ohCancel); if (!o) return;
-    const paid = Number(o.amount_paid || 0);
-    if (!await ask(`Cancel order #${o.order_number}? This releases its reservation.${paid > 0 ? ` LexC’s will refund the ${money(paid)} you already paid.` : ''}`, { title: 'Cancel this order?', confirm: 'Cancel order', cancel: 'Keep order', tone: 'danger' })) return;
+    // phase 109: a reason, the 3-a-day rule and the 8-hour pause (shared/cancel-order.js)
     t.disabled = true;
-    try {
-      await db().rpc('cancel_my_order', { order_id: o.id });
-      window.showToast?.(paid > 0 ? 'Order cancelled. LexC’s will refund what you paid; watch your chat.' : 'Order cancelled. Your reservation is free again.');
-      await refresh();
-    } catch (error) { t.disabled = false; window.showToast?.(error.message || 'The order could not be cancelled. Please try again.'); }
+    if (await window.LexcCancelOrder({ id: o.id, number: o.order_number, paid: Number(o.amount_paid || 0) })) await refresh(); else t.disabled = false;
   }
 });
 document.addEventListener('input', (e) => { if (e.target.matches?.('#ordersRoot [data-oh-search]')) { query = e.target.value; render(); } });
