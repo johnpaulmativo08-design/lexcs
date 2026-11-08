@@ -35,7 +35,7 @@ async function loadStorefront(){
   const [catalog,categories,methods]=await Promise.all([LexcBackend.catalog().then(withSalePrices),LexcBackend.categories(),LexcBackend.client.from('payment_methods').select('code,display_name').eq('active',true).then(LexcBackend.unwrap)]);
   liveCatalog=catalog.filter(p=>p.status==='active');
   const methodRoot=document.getElementById('checkoutPaymentMethods');
-  methodRoot.innerHTML=methods.map(m=>'<button type="button" class="co-option" data-payment-code="'+authEscape(m.code)+'" aria-pressed="false"><span class="co-option-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg></span>'+(m.code==='paymongo'?'<span>Pay online<small>GCash · QR Ph</small></span>':'<span>'+authEscape(m.display_name)+'</span>')+'</button>').join('')||'<p>Online payment is temporarily unavailable.</p>';
+  methodRoot.innerHTML=methods.map(m=>window.LexcPayButton(m)).join('')||'<p>Online payment is temporarily unavailable.</p>';
   methodRoot.querySelectorAll('[data-payment-code]').forEach(button=>button.onclick=()=>selectPayment(button,button.dataset.paymentCode));
   products.splice(0,products.length,...liveCatalog.filter(p=>p.kind==='standard').map((p,index)=>({
    id:p.legacy_id||10000+index,product_id:p.id,name:p.name,desc:p.description,cat:p.categories?.slug||'',emoji:p.emoji||'🧁',badge:p.badge_label,stars:'',specs:p.specifications,allergens:p.allergens,

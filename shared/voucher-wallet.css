@@ -1,0 +1,84 @@
+/* Checkout rows (voucher + payment method), the voucher and payment sheets, and the "Sweet deals for you" pop-up. */
+.co-tap{display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:12px;width:100%;margin:0 0 10px;padding:10px 14px 10px 10px;border:1px solid #e8e0f0;border-radius:14px;background:#fff;color:#2b1530;text-align:left;font:inherit;cursor:pointer;transition:border-color .16s,box-shadow .16s}
+.co-tap:hover{border-color:#cdb9e6;box-shadow:0 4px 14px rgba(92,61,110,.08)}
+.co-tap:focus-visible{outline:3px solid #c9b2ec;outline-offset:2px}
+.co-tap-icon{display:grid;place-items:center;align-content:center;gap:1px;width:56px;height:52px;border-radius:12px;background:#f5effc;color:#6b3fa0}
+.co-tap-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.co-tap-icon small{font-size:.62rem;font-weight:700}
+.co-tap-icon img{width:38px;height:38px;object-fit:contain;border-radius:8px}
+.co-tap-icon.is-wide img{width:50px;height:20px}
+.co-tap-icon--voucher{background:linear-gradient(145deg,#efe6fb,#fbe8f0)}
+.co-tap-text{display:grid;gap:1px;min-width:0}
+.co-tap-text b{font-size:.92rem;font-weight:700;color:#2b1530;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.co-tap-text small{font-size:.74rem;color:#857798;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.co-tap-action{padding:6px 12px;border-radius:999px;background:#f3ecfb;color:#5c3d6e;font-size:.76rem;font-weight:800;white-space:nowrap}
+.co-tap.is-on{border-color:#d9c6f0}
+.co-tap--voucher.is-on .co-tap-action{background:#fff;border:1px solid #e1d6ee}
+.co-voucher{display:block;margin:0}
+.co-voucher .co-voucher-msg{margin:-4px 2px 10px}
+/* method choices inside the payment sheet */
+.co-pay-sheet #checkoutPaymentMethods{display:grid;grid-template-columns:1fr;gap:8px}
+.co-method{display:grid!important;grid-template-columns:52px 1fr 22px;align-items:center;gap:12px;padding:10px 12px!important;text-align:left!important;font-size:inherit!important}
+.co-method-logo{display:grid;place-items:center;width:52px;height:44px;border-radius:10px;background:#fff;border:1px solid #eee7f4;overflow:hidden;font-weight:800;color:#6b3fa0}
+.co-method-logo img{width:36px;height:36px;object-fit:contain}.co-method-logo.is-wide img{width:46px;height:18px}
+.co-method-text{display:grid;gap:2px}.co-method-text b{font-size:.92rem;color:#2b1530}.co-method-text small{font-size:.74rem;font-weight:500;color:#857798;opacity:1;margin:0}
+.co-method-tick{width:20px;height:20px;border-radius:50%;border:2px solid #d5c8e3}
+.co-method.selected .co-method-tick{border:6px solid #6b3fa0}
+/* bottom sheet (phones) / centred card (wide screens) */
+.vw-sheet{position:fixed;inset:0;z-index:3000;display:flex;align-items:flex-end;justify-content:center;background:rgba(30,16,40,0);transition:background .2s}
+.vw-sheet.is-open{background:rgba(30,16,40,.42)}
+.vw-sheet-card{width:min(520px,100%);max-height:86vh;overflow:auto;padding:18px 18px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;background:#fff;transform:translateY(100%);transition:transform .24s cubic-bezier(.22,1,.36,1)}
+.vw-sheet.is-open .vw-sheet-card{transform:none}
+@media (min-width:700px){.vw-sheet{align-items:center}.vw-sheet-card{border-radius:22px;transform:translateY(16px);opacity:0;transition:transform .22s cubic-bezier(.22,1,.36,1),opacity .2s}.vw-sheet.is-open .vw-sheet-card{opacity:1}}
+.vw-sheet-card header{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px}
+.vw-sheet-card h3{margin:0;font:700 1.05rem 'Plus Jakarta Sans',sans-serif;color:#2b1530}
+.vw-x{width:34px;height:34px;border:0;border-radius:50%;background:#f3ecfb;color:#5c3d6e;font-size:1.3rem;line-height:1;cursor:pointer}
+.vw-list{display:grid;gap:10px}
+.vw-skel{display:block;height:78px;border-radius:14px}
+.vw-empty{margin:4px 0;color:#857798;font-size:.86rem}
+/* the ticket: coloured stub with notches, dashed cut, pale body */
+.vw-ticket{--notch:#fff;position:relative;display:grid;grid-template-columns:74px 1fr auto;align-items:center;min-height:76px;padding:0;border:0;border-radius:14px;background:#faf5ff;color:#2b1530;text-align:left;font:inherit;cursor:pointer;overflow:hidden}
+.vw-ticket::before,.vw-ticket::after{content:"";position:absolute;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--notch)}
+.vw-ticket::before{left:-7px}.vw-ticket::after{right:-7px}
+.vw-stub{align-self:stretch;display:grid;place-items:center;background:linear-gradient(150deg,#b994ec,#e9a3c4);color:#fff;font:800 1.6rem 'Plus Jakarta Sans',sans-serif;border-right:2px dashed rgba(255,255,255,.7)}
+.vw-text{display:grid;gap:2px;padding:12px 10px 12px 14px;min-width:0}
+.vw-text b{font:800 1.12rem 'Plus Jakarta Sans',sans-serif;color:#7b4bb8}
+.vw-text small{font-size:.74rem;color:#857798;line-height:1.35}.vw-text .vw-terms{color:#a497b4}
+.vw-pick{margin-right:14px;padding:6px 11px;border-radius:999px;background:#6b3fa0;color:#fff;font-size:.72rem;font-weight:800;white-space:nowrap}
+.vw-ticket.is-on{outline:2px solid #6b3fa0}.vw-ticket.is-on .vw-pick{background:#1f7a4c}
+.vw-ticket.is-off{cursor:default;background:#f6f3f8}.vw-ticket.is-off .vw-stub{background:#cfc6da}.vw-ticket.is-off .vw-text b{color:#8a7f96}.vw-ticket.is-off .vw-pick{background:#e9e3ef;color:#7a6f8a}
+.vw-why{grid-column:2/4;margin:-8px 14px 10px;font-size:.72rem;color:#a3324b}
+.vw-claimed{position:absolute;top:6px;right:12px;font-style:normal;font-size:.62rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#1f7a4c}
+.vw-code{margin:14px 0 0}.vw-code label{display:block;margin:0 0 6px;font-size:.78rem;font-weight:700;color:#4b3a63}
+.vw-code div{display:flex;gap:8px}.vw-code input{flex:1;min-width:0;padding:10px 12px;border:1px solid #e1d6ee;border-radius:12px;font:600 .9rem 'Plus Jakarta Sans',sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.vw-code button,.vw-remove{padding:10px 16px;border:0;border-radius:12px;background:#5c3d6e;color:#fff;font-weight:800;cursor:pointer}
+.vw-remove{width:100%;margin-top:6px;background:#f3ecfb;color:#a3324b}
+.vw-msg{min-height:1em;margin:8px 2px 0;font-size:.78rem;color:#a3324b}
+/* "Sweet deals for you" pop-up */
+.vw-pop{position:fixed;inset:0;z-index:3100;display:grid;place-items:center;padding:16px;background:rgba(30,16,40,0);transition:background .24s}
+.vw-pop.is-open{background:rgba(30,16,40,.5)}
+.vw-pop-wrap{position:relative;display:grid;justify-items:center;width:min(380px,100%);transform:scale(.9);opacity:0;transition:transform .32s cubic-bezier(.34,1.4,.64,1),opacity .2s}
+.vw-pop.is-open .vw-pop-wrap{transform:none;opacity:1}
+.vw-pop-burst{position:absolute;top:-36px;left:50%;width:240px;height:150px;margin-left:-120px;pointer-events:none;background:repeating-conic-gradient(from 0deg at 50% 100%,rgba(255,236,170,.55) 0 7deg,transparent 7deg 18deg);-webkit-mask:radial-gradient(circle at 50% 100%,#000 25%,transparent 72%);mask:radial-gradient(circle at 50% 100%,#000 25%,transparent 72%)}
+.vw-pop-burst i{position:absolute;width:9px;height:9px;border-radius:2px;animation:vw-float 2.4s ease-in-out infinite alternate}
+.vw-pop-burst i:nth-child(1){left:12%;top:40%;background:#f6c56b}.vw-pop-burst i:nth-child(2){left:26%;top:12%;background:#9fd7c0;animation-delay:.3s}.vw-pop-burst i:nth-child(3){left:46%;top:2%;background:#f3a6c8;animation-delay:.6s}.vw-pop-burst i:nth-child(4){left:66%;top:16%;background:#b79af0;animation-delay:.2s}.vw-pop-burst i:nth-child(5){left:84%;top:38%;background:#f6c56b;animation-delay:.5s}.vw-pop-burst i:nth-child(6){left:58%;top:42%;background:#8fc3f2;animation-delay:.8s}
+@keyframes vw-float{to{transform:translateY(-8px) rotate(30deg)}}
+.vw-pop-card{position:relative;width:100%;margin-top:44px;padding:58px 20px 20px;border-radius:24px;background:#fff;text-align:center;box-shadow:0 24px 60px rgba(30,16,40,.28)}
+.vw-pop-gift{position:absolute;top:-44px;left:50%;width:96px;height:96px;margin-left:-48px;display:grid;place-items:center;border-radius:50%;background:#fff}
+.vw-pop-gift svg{width:70px;height:70px}
+.vw-pop-card h2{margin:0;font:800 1.4rem/1.25 'Plus Jakarta Sans',sans-serif;color:#2b1530}
+.vw-pop-card>p{margin:6px 0 16px;color:#5f5072;font-size:.92rem}
+.vw-pop-list{display:grid;gap:10px;margin:0 0 18px;text-align:left}
+.vw-ticket--pop{cursor:default}
+.vw-claim{width:100%;padding:14px;border:0;border-radius:999px;background:#6b3fa0;color:#fff;font:800 1rem 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 8px 22px rgba(107,63,160,.3)}
+.vw-claim:hover{background:#5c3d6e}
+.vw-pop-x{margin-top:18px;width:44px;height:44px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:transparent;color:#fff;font-size:1.6rem;line-height:1;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.vw-pop-wrap,.vw-sheet-card,.vw-sheet,.vw-pop{transition:none}.vw-pop-burst i{animation:none}}
+html[data-theme=dark] .co-tap,html[data-theme=dark] .vw-sheet-card,html[data-theme=dark] .vw-pop-card,html[data-theme=dark] .vw-pop-gift{background:#241a2e;border-color:#3a2c48;color:#f1e9f8}
+html[data-theme=dark] .co-tap-text b,html[data-theme=dark] .vw-sheet-card h3,html[data-theme=dark] .vw-pop-card h2,html[data-theme=dark] .co-method-text b{color:#f6effc}
+html[data-theme=dark] .co-tap-text small,html[data-theme=dark] .vw-text small,html[data-theme=dark] .vw-pop-card>p,html[data-theme=dark] .co-method-text small{color:#c4b5d6}
+html[data-theme=dark] .co-tap-icon,html[data-theme=dark] .co-tap-action,html[data-theme=dark] .vw-x{background:#33264a;color:#e7d8fb}
+html[data-theme=dark] .vw-ticket{--notch:#241a2e;background:#30233f;color:#f1e9f8}
+html[data-theme=dark] .vw-text b{color:#d9c0ff}
+html[data-theme=dark] .vw-code input{background:#1c1424;border-color:#3a2c48;color:#f1e9f8}
+html[data-theme=dark] .co-method-logo{background:#fff}
