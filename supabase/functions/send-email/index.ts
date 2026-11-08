@@ -27,9 +27,10 @@ function html(subject: string, body: string, name?: string) {
 }
 
 Deno.serve(async () => {
-  const user = Deno.env.get('GMAIL_USER'), pass = Deno.env.get('GMAIL_APP_PASSWORD');
+  const user = Deno.env.get('GMAIL_USER')?.trim(), pass = (Deno.env.get('GMAIL_APP_PASSWORD') || Deno.env.get(' GMAIL_APP_PASSWORD'))?.replace(/\s+/g, '');   // also the name saved with a leading space
   const admin = Deno.env.get('ADMIN_EMAIL') || user, url = Deno.env.get('SUPABASE_URL'), key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!user || !pass || !url || !key) return json({ error: 'Email is not set up (GMAIL_USER / GMAIL_APP_PASSWORD).' }, 500);
+  const missing = Object.entries({ GMAIL_USER: user, GMAIL_APP_PASSWORD: pass, SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key }).filter(([, v]) => !v).map(([k]) => k);
+  if (missing.length) return json({ error: 'Missing setting(s): ' + missing.join(', ') }, 500);   // names only, never values
   const db = createClient(url, key, { auth: { persistSession: false } });
   const { data: batch, error } = await db.rpc('email_outbox_claim');
   if (error) return json({ error: error.message }, 500);
