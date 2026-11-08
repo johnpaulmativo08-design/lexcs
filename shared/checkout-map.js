@@ -73,7 +73,11 @@
     }
     shopMarker = L.marker([SHOP.lat, SHOP.lng], { icon: pinIcon('is-shop'), keyboard: false, title: SHOP.name }).addTo(map);
     map.on('click', e => { if (mode === 'Lalamove') setPin(e.latlng.lat, e.latlng.lng, { lookup: true }); });
+    if (pendingPin) { const p = pendingPin; pendingPin = null; setPin(p.lat, p.lng, { label: p.label, fly: true }); }
   }
+  // a saved address picked at checkout: put its pin on the map (now, or as soon as the map is ready)
+  let pendingPin = null;
+  function usePin(lat, lng, label = '') { if (!Number.isFinite(lat) || !Number.isFinite(lng)) return; if (map) setPin(lat, lng, { label, fly: true }); else pendingPin = { lat, lng, label }; }
 
   function infoPickup() {
     return `<div class="co-map-place"><span class="co-map-badge is-shop" aria-hidden="true"></span><div><strong>${esc(SHOP.name)} – ${esc(SHOP.area)}</strong><small>Ready on the date and time you pick below</small></div><em class="co-map-chip">No delivery fee</em></div>
@@ -268,5 +272,5 @@
 
   // start fetching the map library as soon as checkout opens, so the map is ready when a choice is tapped
   const preload = () => { loadLeaflet().catch(() => {}); };
-  window.LexcCheckoutMap = { show, preload, addressWithPin, problem, fee, feeState, area: AREA, get pin() { return pin && { ...pin }; }, shop: SHOP };
+  window.LexcCheckoutMap = { show, preload, addressWithPin, usePin, problem, fee, feeState, area: AREA, get pin() { return pin && { ...pin }; }, shop: SHOP };
 })();

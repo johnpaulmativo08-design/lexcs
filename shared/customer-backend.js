@@ -20,7 +20,7 @@ function customerActionError(error,fallback){
 let savedInvoiceItems=[];
 const phDate=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
 const phTime=value=>new Date(value).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hour12:false});
-// receiving times are one hour each (9 AM–5 PM): show the start, e.g. "9:00 AM"
+// receiving times are one hour each (9 AM–10 PM): show the start, e.g. "9:00 AM"
 const slotLabel=s=>{const h=Number(new Date(s.starts_at).toLocaleString('en-US',{timeZone:'Asia/Manila',hour:'numeric',hour12:false}))%24;return h===12?'12 NN':(h%12||12)+(h<12?' AM':' PM');};
 // phase 106: customers order at least 2 days ahead; rush fee by days ahead (2 days ₱400, 3–4 days ₱200, 5+ none).
 // The database works out the same fee and refuses earlier days; this only shows it.
@@ -81,7 +81,7 @@ async function renderDtSlots(){
   const from=new Date(date+'T00:00:00+08:00'),to=new Date(from.getTime()+86400000);
   const slots=await LexcBackend.rpc('get_availability',{from_date:from.toISOString(),to_date:to.toISOString()});
   if(dtSelectedDate!==date)return;liveSlots=slots;
-  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>Available · Pick a receiving time (9 AM–5 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Short notice: a ₱'+rushFeeFor(date)+' rush fee is added (no fee from 5 days ahead).</span>':'')+'</div>';
+  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>Available · Pick a receiving time (9 AM–10 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Short notice: a ₱'+rushFeeFor(date)+' rush fee is added (no fee from 5 days ahead).</span>':'')+'</div>';
   list.innerHTML=slots.length?summary+slots.map(s=>'<button type="button" class="dt-slot'+(s.remaining<=0?' full':'')+'" data-slot="'+s.id+'" '+(s.remaining<=0?'disabled':'')+'><span class="dt-slot-time">'+slotLabel(s)+'</span><span class="dt-slot-status '+(s.remaining>0?'avail':'full')+'">'+(s.remaining>0?'Available':'Fully reserved')+'</span></button>').join(''):summary+'<div class="dt-slot-summary">No receiving window is available for this date. Please choose another available date.</div>';
   list.setAttribute('aria-busy','false');
   list.querySelectorAll('[data-slot]').forEach(button=>button.onclick=()=>{
@@ -160,6 +160,7 @@ async function submitCheckout(){
   if(!selectedDay||selectedDay.is_closed||selectedDay.remaining_slots<=0||!selectedDay.has_receiving_slot)throw new Error('This reservation date is no longer available. Please choose another date.');
    const order=await LexcBackend.rpc('create_order',{payload:{request_id:request.id,name:field('coName'),phone:field('coContact'),address:window.LexcCheckoutMap?.addressWithPin(field('coAddress'))??field('coAddress'),notes:field('coNotes'),slot_id:document.getElementById('coDate').dataset.slotId,fulfillment:selectedDelivery==='Lalamove'?'lalamove':'pickup',delivery_quote_id:selectedDelivery==='Lalamove'?window.LexcCheckoutMap?.fee?.()?.quote_id||null:null,voucher_code:window.LexcVoucher?.code()||null,payment_method:selectedPayment,items:selectedItems.map(i=>({variant_id:i.variant_id,qty:i.qty,customization:i.customization||null,reference_image_path:i.reference_image_path||null}))}});
    window.LexcVoucher?.reset?.();   // phase 103: the voucher went with this order
+   if(selectedDelivery==='Lalamove')window.LexcAddressBook?.remember();   // phase 109: saved for the next order
    // Add the top-view pictures to the design card the database posted in the customer's chat.
   const topViews=selectedItems.map((item,index)=>({line:index+1,top_path:item.design_top_path})).filter(view=>view.top_path);
   if(topViews.length){try{await LexcBackend.rpc('attach_design_views',{p_order_id:order.id,p_views:topViews});}catch(error){console.warn('Top-view pictures could not be added to the chat:',error);}}
@@ -173,16 +174,10 @@ async function submitCheckout(){
  }catch(error){showToast(customerActionError(error,'We could not place your order. Please try again; your selected cart items are still saved.'));}finally{checkoutSaving=false;submitButton.disabled=false;submitButton.textContent='Place Order →';}
 }
 let customerShowCancelled=false;
-async function cancelMyOrder(orderId,orderNumber,paid=0){
- const refund=paid>0?' LexC’s will refund the ₱'+paid.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2})+' you already paid.':'';
- if(!confirm('Cancel order #'+orderNumber+'? This releases its reservation date.'+refund+' The order stays in history for payment and seller records.'))return;
+async function cancelMyOrder(orderId,orderNumber,paid=0){   // phase 109: reason + daily rule (shared/cancel-order.js)
  const button=[...document.querySelectorAll('[data-cancel-order]')].find(item=>item.dataset.cancelOrder===orderId);
  if(button)button.disabled=true;
- try{
-  await LexcBackend.rpc('cancel_my_order',{order_id:orderId});
-  showToast(paid>0?'Order cancelled. LexC’s will refund what you paid; watch your chat.':'Order cancelled. Your reservation slot is available again.');
-   await showMyOrders();
- }catch(error){showToast(customerActionError(error,'Order cancellation could not be completed. Please try again.'));if(button)button.disabled=false;}
+ if(await window.LexcCancelOrder({id:orderId,number:orderNumber,paid}))await showMyOrders(); else if(button)button.disabled=false;
 }
  async function showMyOrders(focusOrderId){
   if(!currentUser){openCart();return;}

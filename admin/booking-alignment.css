@@ -58,3 +58,6 @@
   .booking-day{padding:8px 1px!important}
   .booking-day b{font-size:10px}
 }
+
+/* receiving times 9 AM – 10 PM (phase 109): 14 hour rows */
+#content .booking-column{min-height:924px!important}
