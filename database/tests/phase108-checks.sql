@@ -26,7 +26,7 @@ begin
   select code into c from public.design_options where product_id = prod.id and group_key = 'color' and is_active order by sort_order limit 1;
   foreach q in array array[1, 2] loop
     begin
-      d := private.bento_design(prod, jsonb_build_object('frosting_color', c, 'border', '[]'::jsonb, 'accents', '[]'::jsonb, 'topper', 'none', 'message', '',
+      d := private.bento_design(prod, jsonb_build_object('designer', 'bento', 'frosting_color', c, 'border', '[]'::jsonb, 'accents', '[]'::jsonb, 'topper', 'none', 'message', '',
              'coat', case when q = 1 then 'frosting' else null end));
       report := report || E'\n' || case when (d::text like '%"coat": "' || case when q = 1 then 'frosting' else 'fondant' end || '"%') then 'PASS' else 'FAIL' end
         || format('  %s → coat %s · %s', case when q = 1 then 'frosting chosen' else 'no choice (old design)' end, coalesce(d#>>'{customization,coat}', d->>'coat', '?'), left(coalesce(d->>'summary', d::text), 120));
