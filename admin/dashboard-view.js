@@ -98,12 +98,12 @@ function draw(content, data, refresh) {
   // Productivity: today's kitchen time (same numbers as Production → the chef card), under the calendar and in Today
   db.rpc('get_production_day',{target_date:data.today}).then(d=>{
     const cap=Number(d?.workload_minutes)||0,used=Number(d?.accepted_minutes)||0,p=cap>0?Math.round(used/cap*100):used>0?100:0,lv=p>=100?'heavy':p>=80?'near':'ok';
-    const stat=content.querySelector('[data-prod-stat]');
-    if(stat){stat.querySelector('strong').textContent=cap?p+'%':'—';stat.querySelector('small').textContent=cap?Math.round(used)+' of '+cap+' min used today · '+Math.max(0,Math.round(cap-used))+' left':'Kitchen time not set';}
+    const hm=m=>{m=Math.max(0,Math.round(m));const h=Math.floor(m/60),r=m%60;return h?h+' hr'+(r?' '+r+' min':''):r+' min'};const stat=content.querySelector('[data-prod-stat]');
+    if(stat){stat.querySelector('strong').textContent=cap?p+'%':'—';stat.querySelector('small').textContent=cap?Math.round(used)+' of '+cap+' min ('+hm(cap)+') used today · '+hm(cap-used)+' left':'Kitchen time not set';}
     const box=content.querySelector('[data-dash-prod]');
     if(box)box.innerHTML=`<div class="ps ps-hero-wrap"><div class="ps-col ps-left ps-hero"><header class="ps-head"><div><small>Today · productivity</small><h2>Kitchen time</h2></div><a class="ps-icon is-dark" href="#production" title="Open Production" aria-label="Open Production">${icon('arrow')}</a></header>
       <div class="ps-meter is-${lv}"><div class="ps-ring" style="--p:${Math.min(100,p)}" role="img" aria-label="${p}% of today’s kitchen time used"><span>${p}%<small>used</small></span></div>
-      <dl><div><dd>${Math.round(used)}</dd><dt>min used</dt></div><div><dd>${Math.max(0,Math.round(cap-used))}</dd><dt>min left</dt></div></dl><p class="ps-level">${lv==='ok'?'Within the safe limit':lv==='near'?'Getting full':'Over capacity'}</p></div>
+      <dl><div><dd>${Math.round(used)}</dd><dt>min used<br><i>${hm(used)}</i></dt></div><div><dd>${Math.max(0,Math.round(cap-used))}</dd><dt>min left<br><i>${hm(cap-used)}</i></dt></div></dl><p class="ps-level">${lv==='ok'?'Within the safe limit':lv==='near'?'Getting full':'Over capacity'}</p></div>
       ${d?`<p class="ps-guests"><b>${Number(d.active_bookings)||0} / ${Number(d.slots)||0}</b> customers booked</p>`:''}</div></div>`;
   }).catch(err=>{console.warn('Production day:',err);const stat=content.querySelector('[data-prod-stat] strong');if(stat)stat.textContent='—';});
   // side panels fold up with a small toggle; the choice is remembered on this device

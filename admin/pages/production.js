@@ -125,6 +125,7 @@ export async function renderProduction(content, focus) {
     const p = cap > 0 ? Math.round((used / cap) * 100) : used > 0 ? 100 : 0;
     const count = (s) => mine.filter((t) => statusOf(t) === s).length;
     const done = count('ready') + count('completed'), streak = mine.filter(onTime).length;
+    const hm = (m) => { m = Math.max(0, Math.round(m)); const h = Math.floor(m / 60), r = m % 60; return h ? h + ' hr' + (r ? ' ' + r + ' min' : '') : r + ' min'; };
     const hour = Number(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false }));
     const hero = `
       <header class="ps-head"><div><small>${e(longDay(selected))} · shift ${e(clock(state.window.start))}${state.window.start < 0 ? ' the evening before' : ''} – ${e(clock(state.window.end))}</small>
@@ -132,7 +133,7 @@ export async function renderProduction(content, focus) {
         <a class="ps-icon is-dark" href="#bookings" title="Reserve a time" aria-label="Reserve a time">${icon('plus')}</a></header>
       <div class="ps-meter is-${lv}">
         <div class="ps-ring" style="--p:${Math.min(100, p)}" role="img" aria-label="${p}% of the day’s kitchen time used"><span>${p}%<small>used</small></span></div>
-        <dl><div><dd>${Math.round(used)}</dd><dt>min used</dt></div><div><dd>${Math.max(0, Math.round(cap - used))}</dd><dt>min left</dt></div></dl>
+        <dl><div><dd>${Math.round(used)}</dd><dt>min used<br><i>${hm(used)}</i></dt></div><div><dd>${Math.max(0, Math.round(cap - used))}</dd><dt>min left<br><i>${hm(cap - used)}</i></dt></div></dl>
         <p class="ps-level">${LEVEL[lv]}</p>
       </div>
       ${d ? `<p class="ps-guests"><b>${Number(d.active_bookings) || 0} / ${Number(d.slots) || 0}</b> customers booked${Number(d.slots) && Number(d.active_bookings) >= Number(d.slots) ? ' · <i>full</i>' : ''}</p>` : ''}`;
