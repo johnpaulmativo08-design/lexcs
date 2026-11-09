@@ -124,3 +124,22 @@ html[data-theme=dark] .co-addr-new{background:#2a1f33;border-color:#4a3a5e;color
 .cx-go{border:0;background:#5c3d6e;color:#fff}.cx-go.is-danger{background:#b5244d}
 html[data-theme=dark] .cx-dialog,html[data-theme=dark] .cx-card select,html[data-theme=dark] .cx-card textarea,html[data-theme=dark] .cx-keep{background:#241a2e;color:#f1e9f8;border-color:#4a3a5e}
 html[data-theme=dark] .cx-sub{color:#c4b5d6}html[data-theme=dark] .cx-rule{background:#33264a;border-color:#4a3a5e}html[data-theme=dark] .cx-rule.is-danger{background:#4a1d2c;border-color:#7d2b45;color:#ffd6e1}
+
+/* Account → Deliveries (shared/deliveries.js) */
+.dl-card{max-height:min(92vh,760px);overflow:auto}
+.dl-note{margin:0 0 10px;color:#7b6c8e;font-size:.85rem}
+.dl-list{display:grid;gap:8px}
+.dl-row{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;padding:12px;border:1px solid #ece4f5;border-radius:14px;background:#fff}
+.dl-pin svg{width:20px;height:20px;fill:none;stroke:#6b3fa0;stroke-width:1.8}
+.dl-text{display:grid;gap:2px;font-size:.9rem}.dl-text small{color:#7b6c8e}.dl-text em{justify-self:start;font-style:normal;font-size:.7rem;color:#6b3fa0;background:#f2eafb;border-radius:99px;padding:1px 8px}
+.dl-acts{grid-column:2;display:flex;gap:8px}.dl-acts button{border:1px solid #e3d8f0;background:#fff;border-radius:99px;padding:4px 12px;font:inherit;font-size:.78rem;color:#4a2c68;cursor:pointer}
+.dl-add{margin-top:12px;width:100%}
+.dl-map{position:relative;height:260px;border-radius:16px;overflow:hidden;background:#f4effa;border:1px solid #ece4f5}
+.dl-map-wait{position:absolute;inset:0;display:grid;place-items:center;color:#7b6c8e;font-size:.85rem}
+.dl-map-tools{display:flex;align-items:center;gap:10px;margin:8px 0 12px}.dl-map-tools button{border:1px solid #d9c9f0;background:#fff;border-radius:99px;padding:6px 14px;font:inherit;font-size:.8rem;color:#4a2c68;cursor:pointer}.dl-map-tools small{color:#7b6c8e}
+.dl-form{display:grid;gap:10px}.dl-form label{display:grid;gap:4px;font-size:.78rem;font-weight:600;color:#5b4870}
+.dl-form input,.dl-form textarea{font:inherit;font-size:.92rem;padding:10px 12px;border:1px solid #ddd3e8;border-radius:12px;background:#fff;color:#241532}
+.dl-form .dl-check{display:flex;align-items:center;gap:8px;font-weight:500}
+.dl-btns{display:flex;gap:10px;justify-content:flex-end}.dl-back{border:1px solid #e3d8f0;background:#fff;border-radius:99px;padding:8px 18px;font:inherit;cursor:pointer}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dl-row,:root:not([data-theme="light"]) .dl-form input,:root:not([data-theme="light"]) .dl-form textarea{background:#241a30;border-color:#3a2d4a;color:#f1e9fa}}
+:root[data-theme="dark"] .dl-row,:root[data-theme="dark"] .dl-form input,:root[data-theme="dark"] .dl-form textarea{background:#241a30;border-color:#3a2d4a;color:#f1e9fa}

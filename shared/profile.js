@@ -27,6 +27,7 @@
     whisk: '<path d="M5 19 14 10"/><path d="M14 10c-2-4 0-8 4-8s5 4 1 7z"/>', truck: '<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>', box: '<path d="M3 7 12 3l9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
     star: '<path d="M12 3l2.6 5.4 5.9.9-4.3 4.1 1 5.9L12 16.6 6.8 19.3l1-5.9L3.5 9.3l5.9-.9z"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    ticket: '<path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4Z"/><path d="m9 15 6-6"/>',
     gift: '<rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1"/>', info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>'
   };
   // My Purchases: which orders sit in each tile (an order can be in two, e.g. "To receive" and still "To pay")
@@ -57,13 +58,14 @@
     const user = window.currentUser;
     const db = window.LexcBackend;
     profile = db.unwrap(await db.client.from('profiles').select('*').eq('id', user.id).maybeSingle()) || { id: user.id };
+    window.currentProfile = profile;   // checkout and Deliveries prefill from it
     photoUrl = profile.avatar_path ? await db.privateImage('avatars', profile.avatar_path).catch(() => '') : '';
   }
   function row(ic, label, value, field, type = 'text') {
     const on = field && (editing === true || editing === field);
     const pen = field && !on ? `<button type="button" class="pf-pen" data-pf-field="${field}" aria-label="Edit ${label.toLowerCase()}">${icon(ICONS.edit)}</button>` : '';
     return `<div class="pf-row${pen ? ' has-pen' : ''}"><span class="pf-ic">${icon(ICONS[ic])}</span><span class="pf-label">${label}</span>${on
-      ? `<${field === 'address' ? 'textarea rows="2"' : `input type="${type}"`} class="pf-input" name="${field}" maxlength="${field === 'address' ? 300 : 80}" ${field === 'full_name' ? 'required' : ''}${field === 'address' ? `>${esc(value || '')}</textarea>` : ` value="${esc(value || '')}">`}`
+      ? `<${field === 'address' ? 'textarea rows="2"' : `input type="${type}"`} class="pf-input" name="${field}" maxlength="${field === 'address' ? 300 : field === 'phone' ? 11 : 80}"${field === 'phone' ? ' inputmode="numeric" placeholder="09XXXXXXXXX"' : ''} ${field === 'full_name' ? 'required' : ''}${field === 'address' ? `>${esc(value || '')}</textarea>` : ` value="${esc(value || '')}">`}`
       : `<span class="pf-value${value ? '' : ' is-empty'}">${esc(value || 'Not added yet')}</span>`}${pen}</div>`;
   }
   const action = (ic, label, act, note = '') => `<button type="button" class="pf-action" data-pf="${act}"><span class="pf-ic">${icon(ICONS[ic])}</span><span>${label}${note ? `<small>${note}</small>` : ''}</span>${icon(ICONS.chev)}</button>`;
@@ -144,7 +146,7 @@
         <p class="pf-error" role="alert" hidden></p>
       </form>
       <section class="pf-card"><h3>Your <em>records</em></h3><div class="pf-actions">
-        ${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
+        ${action('ticket', 'Vouchers', 'vouchers', 'Deals you can use at checkout')}${action('truck', 'Deliveries', 'deliveries', 'Saved delivery addresses')}${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
       </div></section>
       <button type="button" class="pf-logout" data-pf="logout">Log out</button>
       </div></div>
@@ -246,6 +248,8 @@
     if (act === 'shop') return window.navigate('shop');
     if (act === 'diy') return window.LexcCustom ? window.LexcCustom.choose() : window.navigate('shop');
     if (act === 'cart') return window.openCart?.();
+    if (act === 'vouchers') return window.LexcVoucher?.browse();
+    if (act === 'deliveries') return window.LexcDeliveries?.open();
     // order history and cancelled orders open My Orders (shared/order-history.js); payments keep their panel
     if ((act === 'orders' || act === 'cancelled') && window.LexcOrders) { if (panel) { panel = null; panelData = null; draw(); } return window.LexcOrders.goTo(null, { tab: act === 'cancelled' ? 'cancelled' : 'all' }); }
     if (act === 'orders' || act === 'cancelled' || act === 'payments') return openPanel(act);
@@ -268,10 +272,11 @@
     event.preventDefault(); if (saving) return;
     const f = form.elements, full_name = (f.full_name ? f.full_name.value : profile.full_name || '').trim(), phone = (f.phone ? f.phone.value : profile.phone || '').trim(), address = (f.address ? f.address.value : profile.address || '').trim();
     if (full_name.length < 2) return error('Enter your full name.');
-    if (phone && !/^[+\d][\d\s-]{6,19}$/.test(phone)) return error('Enter a valid contact number.');
+    if (phone && !/^09\d{9}$/.test(phone.replace(/\D/g, ''))) return error('Contact number: 11 digits starting with 09.');
     saving = true; draw();
     try {
       profile = window.LexcBackend.unwrap(await window.LexcBackend.client.from('profiles').update({ full_name, phone: phone || null, address: address || null }).eq('id', window.currentUser.id).select().single());
+      window.currentProfile = profile;
       window.currentUser.name = profile.full_name; window.currentUser.profile = profile; window.updateNavAuth?.();
       editing = false; saving = false; draw(); window.showToast?.('Profile saved.');
     } catch (e) { saving = false; draw(); error(e.message); }

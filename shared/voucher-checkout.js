@@ -151,7 +151,24 @@
   let shownFor = '';
   setInterval(() => { const id = user()?.id || ''; if (id && id !== shownFor) { shownFor = id; wallet = null; setTimeout(popup, 1200); } else if (!id) shownFor = ''; }, 2000);
 
-  window.LexcVoucher = { code: () => applied?.code || null, discount: () => applied?.discount || 0, reset: () => { applied = null; wallet = null; paint(); }, popup };
+  // Account → Vouchers: every voucher the customer can use, to look at (they are applied at checkout)
+  async function browse() {
+    if (!user()) { window.openAuthModal?.('login'); return; }
+    closeSheet();
+    sheet = document.createElement('div');
+    sheet.className = 'vw-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'My vouchers');
+    sheet.innerHTML = `<div class="vw-sheet-card"><header><h3>My vouchers</h3><button type="button" class="vw-x" data-vw-close aria-label="Close">×</button></header>
+      <div class="vw-list" data-vw-list>${'<span class="vw-skel skel" aria-hidden="true"></span>'.repeat(2)}</div>
+      <p class="vw-msg">Pick a voucher at checkout, under Voucher.</p><button type="button" class="vw-claim" data-vw-shop>Shop now</button></div>`;
+    document.body.append(sheet);
+    requestAnimationFrame(() => sheet?.classList.add('is-open'));
+    document.addEventListener('keydown', onKey);
+    sheet.querySelector('[data-vw-shop]').onclick = () => { closeSheet(); window.navigate?.('shop'); };
+    wallet = null; const list = await loadWallet(false); if (!sheet) return;
+    sheet.querySelector('[data-vw-list]').innerHTML = list.length ? list.map((v) => `<div class="vw-ticket vw-ticket--pop">${ticket(v, `<span class="vw-pick">${esc(v.code)}</span>`)}</div>`).join('')
+      : '<p class="vw-empty">No vouchers for you right now. New deals show up here.</p>';
+  }
+  window.LexcVoucher = { browse, code: () => applied?.code || null, discount: () => applied?.discount || 0, reset: () => { applied = null; wallet = null; paint(); }, popup };
   document.addEventListener('DOMContentLoaded', () => paint());
   if (document.readyState !== 'loading') paint();
 })();
