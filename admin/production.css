@@ -25,7 +25,7 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 .ps-ring{--p:0;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#e7c6f0 calc(var(--p)*1%),#4a2f55 0);grid-row:span 2}
 .ps-ring span{width:56px;height:56px;border-radius:50%;background:var(--plum);display:grid;place-content:center;justify-items:center;font-weight:700;font-size:1rem;line-height:1.05}
 .ps-ring small{color:#cdb8dc;font-size:.6rem;font-weight:500}
-.ps-meter dl{margin:0;display:flex;gap:18px}.ps-meter dd{margin:0;font-weight:700;font-size:1.1rem}.ps-meter dt{font-size:.7rem;color:#cdb8dc}
+.ps-meter dl{margin:0;display:flex;gap:18px}.ps-meter dd{margin:0;font-weight:700;font-size:1.1rem}.ps-meter dt{font-size:.7rem;color:#cdb8dc}.ps-meter dt i{font-style:normal;color:#fff;opacity:.85}
 .ps-level{margin:0;font-size:.74rem;font-weight:700;color:#9fe0c0}
 .ps-meter.is-near .ps-level{color:#f3c77e}.ps-meter.is-near .ps-ring{background:conic-gradient(#f3c77e calc(var(--p)*1%),#4a2f55 0)}
 .ps-meter.is-heavy .ps-level{color:#ffb3c6}.ps-meter.is-heavy .ps-ring{background:conic-gradient(#ff9fb8 calc(var(--p)*1%),#4a2f55 0)}

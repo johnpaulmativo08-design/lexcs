@@ -1,8 +1,8 @@
 import { renderSettings, applyAdminSettings } from './pages/settings.js?v=4';
 applyAdminSettings();
 import { refreshNavBadges, startNavBadges } from './nav-badges.js?v=1';
-import { renderProduction } from './pages/production.js?v=12';
-import { renderDashboard } from './pages/dashboard.js?v=19';
+import { renderProduction } from './pages/production.js?v=13';
+import { renderDashboard } from './pages/dashboard.js?v=20';
 import { renderProducts } from './pages/products.js?v=15';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=37';
 import { renderReports } from './pages/reports.js?v=21';

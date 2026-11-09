@@ -220,7 +220,7 @@
     if (!S() || !C() || !db()) return setTimeout(start, 200);
     const me = await db().identity().catch(() => null);
     if (me?.role !== 'admin') { const u = new URL(location.href); u.searchParams.delete('cms'); history.replaceState(null, '', u); return; }
-    document.head.append(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'shared/site-editor.css?v=1' }));
+    document.head.append(Object.assign(document.createElement('link'), { rel: 'stylesheet', href: 'shared/site-editor.css?v=2' }));
     admin = true; toolbar(); status(); setTimeout(mark, 600);
     // the page re-renders parts (navigation, async sections): keep the markers on
     const ours = (n) => n.nodeType !== 1 || n.classList?.contains('se-chip') || n.classList?.contains('se-pop') || n.classList?.contains('se-toast');
