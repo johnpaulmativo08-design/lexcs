@@ -22,12 +22,12 @@
     } finally { URL.revokeObjectURL(url); }
   }
 
-  function html(owner, paths = []) {
+  function html(owner, paths = [], text = {}) {
     const list = (paths || []).slice(0, MAX), user = window.currentUser;
     setTimeout(hydrate, 0);
     return `<div class="bd-group insp" data-insp="${esc(owner)}">
-      <span class="bd-label">Inspiration photos <small>Optional · up to ${MAX}</small></span>
-      <p class="bd-note">Have a picture of what you have in mind? Add it and LexC’s will see it with your order.</p>
+      <span class="bd-label">${esc(text.title || 'Inspiration photos')} <small>Optional · up to ${MAX}</small></span>
+      <p class="bd-note">${esc(text.note || 'Have a picture of what you have in mind? Add it and LexC’s will see it with your order.')}</p>
       ${list.length ? `<div class="insp-grid">${list.map((p, i) => `<figure class="insp-pic"><img data-insp-src="${esc(p)}" alt="Inspiration photo ${i + 1}"><button type="button" class="insp-remove" data-insp-remove="${i}" aria-label="Remove inspiration photo ${i + 1}">×</button></figure>`).join('')}</div>` : ''}
       ${!user ? `<button type="button" class="bd-link insp-login" data-insp-login>Log in to add a photo</button>`
         : list.length < MAX ? `<label class="insp-add${busy === owner ? ' is-busy' : ''}"><input type="file" accept="image/jpeg,image/png,image/webp" multiple data-insp-file hidden><span aria-hidden="true">＋</span> ${busy === owner ? 'Adding photo…' : list.length ? 'Add another photo' : 'Add a photo'}</label>` : ''}

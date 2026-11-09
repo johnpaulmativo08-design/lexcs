@@ -90,6 +90,8 @@
     const v = el.value.replace(/\D/g, '').slice(0, 11); if (v !== el.value) el.value = v;
   });
   async function prepare() {
+    window.LexcInspiration?.register('checkout', () => refs, (paths) => { refs = paths; drawRefs(); }, () => {});   // inspiration.js loads after this file
+    drawRefs();
     const l = await load(true);
     if (l.length && !chosen && !$('coName')?.value && !$('coAddress')?.value) fill(l[0]);
     else {
@@ -115,5 +117,9 @@
     } catch (error) { console.info('Address not saved:', error?.message || error); }
   }
   
+  // "Have a reference photo?" under Special notes (shared/inspiration.js, owner 'checkout'); attached after the order is placed
+  let refs = [];
+  const drawRefs = () => { const box = $('coRefPhotos'); if (box && window.LexcInspiration) box.innerHTML = window.LexcInspiration.html('checkout', refs, { title: 'Have a reference photo?', note: 'Add a picture of the look you want. LexC’s sees it with your order.' }); };
+  window.LexcCheckoutRefs = { take: () => { const out = refs; refs = []; drawRefs(); return out; } };
   window.LexcAddressBook = { prepare, remember, reload: () => load(true).then(paint) };
 })();
