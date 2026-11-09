@@ -114,7 +114,7 @@
   }
   function explore() {
     const go = (ic, label, act) => `<button type="button" data-pf="${act}">${icon(ICONS[ic])}${label}</button>`;
-    return `<section class="pf-card"><h3>Explore <em>more</em></h3><div class="pf-explore">${go('bag', 'Shop', 'shop')}${go('wand', 'Customize', 'diy')}${go('spark', 'Sweet moments', 'fresh')}${go('gift', 'Packages', 'packages')}${go('chat', 'Messages', 'chatpage')}${go('info', 'About', 'about')}${go('sun', 'Display', 'display')}</div></section>`;
+    return `<section class="pf-card"><h3>Explore <em>more</em></h3><div class="pf-explore">${go('bag', 'Shop', 'shop')}${go('wand', 'Customize', 'diy')}${go('spark', 'Sweet moments', 'fresh')}${go('gift', 'Packages', 'packages')}${go('chat', 'Messages', 'chatpage')}${go('ticket', 'Vouchers', 'vouchers')}${go('truck', 'Deliveries', 'deliveries')}${go('sun', 'Display', 'display')}</div></section>`;
   }
   function drawGuest() {
     root().innerHTML = `<div class="pf-guest">${band(null, '', 'L')}
@@ -146,7 +146,7 @@
         <p class="pf-error" role="alert" hidden></p>
       </form>
       <section class="pf-card"><h3>Your <em>records</em></h3><div class="pf-actions">
-        ${action('ticket', 'Vouchers', 'vouchers', 'Deals you can use at checkout')}${action('truck', 'Deliveries', 'deliveries', 'Saved delivery addresses')}${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
+        ${action('list', 'Order history', 'orders')}${action('x', 'Cancelled orders', 'cancelled')}${action('chart', 'Order transactions', 'payments', 'Payments you have sent')}
       </div></section>
       <button type="button" class="pf-logout" data-pf="logout">Log out</button>
       </div></div>

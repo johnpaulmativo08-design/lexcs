@@ -166,6 +166,9 @@ async function submitCheckout(){
   if(topViews.length){try{await LexcBackend.rpc('attach_design_views',{p_order_id:order.id,p_views:topViews});}catch(error){console.warn('Top-view pictures could not be added to the chat:',error);}}
   // Inspiration photos added while designing go to the order line and the order's chat (phase 55).
   const inspiration=selectedItems.map((item,index)=>({line:index+1,paths:(item.inspiration||[]).slice(0,3)})).filter(entry=>entry.paths.length);
+  // "Have a reference photo?" at checkout: goes with the first line that has no photos of its own (else joins line 1)
+  const refs=window.LexcCheckoutRefs?.take()||[];
+  if(refs.length){const free=selectedItems.findIndex(item=>!(item.inspiration||[]).length);if(free>=0)inspiration.push({line:free+1,paths:refs.slice(0,3)});else inspiration[0].paths=[...inspiration[0].paths,...refs].slice(0,3);}
   if(inspiration.length){try{await LexcBackend.rpc('attach_inspiration',{p_order_id:order.id,p_items:inspiration});}catch(error){console.warn('Inspiration photos could not be added to the order:',error);}}
   const orderedItems=new Set(selectedItems);
    cart=cart.filter(item=>!orderedItems.has(item));renderCart();localStorage.removeItem('lexc_checkout_request');
