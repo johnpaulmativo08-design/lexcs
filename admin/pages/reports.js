@@ -55,7 +55,32 @@ function csvFile({title,about,details,sections,notes=[]}){
 }
 // one report, two files: CSV for any program, Excel (.xlsx) with borders, colours, widths and ₱ / date formats
 const NO_SIGN='Amounts are in pesos without the ₱ sign so spreadsheet programs can add them up.';
+// PDF: the same report as a printable A4 file (jsPDF + autoTable from cdnjs, loaded on first use)
+let pdfLib=null;
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('The PDF tool could not load. Check your connection.'));document.head.append(s);});}
+async function pdfFile(base,{title,about,details,sections,notes=[]}){
+ pdfLib??=loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(()=>loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'));
+ try{await pdfLib;}catch(err){pdfLib=null;alert(err.message);return;}
+ const txt=v=>{if(v&&typeof v==='object'&&'text' in v)v=v.text;if(typeof v==='number')return v.toLocaleString('en-PH',{minimumFractionDigits:Number.isInteger(v)?0:2,maximumFractionDigits:2});return String(v??'').replaceAll('₱','PHP ').replaceAll('’',"'").replaceAll('–','-').replaceAll('—','-').replaceAll('•','-');};
+ const doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'pt',format:'a4'}),W=doc.internal.pageSize.getWidth();
+ doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(74,44,104);doc.text("LexC's Snacktime",40,44);
+ doc.setFontSize(13);doc.setTextColor(30,20,40);doc.text(txt(title),40,64);
+ doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(110,100,125);doc.text(doc.splitTextToSize(txt(about),W-80),40,80);
+ let y=96;
+ if(details?.length){doc.autoTable({startY:y,body:details.map(r=>r.map(txt)),theme:'plain',styles:{fontSize:9,cellPadding:2},columnStyles:{0:{fontStyle:'bold',cellWidth:150}},margin:{left:40,right:40}});y=doc.lastAutoTable.finalY+14;}
+ for(const {heading,columns,rows,totals} of sections){
+  if(heading){doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(74,44,104);doc.text(txt(heading),40,y+4);y+=10;}
+  doc.autoTable({startY:y,head:[columns.map(txt)],body:rows.length?rows.map(r=>r.map(txt)):[[ 'No records for this period and these filters.' ]],foot:totals&&rows.length?[totals.map(txt)]:undefined,
+   theme:'grid',styles:{fontSize:8,cellPadding:4,lineColor:[230,222,240]},headStyles:{fillColor:[107,63,160],textColor:255},footStyles:{fillColor:[244,239,250],textColor:[40,25,55],fontStyle:'bold'},alternateRowStyles:{fillColor:[251,249,254]},margin:{left:40,right:40}});
+  y=doc.lastAutoTable.finalY+20;
+ }
+ const N=notes.filter(n=>n!==NO_SIGN);
+ if(N.length){doc.setFontSize(8);doc.setTextColor(110,100,125);doc.text(doc.splitTextToSize(N.map(n=>'- '+txt(n)).join(String.fromCharCode(10)),W-80),40,Math.min(y,doc.internal.pageSize.getHeight()-40));}
+ const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(150,140,160);doc.text('Page '+i+' of '+pages+' · made '+new Date().toLocaleString('en-PH'),40,doc.internal.pageSize.getHeight()-20);}
+ doc.save(base+'.pdf');
+}
 function exportAs(kind,base,report){
+ if(kind==='pdf')return pdfFile(base,report);
  if(kind==='xlsx')return saveFile(base+'.xlsx',xlsxBlob({...report,notes:(report.notes||[]).map(n=>n.replace(NO_SIGN,'Amounts are in Philippine pesos and stay real numbers, so you can sort, filter and add them up.'))}));
  saveFile(base+'.csv',new Blob([csvFile(report)],{type:'text/csv;charset=utf-8'}));
 }
@@ -192,7 +217,7 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
   content.innerHTML=head('How the business is doing, compared with the period before.')+tabs('overview')+
    '<div class="rep-period"><div class="rep-period-buttons" role="group" aria-label="Period">'+PERIODS.map(([k,l])=>'<button type="button" data-period="'+k+'" aria-pressed="'+(state.choice===k)+'">'+l+'</button>').join('')+'</div>'+
    (state.choice==='custom'?'<label>From <input type="date" data-from value="'+e(range[0])+'"></label><label>To <input type="date" data-to value="'+e(range[1])+'"></label>':'')+
-   '<span class="rep-range">'+e(phDate(range[0]+'T12:00:00+08:00'))+' – '+e(phDate(range[1]+'T12:00:00+08:00'))+'</span><span class="rep-export"><button class="button" type="button" data-overview-export="xlsx">'+icon('save')+' Download Excel</button></span></div>'+
+   '<span class="rep-range">'+e(phDate(range[0]+'T12:00:00+08:00'))+' – '+e(phDate(range[1]+'T12:00:00+08:00'))+'</span><span class="rep-export"><button class="button" type="button" data-overview-export="csv">'+icon('save')+' Download CSV</button><button class="button" type="button" data-overview-export="pdf">'+icon('save')+' Download PDF</button></span></div>'+
    '<div class="rep-kpis">'+kpi('Sales received',peso(received),change(received,receivedBefore),'Verified payments')+kpi('Orders',String(cur.orders.length),change(cur.orders.length,old.orders.length),'Not cancelled')+kpi('Average order',peso(avg),change(avg,avgBefore),'Order value ÷ orders')+kpi('Design add-ons',peso(addOns),change(addOns,addOnsBefore),'Extras from the designers')+kpi('Remaining balance',peso(owed),'<span class="rep-delta">Right now</span>',unpaid.length+' confirmed order'+(unpaid.length===1?'':'s')+' not fully paid')+'</div>'+
    '<section class="panel rep-card rep-money"><header class="rep-money-head"><div><h2>Money received</h2><p>Verified payments collected '+(weekly?'per week ':'per day ')+'during this period</p></div><strong>'+e(peso2(received))+'</strong></header>'+(received?chart:none('No verified payments in this period.'))+'</section>'+
    '<div class="rep-masonry">'+
@@ -245,7 +270,7 @@ async function overview(content,{orders,payments,byMethod},head,tabs){
 }
 
 function records(content,page,{orders,payments,methods,byOrder,byMethod,byAdmin},head,tabs){
- const controls='<label>From <input type="date" id="report-from"></label><label>To <input type="date" id="report-to"></label><select id="report-method" aria-label="Payment method"><option value="">All methods</option>'+methods.map(m=>'<option value="'+e(m.id)+'">'+e(m.display_name)+'</option>').join('')+'</select><select id="report-payment-status" aria-label="Payment status"><option value="">All payment statuses</option>'+Object.entries(labels).map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('')+'</select><select id="report-order-status" aria-label="Order status"><option value="">All order statuses</option>'+['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>'<option>'+s+'</option>').join('')+'</select><button class="button" id="xlsx-report" data-export="xlsx">'+icon('save')+' Download Excel</button><button class="button" id="print-report">'+icon('reports')+' Print</button>';
+ const controls='<label>From <input type="date" id="report-from"></label><label>To <input type="date" id="report-to"></label><select id="report-method" aria-label="Payment method"><option value="">All methods</option>'+methods.map(m=>'<option value="'+e(m.id)+'">'+e(m.display_name)+'</option>').join('')+'</select><select id="report-payment-status" aria-label="Payment status"><option value="">All payment statuses</option>'+Object.entries(labels).map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('')+'</select><select id="report-order-status" aria-label="Order status"><option value="">All order statuses</option>'+['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>'<option>'+s+'</option>').join('')+'</select><button class="button" id="xlsx-report" data-export="csv">'+icon('save')+' Download CSV</button><button class="button" type="button" data-export="pdf">'+icon('save')+' Download PDF</button><button class="button" id="print-report">'+icon('reports')+' Print</button>';
  content.innerHTML=head('Received revenue includes verified payment attempts only.')+tabs(page)+toolbar(controls)+'<div id="report-data"></div>';
  let table={head:[],rows:[]},sheet={columns:[],rows:[],notes:[]};
  const draw=()=>{

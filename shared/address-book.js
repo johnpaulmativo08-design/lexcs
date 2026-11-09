@@ -17,6 +17,12 @@
       const { data, error } = await window.LexcBackend.client.from('customer_addresses').select('*').order('is_default', { ascending: false }).order('updated_at', { ascending: false });
       if (error) throw error;
       list = data || []; loadedFor = u.id;
+      // the account details (Profile → Account details) are offered too, unless a saved address already matches
+      let p = window.currentProfile;
+      if (!p || p.id !== u.id) { const r = await window.LexcBackend.client.from('profiles').select('id,full_name,phone,address').eq('id', u.id).maybeSingle(); p = r.data; if (p) window.currentProfile = p; }
+      const phone = String(p?.phone || '').replace(/\D/g, '');
+      if (p?.full_name && phone && p.address && !list.some((a) => norm(a.address) === norm(p.address)))
+        list.push({ id: 'profile', recipient: p.full_name, phone, address: p.address, lat: null, lng: null, fromProfile: true });
     } catch (error) { console.info('Saved addresses not available yet:', error?.message || error); list = []; }
     return list;
   }
@@ -57,8 +63,8 @@
     sheet.className = 'vw-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'Choose an address');
     sheet.innerHTML = `<div class="vw-sheet-card co-addr-sheet"><header><h3>Address selection</h3><button type="button" class="vw-x" data-addr-close aria-label="Close">×</button></header>
       <div class="co-addr-list" role="radiogroup">${list.map((a) => `<div class="co-addr-row"><button type="button" role="radio" class="co-addr-opt" data-addr="${a.id}" aria-checked="${chosen?.id === a.id}">
-        <i aria-hidden="true"></i><span><b>${esc(a.recipient)}</b> <small>${esc(a.phone)}</small><span>${esc(a.address)}</span>${a.is_default ? '<em>Default</em>' : ''}</span></button>
-        <button type="button" class="co-addr-del" data-addr-del="${a.id}" aria-label="Remove this address">Remove</button></div>`).join('')}</div>
+        <i aria-hidden="true"></i><span><b>${esc(a.recipient)}</b> <small>${esc(a.phone)}</small><span>${esc(a.address)}</span>${a.is_default ? '<em>Default</em>' : ''}${a.fromProfile ? '<em>Account details</em>' : ''}</span></button>
+        ${a.fromProfile ? '' : `<button type="button" class="co-addr-del" data-addr-del="${a.id}" aria-label="Remove this address">Remove</button>`}</div>`).join('')}</div>
       <button type="button" class="co-addr-new" data-addr-new>+ Use a new address</button></div>`;
     document.body.append(sheet);
     requestAnimationFrame(() => sheet?.classList.add('is-open'));
@@ -78,9 +84,20 @@
     });
   }
   // checkout opened: show the card and pre-fill the default address when the form is still empty
+  // contact number boxes: digits only, at most 11 (09XXXXXXXXX)
+  document.addEventListener('input', (ev) => {
+    const el = ev.target; if (!el.matches?.('#coContact, input[type="tel"], input[name="phone"]')) return;
+    const v = el.value.replace(/\D/g, '').slice(0, 11); if (v !== el.value) el.value = v;
+  });
   async function prepare() {
     const l = await load(true);
-    if (l.length && !chosen && !$('coName')?.value && !$('coAddress')?.value) fill(l[0]); else paint();
+    if (l.length && !chosen && !$('coName')?.value && !$('coAddress')?.value) fill(l[0]);
+    else {
+      // no saved addresses: still prefill from the account details
+      const p = window.currentProfile;
+      if (p && !l.length) { if ($('coName') && !$('coName').value && p.full_name) $('coName').value = p.full_name; if ($('coContact') && !$('coContact').value && p.phone) $('coContact').value = String(p.phone).replace(/\D/g, '').slice(0, 11); window.LexcCheckoutChecks?.refresh?.(); }
+      paint();
+    }
   }
   // after an order is placed with delivery: remember this address
   async function remember() {

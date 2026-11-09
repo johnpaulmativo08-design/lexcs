@@ -171,3 +171,6 @@ button.ps-tag{cursor:pointer}.ps-tag.is-dark{background:var(--plum);color:#fff}.
 .ps-guests-row svg{width:15px;height:15px}
 .ps-guests-row input{width:58px;padding:5px 8px;border:1px solid #ddd3e8;border-radius:9px;font:inherit;text-align:center}
 .ps-guests-row small{color:#8a7d9c}
+
+/* Dashboard: today's kitchen time under the Receiving capacity calendar */
+.dash-prod{margin-top:14px}.dash-prod .ps-hero-wrap{display:block}.dash-prod .ps-head h2{font-size:1.05rem}
