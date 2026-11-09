@@ -90,7 +90,11 @@
   const fillingHex = (v = variant()) => FLAVOR_HEX[parseVariant(v).flavor.toLowerCase().split(' ')[0]] || FLAVOR_HEX.vanilla;
   const parseVariant = (v) => { const m = SIZE_RE.exec(String(v?.label || '')); return m ? { size: `${m[1]}x${m[2]}`, d: Number(m[1]), h: Number(m[2]), flavor: flavorName(m[3]) } : { size: '4x2', d: 4, h: 2, flavor: flavorName(v?.label) }; };
   const sizeText = (size) => size.replace('x', '" × ') + '"';
-  const activeVariants = (p) => (p?.product_variants || []).filter((v) => v.is_active);
+  // Mini Tiered comes in two sizes, named by every tier top to bottom: 6x4 = 4"×4" & 6"×4", 8x4 = 4"×4" & 6"×4" & 8"×4".
+  // The old single 4x4 Mini Tiered is no longer offered here.
+  const activeVariants = (p) => (p?.product_variants || []).filter((v) => v.is_active && !(cakeKind(p) === 'tiered' && parseVariant(v).d <= 4));
+  const tierText = (p, size) => { const d = Number(size.split('x')[0]); if (cakeKind(p) !== 'tiered' && cakeKind(p) !== 'tiered3') return sizeText(size);
+    const ds = d >= 8 ? [4, 6, 8] : [4, d]; return ds.map((w) => `${w}" × 4"`).join(' & '); };
   const cakeKind = (p) => p?.customization_config?.cake_shape || 'bento';
   const cakeLabel = (p) => ({ petite: 'Petite cake', tiered: 'Mini tiered cake', tiered3: 'Mini 3-tiered cake' })[cakeKind(p)] || 'Bento cake';
   // What the 3D preview draws (sizes from LexC's size guide): the size is the bottom tier; each tier above is 2" narrower
@@ -99,8 +103,8 @@
     const { d, h } = parseVariant(v);
     // the 4x4 Mini Tiered keeps its original look: two 2" tiers, the top about two-thirds as wide, built-in shapes
     if (cakeKind(p) === 'tiered' && d <= 4) return { key: 'tiered', classic: true, tiers: [{ d, h: h / 2 }, { d: Math.round(d * 2 / 3 * 4) / 4, h: h / 2 }] };
-    if (cakeKind(p) === 'tiered' && d >= 8) return { key: 'tiered3', tiers: [{ d, h }, { d: d - 2, h }, { d: d - 4, h: 2 }] };
-    if (cakeKind(p) === 'tiered') return { key: 'tiered', tiers: [{ d, h }, { d: d - 2, h: 2 }] };
+    if (cakeKind(p) === 'tiered' && d >= 8) return { key: 'tiered3', tiers: [{ d, h }, { d: d - 2, h }, { d: d - 4, h }] };
+    if (cakeKind(p) === 'tiered') return { key: 'tiered', tiers: [{ d, h }, { d: d - 2, h }] };
     if (cakeKind(p) === 'tiered3') return { key: 'tiered3', tiers: [{ d, h }, { d: d - 2, h }, { d: d - 4, h: 2 }] };
     if (cakeKind(p) === 'petite') return { key: 'petite', tiers: [{ d, h }] };
     return { key: 'bento' };
@@ -114,7 +118,7 @@
   const onLower = () => isTiered() && sub(state) !== state;
   const TIER_NAMES = { top: 'Top tier', middle: 'Middle tier', bottom: 'Bottom tier' };
   const TIER_FIELDS = new Set(['frosting_color', 'bow_color', 'drip_color', 'shell_color', 'border', 'accents']);
-  const cakeLine = (v) => { const pv = parseVariant(v); return `${sizeText(pv.size)} · ${pv.flavor}`; };
+  const cakeLine = (v) => { const pv = parseVariant(v); return `${tierText(product, pv.size)} · ${pv.flavor}`; };
 
   // Price shown immediately from the same option table; confirmed by the server quote below.
   function localExtras() {
@@ -631,10 +635,10 @@
     const ofSize = vs.filter((v) => parseVariant(v).size === cur.size);
     const cakeCards = cakes.length > 1 ? `<fieldset class="bd-group"><legend>Cake <small>Width × height</small></legend>
         <div class="bd-cards bd-cakes" role="radiogroup" aria-label="Cake">${cakes.map((p) => { const pvs = activeVariants(p), sz = [...new Set(pvs.map((v) => parseVariant(v).size))];
-          return `<button type="button" role="radio" class="bd-card" data-bd-cake="${p.id}" aria-checked="${p.id === product.id}"><strong>${esc(cakeLabel(p))}</strong><span>${esc(sz.map(sizeText).join(' · '))}</span><small>from ${money(Math.min(...pvs.map((v) => Number(v.price))))}</small></button>`; }).join('')}</div></fieldset>` : '';
-    const sizeCards = sizes.length > 1 ? `<fieldset class="bd-group"><legend>Size <small>Inches · width × height</small></legend>
+          return `<button type="button" role="radio" class="bd-card" data-bd-cake="${p.id}" aria-checked="${p.id === product.id}"><strong>${esc(cakeLabel(p))}</strong><span>${esc(cakeKind(p) === 'tiered' ? '2 or 3 tiers · 4" tall each' : sz.map(sizeText).join(' · '))}</span><small>from ${money(Math.min(...pvs.map((v) => Number(v.price))))}</small></button>`; }).join('')}</div></fieldset>` : '';
+    const sizeCards = sizes.length > 1 ? `<fieldset class="bd-group"><legend>Size <small>${cakeKind(product) === 'tiered' ? 'Each tier · width × height' : 'Inches · width × height'}</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Size">${sizes.map((size) => { const price = Math.min(...vs.filter((v) => parseVariant(v).size === size).map((v) => Number(v.price)));
-          return `<button type="button" role="radio" class="bd-card" data-bd-size="${size}" aria-checked="${size === cur.size}"><strong>${esc(sizeText(size))}</strong><span>${money(price)}</span></button>`; }).join('')}</div></fieldset>` : '';
+          return `<button type="button" role="radio" class="bd-card" data-bd-size="${size}" aria-checked="${size === cur.size}"><strong>${esc(tierText(product, size))}</strong><span>${money(price)}</span></button>`; }).join('')}</div></fieldset>` : '';
     return cakeCards + sizeCards + `<fieldset class="bd-group"><legend>Flavor <small>${sizes.length > 1 ? 'Same price' : 'Same size and weight'}</small></legend>
         <div class="bd-cards" role="radiogroup" aria-label="Flavor">${ofSize.map((v) =>
           `<button type="button" role="radio" class="bd-card bd-flavor" data-bd-set="variant_id" data-value="${v.id}" aria-checked="${v.id === state.variant_id}" style="--fill:${fillingHex(v)}"><strong><i aria-hidden="true"></i>${esc(parseVariant(v).flavor)}</strong><span>${money(v.price)}</span></button>`).join('')}</div></fieldset>`;
