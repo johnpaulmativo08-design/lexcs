@@ -31,7 +31,7 @@ const groups = [
 ];
 const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', staff: 'Staff', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
-const STAFF_PAGES = ['dashboard', 'chat', 'orders', 'bookings', 'production', 'inventory', 'profile'];   // 'staff' (Staff page) is owner-only
+const STAFF_PAGES = ['dashboard', 'bookings', 'production', 'inventory', 'profile'];   // 'staff' (Staff page) is owner-only
 // owner-only controls a cashier never sees (the database also refuses them)
 const OWNER_ONLY = ['[data-status="confirmed"]', '[data-status="cancelled"]', '[data-waive]', '#delivery-quote', '[data-extra-form]', '[data-propose-extra]',
   '[data-act="settings"]', '[data-action="archive-item"]', '[data-edit-batch]', 'a[href="#inventory/conversions"]', '[data-correct-batch]',
@@ -135,7 +135,7 @@ async function renderRoute() {
     const want = (location.hash.slice(1) || 'dashboard').split('/')[0];
     if (!STAFF_PAGES.includes(want)) { location.hash = '#dashboard'; return; }
   }
-  mountChatWidget({admin:true});
+  if (window.LexcAdminAuth.level !== 'staff') mountChatWidget({admin:true});   // no chat for cashiers
   document.querySelector('#admin-dialog')?.close();
   const route = location.hash.slice(1) || 'dashboard';
   if (route === 'gallery' || route === 'fresh-posts') { location.hash = '#updates'; return; }   // older links: posts and reviews live in Updates

@@ -114,3 +114,4 @@ html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-moti
 .staff-row.is-off .staff-state{background:#f1edf5;color:#7d6e8c}
 .staff-acts{display:flex;gap:8px}.staff-remove:hover{background:#fdecef!important;color:#b4233a!important}
 .staff-empty{color:var(--admin-muted)}
+html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-chat-ui{display:none!important}
