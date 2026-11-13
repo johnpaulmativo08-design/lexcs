@@ -55,3 +55,22 @@
 .cart-drawer .cart-checkout-btn:active:not(:disabled){transform:scale(.99)}
 .cart-drawer .cart-checkout-btn:disabled{opacity:.45;cursor:not-allowed}
 @media (prefers-reduced-motion:reduce){.cart-drawer .cart-item,.cart-drawer .cart-checkout-btn{transition:none}}
+
+/* Placed orders inside the cart: same card language as the products above */
+.cart-drawer .shopping-orders-panel{margin-top:22px;padding-top:18px;border-top:1px dashed var(--c-line)}
+.cart-drawer .shopping-orders-heading p{color:var(--c-muted);font-size:.8rem;margin-top:2px}
+.cart-drawer .customer-orders-history{color:var(--c-violet);font-weight:700;text-decoration:none;border:0;background:none;cursor:pointer;padding:0}
+.cart-drawer .customer-orders-history:hover{text-decoration:underline}
+.cart-drawer .customer-orders-list{display:grid;gap:10px;margin-top:12px}
+.cart-drawer .customer-order-card{background:#fff;border:1px solid var(--c-line);border-radius:18px;box-shadow:0 2px 8px rgba(43,21,48,.04)}
+.cart-drawer .customer-order-number{color:var(--c-ink);font-weight:800}
+.cart-drawer .customer-order-actions .btn-primary{background:var(--c-ink);border-radius:999px;text-transform:none;letter-spacing:0;font-weight:800}
+.cart-drawer .customer-order-actions .btn-primary:hover{background:var(--c-violet)}
+.cart-drawer .customer-order-actions .btn-outline{border-radius:999px;border-color:#d8c6f3;color:var(--c-violet);text-transform:none;letter-spacing:0}
+.cart-drawer .co-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:26px 20px;border:1px dashed #dccbf3;border-radius:18px;background:#fff;box-shadow:none}
+.cart-drawer .co-empty-ic{width:52px;height:52px;border-radius:16px;background:var(--c-soft);display:grid;place-items:center;margin-bottom:4px}
+.cart-drawer .co-empty-ic svg{width:26px;height:26px;stroke:var(--c-violet);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cart-drawer .co-empty h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:1rem;font-weight:800;color:var(--c-ink);margin:0}
+.cart-drawer .co-empty p{font-size:.84rem;color:var(--c-muted);margin:0 0 8px;max-width:280px;line-height:1.5}
+.cart-drawer .co-empty-btn{display:inline-flex;align-items:center;padding:9px 18px;border-radius:999px;background:var(--c-soft);color:var(--c-violet);font-weight:800;font-size:.85rem;text-decoration:none;transition:background .15s,color .15s}
+.cart-drawer .co-empty-btn:hover{background:var(--c-violet);color:#fff}
