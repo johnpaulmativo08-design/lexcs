@@ -1,16 +1,17 @@
-import { renderSettings, applyAdminSettings } from './pages/settings.js?v=4';
+import { renderSettings, applyAdminSettings } from './pages/settings.js?v=5';
 applyAdminSettings();
 import { refreshNavBadges, startNavBadges } from './nav-badges.js?v=1';
 import { renderProduction } from './pages/production.js?v=13';
-import { renderDashboard } from './pages/dashboard.js?v=20';
-import { renderProducts } from './pages/products.js?v=15';
-import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=38';
-import { renderReports } from './pages/reports.js?v=21';
+import { renderDashboard } from './pages/dashboard.js?v=21';
+import { renderProducts } from './pages/products.js?v=16';
+import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=39';
+import { renderReports } from './pages/reports.js?v=22';
 import { renderOrders } from './pages/orders.js?v=56';
 import { renderBookings } from './pages/bookings.js?v=22';
-import { renderDesignOptions } from './pages/design-options.js?v=15';
+import { renderDesignOptions } from './pages/design-options.js?v=16';
 import { renderProfile } from './pages/profile.js?v=15';
 import { renderWebsite } from './pages/website.js?v=3';
+import { renderContent } from './pages/content.js?v=1';
 import { renderVouchers } from './pages/vouchers.js?v=3';
 import { mountChat } from '../shared/chat.js?v=42';
 import { mountChatWidget } from '../shared/chat-widget.js?v=44';
@@ -20,14 +21,14 @@ import { ask } from '../shared/ask.js?v=1';
 
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
-  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['vouchers', 'Vouchers'], ['bookings', 'Reservations'],
-    // Posts and review moderation: the storefront's Updates module, shown inside Admin (pages/updates.js).
-    ['updates', 'Updates & reviews', null, 'gallery']]],
+  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['vouchers', 'Vouchers'], ['bookings', 'Reservations']]],
+  // Content (CMS): homepage, FAQs, banners, posts & reviews in one menu (pages/content.js)
+  ['Website', [['content', 'Content (CMS)', null, 'edit']]],
   ['Analytics', [['reports', 'Reports']]],
   // Edit website and FAQs live in Settings (and on the Profile card)
   ['Account', [['profile', 'Profile']]],   // Settings opens from the Profile card
 ];
-const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Edit Website', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
+const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
@@ -117,7 +118,7 @@ async function renderRoute() {
   document.querySelector('#page-title').textContent = "LexC's Snacktime";
   document.title = `${titles[current]} — LexC's Snacktime`;
   navigation.querySelectorAll('a').forEach(link => {
-    const active = link.dataset.page === current || link.dataset.page === route || (current === 'settings' && link.dataset.page === 'profile') || (current === 'production' && link.dataset.page === 'bookings') || (route === 'website' && link.dataset.page === 'website/home');
+    const active = link.dataset.page === current || (link.dataset.page === 'content' && ['website', 'updates'].includes(current)) || link.dataset.page === route || (current === 'settings' && link.dataset.page === 'profile') || (current === 'production' && link.dataset.page === 'bookings') || (route === 'website' && link.dataset.page === 'website/home');
     link.classList.toggle('active', active);
     if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
   });
@@ -146,6 +147,7 @@ async function renderRoute() {
   else if (current === 'orders') await renderOrders(content);
   else if (current === 'vouchers') await renderVouchers(content);
   else if (current === 'website') await renderWebsite(content, subpage);
+  else if (current === 'content') renderContent(content);
   else if (current === 'designs') await renderDesignOptions(content);
   else if (current === 'updates') renderUpdates(content);
   else if (current === 'profile') await renderProfile(content, subpage);

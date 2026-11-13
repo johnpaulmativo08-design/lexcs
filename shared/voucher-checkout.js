@@ -11,7 +11,7 @@
   let wallet = null, walletFor = '', loading = null;
   const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (n) => '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const short = (n) => '₱' + Number(n || 0).toLocaleString('en-PH', { maximumFractionDigits: 2 });
+  const short = (n) => money(n);
   const day = (iso) => new Date(iso).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' });
   const user = () => (typeof currentUser !== 'undefined' && currentUser) || window.currentUser || null;
   const items = () => (typeof cartSelectedItems === 'function' ? cartSelectedItems() : []).filter((c) => c.variant_id || c.variantId)

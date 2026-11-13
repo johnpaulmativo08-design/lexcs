@@ -20,7 +20,7 @@
   };
   const icon = (name, cls = '') => `<svg class="pd-icon${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${ICON[name]}</svg>`;
   const esc = (value) => authEscape(String(value ?? ''));
-  const money = (value) => checkoutMoney(value).replace('.00', '');
+  const money = (value) => checkoutMoney(value);
 
   // ---- Favorites: saved on this device only (there is no account favorites feature). ----
   const FAV_KEY = 'lexc_favorites_v1';
@@ -68,7 +68,7 @@
   };
   const catalogRow = (p) => (typeof liveCatalog !== 'undefined' ? liveCatalog.find((d) => d.id === p.product_id) : null);
   // Discounts (phase 75): sizes carry today's price, the full price (regular) and the sale, if any.
-  const saleText = (s) => s?.sale ? (s.sale.type === 'percent' ? `−${Number(s.sale.value)}%` : `₱${Number(s.sale.value).toLocaleString('en-PH')} off`) : '';
+  const saleText = (s) => s?.sale ? (s.sale.type === 'percent' ? `−${Number(s.sale.value)}%` : `${checkoutMoney(s.sale.value)} off`) : '';
   const wasPrice = (s) => s && s.regular > s.price ? `<s class="pd-was">${money(s.regular)}</s>` : '';
   const cheapest = (p) => p.sizes.reduce((a, b) => (b.price < a.price ? b : a));
   const saleTag = (p) => { const s = cheapest(p); return p.sizes.some((x) => x.sale) ? (p.sizes.length > 1 && !s.sale ? 'Sale' : saleText(s)) : ''; };

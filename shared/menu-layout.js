@@ -197,3 +197,11 @@
   const go = () => window.navigate?.('shop');
   if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true });
 })();
+// Deep link: ?faq=1 opens the FAQ page.
+(function () {
+  const params = new URLSearchParams(location.search);
+  if (!params.has('faq')) return;
+  const url = new URL(location.href); url.searchParams.delete('faq'); history.replaceState(history.state, '', url);
+  const go = () => window.navigate?.('faq');
+  if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true });
+})();

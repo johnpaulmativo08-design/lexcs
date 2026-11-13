@@ -95,3 +95,6 @@
 .st-note{margin:14px 2px 24px;color:#8a7d9c;font-size:13px}
 html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 .profile-card .button.primary{margin-top:6px}
+/* Content (CMS) hub */
+.cms-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.cms-card p{color:var(--admin-muted);margin:6px 0 14px}

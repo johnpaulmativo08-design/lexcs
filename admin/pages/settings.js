@@ -30,8 +30,8 @@ export function renderSettings(content) {
       <div class="st-grid">
         <section class="st-card st-card--site"><h2>${icon('edit')} Website</h2>
           <p>Open your shop with editing on: click any text or photo to change it, then Save draft or Publish.</p>
-          <div class="st-actions"><a class="button primary" href="../?cms=live">${icon('edit')} Edit website</a><a class="button" href="#website/faqs">${icon('info')} FAQs</a></div>
-          <small>FAQs also open from the editing bar on the site.</small></section>
+          <div class="st-actions"><a class="button primary" href="../?cms=live">${icon('edit')} Edit website</a><a class="button" href="#content">${icon('info')} All content (CMS)</a></div>
+          <small>FAQs, banners and posts are in Admin → Content (CMS).</small></section>
         <section class="st-card"><h2>${icon('eye')} Day or night</h2>
           <div class="st-sizes st-themes" role="radiogroup" aria-label="Day or night">${[['light', 'Day', '☀'], ['dark', 'Night', '☾'], ['auto', 'Auto', '◐']].map(([k, l, g]) => `<button type="button" role="radio" aria-checked="${(read('lexc_admin_theme') || 'light') === k}" data-theme="${k}"><span aria-hidden="true">${g}</span><small>${l}</small></button>`).join('')}</div>
           <p class="st-preview">Auto follows your phone or computer’s light or dark mode.</p></section>

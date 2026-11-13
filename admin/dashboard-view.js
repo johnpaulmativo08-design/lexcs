@@ -69,7 +69,7 @@ function draw(content, data, refresh) {
   const warningRows = items => items.map(i=>`<a class="ops-row" href="${i.href}"><div><strong>${e(i.name)}</strong><small>${e(i.detail)}</small></div>${statusIndicator(i.label,i.tone)}</a>`).join('');
   const hour = Number(new Date().toLocaleString('en-PH', {timeZone:'Asia/Manila', hour:'numeric', hour12:false}));
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const peso = centavos => '₱' + (centavos/100).toLocaleString('en-PH', {minimumFractionDigits:0, maximumFractionDigits:2});
+  const peso = centavos => '₱' + (centavos/100).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
   const stockAlerts = out.length + low.length + expiring.length + expired.length;
   // "Needs you now": three action tiles; calm when there is nothing to do.
   const action = (key, title, count, detail, toneName, iconName) => `<button type="button" class="dash-action${count ? ' is-'+toneName : ' is-clear'}" data-metric="${key}">

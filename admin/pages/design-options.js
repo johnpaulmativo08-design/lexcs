@@ -51,7 +51,7 @@ const heading='<header class="vx-hero dx-hero"><div class="vx-hero-text"><span c
  +'<div class="vx-hero-art dx-art" aria-hidden="true"><span class="dx-card dx-card--a"><i style="background:#f3a6c8"></i><b>Strawberry drip</b><em>+₱30</em></span><span class="dx-card dx-card--b"><i style="background:#b994ec"></i><b>Ube frosting</b><em>Free</em></span><span class="dx-card dx-card--c"><i style="background:#f6c56b"></i><b>Gold topper</b><em>+₱50</em></span><span class="vx-spark vx-spark--1"></span><span class="vx-spark vx-spark--2"></span></div></header>';
 const priceLocked=o=>o.code==='none';
 const activeLocked=o=>o.code==='none'||(o.group_key==='lettering'&&o.code==='piped')||(o.group_key==='font'&&o.code==='rounded');
-const peso=n=>'₱'+Number(n).toLocaleString('en-PH',{maximumFractionDigits:2});
+const peso=n=>'₱'+Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const remember=(k,v)=>{try{localStorage.setItem(k,v);}catch{}};
 const recall=k=>{try{return localStorage.getItem(k);}catch{return null;}};
 

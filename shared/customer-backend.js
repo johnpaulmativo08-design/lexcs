@@ -81,7 +81,7 @@ async function renderDtSlots(){
   const from=new Date(date+'T00:00:00+08:00'),to=new Date(from.getTime()+86400000);
   const slots=await LexcBackend.rpc('get_availability',{from_date:from.toISOString(),to_date:to.toISOString()});
   if(dtSelectedDate!==date)return;liveSlots=slots;
-  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>Available · Pick a receiving time (9 AM–10 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Short notice: a ₱'+rushFeeFor(date)+' rush fee is added (no fee from 5 days ahead).</span>':'')+'</div>';
+  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>Available · Pick a receiving time (9 AM–10 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Short notice: a '+checkoutMoney(rushFeeFor(date))+' rush fee is added (no fee from 5 days ahead).</span>':'')+'</div>';
   list.innerHTML=slots.length?summary+slots.map(s=>'<button type="button" class="dt-slot'+(s.remaining<=0?' full':'')+'" data-slot="'+s.id+'" '+(s.remaining<=0?'disabled':'')+'><span class="dt-slot-time">'+slotLabel(s)+'</span><span class="dt-slot-status '+(s.remaining>0?'avail':'full')+'">'+(s.remaining>0?'Available':'Fully reserved')+'</span></button>').join(''):summary+'<div class="dt-slot-summary">No receiving window is available for this date. Please choose another available date.</div>';
   list.setAttribute('aria-busy','false');
   list.querySelectorAll('[data-slot]').forEach(button=>button.onclick=()=>{
@@ -96,7 +96,7 @@ function confirmDateTime(){
  document.getElementById('coDate').value=dtSelectedDate;document.getElementById('coTime').value=dtSelectedSlot;
  document.getElementById('coDate').dataset.slotId=selectedSlotId;
  document.getElementById('coDateLabel').textContent=bookingDateLabel(dtSelectedDate);document.getElementById('coTimeLabel').textContent=dtSelectedSlot;closeDateTimeModal();
- updateCheckoutDelivery();if(isRushDate(dtSelectedDate))showToast('Short notice: a ₱'+rushFeeFor(dtSelectedDate)+' rush fee is added to your total.');
+ updateCheckoutDelivery();if(isRushDate(dtSelectedDate))showToast('Short notice: a '+checkoutMoney(rushFeeFor(dtSelectedDate))+' rush fee is added to your total.');
 }
 async function submitCheckout(){
  if(checkoutSaving)return;if(!currentUser){navigate('checkout');return;}
@@ -366,7 +366,7 @@ function syncShopBanners(){
   const row=liveCatalog.find(p=>p.slug===slide.dataset.slug),local=row&&products.find(p=>p.product_id===row.id);
   const prices=(row?.product_variants||[]).filter(v=>v.is_active).map(v=>Number(v.price));
   const price=slide.querySelector('[data-banner-price]'),button=slide.querySelector('[data-banner-open]');
-  if(price)price.textContent=prices.length?'From ₱'+Math.min(...prices).toLocaleString('en-PH'):'';
+  if(price)price.textContent=prices.length?'From '+checkoutMoney(Math.min(...prices)):'';
   if(button){button.hidden=!local;button.onclick=()=>local&&openProductDetails(local.id);}
  });
 }

@@ -28,7 +28,7 @@
   };
   const icon = (name, cls = 'ui-icon') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
   const esc = (value) => authEscape(String(value ?? ''));
-  const money = (value) => checkoutMoney(value).replace('.00', '');
+  const money = (value) => checkoutMoney(value);
   const client = () => LexcBackend.client;
   const isOwner = () => window.currentUser?.role === 'admin';
   const $ = (sel, root = document) => root.querySelector(sel);
