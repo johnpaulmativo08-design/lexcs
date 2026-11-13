@@ -427,3 +427,5 @@ details.stock-order__group>ul li:last-child{border-bottom:0}
 .stock-focus__extras,.stock-focus__activity,.stock-focus__list{padding:16px 18px}
 .stock-focus__activity .text-button{margin-top:10px}
 @media (max-width:900px){.stock-focus__grid{grid-template-columns:1fr}.stock-focus .stock-drawer__stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stock-focus__batches{overflow-x:auto}}
+.stock-focus .stock-back{background:linear-gradient(135deg,#8b5cf6,#6c3fd1);color:#fff;border:0;border-radius:999px;padding:0 18px;min-height:40px;font-weight:700;box-shadow:0 4px 12px rgba(108,63,209,.28)}
+.stock-focus .stock-back:hover{filter:brightness(1.07)}.stock-focus .stock-back:focus-visible{outline:3px solid #c9b5ee;outline-offset:2px}
