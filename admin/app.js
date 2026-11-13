@@ -31,7 +31,7 @@ const groups = [
 ];
 const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', staff: 'Staff', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
-const STAFF_PAGES = ['dashboard', 'bookings', 'production', 'inventory', 'profile'];   // 'staff' (Staff page) is owner-only
+const STAFF_PAGES = ['dashboard', 'orders', 'bookings', 'production', 'inventory', 'profile'];   // 'staff' (Staff page) is owner-only
 // owner-only controls a cashier never sees (the database also refuses them)
 const OWNER_ONLY = ['[data-status="confirmed"]', '[data-status="cancelled"]', '[data-waive]', '#delivery-quote', '[data-extra-form]', '[data-propose-extra]',
   '[data-act="settings"]', '[data-action="archive-item"]', '[data-edit-batch]', 'a[href="#inventory/conversions"]', '[data-correct-batch]',
