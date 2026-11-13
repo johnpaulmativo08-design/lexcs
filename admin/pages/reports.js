@@ -62,7 +62,7 @@ let pdfLogo=null;
 // the logo as a data URL for jsPDF (null if it cannot load: the header still prints without it)
 const logoData=()=>pdfLogo??=fetch('../assets/brand/favicon-192.png').then(r=>r.ok?r.blob():null).then(b=>b&&new Promise(ok=>{const f=new FileReader();f.onload=()=>ok(f.result);f.onerror=()=>ok(null);f.readAsDataURL(b);})).catch(()=>null);
 // A4 PDF: logo + shop name + report title + period in the header of every page, tables with money right-aligned to
-// two decimals (PHP 1,234.00), a bold totals row, and "Page X of Y" at the bottom. Portrait unless the table is wide.
+// two decimals (PHP 1,234.00), a bold totals row, and "Page X of Y" at the bottom. Always A4 portrait; wide tables use smaller text.
 async function pdfFile(base,{title,about,details,sections,notes=[]}){
  pdfLib??=loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(()=>loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'));
  try{await pdfLib;}catch(err){pdfLib=null;alert(err.message);return;}
@@ -73,7 +73,7 @@ async function pdfFile(base,{title,about,details,sections,notes=[]}){
  const php=v=>{if(v&&typeof v==='object'&&'text' in v)v=v.text;if(v===''||v===null||v===undefined)return '';const n=Number(String(v).replace(/[₱,\s]|PHP/g,''));return Number.isFinite(n)?'PHP '+n.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}):clean(v);};
  const isNumCol=(rows,i)=>rows.length&&rows.every(r=>r[i]===''||r[i]===null||r[i]===undefined||typeof r[i]==='number'||/^-?[\d,]+(\.\d+)?$/.test(String(r[i])));
  const widest=Math.max(0,...sections.map(sec=>sec.columns.length));
- const doc=new window.jspdf.jsPDF({orientation:widest>7?'landscape':'portrait',unit:'pt',format:'a4'});
+ const doc=new window.jspdf.jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
  const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=36,TOP=92;
  const period=(details||[]).find(r=>r[0]==='Period')?.[1]||'All dates';
  const made=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date());
@@ -99,7 +99,7 @@ async function pdfFile(base,{title,about,details,sections,notes=[]}){
   const colStyles={};columns.forEach((_,i)=>{if(money[i]||num[i])colStyles[i]={halign:'right',cellWidth:money[i]?'wrap':'auto'};});
   doc.autoTable({startY:y,head:[columns.map(txt)],body:rows.length?rows.map(r=>r.map((v,i)=>cell(v,i,r))):[[{content:'No records for this period and these filters.',colSpan:columns.length,styles:{halign:'center',textColor:[120,110,130]}}]],
    foot:totals&&rows.length?[totals.map((v,i)=>money[i]?php(v):txt(v))]:undefined,showFoot:'lastPage',
-   theme:'grid',styles:{font:'helvetica',fontSize:8,cellPadding:{top:5,bottom:5,left:5,right:5},lineColor:[230,222,240],lineWidth:.5,textColor:[40,30,55],valign:'middle',overflow:'linebreak'},
+   theme:'grid',styles:{font:'helvetica',fontSize:widest>9?6.3:widest>7?7:8,cellPadding:widest>9?{top:4,bottom:4,left:2.5,right:2.5}:{top:5,bottom:5,left:4,right:4},lineColor:[230,222,240],lineWidth:.5,textColor:[40,30,55],valign:'middle',overflow:'linebreak'},
    headStyles:{fillColor:[107,63,160],textColor:255,fontStyle:'bold',halign:'left'},footStyles:{fillColor:[241,234,251],textColor:[40,25,55],fontStyle:'bold'},
    alternateRowStyles:{fillColor:[251,249,254]},columnStyles:colStyles,margin:{left:M,right:M,top:TOP,bottom:44},
    didParseCell:d=>{if((d.section==='head'||d.section==='foot')&&(money[d.column.index]||num[d.column.index]))d.cell.styles.halign='right';},didDrawPage:header});
