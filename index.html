@@ -2517,7 +2517,7 @@ function updateNavAuth() {
   const name = currentUser.name || currentUser.email;
   area.innerHTML = '<details class="nav-user-chip"><summary aria-label="Account menu"><div class="user-avatar">' + authEscape(name.slice(0,2).toUpperCase()) +
     '</div><span>' + authEscape(name.split(' ')[0]) + '</span></summary><div class="user-dropdown">' +
-    (currentUser.role === 'admin' ? '<a href="admin/">Admin Dashboard</a>' : '') +
+    (currentUser.role === 'admin' ? '<a href="admin/">Admin Dashboard</a>' : currentUser.role === 'staff' ? '<a href="admin/">Cashier dashboard</a>' : '') +
     '<a href="#" onclick="event.preventDefault();this.closest(&quot;details&quot;).open=false;navigate(&quot;profile&quot;)">My profile</a><a href="#" onclick="event.preventDefault();handleLogout()">Log Out</a></div></details>';
 }
 async function completeCustomerLogin(user) {
@@ -2528,7 +2528,7 @@ async function completeCustomerLogin(user) {
   checkoutAuthPending = false;
   sessionStorage.removeItem('lexc_checkout_pending');
   if (checkout && cartSelectedItems().length) navigate('checkout');
-  else if (user.role === 'admin') location.href = 'admin/';
+  else if (user.role === 'admin' || user.role === 'staff') location.href = 'admin/';
   else { navigate('home'); openOrderFromReturnLink(); }
 }
 async function handleLogin() {
@@ -2890,9 +2890,10 @@ loadIdentity().then(async user => {
   if (new URLSearchParams(location.search).has('login')) {
     const u = new URL(location.href); u.searchParams.delete('login'); history.replaceState(history.state, '', u);
     if (!user) navigate('login');
-    else if (user.role === 'admin') { location.replace('admin/'); return; }
+    else if (user.role === 'admin' || user.role === 'staff') { location.replace('admin/'); return; }
     else showToast('This account does not have admin access.');
   }
+  try { if (sessionStorage.getItem('lexc_staff_off')) { sessionStorage.removeItem('lexc_staff_off'); showToast('Your cashier access is switched off. Ask the owner to turn it back on.'); } } catch {}
   updateNavAuth();
   // back from the confirmation email link
   if (new URLSearchParams(location.search).has('confirmed')) { const u = new URL(location.href); u.searchParams.delete('confirmed'); history.replaceState(history.state, '', u); if (user) showToast('Your email is confirmed. Welcome to LexC’s Snacktime!'); }

@@ -130,7 +130,7 @@ export async function renderOrders(content){
     +(items.length>4?'<p class="ox-more">+'+(items.length-4)+' more</p>':'')
     +'<p class="ox-total"><span>Total</span><b>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</b></p>'
     +'<p class="ox-pay">'+(o.status==='pending'&&o.payment_status==='unpaid'?statusIndicator('Payment opens after confirm','neutral'):statusIndicator(readableStatus(o.payment_status),payTone(o.payment_status)))+'</p>'
-    +'<footer><button type="button" class="ox-btn" data-order="'+e(o.id)+'">See details</button><button type="button" class="ox-btn is-main" data-order="'+e(o.id)+'">'+e(cta)+'</button></footer></article>';};
+    +'<footer>'+(cta==='See details'?'':'<button type="button" class="ox-btn" data-order="'+e(o.id)+'">See details</button>')+'<button type="button" class="ox-btn is-main" data-order="'+e(o.id)+'">'+e(cta)+'</button></footer></article>';};
   const draw=()=>{
    const search=content.querySelector('.search').value.toLowerCase().trim(),hit=o=>!search||JSON.stringify([o.order_number,o.customer_name]).toLowerCase().includes(search);
    content.querySelector('[data-day-label]').textContent=dayLabel(day);content.querySelector('[data-day-pick]').value=day;
