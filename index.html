@@ -735,7 +735,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classList.add('admin-embed','design-viewer');</script>
 <link rel="stylesheet" href="shared/theme/appearance.css?v=19"><link rel="stylesheet" href="shared/theme/site-text.css?v=2"><script src="shared/appearance.js?v=14" data-page="site"></script>
 <link rel="stylesheet" href="shared/motion-plus.css?v=1">
-<link rel="stylesheet" href="shared/cart.css?v=4">
+<link rel="stylesheet" href="shared/cart.css?v=5">
 </head>
 <body>
 
@@ -2216,14 +2216,16 @@ function renderCart() {
       <div class="cart-item-info">
         <div class="cart-item-top"><div class="cart-item-name">${authEscape(c.name)}</div>
           <div class="cart-item-prices">${Number(c.regular_price) > Number(c.price) ? `<s class="cart-item-was">${checkoutMoney(c.regular_price * c.qty)}</s>` : ''}<div class="cart-item-price">${checkoutMoney(c.price * c.qty)}</div></div></div>
-        <div class="cart-item-sub">${authEscape(c.sizeLabel)}${c.qty > 1 ? ` · ${checkoutMoney(c.price)} each` : ''}</div>
-        ${c.customization?.designer === 'bento' ? `<button type="button" class="cart-item-edit" onclick="LexcBento.edit(${i})">Edit design</button>` : c.customization?.designer === 'cupcake' ? `<button type="button" class="cart-item-edit" onclick="LexcCupcake.edit(${i})">Edit design</button>` : c.customization?.designer === 'donut' ? `<button type="button" class="cart-item-edit" onclick="LexcDonut.edit(${i})">Edit design</button>` : c.customization?.designer === 'cakepop' ? `<button type="button" class="cart-item-edit" onclick="LexcCakePop.edit(${i})">Edit design</button>` : ''}
-        <div class="cart-item-bottom">
+        <div class="cart-item-mid">
+  <div class="cart-item-sub">${authEscape(c.sizeLabel)}${c.qty > 1 ? ` · ${checkoutMoney(c.price)} each` : ''}</div>
         <div class="cart-qty-ctrl">
           <button class="qty-btn" type="button" aria-label="Decrease ${authEscape(c.name)} quantity" onclick="changeQty(${i},-1)">−</button>
           <input class="qty-num" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${c.qty}" aria-label="${authEscape(c.name)} quantity" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()" onchange="setCartQty(${i},this.value)">
           <button class="qty-btn" type="button" aria-label="Increase ${authEscape(c.name)} quantity" onclick="changeQty(${i},1)">+</button>
         </div>
+        </div>
+        ${c.customization?.designer === 'bento' ? `<button type="button" class="cart-item-edit" onclick="LexcBento.edit(${i})">Edit design</button>` : c.customization?.designer === 'cupcake' ? `<button type="button" class="cart-item-edit" onclick="LexcCupcake.edit(${i})">Edit design</button>` : c.customization?.designer === 'donut' ? `<button type="button" class="cart-item-edit" onclick="LexcDonut.edit(${i})">Edit design</button>` : c.customization?.designer === 'cakepop' ? `<button type="button" class="cart-item-edit" onclick="LexcCakePop.edit(${i})">Edit design</button>` : ''}
+        <div class="cart-item-bottom">
           <button class="cart-item-remove" type="button" onclick="removeCartItem(${i})" aria-label="Remove ${authEscape(c.name)}" title="Remove"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span>Remove</span></button>
         </div>
       </div>

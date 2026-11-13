@@ -81,3 +81,8 @@
 .cart-drawer .cart-qty-ctrl .qty-btn:hover{background:#f5effd!important;color:#5a2fb8!important}
 .cart-drawer .cart-qty-ctrl .qty-num{width:28px!important;height:26px!important;min-width:0!important;padding:0!important;border:0!important;border-left:1px solid #eee6f6!important;border-right:1px solid #eee6f6!important;border-radius:0!important;font-size:.82rem!important;font-weight:700!important;background:#fff!important;box-shadow:none!important}
 .cart-drawer .cart-item-remove{padding:4px 6px!important;font-size:.75rem!important}
+/* quantity beside the size line; Remove alone at the bottom right */
+.cart-drawer .cart-item-mid{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px}
+.cart-drawer .cart-item-mid .cart-item-sub{min-width:0}
+.cart-drawer .cart-item-mid .cart-qty-ctrl{flex:none}
+.cart-drawer .cart-item-bottom{justify-content:flex-end;margin-top:4px}
