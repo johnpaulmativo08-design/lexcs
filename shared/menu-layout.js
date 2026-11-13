@@ -205,3 +205,28 @@
   const go = () => window.navigate?.('faq');
   if (document.readyState === 'complete') go(); else addEventListener('load', go, { once: true });
 })();
+// FAQ page search: shows only the questions that contain every typed word (question or answer), highlights them,
+// and opens the single match. Works on the built-in list and on the FAQs loaded from Admin → Content (CMS).
+(function () {
+  const esc = (t) => t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const safe = (w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  document.addEventListener('input', (ev) => {
+    if (ev.target.id !== 'faqSearch') return;
+    const words = ev.target.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const items = [...document.querySelectorAll('#page-faq .faq-item')];
+    let shown = 0;
+    items.forEach((item) => {
+      const q = item.querySelector('.faq-question'), a = item.querySelector('.faq-answer');
+      let label = q.querySelector('.faq-q-text');
+      if (!label) { label = document.createElement('span'); label.className = 'faq-q-text'; label.textContent = q.firstChild.textContent.trim(); q.firstChild.replaceWith(label); }
+      label.dataset.text ??= label.textContent;
+      const hit = words.every((w) => (label.dataset.text + ' ' + a.textContent).toLowerCase().includes(w));
+      item.hidden = !hit; if (hit) shown++;
+      let html = esc(label.dataset.text);
+      words.forEach((w) => { html = html.replace(new RegExp('(' + safe(esc(w)) + ')', 'gi'), '<mark>$1</mark>'); });
+      label.innerHTML = html;
+    });
+    document.getElementById('faqEmpty').hidden = shown > 0;
+    if (shown === 1 && words.length) { const one = items.find((i) => !i.hidden); if (!one.querySelector('.faq-answer.open')) one.querySelector('.faq-question').click(); }
+  });
+})();

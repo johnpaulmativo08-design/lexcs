@@ -33,28 +33,33 @@
     try { updateCheckoutDelivery(); } catch { /* totals refresh on the next change */ }
   }
 
-  function strip(where) {
-    const r = get();
-    return r
-      ? `<div class="rsv-strip is-set" data-rsv="${where}">${CAL}<span><small>Your reservation</small><b>${esc(dayText(r.date))} · ${esc(r.label)}</b></span><button type="button" data-rsv-pick>Change</button></div>`
-      : `<div class="rsv-strip" data-rsv="${where}">${CAL}<span><small>Step 1</small><b>Pick your date &amp; time first</b></span><button type="button" data-rsv-pick class="is-main">See open slots</button></div>`;
+  // the cart's sequence: 1 date & time → 2 items → 3 checkout
+  function steps() {
+    const r = get(), n = (typeof cartSelectedItems === 'function' ? cartSelectedItems().length : 0);
+    const step = (k, cls, title, body) => `<li class="rsv-step ${cls}"><i aria-hidden="true">${cls === 'is-done' ? '✓' : k}</i><div><b>${title}</b>${body}</div></li>`;
+    return `<ol class="rsv-steps" aria-label="Order steps">
+      ${step(1, r ? 'is-done' : 'is-now', 'Date &amp; time', r ? `<span>${CAL}${esc(dayText(r.date))} · ${esc(r.label)}</span><button type="button" data-rsv-pick class="rsv-link">Change</button>` : `<span>Pick when you’ll receive your order.</span><button type="button" data-rsv-pick class="rsv-go">See open slots</button>`)}
+      ${step(2, !r ? '' : n ? 'is-done' : 'is-now', 'Choose items', `<span>${n ? n + ' item' + (n === 1 ? '' : 's') + ' selected below' : 'Tick the items to order below.'}</span>`)}
+      ${step(3, r && n ? 'is-now' : '', 'Checkout', '<span>Contact, delivery and payment.</span>')}
+    </ol>`;
   }
   function paint() {
-    const hero = document.getElementById('heroReservation'); if (hero) hero.innerHTML = get() ? strip('home') : '';
-    const cart = document.getElementById('cartReservation'); if (cart) cart.innerHTML = strip('cart');
+    const cart = document.getElementById('cartReservation'); if (cart) cart.innerHTML = steps();
   }
   document.addEventListener('click', (ev) => {
     if (ev.target.closest('[data-rsv-pick]')) { ev.preventDefault(); pick(); }
   });
 
   // Checkout from the cart: no reservation yet → the calendar opens first, then checkout
+  const baseRender = window.renderCart;
+  if (baseRender) window.renderCart = function () { const out = baseRender.apply(this, arguments); paint(); return out; };
   const baseCheckout = window.goToCheckout;
   window.goToCheckout = function () {
     if (cart.length && cartSelectedItems().length && !get() && !document.getElementById('coDate')?.value) { closeCart(); pick(() => baseCheckout()); showToast('Pick your date and time first.'); return; }
     return baseCheckout();
   };
   const baseNavigate = window.navigate;
-  window.navigate = function (page, anchor) { const out = baseNavigate(page, anchor); if (page === 'checkout') apply(); if (page === 'home') paint(); return out; };
+  window.navigate = function (page, anchor) { const out = baseNavigate(page, anchor); if (page === 'checkout') apply(); return out; };
 
   window.LexcReservation = { get, pick, apply, clear: () => save(null) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint); else paint();
