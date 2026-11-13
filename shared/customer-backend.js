@@ -81,7 +81,7 @@ async function renderDtSlots(){
   const from=new Date(date+'T00:00:00+08:00'),to=new Date(from.getTime()+86400000);
   const slots=await LexcBackend.rpc('get_availability',{from_date:from.toISOString(),to_date:to.toISOString()});
   if(dtSelectedDate!==date)return;liveSlots=slots;
-  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>Available · Pick a receiving time (9 AM–10 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Short notice: a ₱'+rushFeeFor(date)+' rush fee is added (no fee from 5 days ahead).</span>':'')+'</div>';
+  const summary='<div class="dt-slot-summary"><strong>'+bookingDateLabel(date)+'</strong>Available · Pick a receiving time (9 AM–10 PM).'+(isRushDate(date)?'<span class="dt-rush">⚡ Short notice: a '+checkoutMoney(rushFeeFor(date))+' rush fee is added (no fee from 5 days ahead).</span>':'')+'</div>';
   list.innerHTML=slots.length?summary+slots.map(s=>'<button type="button" class="dt-slot'+(s.remaining<=0?' full':'')+'" data-slot="'+s.id+'" '+(s.remaining<=0?'disabled':'')+'><span class="dt-slot-time">'+slotLabel(s)+'</span><span class="dt-slot-status '+(s.remaining>0?'avail':'full')+'">'+(s.remaining>0?'Available':'Fully reserved')+'</span></button>').join(''):summary+'<div class="dt-slot-summary">No receiving window is available for this date. Please choose another available date.</div>';
   list.setAttribute('aria-busy','false');
   list.querySelectorAll('[data-slot]').forEach(button=>button.onclick=()=>{
@@ -96,7 +96,7 @@ function confirmDateTime(){
  document.getElementById('coDate').value=dtSelectedDate;document.getElementById('coTime').value=dtSelectedSlot;
  document.getElementById('coDate').dataset.slotId=selectedSlotId;
  document.getElementById('coDateLabel').textContent=bookingDateLabel(dtSelectedDate);document.getElementById('coTimeLabel').textContent=dtSelectedSlot;closeDateTimeModal();
- updateCheckoutDelivery();if(isRushDate(dtSelectedDate))showToast('Short notice: a ₱'+rushFeeFor(dtSelectedDate)+' rush fee is added to your total.');
+ updateCheckoutDelivery();if(isRushDate(dtSelectedDate))showToast('Short notice: a '+checkoutMoney(rushFeeFor(dtSelectedDate))+' rush fee is added to your total.');
 }
 async function submitCheckout(){
  if(checkoutSaving)return;if(!currentUser){navigate('checkout');return;}
@@ -237,7 +237,7 @@ async function cancelMyOrder(orderId,orderNumber,paid=0){   // phase 109: reason
     '<div class="co-pay is-'+payState+'"><span class="co-pay-dot" aria-hidden="true"></span><div><strong>'+authEscape(o.status==='cancelled'?'Order cancelled':waiting?'Waiting for LexC’s to confirm':paymentLabel(o.payment_status))+'</strong><span>'+authEscape(waiting?'You can pay once your order is confirmed':method)+'</span></div></div>'+
     '<div class="customer-order-actions"><a class="btn-primary" href="payment/index.html?order='+encodeURIComponent(o.id)+'">'+(o.payment_status==='rejected'?'Resubmit payment':payable?(o.payment_status==='partially_paid'?'Pay remaining balance':'Pay now'):'View order & payment')+'</a><a class="btn-outline" href="chat/?order='+encodeURIComponent(o.id)+'">'+icon('M4 5h16v11H8l-4 4z')+'Message LexC</a>'+(canCancel?'<button class="customer-order-cancel" type="button" data-cancel-order="'+authEscape(o.id)+'" data-order-number="'+authEscape(o.order_number)+'" data-order-paid="'+Number(o.amount_paid||0)+'">Cancel order</button>':'')+(canReview(o)?'<button class="btn-outline customer-review-cta" data-review="'+authEscape(o.id)+'">★ Rate your treats</button>':'')+'</div>'+
     '<details class="customer-order-more"><summary>Order details</summary>'+details+'</details></article>';
-  }).join(''):'<div class="customer-orders-state"><h2>'+(!mine.length?'No orders yet':'No active orders')+'</h2><p>'+(!mine.length?'Your reservations and payments will appear here after checkout.':'Cancelled orders are hidden. Use “Show cancelled” to see them.')+'</p><a class="btn-primary" href="#" onclick="event.preventDefault();navigate(\'shop\')">Browse products</a></div>';
+  }).join(''):'<div class="customer-orders-state co-empty"><span class="co-empty-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></span><h2>'+(!mine.length?'No orders yet':'No active orders')+'</h2><p>'+(!mine.length?'Once you check out, your order, its status and payments show up here.':'Cancelled orders are hidden. Use “Show cancelled” to see them.')+'</p>'+(!mine.length?'<a class="co-empty-btn" href="#" onclick="event.preventDefault();closeCart();navigate(\'shop\')">Browse the menu →</a>':'')+'</div>';
   const focused=[...container.querySelectorAll('[data-order-id]')].find(item=>item.dataset.orderId===focusOrderId);
   focused?.scrollIntoView({block:'center'});
   container.querySelectorAll('[data-review]').forEach(button => button.onclick = () => showReviewForm(button.dataset.review));
@@ -366,7 +366,7 @@ function syncShopBanners(){
   const row=liveCatalog.find(p=>p.slug===slide.dataset.slug),local=row&&products.find(p=>p.product_id===row.id);
   const prices=(row?.product_variants||[]).filter(v=>v.is_active).map(v=>Number(v.price));
   const price=slide.querySelector('[data-banner-price]'),button=slide.querySelector('[data-banner-open]');
-  if(price)price.textContent=prices.length?'From ₱'+Math.min(...prices).toLocaleString('en-PH'):'';
+  if(price)price.textContent=prices.length?'From '+checkoutMoney(Math.min(...prices)):'';
   if(button){button.hidden=!local;button.onclick=()=>local&&openProductDetails(local.id);}
  });
 }

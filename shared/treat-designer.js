@@ -23,7 +23,7 @@ function makeTreatDesigner(K) {
   const LETTER_MAX = { letters: 40, plaque: 14 }, LETTER_OK = /[^A-Za-z0-9 !?&'.,♥-]/g;
   const PRESETS = K.presets;
   const esc = (v) => authEscape(String(v ?? ''));
-  const money = (v) => checkoutMoney(v).replace('.00', '');
+  const money = (v) => checkoutMoney(v);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let root = null, products = {}, optionsBy = {}, state = null, step = 'box', past = [], future = [], editIndex = null;

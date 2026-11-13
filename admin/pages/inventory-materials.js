@@ -156,7 +156,7 @@ async function mountItemDetail(body, itemId, { onChange, isLive = () => body.isC
         <div class="stock-stat stock-stat--primary"><span>Current stock</span><strong>${qty(item.available, item.unit)}</strong></div>
         <div class="stock-stat"><span>Minimum stock</span><strong>${qty(item.min_stock, item.unit)}</strong></div>
         <div class="stock-stat"><span>Next expiry</span><strong>${item.next_expiry ? dateOnly(item.next_expiry) : '—'}</strong></div>
-        <div class="stock-stat"><span>Unit cost (est.)</span><strong>${item.estimated_unit_cost == null ? '—' : `₱${Number(item.estimated_unit_cost).toLocaleString('en-PH', { maximumFractionDigits: 4 })}/${e(item.unit)}`}</strong></div>
+        <div class="stock-stat"><span>Unit cost (est.)</span><strong>${item.estimated_unit_cost == null ? '—' : `₱${Number(item.estimated_unit_cost).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}/${e(item.unit)}`}</strong></div>
       </div>`;
     const actions = `<div class="stock-drawer__actions">
         <button class="button button--primary" type="button" data-act="restock">${icon('plus')} Add stock</button>

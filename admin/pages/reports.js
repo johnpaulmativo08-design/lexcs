@@ -10,7 +10,7 @@ const dateKey=value=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',yea
 const addDays=(key,n)=>new Date(Date.parse(key+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
 const daysBetween=(a,b)=>Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);
 const total=values=>values.reduce((sum,value)=>sum+Math.round(Number(value||0)*100),0)/100;
-const peso=v=>'₱'+Number(v||0).toLocaleString('en-PH',{minimumFractionDigits:0,maximumFractionDigits:2});
+const peso=v=>'₱'+Number(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const labels={awaiting_payment:'Awaiting Payment',verification_pending:'Verification Pending',paid:'Paid',rejected:'Rejected',cancelled:'Cancelled'};
 const WEEKDAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const PERIODS=[['week','This week'],['month','This month'],['last-month','Last month'],['90','Last 90 days'],['custom','Custom']];
@@ -58,25 +58,57 @@ const NO_SIGN='Amounts are in pesos without the ₱ sign so spreadsheet programs
 // PDF: the same report as a printable A4 file (jsPDF + autoTable from cdnjs, loaded on first use)
 let pdfLib=null;
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('The PDF tool could not load. Check your connection.'));document.head.append(s);});}
+let pdfLogo=null;
+// the logo as a data URL for jsPDF (null if it cannot load: the header still prints without it)
+const logoData=()=>pdfLogo??=fetch('../assets/brand/favicon-192.png').then(r=>r.ok?r.blob():null).then(b=>b&&new Promise(ok=>{const f=new FileReader();f.onload=()=>ok(f.result);f.onerror=()=>ok(null);f.readAsDataURL(b);})).catch(()=>null);
+// A4 PDF: logo + shop name + report title + period in the header of every page, tables with money right-aligned to
+// two decimals (PHP 1,234.00), a bold totals row, and "Page X of Y" at the bottom. Always A4 portrait; wide tables use smaller text.
 async function pdfFile(base,{title,about,details,sections,notes=[]}){
  pdfLib??=loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(()=>loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'));
  try{await pdfLib;}catch(err){pdfLib=null;alert(err.message);return;}
- const txt=v=>{if(v&&typeof v==='object'&&'text' in v)v=v.text;if(typeof v==='number')return v.toLocaleString('en-PH',{minimumFractionDigits:Number.isInteger(v)?0:2,maximumFractionDigits:2});return String(v??'').replaceAll('₱','PHP ').replaceAll('’',"'").replaceAll('–','-').replaceAll('—','-').replaceAll('•','-');};
- const doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'pt',format:'a4'}),W=doc.internal.pageSize.getWidth();
- doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(74,44,104);doc.text("LexC's Snacktime",40,44);
- doc.setFontSize(13);doc.setTextColor(30,20,40);doc.text(txt(title),40,64);
- doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(110,100,125);doc.text(doc.splitTextToSize(txt(about),W-80),40,80);
- let y=96;
- if(details?.length){doc.autoTable({startY:y,body:details.map(r=>r.map(txt)),theme:'plain',styles:{fontSize:9,cellPadding:2},columnStyles:{0:{fontStyle:'bold',cellWidth:150}},margin:{left:40,right:40}});y=doc.lastAutoTable.finalY+14;}
+ const logo=await logoData();
+ const clean=v=>String(v??'').replaceAll('₱','PHP ').replaceAll('’',"'").replaceAll('‘',"'").replaceAll('–','-').replaceAll('—','-').replaceAll('•','-').replaceAll('·','-');
+ const txt=v=>{if(v&&typeof v==='object'&&'text' in v)v=v.text;if(typeof v==='number')return v.toLocaleString('en-PH');return clean(v);};
+ const isMoneyCol=h=>/\(PHP\)|amount|total|paid|balance|received|revenue|price|fee/i.test(String(h));
+ const php=v=>{if(v&&typeof v==='object'&&'text' in v)v=v.text;if(v===''||v===null||v===undefined)return '';const n=Number(String(v).replace(/[₱,\s]|PHP/g,''));return Number.isFinite(n)?'PHP '+n.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}):clean(v);};
+ const isNumCol=(rows,i)=>rows.length&&rows.every(r=>r[i]===''||r[i]===null||r[i]===undefined||typeof r[i]==='number'||/^-?[\d,]+(\.\d+)?$/.test(String(r[i])));
+ const widest=Math.max(0,...sections.map(sec=>sec.columns.length));
+ const doc=new window.jspdf.jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+ const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=36,TOP=92;
+ const period=(details||[]).find(r=>r[0]==='Period')?.[1]||'All dates';
+ const made=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date());
+ const header=()=>{
+  doc.setFillColor(107,63,160);doc.rect(0,0,W,4,'F');
+  let x=M;if(logo){try{doc.addImage(logo,'PNG',M,18,44,44);x=M+54;}catch{}}
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(107,63,160);doc.text("LEXC'S SNACKTIME",x,30);
+  doc.setFontSize(16);doc.setTextColor(30,20,40);doc.text(txt(title),x,49);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(110,100,125);doc.text('Dau, Mabalacat City, Pampanga',x,62);
+  doc.setFont('helvetica','bold');doc.setTextColor(30,20,40);doc.text('Period: '+txt(period),W-M,30,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setTextColor(110,100,125);doc.text('Generated '+txt(made),W-M,44,{align:'right'});
+  doc.setDrawColor(226,216,240);doc.setLineWidth(.8);doc.line(M,TOP-14,W-M,TOP-14);
+ };
+ header();
+ let y=TOP;
+ doc.setFontSize(9);doc.setTextColor(90,80,105);const lines=doc.splitTextToSize(txt(about),W-2*M);doc.text(lines,M,y);y+=lines.length*11+6;
+ const info=(details||[]).filter(r=>!['Period','Generated','Report'].includes(r[0]));
+ if(info.length){doc.autoTable({startY:y,body:info.map(r=>r.map(txt)),theme:'plain',styles:{fontSize:8.5,cellPadding:{top:1.5,bottom:1.5,left:0,right:6},textColor:[60,50,75]},columnStyles:{0:{fontStyle:'bold',cellWidth:110}},margin:{left:M,right:M,top:TOP},tableWidth:Math.min(360,W-2*M),didDrawPage:header});y=doc.lastAutoTable.finalY+14;}
  for(const {heading,columns,rows,totals} of sections){
-  if(heading){doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(74,44,104);doc.text(txt(heading),40,y+4);y+=10;}
-  doc.autoTable({startY:y,head:[columns.map(txt)],body:rows.length?rows.map(r=>r.map(txt)):[[ 'No records for this period and these filters.' ]],foot:totals&&rows.length?[totals.map(txt)]:undefined,
-   theme:'grid',styles:{fontSize:8,cellPadding:4,lineColor:[230,222,240]},headStyles:{fillColor:[107,63,160],textColor:255},footStyles:{fillColor:[244,239,250],textColor:[40,25,55],fontStyle:'bold'},alternateRowStyles:{fillColor:[251,249,254]},margin:{left:40,right:40}});
+  const money=columns.map(isMoneyCol),num=columns.map((_,i)=>!money[i]&&isNumCol(rows,i));
+  const cell=(v,i,row)=>money[i]||(i>0&&/\(PHP\)/.test(String(row?.[0]??''))&&/^-?[\d,]+(\.\d+)?$/.test(String(v)))?php(v):txt(v);
+  if(heading){if(y>H-90){doc.addPage();header();y=TOP;}doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(74,44,104);doc.text(txt(heading),M,y+4);y+=12;}
+  const colStyles={};columns.forEach((_,i)=>{if(money[i]||num[i])colStyles[i]={halign:'right',cellWidth:money[i]?'wrap':'auto'};});
+  doc.autoTable({startY:y,head:[columns.map(txt)],body:rows.length?rows.map(r=>r.map((v,i)=>cell(v,i,r))):[[{content:'No records for this period and these filters.',colSpan:columns.length,styles:{halign:'center',textColor:[120,110,130]}}]],
+   foot:totals&&rows.length?[totals.map((v,i)=>money[i]?php(v):txt(v))]:undefined,showFoot:'lastPage',
+   theme:'grid',styles:{font:'helvetica',fontSize:widest>9?6.3:widest>7?7:8,cellPadding:widest>9?{top:4,bottom:4,left:2.5,right:2.5}:{top:5,bottom:5,left:4,right:4},lineColor:[230,222,240],lineWidth:.5,textColor:[40,30,55],valign:'middle',overflow:'linebreak'},
+   headStyles:{fillColor:[107,63,160],textColor:255,fontStyle:'bold',halign:'left'},footStyles:{fillColor:[241,234,251],textColor:[40,25,55],fontStyle:'bold'},
+   alternateRowStyles:{fillColor:[251,249,254]},columnStyles:colStyles,margin:{left:M,right:M,top:TOP,bottom:44},
+   didParseCell:d=>{if((d.section==='head'||d.section==='foot')&&(money[d.column.index]||num[d.column.index]))d.cell.styles.halign='right';},didDrawPage:header});
   y=doc.lastAutoTable.finalY+20;
  }
- const N=notes.filter(n=>n!==NO_SIGN);
- if(N.length){doc.setFontSize(8);doc.setTextColor(110,100,125);doc.text(doc.splitTextToSize(N.map(n=>'- '+txt(n)).join(String.fromCharCode(10)),W-80),40,Math.min(y,doc.internal.pageSize.getHeight()-40));}
- const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(150,140,160);doc.text('Page '+i+' of '+pages+' · made '+new Date().toLocaleString('en-PH'),40,doc.internal.pageSize.getHeight()-20);}
+ const N=notes.filter(n=>n!==NO_SIGN&&!/without the ₱ sign/.test(n));
+ if(N.length){const t=doc.splitTextToSize(N.map(n=>'- '+txt(n)).join(String.fromCharCode(10)),W-2*M);if(y+t.length*10>H-50){doc.addPage();header();y=TOP;}doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(74,44,104);doc.text('Notes',M,y);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(110,100,125);doc.text(t,M,y+12);}
+ const pages=doc.getNumberOfPages();
+ for(let i=1;i<=pages;i++){doc.setPage(i);doc.setDrawColor(226,216,240);doc.line(M,H-30,W-M,H-30);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(140,130,150);doc.text("LexC's Snacktime - "+txt(title),M,H-18);doc.text('Page '+i+' of '+pages,W-M,H-18,{align:'right'});}
  doc.save(base+'.pdf');
 }
 function exportAs(kind,base,report){

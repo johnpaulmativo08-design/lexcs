@@ -1,7 +1,7 @@
 import { escapeHtml, empty, showDetails } from '../components.js?v=3';
 import { db, loadingTable, loadingList } from '../backend-ui.js?v=3';
 import { sectionTabs } from '../inventory-ui.js?v=3';
-import { renderMaterials } from './inventory-materials.js?v=10';
+import { renderMaterials } from './inventory-materials.js?v=11';
 import { renderHistory } from './inventory-history.js?v=6';
 import { renderRecipes } from './recipes.js?v=11';
 

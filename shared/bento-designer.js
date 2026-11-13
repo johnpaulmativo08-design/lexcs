@@ -51,7 +51,7 @@
   };
   const icon = (n) => `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
   const esc = (v) => authEscape(String(v ?? ''));
-  const money = (v) => checkoutMoney(v).replace('.00', '');
+  const money = (v) => checkoutMoney(v);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let root = null, product = null, options = null, palette = {}, scene = null, sceneLoading = null, cakes = [], optionsByProduct = {};
