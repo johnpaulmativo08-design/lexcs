@@ -74,3 +74,10 @@
 .cart-drawer .co-empty p{font-size:.84rem;color:var(--c-muted);margin:0 0 8px;max-width:280px;line-height:1.5}
 .cart-drawer .co-empty-btn{display:inline-flex;align-items:center;padding:9px 18px;border-radius:999px;background:var(--c-soft);color:var(--c-violet);font-weight:800;font-size:.85rem;text-decoration:none;transition:background .15s,color .15s}
 .cart-drawer .co-empty-btn:hover{background:var(--c-violet);color:#fff}
+
+/* quantity: a small, sharp stepper */
+.cart-drawer .cart-qty-ctrl{height:28px!important;border:1px solid #e2d8ee!important;border-radius:8px!important;background:#fff!important;box-shadow:none!important;padding:0!important}
+.cart-drawer .cart-qty-ctrl .qty-btn{width:26px!important;height:26px!important;min-width:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:.9rem!important;font-weight:600!important;line-height:1!important;color:#5d4f6c!important}
+.cart-drawer .cart-qty-ctrl .qty-btn:hover{background:#f5effd!important;color:#5a2fb8!important}
+.cart-drawer .cart-qty-ctrl .qty-num{width:28px!important;height:26px!important;min-width:0!important;padding:0!important;border:0!important;border-left:1px solid #eee6f6!important;border-right:1px solid #eee6f6!important;border-radius:0!important;font-size:.82rem!important;font-weight:700!important;background:#fff!important;box-shadow:none!important}
+.cart-drawer .cart-item-remove{padding:4px 6px!important;font-size:.75rem!important}
