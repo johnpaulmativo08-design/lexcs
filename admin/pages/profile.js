@@ -1,7 +1,7 @@
 import {escapeHtml as e,icon,notice} from '../components.js?v=3';
 import {db,rows,field,fail,loadingForm,skel} from '../backend-ui.js?v=3';
 // live password checklist (same rules as the shop)
-const PW_RULES=[["len","At least 8 characters",p=>p.length>=8],["cap","One capital letter (A–Z)",p=>/[A-Z]/.test(p)],["num","One number (0–9)",p=>/[0-9]/.test(p)],["spec","At most one special character (optional)",p=>(p.match(/[^A-Za-z0-9]/g)||[]).length<=1]];
+const PW_RULES=[["len","At least 8 characters",p=>p.length>=8],["cap","One capital letter (A–Z)",p=>/[A-Z]/.test(p)],["num","One number (0–9)",p=>/[0-9]/.test(p)],["spec","One special character (like ! or @)",p=>/[^A-Za-z0-9]/.test(p)]];
 const pwChecks=()=>'<ul class="pw-checks" data-pw-checks aria-live="polite">'+PW_RULES.map(([k,t])=>'<li data-rule="'+k+'">'+t+'</li>').join("")+'<li data-rule="match" hidden>Passwords match</li></ul>';
 // Transfer admin access: hand the admin role to another account you own (e.g. your Gmail); this account is retired.
 // The database checks everything (phase72): current admin, signed in within 5 minutes, target exists and has a
@@ -49,7 +49,7 @@ function wireReset(content,user){
  form.onsubmit=async event=>{event.preventDefault();const button=form.querySelector('button[type=submit]');say('');
   const code=form.elements.code.value,p=form.elements.password.value;
   if(!/^\d{6}$/.test(code))return say('Enter all 6 digits of the code from the email.');
-  if(!PW_RULES.every(([,,test])=>test(p)))return say('Use at least 8 characters with one capital letter and one number; at most one special character.');
+  if(!PW_RULES.every(([,,test])=>test(p)))return say('Use at least 8 characters with one capital letter, one number and one special character.');
   if(p!==form.elements.confirm.value)return say('The passwords do not match.');
   button.disabled=true;
   try{
@@ -75,7 +75,7 @@ export async function renderProfile(content,subpage){
   if(!password)wireReset(content,user);
   if(password){const form=content.querySelector('form');form.addEventListener('input',()=>{const p=form.elements.password.value,c=form.elements.confirm.value,list=form.querySelector('[data-pw-checks]');PW_RULES.forEach(([k,,test])=>{const li=list.querySelector('[data-rule="'+k+'"]');li.classList.toggle('is-ok',!!p&&test(p));li.classList.toggle('is-bad',!!p&&!test(p));});const m=list.querySelector('[data-rule="match"]');m.hidden=!c;if(c){const ok=c===p;m.classList.toggle('is-ok',ok);m.classList.toggle('is-bad',!ok);m.textContent=ok?'Passwords match':'Passwords do not match yet';}});}
   content.querySelector('form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button');button.disabled=true;try{
-   if(password){const p=form.elements.password.value;if(p.length<8||!/[A-Z]/.test(p)||!/[0-9]/.test(p)||(p.match(/[^A-Za-z0-9]/g)||[]).length>1)throw new Error('Use at least 8 characters with one capital letter and one number; at most one special character.');if(p!==form.elements.confirm.value)throw new Error('Passwords do not match.');const cur=form.elements.current.value;if(!cur&&!google)throw new Error('Enter your current password.');if(cur){try{await db.signIn(user.email,cur);}catch{throw new Error(google?'That is not your current password. If you have never set one, leave Current password blank.':'Your current password is incorrect.');}}const up=await db.client.auth.updateUser({password:form.elements.password.value});if(up.error)throw new Error(/reauthenticat/i.test(up.error.message)?'For your security, log out, sign in again with Google, then set your password right away.':up.error.message);form.reset();if(!cur){form.querySelector('[role=alert]').textContent='Password set. You can now also log in with your email and password.';return;}}
+   if(password){const p=form.elements.password.value;if(p.length<8||!/[A-Z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p))throw new Error('Use at least 8 characters with one capital letter, one number and one special character.');if(p!==form.elements.confirm.value)throw new Error('Passwords do not match.');const cur=form.elements.current.value;if(!cur&&!google)throw new Error('Enter your current password.');if(cur){try{await db.signIn(user.email,cur);}catch{throw new Error(google?'That is not your current password. If you have never set one, leave Current password blank.':'Your current password is incorrect.');}}const up=await db.client.auth.updateUser({password:form.elements.password.value});if(up.error)throw new Error(/reauthenticat/i.test(up.error.message)?'For your security, log out, sign in again with Google, then set your password right away.':up.error.message);form.reset();if(!cur){form.querySelector('[role=alert]').textContent='Password set. You can now also log in with your email and password.';return;}}
    else await rows(db.client.from('profiles').update({full_name:form.elements.full_name.value.trim(),phone:form.elements.phone.value.trim()}).eq('id',user.id));
    form.querySelector('[role=alert]').textContent='Saved successfully.';
   }catch(error){form.querySelector('[role=alert]').textContent=error.message;}finally{button.disabled=false;}};
