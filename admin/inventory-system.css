@@ -409,3 +409,21 @@ details.stock-order__group>ul li:last-child{border-bottom:0}
 .inv-adjust-dir input:disabled+span{opacity:.45;cursor:not-allowed}
 .inv-adjust-preview{margin:-4px 0 10px;font-weight:700;color:#4b2d6e}
 .inv-adjust-preview.is-bad{color:#a03030}
+/* Inventory → View: the material's page shown in place of the materials table */
+.stock-focus{animation:stock-focus-in .22s ease both}
+@keyframes stock-focus-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.stock-focus{animation:none}}
+.stock-focus__head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px 18px;margin:4px 0 16px}
+.stock-focus__head .stock-back{flex:none}
+.stock-focus__title{flex:1;min-width:220px}.stock-focus__title small{color:var(--admin-muted);font-size:12px}
+.stock-focus__title h2{margin:2px 0 6px;font-family:'Playfair Display',serif;font-size:26px;color:var(--admin-ink)}
+.stock-focus__title .stock-drawer__status{margin:0}
+.stock-focus__head .stock-drawer__actions{margin:0}
+.stock-focus .stock-drawer__stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px}
+.stock-focus .stock-segment{width:max-content;max-width:100%}.stock-focus .stock-segment button{flex:none;padding:0 18px}
+.stock-focus__grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);gap:16px;align-items:start}
+.stock-focus__grid > div{display:grid;gap:16px}
+.stock-focus__batches td small{display:block;color:var(--admin-muted);font-size:11.5px}
+.stock-focus__extras,.stock-focus__activity,.stock-focus__list{padding:16px 18px}
+.stock-focus__activity .text-button{margin-top:10px}
+@media (max-width:900px){.stock-focus__grid{grid-template-columns:1fr}.stock-focus .stock-drawer__stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stock-focus__batches{overflow-x:auto}}

@@ -105,64 +105,107 @@ export async function renderMaterials(content, preset = '') {
     content.querySelectorAll('[data-item-row]').forEach((row) => { row.onclick = (event) => { if (!event.target.closest('a,button')) openItem(row.dataset.itemRow); }; });
   };
 
-  const openItem = (id) => openItemDrawer(id, { onChange: load });
+  // View: the table area turns into that material's page (its batches first). "All materials" or the browser's Back
+  // brings the list back with the same search, filters and scroll position. Every drawer feature is kept.
+  const openItem = (id) => {
+    if (!state.focus) { state.scroll = window.scrollY; history.pushState({ lexcInvItem: id }, '', location.hash || '#inventory'); }
+    state.focus = id;
+    const host = content.querySelector('.stock-page');
+    [...host.children].forEach((el) => { if (!el.matches('.page-head,.stock-tabrow,header')) el.remove(); });
+    const box = document.createElement('div'); box.className = 'stock-focus';
+    box.innerHTML = skeletonPanel(2) + skeletonRows(['Batch', 'Quantity', 'Expires', 'Stock-in', 'Status', '']);
+    host.append(box); window.scrollTo({ top: 0, behavior: 'smooth' });
+    mountItemDetail(box, id, { inline: true, onChange: refresh, onBack: back, reopen: () => openItem(id) });
+  };
+  const showList = () => { state.focus = null; render(); requestAnimationFrame(() => window.scrollTo(0, state.scroll || 0)); };
+  const back = () => { if (history.state?.lexcInvItem) history.back(); else showList(); };
+  const refresh = async () => { try { state.data = await db.rpc('inventory_overview', {}); (state.data?.items || []).forEach((item) => { if (item.status === 'Running Low') item.status = 'In Stock'; }); } catch (error) { console.warn('Inventory overview failed:', error); } };
+  const onPop = () => { if (!content.isConnected) { window.removeEventListener('popstate', onPop); return; } if (state.focus) showList(); };
+  window.addEventListener('popstate', onPop);
   await load();
 }
 
 export async function openItemDrawer(itemId, { onChange } = {}) {
   const drawer = openDrawer('Material details', skeletonPanel(3) + '<div class="stock-drawer__stats">' + '<div class="stock-stat"><span class="skel skel-line skel-line--short"></span><span class="skel skel-value"></span></div>'.repeat(4) + '</div>' + skeletonPanel(6));
-  const body = drawer.querySelector('.stock-drawer__body');
-  let detail;
+  await mountItemDetail(drawer.querySelector('.stock-drawer__body'), itemId, {
+    onChange, isLive: () => drawer.isConnected, close: () => drawer.close(),
+    setTitle: (name) => { drawer.querySelector('#stock-drawer-title').textContent = name; },
+    reopen: () => openItemDrawer(itemId, { onChange })
+  });
+}
+
+// One material's details: status, stock tiles, actions, batches, activity, recipes, conversions and the history tabs.
+// inline = shown in place of the materials table (Inventory → View); otherwise inside the side drawer.
+async function mountItemDetail(body, itemId, { onChange, isLive = () => body.isConnected, close = () => {}, setTitle = () => {}, reopen = () => {}, inline = false, onBack = () => {} } = {}) {
+  let detail, current = 'overview';
   const load = async () => {
     try { detail = await db.rpc('inventory_item_detail', { target_item: itemId }); }
     catch (error) {
       console.warn('Item detail failed:', error);
-      body.innerHTML = errorState('Material details could not load');
-      body.querySelector('[data-retry]').onclick = load; return;
+      body.innerHTML = (inline ? '<button class="button stock-back" type="button" data-back>← All materials</button>' : '') + errorState('Material details could not load');
+      body.querySelector('[data-retry]').onclick = load; body.querySelector('[data-back]')?.addEventListener('click', onBack); return;
     }
-    if (!drawer.isConnected) return;
+    if (!isLive()) return;
     const item = detail.item;
     detail.movements.forEach((m) => { m.unit = item.unit; });
-    drawer.querySelector('#stock-drawer-title').textContent = item.name;
-    const tabs = [['overview', 'Stock overview'], ['history', 'Movement history'], ['orders', 'Order deductions']];
-    body.innerHTML = `
-      <div class="stock-drawer__status">${stockStatus(item.status)}<span>${e(item.category)} · ${e(item.inventory_type === 'packaging' ? 'Packaging' : 'Ingredient')} · ${e(item.item_code || '')}</span></div>
-      <div class="stock-drawer__stats">
+    setTitle(item.name);
+    const usable = detail.batches.filter((batch) => Number(batch.remaining_quantity) > 0);
+    const tabs = [['overview', inline ? `Batches (${usable.length})` : 'Stock overview'], ['history', 'Movement history'], ['orders', 'Order deductions']];
+    const segment = `<div class="stock-segment" role="tablist">${tabs.map(([key, label]) => `<button type="button" role="tab" aria-selected="${key === current}" data-tab="${key}">${label}</button>`).join('')}</div><div data-tab-body></div>`;
+    const stats = `<div class="stock-drawer__stats">
         <div class="stock-stat stock-stat--primary"><span>Current stock</span><strong>${qty(item.available, item.unit)}</strong></div>
         <div class="stock-stat"><span>Minimum stock</span><strong>${qty(item.min_stock, item.unit)}</strong></div>
         <div class="stock-stat"><span>Next expiry</span><strong>${item.next_expiry ? dateOnly(item.next_expiry) : '—'}</strong></div>
         <div class="stock-stat"><span>Unit cost (est.)</span><strong>${item.estimated_unit_cost == null ? '—' : `₱${Number(item.estimated_unit_cost).toLocaleString('en-PH', { maximumFractionDigits: 4 })}/${e(item.unit)}`}</strong></div>
-      </div>
-      <div class="stock-drawer__actions">
+      </div>`;
+    const actions = `<div class="stock-drawer__actions">
         <button class="button button--primary" type="button" data-act="restock">${icon('plus')} Add stock</button>
         <button class="button" type="button" data-act="adjust">${icon('edit')} Adjust stock</button>
         <button class="button" type="button" data-act="settings">Settings</button>
-      </div>
-      <div class="stock-segment" role="tablist">${tabs.map(([key, label], i) => `<button type="button" role="tab" aria-selected="${i === 0}" data-tab="${key}">${label}</button>`).join('')}</div>
-      <div data-tab-body></div>`;
+      </div>`;
+    const meta = `<div class="stock-drawer__status">${stockStatus(item.status)}<span>${e(item.category)} · ${e(item.inventory_type === 'packaging' ? 'Packaging' : 'Ingredient')} · ${e(item.item_code || '')}</span></div>`;
+    body.innerHTML = inline
+      ? `<div class="stock-focus__head"><button class="button stock-back" type="button" data-back>← All materials</button><div class="stock-focus__title"><small>Inventory / Materials</small><h2>${e(item.name)}</h2>${meta}</div>${actions}</div>${stats}${segment}`
+      : `${meta}${stats}${actions}${segment}`;
+    const batchState = (b) => {
+      if (b.status && b.status !== 'In Stock') return b.status;
+      const d = b.expires_on ? Math.ceil((new Date(b.expires_on + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000) : null;
+      return d === null ? 'In Stock' : d < 0 ? 'Expired' : d <= 7 ? 'Expiring Soon' : 'In Stock';
+    };
+    const extras = () => `<details class="stock-recipes"><summary><span class="stock-subhead">Used in recipes</span><small>${detail.recipes.length ? `${detail.recipes.filter((r) => r.status === 'active').length} active · ${detail.recipes.length} in all` : 'none'}</small></summary>
+          ${detail.recipes.length ? `<ul class="stock-chips">${[...detail.recipes].sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || a.name.localeCompare(b.name)).map((r) => `<li>${r.product_id ? `<a href="#products/edit/${attr(r.product_id)}">${e(r.name)} · v${r.version}</a>` : `<span>${e(r.name)} · v${r.version}</span>`} <small>${e(r.status)}</small></li>`).join('')}</ul><p class="stock-quiet">Recipes are edited in Products → Edit product → Recipe.</p>` : '<p class="stock-quiet">Not used in any recipe yet. Add it to a product recipe in Products.</p>'}</details>
+          ${detail.conversions.length ? `<h3 class="stock-subhead">Unit conversions</h3><ul class="stock-batches">${detail.conversions.map((c) => `<li><span>${e(conversionText(c, item.unit))}<small>${e(c.note || '')}</small></span>${c.is_verified ? '<span class="status-chip status-chip--success">Verified</span>' : '<span class="status-chip status-chip--warning">Needs verification</span>'}</li>`).join('')}</ul>` : ''}`;
     const showTab = (key) => {
-      body.querySelectorAll('[data-tab]').forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.tab === key)));
+      current = key;
+      body.querySelectorAll('[data-tab]').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === key)));
       const target = body.querySelector('[data-tab-body]');
       const moves = key === 'orders' ? detail.movements.filter((m) => m.order_id) : detail.movements;
-      if (key === 'overview') {
-        const usable = detail.batches.filter((batch) => Number(batch.remaining_quantity) > 0);
+      if (key === 'overview' && inline) {
+        target.innerHTML = `<div class="stock-focus__grid"><div>
+          ${usable.length ? `<div class="panel stock-table-panel stock-focus__batches"><table class="data-table stock-table"><thead><tr><th scope="col">Batch</th><th scope="col" class="num">Quantity</th><th scope="col">Expires</th><th scope="col">Stock-in</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
+            <tbody>${usable.map((b, i) => `<tr><td><code>${e(b.batch_code)}</code>${i === 0 && usable.length > 1 ? '<small>used first</small>' : ''}</td><td class="num"><strong>${qty(b.remaining_quantity, b.unit || item.unit)}</strong></td><td>${b.expires_on ? dateOnly(b.expires_on) : 'No expiry'}</td><td class="stock-quiet">${b.stock_in_date ? dateOnly(b.stock_in_date) : '—'}</td><td>${stockStatus(batchState(b))}</td>
+            <td><button class="button button--small" type="button" data-edit-batch="${attr(b.batch_id)}" aria-label="Adjust batch ${attr(b.batch_code)}">${icon('edit')} Adjust batch</button></td></tr>`).join('')}</tbody></table></div>`
+            : `<div class="panel">${emptyState('No active batches', 'Add stock to create a batch.')}</div>`}
+          <div class="panel stock-focus__extras">${extras()}</div></div>
+          <aside class="panel stock-focus__activity"><h3 class="stock-subhead">Recent activity</h3>${activityList(detail.movements.slice(0, 5))}<button class="text-button" type="button" data-tab-jump="history">See all in Movement history →</button></aside></div>`;
+      } else if (key === 'overview') {
         target.innerHTML = `
           <h3 class="stock-subhead">Active batches</h3>
           ${usable.length ? `<ul class="stock-batches">${usable.map((b) => `<li><span><code>${e(b.batch_code)}</code><small>Stock-in ${dateOnly(b.stock_in_date)} · ${b.expires_on ? `expires ${dateOnly(b.expires_on)}` : 'no expiry'}</small></span><span class="stock-batch-end"><strong>${qty(b.remaining_quantity, b.unit)}</strong><button class="stock-icon-button stock-batch-edit" type="button" data-edit-batch="${attr(b.batch_id)}" aria-label="Edit batch ${attr(b.batch_code)}" title="Edit batch">${icon('edit')}</button></span></li>`).join('')}</ul>` : emptyState('No active batches', 'Add stock to create a batch.')}
           <h3 class="stock-subhead">Recent activity</h3>${activityList(detail.movements.slice(0, 5))}
-          <details class="stock-recipes"><summary><span class="stock-subhead">Used in recipes</span><small>${detail.recipes.length ? `${detail.recipes.filter((r) => r.status === 'active').length} active · ${detail.recipes.length} in all` : 'none'}</small></summary>
-          ${detail.recipes.length ? `<ul class="stock-chips">${[...detail.recipes].sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || a.name.localeCompare(b.name)).map((r) => `<li>${r.product_id ? `<a href="#products/edit/${attr(r.product_id)}">${e(r.name)} · v${r.version}</a>` : `<span>${e(r.name)} · v${r.version}</span>`} <small>${e(r.status)}</small></li>`).join('')}</ul><p class="stock-quiet">Recipes are edited in Products → Edit product → Recipe.</p>` : '<p class="stock-quiet">Not used in any recipe yet. Add it to a product recipe in Products.</p>'}</details>
-          ${detail.conversions.length ? `<h3 class="stock-subhead">Unit conversions</h3><ul class="stock-batches">${detail.conversions.map((c) => `<li><span>${e(conversionText(c, item.unit))}<small>${e(c.note || '')}</small></span>${c.is_verified ? '<span class="status-chip status-chip--success">Verified</span>' : '<span class="status-chip status-chip--warning">Needs verification</span>'}</li>`).join('')}</ul>` : ''}`;
+          ${extras()}`;
       } else {
-        target.innerHTML = activityList(moves) + `<a class="button stock-full-history" href="#inventory/movements" data-full-history>${icon('history')} View full history</a>`;
+        target.innerHTML = (inline ? '<div class="panel stock-focus__list">' : '') + activityList(moves) + `<a class="button stock-full-history" href="#inventory/movements" data-full-history>${icon('history')} View full history</a>` + (inline ? '</div>' : '');
       }
       target.querySelectorAll('[data-edit-batch]').forEach((button) => { button.onclick = () => batchForm(detail.batches.find((b) => b.batch_id === button.dataset.editBatch), item, async () => { await load(); await onChange?.(); }); });
+      target.querySelector('[data-tab-jump]')?.addEventListener('click', (ev) => showTab(ev.currentTarget.dataset.tabJump));
       target.querySelector('[data-full-history]')?.addEventListener('click', () => sessionStorage.setItem('lexc-history-item', itemId));
-      target.querySelectorAll('a[href^="#"]').forEach((link) => link.addEventListener('click', () => drawer.close()));
+      target.querySelectorAll('a[href^="#"]').forEach((link) => link.addEventListener('click', () => close()));
     };
-    body.querySelectorAll('[data-tab]').forEach((tab) => { tab.onclick = () => showTab(tab.dataset.tab); });
-    showTab('overview');
-    body.querySelector('[data-act="restock"]').onclick = () => { drawer.close(); renderStockForm({ items: [{ id: item.id, name: item.name, unit: item.unit, inventory_type: item.inventory_type }], preset: item.id, onSuccess: async () => { await onChange?.(); openItemDrawer(itemId, { onChange }); } }); };
+    body.querySelectorAll('[data-tab]').forEach((t) => { t.onclick = () => showTab(t.dataset.tab); });
+    showTab(current);
+    body.querySelector('[data-back]')?.addEventListener('click', onBack);
+    body.querySelector('[data-act="restock"]').onclick = () => { close(); renderStockForm({ items: [{ id: item.id, name: item.name, unit: item.unit, inventory_type: item.inventory_type }], preset: item.id, onSuccess: async () => { await onChange?.(); reopen(); } }); };
     body.querySelector('[data-act="adjust"]').onclick = () => adjustForm(item, async () => { await load(); await onChange?.(); });
     body.querySelector('[data-act="settings"]').onclick = () => settingsForm(item, async () => { await load(); await onChange?.(); });
   };
