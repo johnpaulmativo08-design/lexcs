@@ -98,3 +98,19 @@ html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-moti
 /* Content (CMS) hub */
 .cms-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 .cms-card p{color:var(--admin-muted);margin:6px 0 14px}
+/* Staff (owner): cashier accounts */
+.staff-panel{padding:20px 22px}
+.staff-add{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.staff-add label{flex:1;min-width:240px;display:grid;gap:6px;font-weight:700;color:var(--admin-ink)}
+.staff-add input{height:44px;border:1px solid #e3d8f0;border-radius:12px;padding:0 14px;font:inherit}
+.staff-hint{color:var(--admin-muted);font-size:13px;margin:8px 0 0}
+.staff-msg{min-height:20px;margin:8px 0;font-weight:600;color:#2f7a4b}.staff-msg.is-bad{color:#b4233a}
+.staff-list{display:grid;gap:10px}
+.staff-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 14px;border:1px solid #ece3f7;border-radius:16px;background:#fff}
+.staff-row.is-off{opacity:.65}
+.staff-avatar{width:40px;height:40px;border-radius:50%;background:#efe6fb;color:#5a2fb8;display:grid;place-items:center;font-weight:800}
+.staff-who{flex:1;min-width:180px;display:flex;flex-direction:column}.staff-who small{color:var(--admin-muted)}
+.staff-state{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:#e5f6ec;color:#1d7a46}
+.staff-row.is-off .staff-state{background:#f1edf5;color:#7d6e8c}
+.staff-acts{display:flex;gap:8px}.staff-remove:hover{background:#fdecef!important;color:#b4233a!important}
+.staff-empty{color:var(--admin-muted)}

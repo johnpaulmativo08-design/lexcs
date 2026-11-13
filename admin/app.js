@@ -12,6 +12,7 @@ import { renderDesignOptions } from './pages/design-options.js?v=16';
 import { renderProfile } from './pages/profile.js?v=15';
 import { renderWebsite } from './pages/website.js?v=3';
 import { renderContent } from './pages/content.js?v=1';
+import { renderStaff } from './pages/staff.js?v=1';
 import { renderVouchers } from './pages/vouchers.js?v=3';
 import { mountChat } from '../shared/chat.js?v=42';
 import { mountChatWidget } from '../shared/chat-widget.js?v=44';
@@ -26,10 +27,22 @@ const groups = [
   ['Website', [['content', 'Content (CMS)', null, 'edit']]],
   ['Analytics', [['reports', 'Reports']]],
   // Edit website and FAQs live in Settings (and on the Profile card)
-  ['Account', [['profile', 'Profile']]],   // Settings opens from the Profile card
+  ['Account', [['staff', 'Staff', null, 'profile'], ['profile', 'Profile']]],   // Settings opens from the Profile card
 ];
-const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
+const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', staff: 'Staff', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
+const STAFF_PAGES = ['dashboard', 'chat', 'orders', 'bookings', 'production', 'inventory', 'profile'];   // 'staff' (Staff page) is owner-only
+// owner-only controls a cashier never sees (the database also refuses them)
+const OWNER_ONLY = ['[data-status="confirmed"]', '[data-status="cancelled"]', '[data-waive]', '#delivery-quote', '[data-extra-form]', '[data-propose-extra]',
+  '[data-act="settings"]', '[data-action="archive-item"]', '[data-edit-batch]', 'a[href="#inventory/conversions"]', '[data-correct-batch]',
+  '[data-close]', '[data-limit]', '[data-reserve]', '[data-capacity]', 'a[href="#settings"]', 'a[href^="../?cms"]'].join(',');
+function trimForStaff(root) {
+  if (!root) return;
+  root.querySelectorAll(OWNER_ONLY).forEach((el) => el.remove());
+  // money on the dashboard: today's received amount and remaining balances
+  root.querySelectorAll('.dash-stat').forEach((el) => { if (/Received today/i.test(el.querySelector('span')?.textContent || '')) el.remove(); });
+  root.querySelectorAll('section, .panel').forEach((el) => { const h = el.querySelector(':scope > header h2, :scope > h2'); if (h && /Remaining balances|Money received|Sales/i.test(h.textContent)) el.remove(); });
+}
 navigation.innerHTML = groups.map(([heading, items]) => `${heading ? `<div class="nav-heading">${heading}</div>` : ''}${items.map(([key, label, href, iconKey]) => `<a class="nav-item" href="${href || `#${key}`}" data-page="${key}">${icon(iconKey || key, 'nav-icon')}<span>${label}</span></a>`).join('')}`).join('');
 
 let toastTimer;
@@ -108,6 +121,20 @@ notificationsButton.addEventListener('click', revealNotifications);
 
 async function renderRoute() {
   if (!await window.LexcAdminAuth.guard()) return;
+  // Cashier (staff): a smaller menu and only these pages. The database refuses owner actions anyway; this keeps
+  // the screens honest. Owner-only buttons inside these pages are removed by trimForStaff below.
+  if (window.LexcAdminAuth.level === 'staff') {
+    if (!navigation.dataset.staff) {
+      navigation.dataset.staff = '1';
+      navigation.querySelectorAll('a.nav-item').forEach((a) => { if (!STAFF_PAGES.includes(a.dataset.page)) a.remove(); });
+      navigation.querySelectorAll('.nav-heading').forEach((h) => { const next = h.nextElementSibling; if (!next || next.classList.contains('nav-heading')) h.remove(); });
+      document.querySelector('.identity-role')?.replaceChildren('Cashier');
+      const who = window.LexcAdminAuth.account?.name; if (who) document.querySelector('.identity-name')?.replaceChildren(who);
+      new MutationObserver(() => trimForStaff(document.querySelector('#content'))).observe(document.querySelector('#content'), { childList: true, subtree: true });
+    }
+    const want = (location.hash.slice(1) || 'dashboard').split('/')[0];
+    if (!STAFF_PAGES.includes(want)) { location.hash = '#dashboard'; return; }
+  }
   mountChatWidget({admin:true});
   document.querySelector('#admin-dialog')?.close();
   const route = location.hash.slice(1) || 'dashboard';
@@ -148,6 +175,7 @@ async function renderRoute() {
   else if (current === 'vouchers') await renderVouchers(content);
   else if (current === 'website') await renderWebsite(content, subpage);
   else if (current === 'content') renderContent(content);
+  else if (current === 'staff') await renderStaff(content);
   else if (current === 'designs') await renderDesignOptions(content);
   else if (current === 'updates') renderUpdates(content);
   else if (current === 'profile') await renderProfile(content, subpage);
