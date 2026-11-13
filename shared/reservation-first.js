@@ -33,26 +33,21 @@
     try { updateCheckoutDelivery(); } catch { /* totals refresh on the next change */ }
   }
 
-  // the cart's sequence: 1 date & time → 2 items → 3 checkout
-  function steps() {
-    const r = get(), n = (typeof cartSelectedItems === 'function' ? cartSelectedItems().length : 0);
-    const step = (k, cls, title, body) => `<li class="rsv-step ${cls}"><i aria-hidden="true">${cls === 'is-done' ? '✓' : k}</i><div><b>${title}</b>${body}</div></li>`;
-    return `<ol class="rsv-steps" aria-label="Order steps">
-      ${step(1, r ? 'is-done' : 'is-now', 'Date &amp; time', r ? `<span>${CAL}${esc(dayText(r.date))} · ${esc(r.label)}</span><button type="button" data-rsv-pick class="rsv-link">Change</button>` : `<span>Pick when you’ll receive your order.</span><button type="button" data-rsv-pick class="rsv-go">See open slots</button>`)}
-      ${step(2, !r ? '' : n ? 'is-done' : 'is-now', 'Choose items', `<span>${n ? n + ' item' + (n === 1 ? '' : 's') + ' selected below' : 'Tick the items to order below.'}</span>`)}
-      ${step(3, r && n ? 'is-now' : '', 'Checkout', '<span>Contact, delivery and payment.</span>')}
-    </ol>`;
-  }
+  // the cart's Order summary: the receiving date & time sits above the subtotal; without one, checkout asks for it first
   function paint() {
-    const cart = document.getElementById('cartReservation'); if (cart) cart.innerHTML = steps();
+    const box = document.getElementById('cartReservation'); if (!box) return;
+    const r = get(), btn = document.getElementById('cartCheckoutBtn');
+    box.innerHTML = r
+      ? `<span class="rsv-ic">${CAL}</span><span class="rsv-txt"><small>Receiving</small><b>${esc(dayText(r.date))} · ${esc(r.label)}</b></span><button type="button" data-rsv-pick class="rsv-change">Change</button>`
+      : `<span class="rsv-ic">${CAL}</span><span class="rsv-txt"><small>Receiving</small><b>Pick a date &amp; time</b></span><button type="button" data-rsv-pick class="rsv-pickbtn">See open slots</button>`;
+    box.classList.toggle('is-empty', !r);
+    if (btn) btn.textContent = r ? 'Proceed to checkout →' : 'Choose date & time →';
   }
   document.addEventListener('click', (ev) => {
     if (ev.target.closest('[data-rsv-pick]')) { ev.preventDefault(); pick(); }
   });
 
   // Checkout from the cart: no reservation yet → the calendar opens first, then checkout
-  const baseRender = window.renderCart;
-  if (baseRender) window.renderCart = function () { const out = baseRender.apply(this, arguments); paint(); return out; };
   const baseCheckout = window.goToCheckout;
   window.goToCheckout = function () {
     if (cart.length && cartSelectedItems().length && !get() && !document.getElementById('coDate')?.value) { closeCart(); pick(() => baseCheckout()); showToast('Pick your date and time first.'); return; }
@@ -61,6 +56,6 @@
   const baseNavigate = window.navigate;
   window.navigate = function (page, anchor) { const out = baseNavigate(page, anchor); if (page === 'checkout') apply(); return out; };
 
-  window.LexcReservation = { get, pick, apply, clear: () => save(null) };
+  window.LexcReservation = { get, pick, apply, paint, clear: () => save(null) };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint); else paint();
 })();
