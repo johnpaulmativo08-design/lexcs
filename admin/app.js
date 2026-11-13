@@ -9,7 +9,7 @@ import { renderReports } from './pages/reports.js?v=23';
 import { renderOrders } from './pages/orders.js?v=56';
 import { renderBookings } from './pages/bookings.js?v=22';
 import { renderDesignOptions } from './pages/design-options.js?v=16';
-import { renderProfile } from './pages/profile.js?v=15';
+import { renderProfile } from './pages/profile.js?v=16';
 import { renderWebsite } from './pages/website.js?v=3';
 import { renderContent } from './pages/content.js?v=1';
 import { renderStaff } from './pages/staff.js?v=1';
@@ -35,7 +35,7 @@ const STAFF_PAGES = ['dashboard', 'chat', 'orders', 'bookings', 'production', 'i
 // owner-only controls a cashier never sees (the database also refuses them)
 const OWNER_ONLY = ['[data-status="confirmed"]', '[data-status="cancelled"]', '[data-waive]', '#delivery-quote', '[data-extra-form]', '[data-propose-extra]',
   '[data-act="settings"]', '[data-action="archive-item"]', '[data-edit-batch]', 'a[href="#inventory/conversions"]', '[data-correct-batch]',
-  '[data-close]', '[data-limit]', '[data-reserve]', '[data-capacity]', 'a[href="#settings"]', 'a[href^="../?cms"]'].join(',');
+  '[data-close]', '[data-limit]', '[data-reserve]', '[data-capacity]', 'a[href="#settings"]', 'a[href^="../?cms"]', 'a[href="#profile/transfer"]', 'a[href^="#website"]', 'a[href="#content"]'].join(',');
 function trimForStaff(root) {
   if (!root) return;
   root.querySelectorAll(OWNER_ONLY).forEach((el) => el.remove());
