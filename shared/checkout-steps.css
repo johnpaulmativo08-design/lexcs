@@ -71,3 +71,4 @@
 .co-placebar .co-submit-btn:disabled{background:#d9d0e6!important}
 .co-total-l b{color:var(--ink)}
 .co-steps .co-way .co-option::after,.co-steps .co-way .co-option::before{display:none!important}
+.co-placebar{--ink:#241430;--violet:#6b45c9;--line:#e6def0;--muted:#857892}
