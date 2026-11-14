@@ -203,3 +203,38 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .rl-table th{white-space:normal;line-height:1.25}.rl-table td small{max-width:150px}.rl-table td:nth-child(2){max-width:170px}.rl-pill,.rl-type{padding:4px 9px;font-size:12px}
 .rl-table th,.rl-table td{padding:11px 9px}.rl-id .booking-large{display:block;width:max-content;margin:3px 0 0}.rl-view{padding:6px 11px;font-size:13px}
 .rl-layout{grid-template-columns:minmax(0,1fr) 284px!important}
+/* Reservations → List: Workload overview (tap to set kitchen time) + incoming preview */
+.rl-work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px}
+.rl-work-card{display:block;width:100%;text-align:left;cursor:pointer;padding:16px 18px!important;border:1px solid #ece3f7;border-radius:18px;background:#fff;font:inherit;color:inherit;transition:border-color .15s,box-shadow .15s,transform .15s}
+.rl-work-card:hover,.rl-work-card:focus-visible{border-color:#b9a2ea;box-shadow:0 8px 22px rgba(90,47,184,.14);outline:none}
+.rl-work-card:active{transform:scale(.995)}
+.rl-work-card header{display:flex;align-items:center;gap:10px}.rl-work-card header div{flex:1}.rl-work-card header b{display:block;font-size:16px}.rl-work-card header small{color:var(--admin-muted)}
+.rl-work-ic,.rl-work-go{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#f5effd;color:#5a2fb8}.rl-work-go{background:#2b1530;color:#fff}
+.rl-work-body{display:flex;align-items:center;gap:18px;margin:12px 0 10px}
+.rl-ring{--p:0;width:92px;height:92px;flex:none;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#5a2fb8 calc(var(--p)*1%),#efe7f7 0)}
+.rl-ring.is-near{background:conic-gradient(#d18a00 calc(var(--p)*1%),#efe7f7 0)}.rl-ring.is-heavy{background:conic-gradient(#c0304a calc(var(--p)*1%),#efe7f7 0)}
+.rl-ring span{width:70px;height:70px;border-radius:50%;background:#fff;display:grid;place-items:center;align-content:center;font-weight:800;font-size:18px;color:#2b1530}.rl-ring small{font-size:11px;font-weight:600;color:var(--admin-muted)}
+.rl-work-body dl{margin:0;flex:1;display:grid;gap:6px}.rl-work-body dl div{display:flex;justify-content:space-between;gap:8px}
+.rl-work-body dt{color:#5d4f6c;display:flex;align-items:center;gap:6px}.rl-work-body dt i{width:9px;height:9px;border-radius:50%;background:#e6dcf5}.rl-work-body dt i.is-used{background:#5a2fb8}
+.rl-work-body dd{margin:0;font-weight:800;color:#2b1530}.rl-work-body dd small{font-weight:600;color:var(--admin-muted)}
+.rl-work-note{display:flex;align-items:center;gap:8px;margin:0;padding:8px 12px;border-radius:12px;background:#f5effd;color:#4a2c68;font-size:13px;font-weight:600}
+.rl-work-note.is-near{background:#fff1d6;color:#8a5a00}.rl-work-note.is-heavy{background:#fde3e6;color:#9c1f37}
+.rl-incoming{display:grid;grid-template-columns:1.4fr .8fr 1fr;align-items:stretch;padding:0!important;overflow:hidden;border-radius:18px}
+.rl-incoming>div{display:flex;align-items:center;gap:10px;padding:16px}.rl-incoming>div+div{border-left:1px solid #f0e9f8}
+.rl-incoming b{display:block}.rl-incoming small{color:#5d4f6c;font-size:13px;line-height:1.4}
+.rl-inc-a{background:#fff7f8}.rl-inc-a svg{color:#c0304a;flex:none}
+.rl-inc-b{flex-direction:column;justify-content:center;text-align:center}.rl-inc-b b{font-size:26px;color:#2b1530}
+.rl-incoming.is-ok .rl-inc-c{background:#effaf3}.rl-incoming.is-ok .rl-inc-c svg,.rl-incoming.is-ok .rl-inc-c b{color:#1d7a46}
+.rl-incoming.is-over .rl-inc-c{background:#fde3e6}.rl-incoming.is-over .rl-inc-c svg,.rl-incoming.is-over .rl-inc-c b{color:#b4233a}
+.rl-incoming.is-none{grid-template-columns:1fr}.rl-incoming.is-none .rl-inc-a{background:#fff}.rl-incoming.is-none .rl-inc-a svg{color:#1d7a46}
+.rl-flash{animation:rl-flash 1.4s ease}@keyframes rl-flash{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 4px rgba(90,47,184,.35)}}
+@media (prefers-reduced-motion:reduce){.rl-flash{animation:none}}
+@media (max-width:1250px){.rl-work{grid-template-columns:1fr}}
+@media (max-width:700px){.rl-incoming{grid-template-columns:1fr}.rl-incoming>div+div{border-left:0;border-top:1px solid #f0e9f8}}
+.rl-cfg{display:grid;gap:14px;min-width:min(420px,80vw)}
+.rl-cfg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}.rl-cfg-row b{display:block}.rl-cfg-row small{color:var(--admin-muted)}
+.rl-cfg-row output{font-weight:800;color:#5a2fb8;white-space:nowrap}.rl-cfg input[type=range]{width:100%;accent-color:#5a2fb8}
+.rl-cfg input[type=number]{width:80px;height:40px;border:1px solid #e3d8f0;border-radius:10px;text-align:center;font:inherit;font-weight:700}
+.rl-cfg-scope{border:1px solid #ece3f7;border-radius:12px;padding:8px 12px;display:flex;gap:16px}.rl-cfg-scope legend{font-size:12px;font-weight:800;color:var(--admin-muted);padding:0 4px}
+.rl-cfg-say{min-height:18px;margin:0;color:#7d6e8c;font-size:13px}.rl-cfg-btns{display:flex;justify-content:flex-end}
+.rl-layout .booking-chef,.rl-layout .booking-limit-moved{display:none!important}
