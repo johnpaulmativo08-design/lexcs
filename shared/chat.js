@@ -191,7 +191,7 @@ export async function mountChat(root,{admin=false,orderId=null}={}){
     deliveries=delivering.length?await db.client.from('order_deliveries').select('*').in('order_id',delivering).then(db.unwrap).catch(()=>[]):[];
     const startGeneral=!admin&&new URLSearchParams(location.search).has('new');
     if(startGeneral){history.replaceState(null,'',location.pathname);}
-    if(!preserve||!selected||!conversations.some(c=>c.id===selected.id))selected=orderId?(conversations.find(c=>c.order_id===orderId)||null):startGeneral?(conversations.find(c=>!c.order_id)||null):admin?(conversations.find(c=>c.state!=='resolved')||null):(conversations.find(c=>!c.order_id)||conversations[0]||null);
+    if(!preserve||!selected||!conversations.some(c=>c.id===selected.id))selected=orderId?(conversations.find(c=>c.order_id===orderId)||null):startGeneral?(conversations.find(c=>!c.order_id)||null):admin?(conversations.find(c=>c.state!=='resolved')||null):(conversations[0]||null);   // customers open their latest conversation, like the chat bubble
     if(selected)await loadMessages();else messages=[];
     draw();
     const input=root.querySelector('#chat-text');if(input)input.value=draft;
