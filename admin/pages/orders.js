@@ -85,7 +85,8 @@ const workDay=d=>new Intl.DateTimeFormat('en-PH',{month:'short',day:'numeric',ti
 const workloadNote=(w,o)=>{if(!w||o.status==='cancelled')return '';const counted=o.status!=='pending',over=Number(w.projected_minutes)-Number(w.workload_minutes);
  return '<div class="order-workload'+(w.heavy?' is-heavy':'')+'"><strong>'+(w.heavy?'Heavy production workload':'Kitchen time')+' · '+Number(w.minutes)+' min <a class="order-to-prod" href="#production/'+e(o.id)+'">View in Production →</a></strong><span>'+e(workDay(w.booking_date))+': '+(counted?'the day is at ':'accepting brings the day to ')+Number(w.projected_minutes)+' of '+Number(w.workload_minutes)+' min'+(w.heavy?' ('+over+' min over your capacity)':'')+'.</span>'+(Number(w.minutes)===0?'<small>No prep time set for these items yet (Products → edit → Sizes &amp; prices).</small>':'')+'</div>';};
 export async function renderOrders(content){
- content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders and payments.</p></div></header>'+loadingTable(['Order','Customer','Ordered','Total','Payment','Status','Due date','Action']);
+ const staff=window.LexcAdminAuth?.level==='staff';   // cashiers: the same cards, no Cancel, and a switch to their table
+ content.innerHTML='<header class="module-heading"><div><h1>Orders</h1><p>Manage customer orders and payments.</p></div>'+(staff?'<button type="button" class="button" data-staff-view="table">Table view</button>':'')+'</header>'+loadingTable(['Order','Customer','Ordered','Total','Payment','Status','Due date','Action']);
  try{
   const orders=await db.orders();let history=false;
   const workloads=new Map();
@@ -122,13 +123,12 @@ export async function renderOrders(content){
    :o.status==='preparing'?['In the kitchen','Baking now','Mark ready']
    :o.status==='ready'?['Ready',o.fulfillment_method==='lalamove'?'Waiting for the rider':'Ready for pickup','Complete']
    :o.status==='completed'?['Completed','Handed over','See details']:['Cancelled','','See details'];
-  const card=o=>{const [badge,sub,cta]=stage(o),items=o.order_items||[],shown=items.slice(0,4),tone=orderTone(o.status);
+  const card=o=>{const [badge,sub,cta]=stage(o),items=o.order_items||[],shown=items,tone=orderTone(o.status);
    return '<article class="ox-card is-'+e(o.status)+'"><header><span class="ox-avatar is-'+tone+'">'+e(initials(o.customer_name))+'</span><div class="ox-who"><strong>'+e(o.customer_name||'Customer')+'</strong><small>Order #'+e(o.order_number)+' / '+(o.fulfillment_method==='lalamove'?'Delivery':'Pickup')+'</small></div>'
     +'<div class="ox-state"><span class="ox-badge is-'+tone+'">'+e(badge)+'</span>'+(sub?'<small><i class="is-'+tone+'"></i>'+e(sub)+'</small>':'')+'</div></header>'
     +'<p class="ox-when"><span>'+e(new Date(o.receiving_start).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric'}))+'</span><span>'+e(hhmm(o.receiving_start))+'</span></p>'
     +(workloads.get(o.id)?.heavy?'<p class="ox-flag">Heavy workload for this day</p>':'')
-    +'<table class="ox-items"><thead><tr><th>Items</th><th>Qty</th><th>Price</th></tr></thead><tbody>'+shown.map(i=>'<tr><td>'+e(i.name_snapshot||'Item')+(i.variant_label_snapshot?' <small>'+e(i.variant_label_snapshot)+'</small>':'')+'</td><td>'+e(i.quantity)+'</td><td>'+money(Number(i.line_total??(Number(i.unit_price||0)*Number(i.quantity||1))))+'</td></tr>').join('')+'</tbody></table>'
-    +(items.length>4?'<p class="ox-more">+'+(items.length-4)+' more</p>':'')
+    +'<details class="ox-drop"><summary><span>'+items.length+' item'+(items.length===1?'':'s')+'</span><em>'+e(items[0]?.name_snapshot||'Order')+(items.length>1?' + '+(items.length-1)+' more':'')+'</em><i aria-hidden="true">▾</i></summary><table class="ox-items"><thead><tr><th>Items</th><th>Qty</th><th>Price</th></tr></thead><tbody>'+shown.map(i=>'<tr><td>'+e(i.name_snapshot||'Item')+(i.variant_label_snapshot?' <small>'+e(i.variant_label_snapshot)+'</small>':'')+'</td><td>'+e(i.quantity)+'</td><td>'+money(Number(i.line_total??(Number(i.unit_price||0)*Number(i.quantity||1))))+'</td></tr>').join('')+'</tbody></table></details>'
     +'<p class="ox-total"><span>Total</span><b>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</b></p>'
     +'<p class="ox-pay">'+(o.status==='pending'&&o.payment_status==='unpaid'?statusIndicator('Payment opens after confirm','neutral'):statusIndicator(readableStatus(o.payment_status),payTone(o.payment_status)))+'</p>'
     +'<footer>'+(cta==='See details'?'':'<button type="button" class="ox-btn" data-order="'+e(o.id)+'">See details</button>')+'<button type="button" class="ox-btn is-main" data-order="'+e(o.id)+'">'+e(cta)+'</button></footer></article>';};
@@ -162,7 +162,7 @@ export async function renderOrders(content){
   content.onclick=event=>{
    const b=event.target.closest('[data-order]');if(!b)return;
    const o=orders.find(o=>o.id===b.dataset.order);
-   const next={pending:['confirmed','cancelled'],confirmed:['preparing','cancelled'],preparing:['ready','cancelled'],ready:['completed','cancelled']}[o.status]||[];
+   const next=({pending:['confirmed','cancelled'],confirmed:['preparing','cancelled'],preparing:['ready','cancelled'],ready:['completed','cancelled']}[o.status]||[]).filter(s=>!staff||s!=='cancelled');
    // the Lalamove fee step is off for now (phase 52): the customer pays the rider directly
    const canQuote=false&&o.fulfillment_method==='lalamove'&&o.status!=='cancelled'&&Number(o.amount_paid||0)===0&&o.payment_status!=='verification_pending';
    const quoteForm=canQuote?'<form id="delivery-quote"><label class="form-field">Delivery fee (₱)<input name="fee" type="number" min="0" max="99999" step="0.01" required value="'+e(o.delivery_fee??'')+'"></label><button class="button" type="submit">'+(o.delivery_fee_status==='quoted'?'Update delivery quote':'Set delivery quote')+'</button></form>':'';

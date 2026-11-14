@@ -192,15 +192,15 @@ export async function renderWebsite(content, sub) {
   if (page.id === 'global') { picked = 'global/theme'; panel(); }
 }
 
-// ---------------- FAQs: at most 10 active (the database enforces it too)
+// ---------------- FAQs: at most 12 active (the database enforces it too)
 async function renderFaqs(content) {
-  content.innerHTML = `<header class="module-heading"><div><h1>FAQs</h1><p>Questions on the homepage. Up to 10 can be shown at a time.</p></div><button class="button primary" type="button" data-add>${icon('plus')} Add question</button></header><div data-list class="ws-faqs"><div class="skel" style="height:160px;border-radius:14px"></div></div>`;
+  content.innerHTML = `<header class="module-heading"><div><h1>FAQs</h1><p>Questions on the homepage. Up to 12 can be shown at a time.</p></div><button class="button primary" type="button" data-add>${icon('plus')} Add question</button></header><div data-list class="ws-faqs"><div class="skel" style="height:160px;border-radius:14px"></div></div>`;
   const list = content.querySelector('[data-list]');
   async function draw() {
     const { data, error } = await db.client.from('site_faqs').select('*').order('sort_order');
     if (error) { list.innerHTML = `<p class="ws-hint" role="alert">${/site_faqs|schema cache/i.test(error.message) ? 'Run database/phase104-website-cms.sql first.' : e(error.message)}</p>`; return; }
     const active = data.filter((f) => f.is_active).length;
-    list.innerHTML = `<p class="ws-count${active >= 10 ? ' is-full' : ''}">${active} of 10 shown on the homepage</p>` + (data.length ? data.map((f, i) => `<form class="ws-faq${f.is_active ? '' : ' is-off'}" data-id="${e(f.id)}">
+    list.innerHTML = `<p class="ws-count${active >= 12 ? ' is-full' : ''}">${active} of 12 shown on the homepage</p>` + (data.length ? data.map((f, i) => `<form class="ws-faq${f.is_active ? '' : ' is-off'}" data-id="${e(f.id)}">
       <div class="ws-faq-order"><button type="button" data-move="-1" ${i ? '' : 'disabled'} aria-label="Move up">↑</button><button type="button" data-move="1" ${i < data.length - 1 ? '' : 'disabled'} aria-label="Move down">↓</button></div>
       <div class="ws-faq-fields"><input name="question" value="${e(f.question)}" maxlength="200" aria-label="Question"><textarea name="answer" rows="2" maxlength="2000" aria-label="Answer">${e(f.answer)}</textarea></div>
       <div class="ws-faq-actions"><label class="ws-check"><input type="checkbox" name="is_active" ${f.is_active ? 'checked' : ''}> Shown</label><button class="button" type="submit">Save</button><button class="button vc-danger" type="button" data-del aria-label="Delete">${icon('close')}</button></div></form>`).join('')
@@ -209,7 +209,7 @@ async function renderFaqs(content) {
       const id = form.dataset.id;
       form.onsubmit = async (ev) => { ev.preventDefault(); const x = form.elements;
         const { error: err } = await db.client.from('site_faqs').update({ question: x.question.value.trim(), answer: x.answer.value.trim(), is_active: x.is_active.checked }).eq('id', id);
-        toast(err ? (err.message.includes('10') ? 'Only 10 FAQs can be shown. Turn one off first.' : err.message) : 'Saved. It’s live on the homepage.'); draw(); };
+        toast(err ? (err.message.includes('12') ? 'Only 12 FAQs can be shown. Turn one off first.' : err.message) : 'Saved. It’s live on the homepage.'); draw(); };
       form.querySelector('[data-del]').onclick = async () => { if (!(await ask('This question is removed from the homepage for good.', { title: 'Delete this FAQ?', confirm: 'Delete', tone: 'danger' }))) return; await db.client.from('site_faqs').delete().eq('id', id); draw(); };
       form.querySelectorAll('[data-move]').forEach((b) => (b.onclick = async () => {
         const i = data.findIndex((f) => f.id === id), j = i + Number(b.dataset.move), a = data[i], c = data[j]; if (!c) return;
@@ -220,9 +220,9 @@ async function renderFaqs(content) {
   }
   content.querySelector('[data-add]').onclick = async () => {
     const { data } = await db.client.from('site_faqs').select('id,is_active');
-    const full = (data || []).filter((f) => f.is_active).length >= 10;
+    const full = (data || []).filter((f) => f.is_active).length >= 12;
     const { error } = await db.client.from('site_faqs').insert({ question: 'New question?', answer: 'Write the answer here.', sort_order: (data || []).length, is_active: !full });
-    toast(error ? error.message : full ? 'Added as hidden: 10 FAQs are already shown.' : 'Added. Edit it below, then Save.'); draw();
+    toast(error ? error.message : full ? 'Added as hidden: 12 FAQs are already shown.' : 'Added. Edit it below, then Save.'); draw();
   };
   draw();
 }
