@@ -1455,7 +1455,7 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           <div class="checkout-total-row"><span>Balance after verified payment</span><span id="checkoutBalance">₱0.00</span></div></div>
         </section>
 
-        <div class="checkout-actions co-placebar"><div class="checkout-pay-now"><span class="co-total-l">Total <b id="coBarTotal">₱0.00</b></span><small hidden>Due now <strong id="checkoutStickyDue">₱0.00</strong></small></div><button class="btn-primary co-submit-btn" id="placeOrderButton" onclick="submitCheckout()">Place order</button></div>
+        <div class="checkout-actions co-placebar"><div class="checkout-pay-now"><span class="co-total-l"><span id="coBarLabel">Total</span> <b id="coBarTotal">₱0.00</b></span><small hidden>Due now <strong id="checkoutStickyDue">₱0.00</strong></small></div><button class="btn-primary co-submit-btn" id="placeOrderButton" onclick="submitCheckout()">Place order</button></div>
       </div>
     </div>
   </div>
@@ -1718,7 +1718,10 @@ function updateCheckoutDelivery() {
   document.getElementById('checkoutBalance').textContent = show(total - required);
   document.getElementById('checkoutStickyDue').textContent = show(required);
   // the bar at the bottom: Total, and the button says the amount being placed
-  document.getElementById('coBarTotal').textContent = show(total);
+  // the bar shows what is paid first: the 60% downpayment or the full amount, once a payment method is picked
+  const planOn = !document.getElementById('coPlan')?.hidden;
+  document.getElementById('coBarTotal').textContent = show(planOn ? required : total);
+  const barLabel = document.getElementById('coBarLabel'); if (barLabel) barLabel.textContent = !planOn ? 'Total' : window.coPayPlan === 'full' ? 'Full payment' : '60% downpayment';
   const placeBtn = document.getElementById('placeOrderButton'); if (placeBtn && !checkoutSaving) placeBtn.textContent = 'Place order';
   const label = document.getElementById('checkoutRequiredLabel');
   if (label) label.textContent = window.coPayPlan === 'full' ? 'First payment (full)' : deliveryCents ? 'First payment (60% + delivery fee)' : 'First payment (60%)';
@@ -2961,7 +2964,7 @@ loginReady();
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script><script src="shared/delivery-area.js?v=1"></script><script src="shared/checkout-map.js?v=14"></script>
-<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/checkout-pay-row.js?v=2"></script><script src="shared/address-book.js?v=4"></script><script src="shared/cancel-order.js?v=1"></script><script src="shared/customer-backend.js?v=58"></script><script src="shared/reservation-first.js?v=4"></script><script src="shared/voucher-checkout.js?v=4"></script><script src="shared/site-cms-schema.js?v=2"></script><script src="shared/site-cms.js?v=3"></script><script src="shared/site-editor.js?v=6"></script>
+<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/checkout-pay-row.js?v=3"></script><script src="shared/address-book.js?v=4"></script><script src="shared/cancel-order.js?v=1"></script><script src="shared/customer-backend.js?v=58"></script><script src="shared/reservation-first.js?v=4"></script><script src="shared/voucher-checkout.js?v=4"></script><script src="shared/site-cms-schema.js?v=2"></script><script src="shared/site-cms.js?v=3"></script><script src="shared/site-editor.js?v=6"></script>
 <script src="shared/product-detail.js?v=21"></script>
 <script src="shared/menu-layout.js?v=7"></script>
 <script src="shared/fresh-feed.js?v=17"></script>
