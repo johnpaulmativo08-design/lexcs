@@ -41,7 +41,7 @@
   };
   const api = {
     client, unwrap, identity, signIn, mediaURL,
-    async signOut() { unwrap(await client.auth.signOut()); },
+    async signOut() { unwrap(await client.auth.signOut({ scope: 'local' })); },   // log out this browser only; other devices stay signed in
     async signUp(name, email, password) {
       return unwrap(await client.auth.signUp({ email: email.trim(), password,
         options: { data: { full_name: name.trim(), terms_accepted_at: new Date().toISOString() }, emailRedirectTo: new URL('index.html?confirmed=1', siteRoot).href }
