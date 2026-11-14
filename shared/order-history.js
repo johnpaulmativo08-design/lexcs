@@ -341,24 +341,31 @@ function itemsSection(o) {
   }).join('')}</ul></section>`;
 }
 
+// Payment card: fully paid → status, Total and "Nothing left"; otherwise → Total of products, Delivery fee,
+// Overall total and the remaining balance (with what was paid so far). The line-by-line receipt is on the payment page.
 function paymentSection(o) {
-  const a = lastAttempt(o), ps = paymentStatus(o), left = remaining(o);
+  const a = lastAttempt(o), ps = paymentStatus(o), left = remaining(o), total = o.total_amount == null ? null : Number(o.total_amount);
   const line = (label, value, cls = '') => `<div class="oh-sum-row${cls}"><span>${label}</span><b>${value}</b></div>`;
-  const delivery = isDelivery(o) ? (o.delivery_in_deposit && Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : o.delivery_fee_status === 'quoted' && Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : 'Paid to rider') : null;
+  const fee = Number(o.delivery_fee) > 0 && (o.delivery_in_deposit || o.delivery_fee_status === 'quoted') ? Number(o.delivery_fee) : 0;
+  const feeText = !isDelivery(o) ? 'None (pickup)' : fee ? money(fee) : o.delivery_fee_status === 'quoted' || o.delivery_in_deposit ? money(0) : 'Paid to rider';
+  const settled = o.status !== 'cancelled' && left === 0 && total != null;
+  const leftBox = o.status === 'cancelled' || left == null ? ''
+    : settled ? `<div class="oh-left is-clear"><span>Remaining balance</span><b>Nothing left</b></div>`
+    : `<div class="oh-left is-due"><span>Remaining balance${Number(o.amount_paid) > 0 ? `<small>Paid so far ${money(o.amount_paid)}</small>` : ''}</span><b>${money(left)}</b></div>`;
   return `<section class="oh-sec"><h3>Payment</h3>
     <div class="oh-paystate">${pill(ps, ' is-pay')}<span>${esc(methodName(o) || (o.status === 'pending' ? 'You can pay once LexC’s confirms' : 'No payment yet'))}</span></div>
     ${a?.status === 'rejected' && o.payment_status !== 'paid' ? `<p class="oh-reject">${svg(I.alert)}<span><b>Your last payment wasn’t accepted.</b> ${esc(a.rejection_reason || 'Please send it again.')}</span></p>` : ''}
     <div class="oh-sum">
-      ${line('Subtotal', money(o.items_subtotal))}
-      ${Number(o.customization_total) > 0 ? line('Design options', money(o.customization_total)) : ''}
-      ${Number(o.rush_fee) > 0 ? line('Rush fee', money(o.rush_fee)) : ''}
-      ${delivery ? line('Delivery fee', delivery) : ''}
-      ${Number(o.vat_amount) > 0 ? line('VAT', money(o.vat_amount)) : ''}
-      ${line('Total', o.total_amount == null ? 'To be confirmed' : money(o.total_amount), ' is-total')}
-      ${o.status !== 'cancelled' && o.deposit_due != null && Number(o.deposit_due) < Number(o.total_amount) ? line('Downpayment', money(o.deposit_due)) : ''}
-      ${line('Paid (verified)', money(o.amount_paid))}
-      ${o.status !== 'cancelled' && left != null ? line('Remaining', left > 0 ? money(left) : 'Nothing left', left > 0 ? ' is-due' : ' is-clear') : ''}
-    </div></section>`;
+      ${settled ? line('Total', money(total), ' is-total') : `${line('Total of products', total == null ? 'To be confirmed' : money(total - fee))}${line('Delivery fee', feeText)}${line('Overall total', total == null ? 'To be confirmed' : money(total), ' is-total')}`}
+    </div>${leftBox}</section>`;
+}
+
+// "Order received": a delivery the rider has picked up can be confirmed here (phase 88); a finished order shows it done
+function receivedButton(o) {
+  const d = delivery(o);
+  if (isDelivery(o) && d && ['booked', 'picked_up'].includes(d.step) && o.status !== 'cancelled') return `<button type="button" class="oh-btn is-go oh-wide" data-oh-received="${esc(o.id)}">${svg(I.check)}Order received</button>`;
+  if (o.status === 'completed' || d?.step === 'delivered') return `<span class="oh-btn is-done oh-wide" aria-disabled="true">${svg(I.check)}Order received</span>`;
+  return '';
 }
 
 function details(o, times) {
@@ -374,9 +381,9 @@ function details(o, times) {
     ${itemsSection(o)}
     ${paymentSection(o)}
     <div class="oh-sheet-actions">
-      <a class="oh-btn is-quiet" href="payment/index.html?order=${encodeURIComponent(o.id)}">${svg(I.wallet)}View payment</a>
+      ${remaining(o) === 0 && canReview(o) ? `<button type="button" class="oh-btn is-quiet" data-oh-review="${esc(o.id)}">${svg(I.star)}Rate order</button>` : `<a class="oh-btn is-quiet" href="payment/index.html?order=${encodeURIComponent(o.id)}">${svg(I.wallet)}View payment</a>`}
       <a class="oh-btn is-quiet" href="chat/?order=${encodeURIComponent(o.id)}">${svg(I.chat)}Message LexC’s</a>
-      ${canReview(o) ? `<button type="button" class="oh-btn is-quiet" data-oh-review="${esc(o.id)}">${svg(I.star)}Rate order</button>` : ''}
+      ${receivedButton(o)}
       ${canCancel(o) ? `<button type="button" class="oh-btn is-danger" data-oh-cancel="${esc(o.id)}">Cancel order</button>` : ''}
     </div>`;
 }
@@ -436,7 +443,7 @@ function goTo(orderId, opts = {}) {
 
 // ---------------------------------------------------------------------------------------------- events
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest?.('[data-oh-open],[data-oh-tab],[data-oh-retry],[data-oh-login],[data-oh-shop],[data-oh-clear],[data-oh-cancel],[data-oh-review]');
+  const t = e.target.closest?.('[data-oh-open],[data-oh-tab],[data-oh-retry],[data-oh-login],[data-oh-shop],[data-oh-clear],[data-oh-cancel],[data-oh-review],[data-oh-received]');
   if (!t || !(t.closest('#ordersRoot') || t.closest('.oh-sheet'))) return;
   if (t.dataset.ohOpen) return open(t.dataset.ohOpen);
   if (t.dataset.ohTab) { tab = t.dataset.ohTab; render(); root().querySelector(`[data-oh-tab="${tab}"]`)?.focus(); return; }
@@ -445,6 +452,12 @@ document.addEventListener('click', async (e) => {
   if ('ohShop' in t.dataset) return window.navigate?.('shop');
   if ('ohClear' in t.dataset) { query = ''; return render(); }
   if (t.dataset.ohReview) { closeSheet(); return window.showReviewForm?.(t.dataset.ohReview); }
+  if (t.dataset.ohReceived) {
+    t.disabled = true;
+    try { const db = window.LexcBackend; db.unwrap(await db.client.rpc('confirm_order_received', { target_order: t.dataset.ohReceived })); window.showToast?.('Thank you! Enjoy your treats.'); document.dispatchEvent(new CustomEvent('lexc:order-received')); }
+    catch (err) { window.showToast?.(err.message || 'That could not be confirmed. Try again.'); t.disabled = false; }
+    return;
+  }
   if (t.dataset.ohCancel) {
     const o = data.orders.find((x) => x.id === t.dataset.ohCancel); if (!o) return;
     // phase 109: a reason, the 3-a-day rule and the 8-hour pause (shared/cancel-order.js)
