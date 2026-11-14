@@ -77,7 +77,7 @@
   // FAQs from the database (phase 104); the built-in list stays if the table is empty or not set up
   async function faqs() {
     try {
-      const { data, error } = await window.LexcBackend.client.from('site_faqs').select('question,answer,sort_order').eq('is_active', true).order('sort_order').limit(10);
+      const { data, error } = await window.LexcBackend.client.from('site_faqs').select('question,answer,sort_order').eq('is_active', true).order('sort_order').limit(12);
       if (error || !data?.length) return;
       const list = document.querySelector('#page-faq .faq-list'); if (!list) return;
       list.innerHTML = data.map((f) => `<div class="faq-item"><button class="faq-question">${esc(f.question)} <span class="faq-chevron">▾</span></button><div class="faq-answer">${esc(f.answer)}</div></div>`).join('');

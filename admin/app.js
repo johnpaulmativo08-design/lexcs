@@ -6,14 +6,14 @@ import { renderDashboard } from './pages/dashboard.js?v=21';
 import { renderProducts } from './pages/products.js?v=16';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=39';
 import { renderReports } from './pages/reports.js?v=23';
-import { renderOrders } from './pages/orders.js?v=58';
+import { renderOrders } from './pages/orders.js?v=59';
 import { renderBookings } from './pages/bookings.js?v=30';
 import { renderDesignOptions } from './pages/design-options.js?v=16';
 import { renderProfile } from './pages/profile.js?v=16';
-import { renderWebsite } from './pages/website.js?v=3';
+import { renderWebsite } from './pages/website.js?v=4';
 import { renderContent } from './pages/content.js?v=1';
 import { renderStaff } from './pages/staff.js?v=1';
-import { renderStaffOrders } from './pages/staff-orders.js?v=2';
+import { renderStaffOrders } from './pages/staff-orders.js?v=3';
 import { renderVouchers } from './pages/vouchers.js?v=3';
 import { mountChat } from '../shared/chat.js?v=44';
 import { mountChatWidget } from '../shared/chat-widget.js?v=48';
@@ -37,6 +37,8 @@ const STAFF_PAGES = ['dashboard', 'orders', 'bookings', 'production', 'inventory
 const OWNER_ONLY = ['[data-status="confirmed"]', '[data-status="cancelled"]', '[data-waive]', '#delivery-quote', '[data-extra-form]', '[data-propose-extra]',
   '[data-act="settings"]', '[data-action="archive-item"]', '[data-edit-batch]', 'a[href="#inventory/conversions"]', '[data-correct-batch]',
   '[data-close]', '[data-limit]', '[data-reserve]', '[data-capacity]', 'a[href="#settings"]', 'a[href^="../?cms"]', 'a[href="#profile/transfer"]', 'a[href^="#website"]', 'a[href="#content"]'].join(',');
+// cashiers switch Orders between the order cards (default) and their table
+document.addEventListener('click', (ev) => { const b = ev.target.closest?.('[data-staff-view]'); if (!b) return; try { localStorage.setItem('lexc_staff_orders_view', b.dataset.staffView); } catch {} renderRoute(); });
 function trimForStaff(root) {
   if (!root) return;
   root.querySelectorAll(OWNER_ONLY).forEach((el) => el.remove());
@@ -172,7 +174,7 @@ async function renderRoute() {
   else if (current === 'products') await renderProducts(content, subpage);
   else if (current === 'inventory') await renderInventory(content, subpage);
   else if (current === 'reports') await renderReports(content, subpage);
-  else if (current === 'orders') await (window.LexcAdminAuth.level === 'staff' ? renderStaffOrders(content) : renderOrders(content));
+  else if (current === 'orders') { let v = ''; try { v = localStorage.getItem('lexc_staff_orders_view') || ''; } catch {} await (window.LexcAdminAuth.level === 'staff' && v === 'table' ? renderStaffOrders(content) : renderOrders(content)); }
   else if (current === 'vouchers') await renderVouchers(content);
   else if (current === 'website') await renderWebsite(content, subpage);
   else if (current === 'content') renderContent(content);

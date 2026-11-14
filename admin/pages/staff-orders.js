@@ -21,7 +21,7 @@ const pill = ([t, tone]) => `<span class="so-pill is-${tone}">${e(t)}</span>`;
 export async function renderStaffOrders(content) {
   const today = dayKey(new Date());
   const state = { mode: 'all', day: today, q: '', status: '' };   // every order first; This day = today
-  content.innerHTML = `<header class="so-head"><div><h1>Orders</h1><p>Every order, newest first, or one day at a time. Open one to see every detail and the remaining balance.</p></div></header>
+  content.innerHTML = `<header class="so-head"><div><h1>Orders</h1><p>Every order, newest first, or one day at a time. Open one to see every detail and the remaining balance.</p></div><button type="button" class="button" data-staff-view="cards">Card view</button></header>
     <section class="so-dates" aria-label="Choose dates">
       <div class="so-day"><button type="button" class="so-arrow" data-step="-1" aria-label="Previous day">‹</button>
         <label class="so-pick"><span data-label></span><input type="date" data-date aria-label="Pick a date"></label>

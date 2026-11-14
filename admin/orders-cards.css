@@ -57,3 +57,14 @@
 .ox-empty strong{color:#241532;font-size:17px}.ox-empty p{margin:0;color:#7a6f8a;font-size:14px}
 @media (max-width:700px){.ox-head h1{font-size:32px}.ox-day{width:100%;justify-content:space-between}.ox-search{min-width:0;flex:1}.ox-tools{width:100%}.ox-grid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.ox-card{transition:none}.ox-card:hover{transform:none}}
+/* every order card the same height: items fold into a dropdown; an opened card grows on its own */
+.ox-grid{align-items:start}
+.ox-card{min-height:318px;box-sizing:border-box}
+.ox-drop{margin:10px 0 0;border:1px solid #efe9f5;border-radius:12px;background:#fbf9fd}
+.ox-drop>summary{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;list-style:none;font-size:13px;color:#2b1d3a}.ox-drop>summary::-webkit-details-marker{display:none}
+.ox-drop>summary span{flex:none;padding:2px 8px;border-radius:999px;background:#efe7fa;color:#5b3596;font-weight:700;font-size:12px}
+.ox-drop>summary em{flex:1;min-width:0;font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ox-drop>summary i{font-style:normal;color:#8a7d99;transition:transform .2s}.ox-drop[open]>summary i{transform:rotate(180deg)}
+.ox-drop .ox-items{margin:0;padding:0 12px 10px;border-collapse:separate}.ox-drop .ox-items th{padding-top:0}
+.ox-card .ox-drop+.ox-total{margin-top:12px}
+@media (prefers-reduced-motion:reduce){.ox-drop>summary i{transition:none}}
