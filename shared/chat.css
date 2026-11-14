@@ -93,7 +93,10 @@ body.chat-page:not([data-admin-page]){font-family:'Plus Jakarta Sans',system-ui,
 @media(max-width:650px){.chat-page:not([data-admin-page]) .chat-page-header{display:none}.chat-page:not([data-admin-page]) .chat-workspace{height:100dvh;border-radius:0}.chat-page:not([data-admin-page]) .chat-thread header{height:64px;min-height:64px;padding:8px 12px}.chat-page:not([data-admin-page]) .chat-thread header #chat-back{background:transparent;border:0;font-size:1.15rem;padding:6px}.chat-page:not([data-admin-page]) .chat-thread header #chat-details{font-size:.7rem;padding:7px}.chat-page:not([data-admin-page]) .chat-stream{padding:14px 12px}.chat-page:not([data-admin-page]) #chat-compose{border-radius:0;padding-bottom:calc(10px + env(safe-area-inset-bottom))}.chat-order-card{width:100%}.chat-page:not([data-admin-page]) .chat-inbox{height:100dvh}}
 /* Customer has one Admin relationship: the expanded page is a conversation, not an inbox. */
 .chat-page:not([data-admin-page]) .chat-workspace{grid-template-columns:minmax(0,1fr) minmax(240px,28%)}
-.chat-page:not([data-admin-page]) .chat-inbox,.chat-page:not([data-admin-page]) #chat-back{display:none!important}
+/* customers: the conversation list shows beside the chat on tablets and computers (every order and the general chat);
+   on phones the chat fills the screen */
+@media(max-width:650px){.chat-page:not([data-admin-page]) .chat-inbox,.chat-page:not([data-admin-page]) #chat-back{display:none!important}}
+@media(min-width:651px){.chat-page:not([data-admin-page]) #chat-back{display:none!important}.chat-page:not([data-admin-page]) .chat-workspace.has-thread .chat-inbox{display:flex!important}}
 .chat-page:not([data-admin-page]) #chat-start{margin-top:14px;padding:10px 14px;border:0;border-radius:9px;background:#7044b8;color:#fff;font-weight:700}
 @media(max-width:800px){.chat-page:not([data-admin-page]) .chat-workspace{display:flex}.chat-page:not([data-admin-page]) .chat-thread{display:flex!important;width:100%;height:100%}.chat-page:not([data-admin-page]) .chat-context{display:none}}
 .chat-workspace-loading .chat-search{min-height:48px}.chat-workspace-loading .chat-filters{gap:10px}.chat-skeleton-row{display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid #f0ebf7}.chat-skeleton-row>span:last-child{display:grid;gap:8px}.chat-skeleton-messages{display:flex;flex-direction:column;gap:16px;width:100%}.chat-skeleton-bubble{display:grid;gap:8px;width:min(58%,340px);padding:14px;border:1px solid #eee8f4;border-radius:12px;background:white}.chat-skeleton-bubble.mine{align-self:flex-end;background:#f7f3fb}.chat-skeleton-context{display:grid;gap:12px}.chat-workspace-loading .chat-compose .skel-line{flex:1;height:40px}.chat-stream-loading{min-height:220px}
@@ -330,3 +333,9 @@ html[data-theme=dark] .chat-workspace{--chat-line:#4a3a5e;border-color:#4a3a5e!i
 .chat-context-link{background:var(--c-ink)!important;color:#fff!important;border:0!important;border-radius:999px!important;font-weight:800;transition:background .15s}
 .chat-context-link:hover{background:var(--c-violet)!important}
 .chat-context dl dd{font-weight:700;color:var(--c-ink)}
+/* customers on tablets and computers: list | chat | order details (details tuck away below 1000px) */
+@media(min-width:651px){.chat-page:not([data-admin-page]) .chat-workspace{display:grid!important;grid-template-columns:minmax(230px,24%) minmax(0,1fr) minmax(250px,26%)!important}
+ .chat-page:not([data-admin-page]) .chat-inbox{grid-column:1;grid-row:1;min-height:0;overflow:auto;border-right:1px solid #ece3f7}
+ .chat-page:not([data-admin-page]) .chat-thread{grid-column:2;grid-row:1;min-width:0}
+ .chat-page:not([data-admin-page]) .chat-context{grid-column:3;grid-row:1}}
+@media(min-width:651px) and (max-width:1000px){.chat-page:not([data-admin-page]) .chat-workspace{grid-template-columns:minmax(210px,34%) minmax(0,1fr)!important}.chat-page:not([data-admin-page]) .chat-context{display:none}}
