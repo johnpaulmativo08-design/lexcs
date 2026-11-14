@@ -39,7 +39,7 @@
     const r = get(), btn = document.getElementById('cartCheckoutBtn');
     box.innerHTML = r
       ? `<span class="rsv-ic">${CAL}</span><span class="rsv-txt"><small>Receiving</small><b>${esc(dayText(r.date))} · ${esc(r.label)}</b></span><button type="button" data-rsv-pick class="rsv-change">Change</button>`
-      : `<span class="rsv-ic">${CAL}</span><span class="rsv-txt"><small>Receiving</small><b>Pick a date &amp; time</b></span><button type="button" data-rsv-pick class="rsv-pickbtn">See open slots</button>`;
+      : `<span class="rsv-ic">${CAL}</span><span class="rsv-txt"><small>Receiving</small><b>Pick a date &amp; time</b></span>`;
     box.classList.toggle('is-empty', !r);
     if (btn) btn.textContent = r ? 'Proceed to checkout →' : 'Choose date & time →';
   }
