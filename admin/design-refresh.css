@@ -360,3 +360,5 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 @media (max-width:1100px){.rk-k1{grid-template-columns:1fr}}
 @media (max-width:760px){.rk-tiles{grid-template-columns:1fr}.rk-search{min-width:0;flex:1}.rk-head h1{font-size:1.4rem}.rk-kitchen{padding:18px}}
 .rl-layout.rk-solo{grid-template-columns:minmax(0,1fr)!important}.rl-layout.rk-solo>.rl-main{grid-column:1/-1!important}
+.rk-head{align-items:center}.rk-head p{margin:0}
+.rk-quick{display:grid!important;gap:6px}.rk-qgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.rk-qgrid button{display:grid;gap:2px;padding:7px 6px;text-align:center;font-size:.76rem;font-weight:600;line-height:1.2}.rk-qgrid button b{font-size:.86rem;font-weight:800}
