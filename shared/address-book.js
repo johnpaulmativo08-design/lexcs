@@ -121,5 +121,59 @@
   let refs = [];
   const drawRefs = () => { const box = $('coRefPhotos'); if (box && window.LexcInspiration) box.innerHTML = window.LexcInspiration.html('checkout', refs, { title: 'Have a reference photo?', note: 'Add a picture of the look you want. LexC’s sees it with your order.' }); };
   window.LexcCheckoutRefs = { take: () => { const out = refs; refs = []; drawRefs(); return out; } };
-  window.LexcAddressBook = { prepare, remember, reload: () => load(true).then(paint) };
+  // Profile → Explore → Addresses: save address slots, pick the default (it fills in at checkout), remove old ones
+  function manageHtml(adding) {
+    const p = window.currentProfile || {}, saved = (list || []).filter((a) => !a.fromProfile && a.customer_id === user()?.id);
+    const rows = saved.map((a) => `<div class="co-addr-row"><button type="button" role="radio" class="co-addr-opt" data-addr-use="${a.id}" aria-checked="${!!a.is_default}">
+      <i aria-hidden="true"></i><span><b>${esc(a.label ? a.label + ' · ' : '')}${esc(a.recipient)}</b> <small>${esc(a.phone)}</small><span>${esc(a.address)}</span>${a.is_default ? '<em>Default · used at checkout</em>' : ''}</span></button>
+      <button type="button" class="co-addr-del" data-addr-del="${a.id}" aria-label="Remove this address">Remove</button></div>`).join('');
+    const form = `<form class="co-addr-form" data-addr-form><input class="co-input" name="label" maxlength="40" placeholder="Label (e.g. Home, Work)">
+      <input class="co-input" name="recipient" required maxlength="120" placeholder="Full name *" value="${esc(p.full_name || '')}">
+      <input class="co-input" name="phone" type="tel" inputmode="numeric" required maxlength="11" placeholder="Contact number *" value="${esc(String(p.phone || '').replace(/\D/g, '').slice(0, 11))}">
+      <textarea class="co-input co-textarea" name="address" required minlength="5" maxlength="500" rows="2" placeholder="House no., street, barangay, city *"></textarea>
+      <div class="co-addr-form-actions"><button type="button" class="co-addr-cancel" data-addr-cancel>Cancel</button><button type="submit" class="btn-primary">Save address</button></div></form>`;
+    return `<div class="vw-sheet-card co-addr-sheet"><header><h3>My addresses</h3><button type="button" class="vw-x" data-addr-close aria-label="Close">×</button></header>
+      ${saved.length ? `<p class="co-addr-hint">Tap an address to make it your default. It fills in when you check out.</p><div class="co-addr-list" role="radiogroup" aria-label="Saved addresses">${rows}</div>` : '<p class="co-addr-hint">No saved addresses yet. Add one to fill it in at checkout.</p>'}
+      ${adding || !saved.length ? form : '<button type="button" class="co-addr-new" data-addr-add>+ Add address</button>'}</div>`;
+  }
+  async function manage() {
+    if (!user()) return window.navigate?.('login');
+    await load(true);
+    const s = document.createElement('div'); sheet = s;
+    s.className = 'vw-sheet'; s.setAttribute('role', 'dialog'); s.setAttribute('aria-modal', 'true'); s.setAttribute('aria-label', 'My addresses');
+    let adding = false; const draw = () => { s.innerHTML = manageHtml(adding); };
+    draw(); document.body.append(s); requestAnimationFrame(() => s.classList.add('is-open'));
+    const db = () => window.LexcBackend.client.from('customer_addresses');
+    s.addEventListener('click', async (ev) => {
+      if (ev.target === s || ev.target.closest('[data-addr-close]')) return closeSheet();
+      if (ev.target.closest('[data-addr-add]')) { adding = true; draw(); s.querySelector('[name="label"]')?.focus(); return; }
+      if (ev.target.closest('[data-addr-cancel]')) { adding = false; draw(); return; }
+      const use = ev.target.closest('[data-addr-use]');
+      if (use) {
+        if (use.getAttribute('aria-checked') === 'true') return;
+        const { error } = await db().update({ is_default: true }).eq('id', use.dataset.addrUse);
+        if (error) return window.showToast?.('That address could not be set as default.');
+        chosen = null; await load(true); draw(); return window.showToast?.('Default address updated. It fills in at checkout.');
+      }
+      const del = ev.target.closest('[data-addr-del]');
+      if (del) {
+        if (!confirm('Remove this address?')) return;
+        del.disabled = true;
+        const { error } = await db().delete().eq('id', del.dataset.addrDel);
+        if (error) { del.disabled = false; return window.showToast?.('That address could not be removed.'); }
+        if (chosen?.id === del.dataset.addrDel) chosen = null;
+        await load(true); draw();
+      }
+    });
+    s.addEventListener('submit', async (ev) => {
+      ev.preventDefault(); const f = ev.target, v = (n) => f.elements[n].value.trim(), btn = f.querySelector('[type=submit]');
+      if (!/^09\d{9}$/.test(v('phone'))) return window.showToast?.('Enter an 11-digit mobile number (09XXXXXXXXX).');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      const first = !(list || []).some((a) => !a.fromProfile && a.customer_id === user()?.id);
+      const { error } = await db().insert({ label: v('label') || null, recipient: v('recipient'), phone: v('phone'), address: v('address'), is_default: first });
+      if (error) { btn.disabled = false; btn.textContent = 'Save address'; return window.showToast?.('That address could not be saved.'); }
+      adding = false; await load(true); draw(); window.showToast?.('Address saved.');
+    });
+  }
+  window.LexcAddressBook = { prepare, remember, manage, reload: () => load(true).then(paint) };
 })();

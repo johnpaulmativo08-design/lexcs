@@ -115,7 +115,7 @@
   }
   function explore() {
     const go = (ic, label, act) => `<button type="button" data-pf="${act}">${icon(ICONS[ic])}${label}</button>`;
-    return `<section class="pf-card"><h3>Explore <em>more</em></h3><div class="pf-explore">${go('bag', 'Shop', 'shop')}${go('wand', 'Customize', 'diy')}${go('spark', 'Sweet moments', 'fresh')}${go('gift', 'Packages', 'packages')}${go('chat', 'Messages', 'chatpage')}${go('ticket', 'Vouchers', 'vouchers')}${go('truck', 'Deliveries', 'deliveries')}${go('help', 'FAQ', 'faq')}${go('sun', 'Display', 'display')}</div></section>`;
+    return `<section class="pf-card"><h3>Explore <em>more</em></h3><div class="pf-explore">${go('list', 'My orders', 'orders')}${go('pin', 'Addresses', 'addresses')}${go('bag', 'Shop', 'shop')}${go('wand', 'Customize', 'diy')}${go('spark', 'Sweet moments', 'fresh')}${go('gift', 'Packages', 'packages')}${go('chat', 'Messages', 'chatpage')}${go('ticket', 'Vouchers', 'vouchers')}${go('truck', 'Deliveries', 'deliveries')}${go('help', 'FAQ', 'faq')}${go('sun', 'Display', 'display')}</div></section>`;
   }
   function drawGuest() {
     root().innerHTML = `<div class="pf-guest">${band(null, '', 'L')}
@@ -251,6 +251,7 @@
     if (act === 'cart') return window.openCart?.();
     if (act === 'vouchers') return window.LexcVoucher?.browse();
     if (act === 'deliveries') return window.LexcDeliveries?.open();
+    if (act === 'addresses') return window.LexcAddressBook?.manage();
     // order history and cancelled orders open My Orders (shared/order-history.js); payments keep their panel
     if ((act === 'orders' || act === 'cancelled') && window.LexcOrders) { if (panel) { panel = null; panelData = null; draw(); } return window.LexcOrders.goTo(null, { tab: act === 'cancelled' ? 'cancelled' : 'all' }); }
     if (act === 'orders' || act === 'cancelled' || act === 'payments') return openPanel(act);
