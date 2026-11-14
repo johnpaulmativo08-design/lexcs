@@ -85,7 +85,7 @@
   }
   function infoDelivery() {
     if (!pin) return `<p class="co-map-hint">We deliver within ${esc(AREA?.name || 'our area')} (outlined on the map). Tap the map, search, or use your location to pin your exact spot.</p>`;
-    return `<div class="co-map-place"><span class="co-map-badge is-pin" aria-hidden="true"></span><div><strong>Deliver to</strong><small>${esc(pin.label || 'Pinned on the map')} · drag the pin to adjust</small></div><button type="button" class="co-map-clear" data-clear-pin>Remove pin</button></div>
+    return `<div class="co-map-place"><span class="co-map-badge is-pin" aria-hidden="true"></span><div><strong>Deliver to</strong><small>${pin.finding && !pin.label ? '<span class="co-map-finding">Finding the address…</span>' : esc(pin.label || 'Pinned on the map')} · drag the pin to adjust</small></div><button type="button" class="co-map-clear" data-clear-pin>Remove pin</button></div>
       ${feeBox()}`;
   }
   // ---- delivery fee: driving distance and the estimated fee, worked out on the server (supabase/functions/delivery-quote)
@@ -162,11 +162,15 @@
     if (moved) requestQuote();
     if (!pinMarker) {
       pinMarker = L.marker([lat, lng], { icon: pinIcon('is-pin'), draggable: true, title: 'Delivery pin' }).addTo(map);
+      // the street name follows the pin while it is dragged (a lookup at most every 250 ms), then once more where it lands
+      let dragAt = 0;
+      pinMarker.on('dragstart', () => { if (pin) { pin.label = ''; pin.finding = true; paint(); } });
+      pinMarker.on('drag', () => { const now = Date.now(); if (now - dragAt < 250) return; dragAt = now; const p = pinMarker.getLatLng(); if (inArea(p.lat, p.lng)) reverse(p.lat, p.lng, { live: true }); });
       pinMarker.on('dragend', () => { const p = pinMarker.getLatLng(); setPin(p.lat, p.lng, { lookup: true }); });
     } else pinMarker.setLatLng([lat, lng]);
     if (fly) frame();
     paint();
-    if (lookup) reverse(lat, lng);
+    if (lookup) { const hit = cache.get(key(lat, lng)); if (hit) { pin.label = hit; paint(); fillAddress(hit); } else { pin.finding = true; paint(); reverse(lat, lng); } }
   }
   // show the shop and the pin together, with room around both so neither sits on the edge
   function frame() {
@@ -179,19 +183,26 @@
     const street = [p.housenumber, p.street].filter(Boolean).join(' ');
     return [p.name !== p.street ? p.name : '', street, p.district || p.locality, p.city || p.county, p.state].filter((v, i, a) => v && a.indexOf(v) === i).join(', ');
   }
-  async function reverse(lat, lng) {
-    const seq = ++searchSeq;
+  // street names for a pin: answers are kept (about 10 m apart counts as the same spot) and an older lookup is
+  // cancelled when the pin moves again, so the newest spot always wins
+  const cache = new Map(), key = (lat, lng) => lat.toFixed(4) + ',' + lng.toFixed(4);
+  let reverseCtl = null, reverseSeq = 0;
+  async function reverse(lat, lng, { live = false } = {}) {
+    const k = key(lat, lng), seq = ++reverseSeq;
+    const done = label => { if (seq !== reverseSeq || !pin) return; pin.finding = false; if (label) pin.label = label; paint(); if (label) fillAddress(label); };
+    if (cache.has(k)) return done(cache.get(k));
+    reverseCtl?.abort(); reverseCtl = new AbortController();
     try {
-      const res = await fetch(`https://photon.komoot.io/reverse?lat=${fixed(lat)}&lon=${fixed(lng)}&limit=1&lang=en`);
-      const data = await res.json(); if (seq !== searchSeq || !pin) return;
-      const label = labelOf(data.features?.[0]?.properties);
-      if (!label) return;
-      pin.label = label; paint(); fillAddress(label);
-    } catch { /* the pin still works without a street name */ }
+      const res = await fetch(`https://photon.komoot.io/reverse?lat=${fixed(lat)}&lon=${fixed(lng)}&limit=1&lang=en`, { signal: reverseCtl.signal });
+      const label = labelOf((await res.json()).features?.[0]?.properties);
+      if (label) { cache.set(k, label); if (cache.size > 200) cache.delete(cache.keys().next().value); }
+      done(label);
+    } catch (err) { if (err?.name !== 'AbortError' && !live) done(''); }   // the pin still works without a street name
   }
-  function fillAddress(label) {   // only an empty address; the customer adds house/unit details
+  // the Delivery address box follows the pin; house/unit details can be added after the pin is placed
+  function fillAddress(label) {
     const box = $('coAddress');
-    if (box && label && !box.value.trim()) { box.value = label; box.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (box && label && box.value !== label) { box.value = label; box.dispatchEvent(new Event('input', { bubbles: true })); box.closest('.co-icon-field')?.classList.remove('is-synced'); void box.offsetWidth; box.closest('.co-icon-field')?.classList.add('is-synced'); }
   }
 
   function hideResults() { const r = $('coMapResults'); if (r) { r.hidden = true; r.innerHTML = ''; } }
