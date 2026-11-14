@@ -58,7 +58,7 @@ export async function renderBookings(content){
   const tile=(k,label,value,sub,ic)=>`<div class="rk-tile is-${k}"><div><small>${label}</small><p><b>${value}</b>${sub}</p></div><span class="rk-tic">${icon(ic)}</span></div>`;
   const pill=(id,l)=>`<button data-filter="${id}" class="rk-chip ${filter===id?'is-on':''} ${id==='needpay'?'is-pay':''}">${l}${id==='all'?' ('+entries.filter(x=>!listDay||x.booking_date===listDay).length+')':''}</button>`;
   return `<div class="booking-reference-layout rl-layout rk-solo"><section class="rl-main">
-   <header class="rk-head"><div><h1>Daily Kitchen &amp; Orders <span class="rk-status is-${stLabel[1]}"><i></i>${stLabel[0]}</span></h1><p>${owner()?'Set your daily working hours and manage customer orders':'The kitchen load and customer orders'} · ${e(day(selected))}</p></div>
+   <header class="rk-head"><div><p>${owner()?'Set your daily working hours and manage customer orders':'The kitchen load and customer orders'} · ${e(day(selected))}</p></div>
     ${owner()?`<div class="rk-acts"><button class="rk-btn" data-close-proxy>${icon('lock')} ${st==='closed'?'Reopen date':'Close date'}</button><button class="rk-btn is-pri" data-add>${icon('plus')} Add reservation</button></div>`:''}</header>
    <div class="rk-tiles">${tile('ok','Today’s orders',todays.length,`<span>${e(longDate(today))}</span>`,'check')}
     ${tile('warn','Pending payments',unpaid,unpaid?`<button type="button" data-filter="needpay" class="rk-link">View unpaid →</button>`:'<span>All settled</span>','revenue')}
@@ -86,14 +86,14 @@ export async function renderBookings(content){
   if(selected!==date||!box.isConnected)return;
   const cap=Number(d?.workload_minutes)||0,used=Number(d?.accepted_minutes)||0,pend=Number(d?.pending_minutes)||0,p=cap?Math.min(100,used/cap*100):0,lv=!cap||used>cap?'over':p>=80?'near':'ok',left=Math.max(0,Math.round(cap-used));
   const leftEl=content.querySelector('[data-rl-left]');if(leftEl)leftEl.textContent=left+' min';
-  const MAX=750,canEdit=owner(),isToday=date===new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila'}).format(new Date()),QUICK=[[360,'Half day · 6h'],[480,'Regular day · 8h'],[600,'Busy day · 10h'],[750,'Full limit · 12h 30m']],n=summary(date).active.length;
+  const MAX=750,canEdit=owner(),isToday=date===new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila'}).format(new Date()),QUICK=[[360,'Half day','6h'],[480,'Regular day','8h'],[600,'Busy day','10h'],[750,'Full limit','12h 30m']],n=summary(date).active.length;
   const hours=canEdit?`<div class="rk-k1"><div class="rk-k1-l"><small class="rk-kick"><span class="rk-step">1</span>Your daily working hours</small><h3>How much time will you take ${isToday?'today':'on '+e(shortDay(date))}?</h3>
      <p>Slide to set the kitchen limit for this day (maximum <b>12 hrs 30 mins / 750 min</b>).</p>
      <div class="rk-apply"><span>Apply to:</span><div class="rk-seg" role="radiogroup" aria-label="Apply to"><button type="button" role="radio" data-scope="day" aria-checked="true" class="is-on">This day only</button><button type="button" role="radio" data-scope="all" aria-checked="false">All future dates</button></div></div></div>
     <div class="rk-k1-r"><div class="rk-big"><b data-cap-hm>${e(hm(cap))}</b><small data-cap-val>(${cap} min)</small><span>Max limit: 12 hrs 30 mins</span></div>
      <input type="range" min="0" max="${MAX}" step="5" value="${Math.min(cap,MAX)}" data-cap-range aria-label="Kitchen minutes for ${e(day(date))}" style="--p:${Math.round(Math.min(cap,MAX)/MAX*100)}%">
      <div class="rk-ends"><span>0 hrs</span><span>6 hrs 15 mins</span><b>12 hrs 30 mins</b></div>
-     <div class="rk-quick"><span>Quick set:</span>${QUICK.map(([m,l])=>`<button type="button" data-quick="${m}" class="${cap===m?'is-on':''}">${l}</button>`).join('')}</div><p class="rk-say" role="status"></p></div></div>`:'';
+     <div class="rk-quick"><span>Quick set:</span><div class="rk-qgrid">${QUICK.map(([m,l,h])=>`<button type="button" data-quick="${m}" class="${cap===m?'is-on':''}">${l}<b>${h}</b></button>`).join('')}</div></div><p class="rk-say" role="status"></p></div></div>`:'';
   box.innerHTML=hours+`<div class="rk-k2"><div class="rk-k2-h">${canEdit?'<span class="rk-step">2</span>':''}<h3>How full is the schedule ${isToday?'today':'on '+e(shortDay(date))}?</h3><span class="rk-fit is-${lv}">${!cap?'No kitchen time set':lv==='over'?'Over the kitchen limit':lv==='near'?'Getting full':'Plenty of room for more orders'}</span></div>
     <div class="rk-meter is-${lv}"><i style="width:${p}%"></i>${pend&&cap?`<i class="is-pend" style="width:${Math.min(100-p,pend/cap*100)}%"></i>`:''}</div>
     <div class="rk-k2-f"><span><i class="rk-dot"></i>Booked: <b>${Math.round(used)} min · ${n} reservation${n===1?'':'s'}</b>${pend?` <em>+ ${Math.round(pend)} min waiting to be confirmed</em>`:''}</span><span>Remaining free time: <b class="is-${lv}">${left} min left (${e(hm(left))})</b></span></div></div>`;
