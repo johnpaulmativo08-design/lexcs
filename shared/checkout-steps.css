@@ -45,3 +45,29 @@
 .co-placebar .co-submit-btn:hover:not(:disabled){background:#4a24a0!important}
 .co-placebar .co-submit-btn:disabled{background:#cbbbe6!important;color:#fff!important;opacity:1;box-shadow:none;cursor:not-allowed}
 @media (max-width:560px){.co-two,.co-steps .co-datetime-row{grid-template-columns:1fr}.co-placebar{justify-content:space-between}.co-placebar .co-submit-btn{flex:1;padding:0 16px!important}}
+
+/* Refresh: one ink + one violet accent, slim 44px controls with 12px corners, 1px borders everywhere */
+.co-steps{--ink:#241430;--violet:#6b45c9;--soft:#f6f2fc;--line:#e6def0;--muted:#857892;background:#fff;box-shadow:0 1px 0 #eee7f5,0 10px 30px rgba(36,20,48,.05)}
+.co-step-h{font-size:1rem}
+.co-step-h::before{width:26px;height:26px;font-size:.8rem;background:var(--ink)}
+.co-steps .co-pick{height:44px!important;padding:0 14px!important;border:1px solid var(--line)!important;border-radius:12px!important;font-size:.95rem}
+.co-pick-ic{width:18px;height:18px}
+.co-steps .co-pick:hover,.co-steps .co-way .co-option:hover{border-color:var(--violet)!important}
+.co-steps .co-way .co-option{flex-direction:row!important;min-height:52px!important;gap:10px!important;border:1px solid var(--line)!important;border-radius:12px!important;font-size:.95rem}
+.co-steps .co-way .co-option-icon svg{width:22px;height:22px;stroke:var(--ink)}
+.co-steps .co-way .co-option.selected,.co-steps .co-way .co-option[aria-pressed=true]{background:var(--ink)!important;border-color:var(--ink)!important;color:#fff!important;box-shadow:none!important}
+.co-steps .co-way .co-option.selected .co-option-icon svg,.co-steps .co-way .co-option[aria-pressed=true] .co-option-icon svg{stroke:#fff}
+.co-check{position:static;width:18px;height:18px;font-size:.7rem;background:#fff;color:var(--ink)}
+.co-steps .co-icon-field .co-input{min-height:44px;padding:11px 14px 11px 40px!important;border:1px solid var(--line)!important;border-radius:12px!important;font-size:.95rem}
+.co-icon-field>svg{left:14px;top:13px;width:18px;height:18px;stroke:var(--muted)}
+.co-steps .co-input{border:1px solid var(--line)!important;border-radius:12px!important}
+.co-steps .co-input:focus{border-color:var(--violet)!important;box-shadow:0 0 0 3px rgba(107,69,201,.12)!important}
+.co-saved-slot .co-addr-card{border:1px solid var(--line)!important;border-radius:12px!important;padding:8px 14px!important;box-shadow:none}
+.co-sum-box{background:var(--soft);border-radius:12px}
+.co-steps .co-voucher input,.co-steps .co-voucher button,.co-steps .co-tap{border-radius:12px!important}
+.co-steps .co-tap{min-height:44px;border:1px solid var(--line)!important;background:#fff!important}
+.co-placebar .co-submit-btn{min-height:46px!important;border-radius:12px!important;background:var(--ink)!important;box-shadow:none!important;font-size:1rem}
+.co-placebar .co-submit-btn:hover:not(:disabled){background:var(--violet)!important}
+.co-placebar .co-submit-btn:disabled{background:#d9d0e6!important}
+.co-total-l b{color:var(--ink)}
+.co-steps .co-way .co-option::after,.co-steps .co-way .co-option::before{display:none!important}
