@@ -736,7 +736,7 @@ nav.dark-nav .nav-orders-btn{color:white;border-color:rgba(255,255,255,.4);}
 if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classList.add('admin-embed','design-viewer');</script>
 <link rel="stylesheet" href="shared/theme/appearance.css?v=19"><link rel="stylesheet" href="shared/theme/site-text.css?v=2"><script src="shared/appearance.js?v=14" data-page="site"></script>
 <link rel="stylesheet" href="shared/motion-plus.css?v=1">
-<link rel="stylesheet" href="shared/cart.css?v=6"><link rel="stylesheet" href="shared/checkout-steps.css?v=6">
+<link rel="stylesheet" href="shared/cart.css?v=7"><link rel="stylesheet" href="shared/checkout-steps.css?v=7">
 </head>
 <body>
 
@@ -1418,13 +1418,8 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
 
         <section class="co-step checkout-summary-box" aria-labelledby="checkout-summary-heading"><h3 class="co-step-h" id="checkout-summary-heading">Order summary</h3>
           <div class="co-sum-box"><div id="checkoutOrderList" class="checkout-order-list"></div>
-          <div class="checkout-total-row"><span>Subtotal</span><span id="checkoutSubtotal">₱0.00</span></div>
-          <div class="checkout-total-row checkout-discount-row" id="checkoutDiscountRow" hidden><span>Voucher <b data-discount-code></b></span><span data-discount></span></div>
-          <div class="checkout-total-row checkout-rush-row" id="checkoutRushRow" hidden><span>⚡ Rush fee</span><span data-rush-amount>₱0.00</span></div>
-          <div class="checkout-total-row" id="checkoutDeliveryRow" style="display:none;"><span>Lalamove fee</span><span id="checkoutDeliveryFee">₱0</span></div>
-          <div class="checkout-total-row checkout-grand"><span>Order total</span><span id="checkoutGrandTotal">₱0.00</span></div>
-          <div class="checkout-total-row checkout-due-row"><span id="checkoutRequiredLabel">First payment (60%)</span><strong id="checkoutRequired">₱0.00</strong></div>
-          <div class="checkout-total-row"><span>Balance after verified payment</span><span id="checkoutBalance">₱0.00</span></div></div>
+          <div class="checkout-total-row co-products-total"><span>Products total</span><span id="checkoutSubtotal">₱0.00</span></div>
+</div>
         </section>
 
         <section class="co-step"><h3 class="co-step-h">Reference photo <small>(optional)</small></h3>
@@ -1445,6 +1440,16 @@ if(/[?&]embed=viewer(&|$)/.test(location.search))document.documentElement.classL
           <div class="co-option-grid" id="checkoutPaymentMethods" role="group" aria-label="Payment method"><div class="checkout-method-skeleton" role="status" aria-label="Loading payment methods"><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span><span class="skel-panel" aria-hidden="true"><span class="skel skel-line"></span></span></div></div></div>
           <p class="co-payment-hint" id="checkoutPaymentHint">The next page shows the selected QR and exact amount. Your payment is confirmed only after the seller verifies your proof.</p>
           <label class="co-agree" for="coAgreeDeadlines"><input type="checkbox" id="coAgreeDeadlines"><span>I understand: after LexC’s confirms my order, I’ll pay the <b>60% downpayment within 24 hours</b> (or it’s cancelled automatically), and the <b>balance 24 hours before pickup or delivery</b>. Late online balance payments add ₱50 for every 3 hours, up to ₱300; cash at pickup has no late fee.</span></label>
+        </section>
+
+        <section class="co-step co-breakdown" aria-labelledby="coBreakdownH"><h3 class="co-step-h" id="coBreakdownH">Price breakdown</h3>
+          <div class="co-sum-box"><div class="checkout-total-row"><span>Products total</span><span data-products-total>₱0.00</span></div>
+          <div class="checkout-total-row checkout-discount-row" id="checkoutDiscountRow" hidden><span>Voucher <b data-discount-code></b></span><span data-discount></span></div>
+          <div class="checkout-total-row checkout-rush-row" id="checkoutRushRow" hidden><span>⚡ Rush fee</span><span data-rush-amount>₱0.00</span></div>
+          <div class="checkout-total-row" id="checkoutDeliveryRow" style="display:none;"><span>Lalamove fee</span><span id="checkoutDeliveryFee">₱0</span></div>
+          <div class="checkout-total-row checkout-grand"><span>Order total</span><span id="checkoutGrandTotal">₱0.00</span></div>
+          <div class="checkout-total-row checkout-due-row"><span id="checkoutRequiredLabel">First payment (60%)</span><strong id="checkoutRequired">₱0.00</strong></div>
+          <div class="checkout-total-row"><span>Balance after verified payment</span><span id="checkoutBalance">₱0.00</span></div></div>
         </section>
 
         <div class="checkout-actions co-placebar"><div class="checkout-pay-now"><span class="co-total-l">Total <b id="coBarTotal">₱0.00</b></span><small hidden>Due now <strong id="checkoutStickyDue">₱0.00</strong></small></div><button class="btn-primary co-submit-btn" id="placeOrderButton" onclick="submitCheckout()">Place order</button></div>
@@ -1636,6 +1641,7 @@ function renderCheckout() {
     </div>
   `).join('') : '<p class="checkout-empty-selection">No items selected. Return to your cart and choose what to buy.</p>';
   document.getElementById('checkoutSubtotal').textContent = checkoutMoney(subtotalCentavos / 100);
+  document.querySelectorAll('[data-products-total]').forEach(el => { el.textContent = checkoutMoney(subtotalCentavos / 100); });
   document.getElementById('checkoutGrandTotal').textContent = checkoutMoney(subtotalCentavos / 100);
   const requiredCentavos = Math.round(subtotalCentavos * 0.6);
   document.getElementById('checkoutRequiredLabel').textContent = 'First payment (60%)';
@@ -2946,7 +2952,7 @@ loginReady();
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script><script src="shared/delivery-area.js?v=1"></script><script src="shared/checkout-map.js?v=14"></script>
-<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/checkout-pay-row.js?v=1"></script><script src="shared/address-book.js?v=4"></script><script src="shared/cancel-order.js?v=1"></script><script src="shared/customer-backend.js?v=57"></script><script src="shared/reservation-first.js?v=3"></script><script src="shared/voucher-checkout.js?v=4"></script><script src="shared/site-cms-schema.js?v=2"></script><script src="shared/site-cms.js?v=3"></script><script src="shared/site-editor.js?v=6"></script>
+<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/checkout-pay-row.js?v=1"></script><script src="shared/address-book.js?v=4"></script><script src="shared/cancel-order.js?v=1"></script><script src="shared/customer-backend.js?v=57"></script><script src="shared/reservation-first.js?v=4"></script><script src="shared/voucher-checkout.js?v=4"></script><script src="shared/site-cms-schema.js?v=2"></script><script src="shared/site-cms.js?v=3"></script><script src="shared/site-editor.js?v=6"></script>
 <script src="shared/product-detail.js?v=21"></script>
 <script src="shared/menu-layout.js?v=7"></script>
 <script src="shared/fresh-feed.js?v=17"></script>
