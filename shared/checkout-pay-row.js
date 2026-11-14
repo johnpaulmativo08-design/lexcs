@@ -20,6 +20,7 @@
     const row = document.getElementById('coPayRow'); if (!row) return;
     const chosen = grid()?.querySelector('.co-option.selected'), code = chosen?.dataset.paymentCode;
     row.classList.toggle('is-on', Boolean(code));
+    const plan = document.getElementById('coPlan'); if (plan) plan.hidden = !code;   // downpayment or full shows once a method is picked
     row.innerHTML = `<span class="co-tap-icon${code === 'paymongo' ? ' is-wide' : ''}" aria-hidden="true">${code && LOGOS[code] ? `<img src="${LOGOS[code]}" alt="">` : '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>'}</span>
       <span class="co-tap-text"><small>Payment method</small><b>${code ? esc(NAMES[code] || chosen.querySelector('b')?.textContent || code) : 'Choose how you’ll pay'}</b>${code ? `<small>${esc(NOTES[code] || '')}</small>` : ''}</span>
       <span class="co-tap-action">${code ? 'Change' : 'Choose'} ›</span>`;

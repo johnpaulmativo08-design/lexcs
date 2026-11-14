@@ -78,3 +78,8 @@
 @media (prefers-reduced-motion:reduce){.co-map-finding,.co-icon-field.is-synced{animation:none}}
 .checkout-total-row[hidden]{display:none!important}
 .co-breakdown .checkout-grand{margin-top:6px;padding-top:10px;border-top:1px solid #ece5f3}
+/* downpayment or full, under the payment method */
+.co-plan{display:grid;gap:8px;margin-top:12px}.co-plan[hidden]{display:none}.co-plan-q{margin:0;font-weight:700;font-size:.9rem;color:#2b1838}
+.co-plan-opt{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e3dbec;border-radius:12px;background:#fff;cursor:pointer}
+.co-plan-opt input{accent-color:#4f2a86;width:18px;height:18px;margin:0}.co-plan-opt span{display:grid;gap:2px}.co-plan-opt b{font-size:.92rem;color:#241430}.co-plan-opt small{font-size:.78rem;color:#7a6c88}.co-plan-opt strong{font-size:.95rem;color:#241430}
+.co-plan-opt:has(input:checked){border-color:#4f2a86;background:#f6f1fd;box-shadow:0 0 0 1px #4f2a86 inset}

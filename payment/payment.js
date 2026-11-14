@@ -230,7 +230,8 @@ function planChoice(active){
   const rest=(centavos(deposit)-centavos(paid))/100;
   const fee=lateFee(),options=paid>=deposit?[['balance','Remaining balance',left+fee,fee?'Includes the ₱'+fee+' late fee':'Nothing left to pay']]:[['downpayment',paid>0?'Rest of the downpayment':'Downpayment ('+depositPercent()+'%)',rest,'Pay '+money(left-rest)+' later'],['full',paid>0?'Everything left':'Full payment',left,'Nothing left to pay']];
   const match=active&&options.find(o=>centavos(active.amount)===centavos(o[2]));
-  const picked=match?match[0]:options[0][0];
+  let wanted='';try{wanted=localStorage.getItem('lexc_plan_'+order.id)||''}catch{}   // the choice made at checkout
+  const picked=match?match[0]:(options.find(o=>o[0]===wanted)||options[0])[0];
   const plan=([value,title,amount,note])=>'<label class="plan-choice"><input type="radio" name="plan" value="'+value+'" data-amount="'+amount+'" '+(picked===value?'checked':'')+'><span><strong>'+title+'</strong><b>'+money(amount)+'</b><small>'+note+'</small></span></label>';
   return '<div class="plan-list" role="radiogroup" aria-label="How much to pay now">'+options.map(plan).join('')+'</div>';
 }
