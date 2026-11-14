@@ -20,13 +20,13 @@ const pill = ([t, tone]) => `<span class="so-pill is-${tone}">${e(t)}</span>`;
 
 export async function renderStaffOrders(content) {
   const today = dayKey(new Date());
-  const state = { mode: 'day', day: today, q: '', status: '' };
-  content.innerHTML = `<header class="so-head"><div><h1>Orders</h1><p>Orders by the day they were placed. Open one to see every detail and the remaining balance.</p></div></header>
+  const state = { mode: 'all', day: today, q: '', status: '' };   // every order first; This day = today
+  content.innerHTML = `<header class="so-head"><div><h1>Orders</h1><p>Every order, newest first, or one day at a time. Open one to see every detail and the remaining balance.</p></div></header>
     <section class="so-dates" aria-label="Choose dates">
       <div class="so-day"><button type="button" class="so-arrow" data-step="-1" aria-label="Previous day">‹</button>
         <label class="so-pick"><span data-label></span><input type="date" data-date aria-label="Pick a date"></label>
         <button type="button" class="so-arrow" data-step="1" aria-label="Next day">›</button></div>
-      <div class="so-chips" role="group" aria-label="Quick dates">${[['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This week'], ['month', 'This month'], ['all', 'All']].map(([k, l]) => `<button type="button" data-quick="${k}">${l}</button>`).join('')}</div>
+      <div class="so-chips" role="group" aria-label="Quick dates">${[['all', 'View all orders'], ['today', 'This day'], ['yesterday', 'Yesterday'], ['week', 'This week'], ['month', 'This month']].map(([k, l]) => `<button type="button" data-quick="${k}">${l}</button>`).join('')}</div>
     </section>
     <div class="so-tools"><label class="so-search">${icon('search')}<input type="search" data-q placeholder="Search name, order # or reference" autocomplete="off"></label>
       <select data-status aria-label="Order status"><option value="">All statuses</option>${Object.entries(STATUS).map(([k, [l]]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
@@ -55,7 +55,7 @@ export async function renderStaffOrders(content) {
         return `<tr data-open="${e(o.id)}" tabindex="0"><td><b>#${e(o.order_number)}</b></td><td>${e(o.customer_name || 'Customer')}</td><td>${e(dateText(o.created_at))}<small>${e(timeText(o.created_at))}</small></td>
         <td>${pill(o.status === 'pending' && o.payment_status === 'unpaid' ? ['After confirm', 'neutral'] : PAY[o.payment_status] || [words(o.payment_status), 'neutral'])}</td><td class="so-ref">${e(p?.transaction_reference || '—')}</td><td>${e(p ? methods.get(p.payment_method_id) || 'Manual QR' : '—')}</td>
         <td>${pill(STATUS[o.status] || [words(o.status), 'neutral'])}</td><td class="num">${bal === null ? 'Quote pending' : money(bal)}</td><td><button type="button" class="so-view" data-open="${e(o.id)}">View</button></td></tr>`; }).join('')}</tbody></table>`
-      : `<div class="so-empty">${icon('search')}<b>No orders for ${e(range()[2].replace(/^Today · /, 'today'))}</b><span>Try another day, or tap All.</span></div>`;
+      : `<div class="so-empty">${icon('search')}<b>No orders for ${e(range()[2].replace(/^Today · /, 'today'))}</b><span>Try another day, or tap View all orders.</span></div>`;
   };
   const load = async () => {
     const n = ++seq; paintDates();
