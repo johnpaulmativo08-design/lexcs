@@ -105,9 +105,6 @@ html[data-theme=dark] .co-method-logo{background:#fff}
 .co-addr-new{width:100%;margin-top:12px;padding:12px;border:1.5px dashed #cdbde3;border-radius:14px;background:#fbf8fe;color:#6b3fa0;font-weight:800;cursor:pointer}
 html[data-theme=dark] .co-addr-card,html[data-theme=dark] .co-addr-row{background:#241a2e;border-color:#3a2c48;color:#f1e9f8}
 html[data-theme=dark] .co-addr-text span,html[data-theme=dark] .co-addr-opt span span{color:#c4b5d6}html[data-theme=dark] .co-addr-opt{color:#f1e9f8}
-.co-addr-hint{margin:0 0 10px;color:#857798;font-size:.85rem}
-.co-addr-form{display:grid;gap:8px;margin-top:12px}.co-addr-form .co-input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #e3d9ee;border-radius:12px;font:inherit}
-.co-addr-form-actions{display:flex;justify-content:flex-end;gap:8px}.co-addr-cancel{padding:10px 14px;border:0;background:none;color:#6b3fa0;font-weight:700;cursor:pointer}
 html[data-theme=dark] .co-addr-new{background:#2a1f33;border-color:#4a3a5e;color:#d9c0ff}
 
 /* cancel an order: reason + the daily rule (phase 109) */
