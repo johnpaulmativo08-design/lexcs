@@ -156,3 +156,7 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .so-muted{color:var(--admin-muted);font-size:13px}.so-msg{min-height:18px;color:#b4233a;font-weight:600}
 .so-dialog>footer{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:flex-end;padding:12px 20px 16px;border-top:1px solid #f0e9f8}
 @media (max-width:700px){.so-pick{min-width:0;flex:1}.so-day{width:100%}.so-facts{grid-template-columns:1fr}}
+/* Owner Orders: View all orders / This day */
+.ox-mode{display:inline-flex;gap:4px;padding:4px;border:1px solid #ece3f7;border-radius:14px;background:#fff}
+.ox-mode button{border:0;background:none;border-radius:10px;padding:8px 14px;font-weight:700;color:#5d4f6c;cursor:pointer}
+.ox-mode button.is-on{background:#2b1530;color:#fff}.ox-mode button:hover:not(.is-on){color:#5a2fb8;background:#f5effd}

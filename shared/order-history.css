@@ -201,3 +201,9 @@
 .oh-deadline.is-soon{background:#fff5e6;color:#7a520b}.oh-deadline.is-soon .oh-ic,.oh-deadline.is-soon b{color:#9a640d}
 .oh-deadline.is-off{background:#fbeff3;color:#8a2f45}.oh-deadline.is-off .oh-ic{color:#a3324b}.oh-deadline a{color:inherit;font-weight:700}
 html[data-theme=dark] .oh-deadline{background:#251c2a;color:#d6c6dc}html[data-theme=dark] .oh-deadline.is-soon{background:#2e2417;color:#f3c77e}html[data-theme=dark] .oh-deadline.is-off{background:#2e1c24;color:#f2a7b8}
+/* Payment card: remaining balance box; Order received as a wide button */
+.oh-left{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border-radius:14px;font-weight:800}
+.oh-left small{display:block;font-weight:600;font-size:.76rem;opacity:.8;margin-top:2px}
+.oh-left.is-clear{background:#effaf3;color:#1d7a46}.oh-left.is-due{background:#fff7e6;color:#8a5a00}
+.oh-sheet-actions{display:grid!important;grid-template-columns:1fr 1fr}.oh-sheet-actions .oh-wide{grid-column:1/-1}.oh-sheet-actions .is-danger{grid-column:1/-1}
+.oh-btn.is-done{background:#effaf3;color:#1d7a46;border-color:#cdebd8;cursor:default}

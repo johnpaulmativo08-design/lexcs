@@ -97,12 +97,13 @@ export async function renderOrders(content){
   // Orders as cards for ONE day (by the pickup/delivery date, Philippine time) — today unless the owner moves the day.
   // "Needs confirming" lists pending orders from every day so nothing waits unseen; Order History keeps the old table.
   const manilaDay=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
-  const today=manilaDay(Date.now());let day=today,tab='all';
+  const today=manilaDay(Date.now());let day=today,tab='all',all=true;   // all = every order (the default); otherwise one receiving day
   const shift=(d,n)=>{const x=new Date(d+'T12:00:00+08:00');x.setDate(x.getDate()+n);return manilaDay(x);};
   const dayLabel=d=>{const label=new Date(d+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric',year:'numeric'});return d===today?'Today · '+label:d===shift(today,1)?'Tomorrow · '+label:d===shift(today,-1)?'Yesterday · '+label:label;};
   const TABS=[['all','All'],['pending','Needs confirming'],['process','In process'],['ready','Ready'],['done','Completed']];
   const inTab=(o,t)=>t==='all'?o.status!=='cancelled':t==='pending'?o.status==='pending':t==='process'?['confirmed','preparing'].includes(o.status):t==='ready'?o.status==='ready':o.status==='completed';
-  content.innerHTML='<header class="ox-head"><div><h1>Orders</h1><p>Orders to hand over on the selected day. Manual QR payments count only after you check the bank credit.</p></div>'
+  content.innerHTML='<header class="ox-head"><div><h1>Orders</h1><p>All orders, or the ones to hand over on one day. Manual QR payments count only after you check the bank credit.</p></div>'
+   +'<div class="ox-mode" role="group" aria-label="Which orders"><button type="button" data-mode="all">View all orders</button><button type="button" data-mode="day">This day</button></div>'
    +'<div class="ox-day"><button type="button" class="ox-icon" data-day="-1" aria-label="Previous day">‹</button><label class="ox-date"><span data-day-label></span><input type="date" data-day-pick aria-label="Pick a day"></label><button type="button" class="ox-icon" data-day="1" aria-label="Next day">›</button><button type="button" class="ox-today" data-day="0">Today</button></div></header>'
    +'<div class="ox-bar"><nav class="ox-tabs" aria-label="Filter orders" data-tabs></nav><div class="ox-tools"><label class="ox-search">'+icon('search')+'<input class="search" type="search" placeholder="Search a name or order #" aria-label="Search orders"></label><button type="button" class="ox-history" data-view="history">'+icon('clock')+' Order History</button></div></div>'
    +'<select id="status" hidden><option value=""></option></select><div id="orders-table"></div><section id="order-payments" class="panel payment-tests-panel"><div class="payment-test-heading"><h2>Order payments</h2></div>'+loadingTable(['Order','Customer','Submitted','Required amount','Method','Reference','Status','Action'])+'</section>';
@@ -133,8 +134,9 @@ export async function renderOrders(content){
     +'<footer>'+(cta==='See details'?'':'<button type="button" class="ox-btn" data-order="'+e(o.id)+'">See details</button>')+'<button type="button" class="ox-btn is-main" data-order="'+e(o.id)+'">'+e(cta)+'</button></footer></article>';};
   const draw=()=>{
    const search=content.querySelector('.search').value.toLowerCase().trim(),hit=o=>!search||JSON.stringify([o.order_number,o.customer_name]).toLowerCase().includes(search);
-   content.querySelector('[data-day-label]').textContent=dayLabel(day);content.querySelector('[data-day-pick]').value=day;
-   content.querySelector('.ox-today').hidden=day===today;
+   content.querySelector('[data-day-label]').textContent=all?'All orders':dayLabel(day);content.querySelector('[data-day-pick]').value=all?'':day;
+   content.querySelector('.ox-today').hidden=all||day===today;
+   content.querySelectorAll('[data-mode]').forEach(b=>{const on=(b.dataset.mode==='all')===all;b.classList.toggle('is-on',on);b.setAttribute('aria-pressed',String(on));});
    content.querySelector('.ox-history').classList.toggle('is-on',history);
    if(history){
     content.querySelector('[data-tabs]').innerHTML='<button type="button" class="is-on" data-back>'+icon('orders')+' Back to the day</button>';
@@ -143,17 +145,18 @@ export async function renderOrders(content){
     content.querySelector('[data-back]').onclick=()=>{history=false;draw();};
     return;
    }
-   const ofDay=orders.filter(o=>manilaDay(o.receiving_start)===day&&hit(o)),pendingAll=orders.filter(o=>o.status==='pending'&&hit(o));
+   const ofDay=orders.filter(o=>(all||manilaDay(o.receiving_start)===day)&&hit(o)),pendingAll=orders.filter(o=>o.status==='pending'&&hit(o));
    const count=t=>t==='pending'?pendingAll.length:ofDay.filter(o=>inTab(o,t)).length;
    content.querySelector('[data-tabs]').innerHTML=TABS.map(([k,l])=>'<button type="button" data-tab="'+k+'" class="'+(k===tab?'is-on':'')+(k==='pending'&&count(k)?' has-alert':'')+'" aria-pressed="'+(k===tab)+'">'+l+'<span>'+count(k)+'</span></button>').join('');
    content.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;draw();});
    // "Needs confirming" covers every day: a new order for next week must not wait unseen
-   const list=(tab==='pending'?pendingAll.sort((a,b)=>Date.parse(a.receiving_start)-Date.parse(b.receiving_start)):ofDay.filter(o=>inTab(o,tab)).sort((a,b)=>Date.parse(a.receiving_start)-Date.parse(b.receiving_start)));
+   const list=(tab==='pending'?pendingAll.sort((a,b)=>Date.parse(a.receiving_start)-Date.parse(b.receiving_start)):ofDay.filter(o=>inTab(o,tab)).sort((a,b)=>all?Date.parse(b.created_at)-Date.parse(a.created_at):Date.parse(a.receiving_start)-Date.parse(b.receiving_start)));
    content.querySelector('#orders-table').innerHTML=list.length?'<div class="ox-grid">'+list.map(card).join('')+'</div>'
-    :'<div class="ox-empty"><span>'+icon('orders')+'</span><strong>'+(search?'No orders match your search.':tab==='pending'?'Nothing waiting for confirmation.':'No orders for '+(day===today?'today':'this day')+'.')+'</strong><p>'+(tab==='pending'||search?'':'Use the arrows to see another day'+(pendingAll.length?', or check '+pendingAll.length+' order'+(pendingAll.length===1?'':'s')+' waiting in Needs confirming':'')+'.')+'</p></div>';
+    :'<div class="ox-empty"><span>'+icon('orders')+'</span><strong>'+(search?'No orders match your search.':tab==='pending'?'Nothing waiting for confirmation.':(all?'No orders yet.':'No orders for '+(day===today?'today':'this day')+'.'))+'</strong><p>'+(tab==='pending'||search?'':(all?'':'Use the arrows to see another day')+(pendingAll.length?', or check '+pendingAll.length+' order'+(pendingAll.length===1?'':'s')+' waiting in Needs confirming':'')+'.')+'</p></div>';
   };
-  content.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{const n=Number(b.dataset.day);day=n?shift(day,n):today;history=false;draw();});
-  content.querySelector('[data-day-pick]').onchange=ev=>{if(ev.target.value){day=ev.target.value;history=false;draw();}};
+  content.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{const n=Number(b.dataset.day);day=all?today:n?shift(day,n):today;all=false;history=false;draw();});
+  content.querySelector('[data-day-pick]').onchange=ev=>{if(ev.target.value){day=ev.target.value;all=false;history=false;draw();}};
+  content.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{all=b.dataset.mode==='all';if(!all)day=today;history=false;draw();});
   content.querySelector('[data-view="history"]').onclick=()=>{history=!history;draw();};
   content.querySelector('.search').oninput=draw;
   content.onclick=event=>{
