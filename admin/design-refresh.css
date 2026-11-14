@@ -359,3 +359,4 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .rk-tip{color:#7a6c88;font-size:.84rem}
 @media (max-width:1100px){.rk-k1{grid-template-columns:1fr}}
 @media (max-width:760px){.rk-tiles{grid-template-columns:1fr}.rk-search{min-width:0;flex:1}.rk-head h1{font-size:1.4rem}.rk-kitchen{padding:18px}}
+.rl-layout.rk-solo{grid-template-columns:minmax(0,1fr)!important}.rl-layout.rk-solo>.rl-main{grid-column:1/-1!important}

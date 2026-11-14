@@ -57,11 +57,11 @@ export async function renderBookings(content){
   const stLabel=st==='closed'?['Closed','bad']:st==='full'?['Fully booked','warn']:['Open for orders','ok'];
   const tile=(k,label,value,sub,ic)=>`<div class="rk-tile is-${k}"><div><small>${label}</small><p><b>${value}</b>${sub}</p></div><span class="rk-tic">${icon(ic)}</span></div>`;
   const pill=(id,l)=>`<button data-filter="${id}" class="rk-chip ${filter===id?'is-on':''} ${id==='needpay'?'is-pay':''}">${l}${id==='all'?' ('+entries.filter(x=>!listDay||x.booking_date===listDay).length+')':''}</button>`;
-  return `<div class="booking-reference-layout rl-layout"><section class="rl-main">
+  return `<div class="booking-reference-layout rl-layout rk-solo"><section class="rl-main">
    <header class="rk-head"><div><h1>Daily Kitchen &amp; Orders <span class="rk-status is-${stLabel[1]}"><i></i>${stLabel[0]}</span></h1><p>${owner()?'Set your daily working hours and manage customer orders':'The kitchen load and customer orders'} · ${e(day(selected))}</p></div>
     ${owner()?`<div class="rk-acts"><button class="rk-btn" data-close-proxy>${icon('lock')} ${st==='closed'?'Reopen date':'Close date'}</button><button class="rk-btn is-pri" data-add>${icon('plus')} Add reservation</button></div>`:''}</header>
    <div class="rk-tiles">${tile('ok','Today’s orders',todays.length,`<span>${e(longDate(today))}</span>`,'check')}
-    ${tile('warn','Pending payments',String(unpaid).padStart(2,'0'),unpaid?`<button type="button" data-filter="needpay" class="rk-link">View unpaid →</button>`:'<span>All settled</span>','revenue')}
+    ${tile('warn','Pending payments',unpaid,unpaid?`<button type="button" data-filter="needpay" class="rk-link">View unpaid →</button>`:'<span>All settled</span>','revenue')}
     ${tile('info','Total reservations',all.length,`<span class="rk-tag">this week</span>`,'bookings')}</div>
    <div class="rk-kitchen panel" data-rk-kitchen><span class="skel skel-line"></span><span class="skel skel-line"></span><span class="skel skel-line"></span></div>
    <div class="rk-card panel">
@@ -78,8 +78,7 @@ export async function renderBookings(content){
     <td><button class="rk-view" data-booking="${x.id}">View</button></td></tr>`}).join('')}</tbody></table></div>
    <div class="rl-foot"><span>Showing ${rowsNow.length} of ${shown.length} reservation${shown.length===1?'':'s'}</span>${pages>1?`<div class="rl-pages"><button data-page="${page-1}" ${page?'':'disabled'} aria-label="Previous page">‹</button>${Array.from({length:pages},(_,i)=>`<button data-page="${i}" class="${i===page?'is-on':''}">${i+1}</button>`).join('')}<button data-page="${page+1}" ${page<pages-1?'':'disabled'} aria-label="Next page">›</button></div>`:'<span class="rk-tip">Open <b>View</b> to confirm an order or review its payment.</span>'}</div>`
    :`<div class="rl-empty">${icon('bookings')}<b>No reservations ${listDay?'on '+e(day(listDay)):'this week'}${filter==='needpay'?' need payment':''}</b><span>Pick another day in the calendar, or use ‹ › above.</span></div>`}</div>
-  </section><aside class="booking-side">${sidebar()}<section class="rl-day panel"><b>${e(day(selected))}</b><small>${st==='closed'?'Closed':'Open · 9 AM – 5 PM'}</small>
-   <div class="rl-day-grid"><div><small>Booked</small><b>${s.active.length} / ${s.capacity}</b></div><div><small>Kitchen left</small><b data-rl-left>—</b></div><div><small>Pickups</small><b>${s.pickup}</b></div><div><small>Deliveries</small><b>${s.delivery}</b></div></div></section></aside><aside class="booking-preview" hidden></aside></div>`}
+  <button data-close hidden></button></section><aside class="booking-preview" hidden></aside></div>`}
  const hm=m=>{m=Math.max(0,Math.round(m));const h=Math.floor(m/60),r=m%60;return h?h+' hr'+(h===1?'':'s')+(r?' '+String(r).padStart(2,'0')+' mins':''):r+' mins'};
  let capTimer;
  async function fillWork(){const box=content.querySelector('[data-rk-kitchen]');if(!box)return;const date=selected;let d;
