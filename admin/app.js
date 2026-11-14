@@ -7,7 +7,7 @@ import { renderProducts } from './pages/products.js?v=16';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=39';
 import { renderReports } from './pages/reports.js?v=23';
 import { renderOrders } from './pages/orders.js?v=58';
-import { renderBookings } from './pages/bookings.js?v=22';
+import { renderBookings } from './pages/bookings.js?v=24';
 import { renderDesignOptions } from './pages/design-options.js?v=16';
 import { renderProfile } from './pages/profile.js?v=16';
 import { renderWebsite } from './pages/website.js?v=3';
@@ -163,7 +163,7 @@ async function renderRoute() {
     content.append(calendar, kitchen);
     await Promise.all([renderBookings(calendar), renderProduction(kitchen, current === 'production' ? subpage : undefined)]);
     // the calendar redraws itself; keep Production right under it (inside its layout, beside the side panel)
-    const dock = () => { const layout = calendar.querySelector('.booking-reference-layout'); if (layout && kitchen.parentNode !== layout) (layout.querySelector('.booking-calendar') || layout.firstChild).after(kitchen); else if (!layout && kitchen.parentNode !== content) content.append(kitchen); window.LexcPaintChefHero?.(); };
+    const dock = () => { const layout = calendar.querySelector('.booking-reference-layout'); if (layout && !layout.contains(kitchen)) (layout.querySelector('.booking-calendar') || layout.querySelector('.rl-main')?.lastElementChild || layout.firstChild).after(kitchen); else if (!layout && kitchen.parentNode !== content) content.append(kitchen); window.LexcPaintChefHero?.(); };
     new MutationObserver(dock).observe(calendar, { childList: true }); dock();
     if (current === 'production') kitchen.scrollIntoView({ block: 'start' });
   }
