@@ -38,10 +38,10 @@
   function card() {
     let el = $('coSavedAddress');
     if (!el) {
-      const anchor = $('coName')?.closest('.co-field-group'); if (!anchor) return null;
+      const slot = $('coSavedSlot'), anchor = $('coName')?.closest('.co-field-group,.co-step'); if (!slot && !anchor) return null;
       el = document.createElement('button'); el.type = 'button'; el.id = 'coSavedAddress'; el.className = 'co-addr-card'; el.setAttribute('aria-haspopup', 'dialog');
       el.addEventListener('click', openSheet);
-      anchor.before(el);
+      if (slot) slot.append(el); else anchor.before(el);   // under Delivery address: “Use saved address”
     }
     return el;
   }
@@ -52,7 +52,7 @@
     const a = chosen;
     el.innerHTML = a
       ? `<span class="co-addr-pin">${PIN}</span><span class="co-addr-text"><b>${esc(a.recipient)}</b> <small>${esc(a.phone)}</small><span>${esc(a.address)}</span></span><span class="co-addr-go" aria-hidden="true">›</span>`
-      : `<span class="co-addr-pin">${PIN}</span><span class="co-addr-text"><b>Use a saved address</b><span>${list.length} saved · tap to choose</span></span><span class="co-addr-go" aria-hidden="true">›</span>`;
+      : `<span class="co-addr-pin">${PIN}</span><span class="co-addr-text"><b>Use saved address</b><span>${list.length} saved · tap to choose</span></span><span class="co-addr-go" aria-hidden="true">⌄</span>`;
     el.setAttribute('aria-label', a ? `Address: ${a.recipient}, ${a.address}. Change` : 'Choose a saved address');
   }
   let sheet = null;

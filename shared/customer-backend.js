@@ -174,7 +174,7 @@ async function submitCheckout(){
    cart=cart.filter(item=>!orderedItems.has(item));renderCart();localStorage.removeItem('lexc_checkout_request');
   try { await flushCustomerCart(); } catch (syncError) { console.warn('Order created, but cart sync needs retry:', syncError); }
   location.replace('payment/index.html?order='+encodeURIComponent(order.id)+'&placed=1');
- }catch(error){showToast(customerActionError(error,'We could not place your order. Please try again; your selected cart items are still saved.'));}finally{checkoutSaving=false;submitButton.disabled=false;submitButton.textContent='Place Order →';}
+ }catch(error){showToast(customerActionError(error,'We could not place your order. Please try again; your selected cart items are still saved.'));}finally{checkoutSaving=false;submitButton.disabled=false;submitButton.textContent='Place order';updateCheckoutDelivery?.();}
 }
 let customerShowCancelled=false;
 async function cancelMyOrder(orderId,orderNumber,paid=0){   // phase 109: reason + daily rule (shared/cancel-order.js)
