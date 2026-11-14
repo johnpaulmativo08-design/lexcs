@@ -285,3 +285,4 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .rl-layout .booking-selected-card{display:none}
 @media (max-width:1250px){.rl-work2,.rl-top{grid-template-columns:1fr}.rl-cap{grid-template-columns:1fr}.rl-cap-l{border:0;padding:0}.rl-filters{grid-template-columns:1fr 1fr}}
 .rl-layout .booking-close{display:none!important}
+.ox-card footer .ox-btn:only-child{grid-column:1/-1;width:100%;flex:1 1 100%}
