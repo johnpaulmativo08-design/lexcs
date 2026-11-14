@@ -1,0 +1,47 @@
+/* Checkout as numbered steps: 1 date & time · 2 pickup or delivery · (3 delivery address) · your details ·
+   order summary · reference photo · note to seller · voucher · payment — then a sticky Total + Place order bar.
+   The numbers come from a CSS counter, so the hidden Delivery address step never leaves a gap. */
+.co-steps{--ink:#2b1530;--violet:#5a2fb8;--soft:#f5effd;--line:#e7dcf5;--muted:#7d6e8c;counter-reset:costep;display:grid;gap:22px;background:#fff;border-radius:24px;padding:22px 20px 0!important}
+.co-steps .co-step[hidden]{display:none!important}
+.co-step{counter-increment:costep;display:grid;gap:12px;margin:0;padding:0;border:0;background:none}
+.co-step-h{display:flex;align-items:center;gap:12px;margin:0;font-family:'Plus Jakarta Sans',sans-serif;font-size:1.05rem;font-weight:800;color:var(--ink)}
+.co-step-h::before{content:counter(costep);width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--violet);color:#fff;font-size:.9rem;font-weight:800}
+.co-step-h small{font-weight:600;color:var(--muted);font-size:.92rem}
+/* 1 date & time */
+.co-steps .co-datetime-row{display:grid;grid-template-columns:1.15fr 1fr;gap:12px}
+.co-steps .co-pick{display:flex!important;align-items:center;gap:12px;height:56px;padding:0 16px!important;border:1.5px solid var(--line)!important;border-radius:16px!important;background:#fff!important;color:var(--ink)!important;font-weight:700;font-size:1rem;text-align:left;cursor:pointer;box-shadow:none!important}
+.co-steps .co-pick span{flex:1}.co-steps .co-pick i{font-style:normal;color:var(--violet);font-weight:800}
+.co-pick-ic{width:22px;height:22px;stroke:var(--violet);fill:none;stroke-width:1.9;flex:none}
+.co-steps .co-pick:hover{border-color:#b9a2ea!important}
+/* 2 pickup or delivery */
+.co-steps .co-way{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.co-steps .co-way .co-option{position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:100px;border:1.5px solid var(--line)!important;border-radius:18px!important;background:#fff!important;color:var(--ink)!important;font-weight:700;cursor:pointer;box-shadow:none!important}
+.co-steps .co-way .co-option-icon{width:auto;height:auto;background:none!important;font-size:0}
+.co-steps .co-way .co-option-icon svg{width:34px;height:34px;stroke:var(--violet);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.co-steps .co-way .co-option.selected,.co-steps .co-way .co-option[aria-pressed=true]{background:#f1e8fd!important;border-color:#a888e6!important;box-shadow:0 6px 16px rgba(90,47,184,.12)!important}
+.co-check{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;background:var(--violet);color:#fff;display:none;place-items:center;font-size:.8rem}
+.co-steps .co-way .co-option.selected .co-check,.co-steps .co-way .co-option[aria-pressed=true] .co-check{display:grid}
+/* icon fields (address, name, phone) */
+.co-icon-field{position:relative;display:block}
+.co-icon-field>svg{position:absolute;left:16px;top:17px;width:20px;height:20px;stroke:var(--violet);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.co-steps .co-icon-field .co-input{width:100%;min-height:54px;padding:15px 16px 15px 46px!important;border:1.5px solid var(--line)!important;border-radius:16px!important;background:#fff!important;font-size:1rem}
+.co-steps .co-input{border:1.5px solid var(--line)!important;border-radius:16px!important;background:#fff!important}
+.co-steps .co-input:focus{border-color:#a888e6!important;box-shadow:0 0 0 4px rgba(124,77,214,.12)!important;outline:none}
+.co-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.co-or{display:flex;align-items:center;gap:12px;color:var(--muted);font-weight:600}.co-or::before,.co-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.co-saved-slot{display:flex;justify-content:center}
+.co-saved-slot .co-addr-card{width:auto;max-width:100%;border:1.5px solid var(--line)!important;border-radius:999px!important;background:#fff!important;padding:10px 20px!important;box-shadow:0 4px 12px rgba(90,47,184,.06)}
+.co-saved-slot .co-addr-card .co-addr-text span{display:none}
+/* order summary */
+.co-sum-box{background:#f6f0fe;border-radius:18px;padding:14px 18px;display:grid;gap:8px}
+.co-sum-box .checkout-total-row{padding:0!important;border:0!important}
+.co-sum-box .checkout-grand{border-top:1px solid #e3d6f5!important;padding-top:10px!important;margin-top:4px;font-weight:800}
+/* sticky Total + Place order */
+.co-placebar{position:sticky;bottom:0;z-index:5;display:flex!important;align-items:center;justify-content:flex-end;gap:16px;margin:0 -20px!important;padding:14px 20px calc(14px + env(safe-area-inset-bottom))!important;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);border-radius:0 0 24px 24px}
+.co-placebar .checkout-pay-now{display:flex;flex-direction:column;align-items:flex-end;gap:0;background:none!important;padding:0!important}
+.co-total-l{font-size:1.05rem;color:var(--ink);font-weight:600}.co-total-l b{font-size:1.6rem;color:var(--violet);font-weight:800;margin-left:6px}
+.co-placebar small{color:var(--muted);font-size:.8rem}.co-placebar small strong{color:var(--ink)}
+.co-placebar .co-submit-btn{min-height:56px;padding:0 28px!important;border-radius:16px!important;background:var(--violet)!important;color:#fff!important;font-size:1.05rem;font-weight:800;text-transform:none;letter-spacing:0;box-shadow:0 8px 20px rgba(90,47,184,.28)}
+.co-placebar .co-submit-btn:hover:not(:disabled){background:#4a24a0!important}
+.co-placebar .co-submit-btn:disabled{background:#cbbbe6!important;color:#fff!important;opacity:1;box-shadow:none;cursor:not-allowed}
+@media (max-width:560px){.co-two,.co-steps .co-datetime-row{grid-template-columns:1fr}.co-placebar{justify-content:space-between}.co-placebar .co-submit-btn{flex:1;padding:0 16px!important}}
