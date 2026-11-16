@@ -13,6 +13,7 @@ import { renderProfile } from './pages/profile.js?v=16';
 import { renderWebsite } from './pages/website.js?v=4';
 import { renderContent } from './pages/content.js?v=1';
 import { renderStaff } from './pages/staff.js?v=1';
+import { renderActivity } from './pages/activity.js?v=1';
 import { renderStaffOrders } from './pages/staff-orders.js?v=3';
 import { renderVouchers } from './pages/vouchers.js?v=3';
 import { mountChat } from '../shared/chat.js?v=44';
@@ -26,11 +27,11 @@ const groups = [
   ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['vouchers', 'Vouchers'], ['bookings', 'Reservations']]],
   // Content (CMS): homepage, FAQs, banners, posts & reviews in one menu (pages/content.js)
   ['Website', [['content', 'Content (CMS)', null, 'edit']]],
-  ['Analytics', [['reports', 'Reports']]],
+  ['Analytics', [['reports', 'Reports'], ['activity', 'Activity log', null, 'clock']]],
   // Edit website and FAQs live in Settings (and on the Profile card)
   ['Account', [['staff', 'Staff', null, 'profile'], ['profile', 'Profile']]],   // Settings opens from the Profile card
 ];
-const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', staff: 'Staff', reports: 'Reports', updates: 'Updates & reviews', profile: 'Profile' };
+const titles = { settings: 'Settings', production: 'Production', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', staff: 'Staff', reports: 'Reports', activity: 'Activity log', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 const STAFF_PAGES = ['dashboard', 'orders', 'bookings', 'production', 'inventory', 'profile'];   // 'staff' (Staff page) is owner-only
 // owner-only controls a cashier never sees (the database also refuses them)
@@ -179,6 +180,7 @@ async function renderRoute() {
   else if (current === 'website') await renderWebsite(content, subpage);
   else if (current === 'content') renderContent(content);
   else if (current === 'staff') await renderStaff(content);
+  else if (current === 'activity') await renderActivity(content);
   else if (current === 'designs') await renderDesignOptions(content);
   else if (current === 'updates') renderUpdates(content);
   else if (current === 'profile') await renderProfile(content, subpage);
