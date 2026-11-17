@@ -103,3 +103,7 @@
 @media (max-width:900px){.vx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:700px){.vx-hero{grid-template-columns:1fr;padding:24px 20px}.vx-hero-art{display:none}.vx-hero h1{font-size:32px}.vx-stat{padding:12px}.vx-stat b{font-size:18px}}
 @media (prefers-reduced-motion:reduce){.vx-mini{animation:none}.vx-preset{transition:none}}
+/* banner: a clearly visible violet-to-blush background with soft circles and a fine dot pattern */
+.vx-hero{background:radial-gradient(circle at 88% 18%,rgba(255,255,255,.55) 0 70px,transparent 71px),radial-gradient(circle at 70% 120%,rgba(228,111,159,.28) 0 150px,transparent 151px),radial-gradient(circle at -4% -30%,rgba(122,85,184,.30) 0 190px,transparent 191px),linear-gradient(120deg,#e4d4fb 0%,#efd9f6 45%,#fbd2e2 100%);border:1px solid #dcc9f2;box-shadow:0 10px 28px rgba(79,42,134,.10)}
+.vx-hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(79,42,134,.16) 1.2px,transparent 1.3px);background-size:16px 16px;-webkit-mask-image:linear-gradient(90deg,transparent 30%,#000 75%);mask-image:linear-gradient(90deg,transparent 30%,#000 75%);pointer-events:none}
+.vx-hero>*{position:relative}.vx-hero .vx-eyebrow{background:#fff;box-shadow:0 2px 8px rgba(79,42,134,.10)}
