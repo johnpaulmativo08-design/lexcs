@@ -12,7 +12,7 @@ import { renderDesignOptions } from './pages/design-options.js?v=16';
 import { renderProfile } from './pages/profile.js?v=16';
 import { renderWebsite } from './pages/website.js?v=4';
 import { renderContent } from './pages/content.js?v=1';
-import { renderStaff } from './pages/staff.js?v=1';
+import { renderStaff } from './pages/staff.js?v=2';
 import { renderActivity } from './pages/activity.js?v=1';
 import { renderStaffOrders } from './pages/staff-orders.js?v=3';
 import { renderVouchers } from './pages/vouchers.js?v=3';
@@ -40,9 +40,21 @@ const OWNER_ONLY = ['[data-status="confirmed"]', '[data-status="cancelled"]', '[
   '[data-close]', '[data-limit]', '[data-reserve]', '[data-capacity]', 'a[href="#settings"]', 'a[href^="../?cms"]', 'a[href="#profile/transfer"]', 'a[href^="#website"]', 'a[href="#content"]'].join(',');
 // cashiers switch Orders between the order cards (default) and their table
 document.addEventListener('click', (ev) => { const b = ev.target.closest?.('[data-staff-view]'); if (!b) return; try { localStorage.setItem('lexc_staff_orders_view', b.dataset.staffView); } catch {} renderRoute(); });
+// what each switch the owner turned off hides on a cashier's screens (phase 116; the database refuses it anyway)
+const PERM_HIDES = {
+  confirm_orders: '[data-status="confirmed"],[data-next="confirmed"]',
+  move_orders: '[data-status="preparing"],[data-status="ready"],[data-status="completed"],[data-next="preparing"],[data-next="ready"],[data-next="completed"]',
+  check_payments: '[data-decision]',
+  record_stock: '[data-add-stock]',
+};
+const can = (k) => (window.LexcAdminAuth.perms || {})[k] !== false;
 function trimForStaff(root) {
   if (!root) return;
-  root.querySelectorAll(OWNER_ONLY).forEach((el) => el.remove());
+  const owner = OWNER_ONLY.split(',').filter((sel) => !(can('cancel_orders') && /data-status="cancelled"/.test(sel)) && !(can('confirm_orders') && /data-status="confirmed"/.test(sel))).join(',');
+  root.querySelector('#content')?.querySelectorAll(owner).forEach((el) => el.remove());
+  // pop-up windows: only the order buttons (a dialog's own Close stays)
+  root.querySelectorAll('dialog').forEach((d) => { if (!can('cancel_orders')) d.querySelectorAll('[data-status="cancelled"]').forEach((el) => el.remove()); if (!can('confirm_orders')) d.querySelectorAll('[data-status="confirmed"]').forEach((el) => el.remove()); });
+  Object.entries(PERM_HIDES).forEach(([k, sel]) => { if (!can(k)) root.querySelectorAll(sel).forEach((el) => el.remove()); });
   // money on the dashboard: today's received amount and remaining balances
   root.querySelectorAll('.dash-stat').forEach((el) => { if (/Received today/i.test(el.querySelector('span')?.textContent || '')) el.remove(); });
   root.querySelectorAll('section, .panel').forEach((el) => { const h = el.querySelector(':scope > header h2, :scope > h2'); if (h && /Remaining balances|Money received|Sales/i.test(h.textContent)) el.remove(); });
@@ -130,14 +142,14 @@ async function renderRoute() {
   if (window.LexcAdminAuth.level === 'staff') {
     if (!navigation.dataset.staff) {
       navigation.dataset.staff = '1';
-      navigation.querySelectorAll('a.nav-item').forEach((a) => { if (!STAFF_PAGES.includes(a.dataset.page)) a.remove(); });
+      navigation.querySelectorAll('a.nav-item').forEach((a) => { if (!STAFF_PAGES.includes(a.dataset.page) || (a.dataset.page === 'bookings' && !can('see_reservations'))) a.remove(); });
       navigation.querySelectorAll('.nav-heading').forEach((h) => { const next = h.nextElementSibling; if (!next || next.classList.contains('nav-heading')) h.remove(); });
       document.querySelector('.identity-role')?.replaceChildren('Cashier');
       const who = window.LexcAdminAuth.account?.name; if (who) document.querySelector('.identity-name')?.replaceChildren(who);
-      new MutationObserver(() => trimForStaff(document.querySelector('#content'))).observe(document.querySelector('#content'), { childList: true, subtree: true });
+      new MutationObserver(() => trimForStaff(document.body)).observe(document.body, { childList: true, subtree: true });
     }
     const want = (location.hash.slice(1) || 'dashboard').split('/')[0];
-    if (!STAFF_PAGES.includes(want)) { location.hash = '#dashboard'; return; }
+    if (!STAFF_PAGES.includes(want) || (want === 'bookings' && !can('see_reservations'))) { location.hash = '#dashboard'; return; }
   }
   if (window.LexcAdminAuth.level !== 'staff') mountChatWidget({admin:true});   // no chat for cashiers
   document.querySelector('#admin-dialog')?.close();
