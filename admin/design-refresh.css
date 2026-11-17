@@ -491,3 +491,9 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .gd-why{max-width:240px;text-align:right;font-size:12.5px;line-height:1.4;color:#5f5272}.gd-bad{color:#991b1b;font-weight:800}
 @media (max-width:900px){.gd-counts{grid-template-columns:1fr 1fr}.gd-next{grid-template-columns:auto 1fr}.gd-next-go{grid-column:1/-1;justify-items:stretch}}
 @media (max-width:640px){.gd-day{width:58px}.gd-search{min-width:0;width:100%}.gd-right{justify-items:start}.gd-why{text-align:left}}
+/* Week and Month views: calendar on the left, the small month + day card on the right (Production no longer docks here) */
+#content .booking-reference-layout:not(.rl-layout){display:grid!important;grid-template-columns:minmax(0,1fr) 280px!important;gap:16px!important;align-items:start}
+#content .booking-reference-layout:not(.rl-layout)>.booking-calendar{grid-column:1!important;grid-row:1!important;min-width:0;overflow-x:auto}
+#content .booking-reference-layout:not(.rl-layout)>.booking-side{grid-column:2!important;grid-row:1!important;width:auto!important;max-width:280px!important;position:sticky;top:12px}
+@media (max-width:1100px){#content .booking-reference-layout:not(.rl-layout){grid-template-columns:minmax(0,1fr)!important}#content .booking-reference-layout:not(.rl-layout)>.booking-side{grid-column:1!important;grid-row:2!important;max-width:none!important;position:static}}
+.booking-chef:empty{display:none!important}
