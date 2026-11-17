@@ -390,3 +390,6 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .al-more{display:flex;justify-content:center;margin:16px 0}
 @media (max-width:760px){.al-row summary{grid-template-columns:56px 1fr 16px}.al-who{grid-column:2}.al-what{grid-column:2/3}.al-chev{grid-row:1}}
 @media (prefers-reduced-motion:reduce){.al-chev{transition:none}}
+/* top bar: the same dark plum as the Vouchers banner (one calm gradient, no neon) */
+.header,body.inventory-view .header{background:linear-gradient(115deg,#2a1440 0%,#3b1d5a 100%)!important;border-bottom:1px solid #3b2552!important;box-shadow:0 2px 14px rgba(36,21,50,.25)!important}
+.header h1{color:#fff!important}

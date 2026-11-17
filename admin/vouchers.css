@@ -111,3 +111,4 @@
 .vx-hero .vx-eyebrow{background:rgba(255,255,255,.12);color:#f3e8ff;border:1px solid rgba(255,255,255,.18)}
 .vx-hero .vx-new{background:#fff!important;color:#2a1440!important;border-color:#fff!important}.vx-hero .vx-new:hover{background:#f3ecfb!important}
 .vx-hero h1,.vx-hero .vx-hero-text h1{color:#fff!important}.vx-hero p,.vx-hero .vx-hero-text p{color:#e4d8f0!important}
+#content .vx-hero h1{color:#fff!important;-webkit-text-fill-color:#fff}
