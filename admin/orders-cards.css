@@ -93,3 +93,28 @@
 .ox-btn:focus-visible{outline:3px solid #e46f9f;outline-offset:2px}
 .ox-drop{border:1.5px solid #cdb8ec!important;background:#faf7fe!important}.ox-drop>summary{font-weight:600}.ox-drop>summary i{color:#4f2a86;font-size:14px}
 @media (prefers-reduced-motion:reduce){.ox-btn,.ox-btn:hover{transition:none;transform:none}}
+
+/* slim order cards: one header line, items dropdown, date + payment + total on one row, status stripe on the left */
+.ox-grid{grid-template-columns:repeat(auto-fill,minmax(290px,1fr))!important;gap:14px!important}
+.ox-card.ox-slim{--tone:#6b45c9;--soft:#efe7fa;min-height:0;padding:12px 14px!important;border-radius:14px!important;border:1.5px solid #d6c8ea!important;border-left:4px solid var(--tone)!important;box-shadow:0 2px 8px rgba(43,21,64,.07)!important;gap:0}
+.ox-card.ox-slim:hover{border-color:#b9a3dc!important;border-left-color:var(--tone)!important;box-shadow:0 8px 20px rgba(43,21,64,.12)!important;transform:translateY(-1px)}
+.ox-slim.tone-warning{--tone:#c2306a;--soft:#fdeaf2}.ox-slim.tone-info{--tone:#2f6fb3;--soft:#e7f0fb}.ox-slim.tone-success{--tone:#11845a;--soft:#e3f6ec}.ox-slim.tone-neutral{--tone:#8a7d99;--soft:#f2eff6}
+.ox-slim.is-preparing,.ox-slim.is-confirmed{--tone:#6b45c9;--soft:#efe7fa}
+.ox-slim header{display:flex;align-items:center;gap:10px;margin:0}
+.ox-slim .ox-avatar{width:30px!important;height:30px!important;flex:none;border-radius:9px!important;background:var(--tone)!important;color:#fff!important;font-size:12px!important}
+.ox-slim .ox-who{flex:1;min-width:0}.ox-slim .ox-who strong{display:block;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ox-slim .ox-who small{display:block;color:#7a6c88;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ox-slim .ox-badge{flex:none;padding:2px 9px!important;border-radius:999px!important;font-size:11px!important;font-weight:700;background:var(--soft)!important;color:var(--tone)!important;white-space:nowrap}
+.ox-slim .ox-flag{margin:8px 0 0;font-size:11.5px}
+.ox-slim .ox-drop{margin:10px 0 0!important;border:0!important;border-radius:10px;background:#f8f5fc!important}
+.ox-slim .ox-drop>summary{padding:7px 10px;font-size:12.5px;font-weight:500}
+.ox-slim .ox-drop>summary span{padding:1px 7px;font-size:11px}
+.ox-slim .ox-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0 0;font-size:12px}
+.ox-slim .ox-when2{font-weight:600;color:#3a2a4d;white-space:nowrap}
+.ox-slim .ox-r{display:flex;align-items:center;gap:8px}.ox-slim .ox-r b{font:800 16px 'Plus Jakarta Sans',sans-serif;color:#241532;white-space:nowrap}
+.ox-p{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.ox-p.is-success{background:#e3f6ec;color:#11845a}.ox-p.is-warning{background:#fff4dc;color:#9a5b00}.ox-p.is-danger{background:#fdeaee;color:#b3264a}.ox-p.is-neutral{background:#f2eff6;color:#6f6380}
+.ox-slim footer{display:flex!important;gap:8px;margin-top:10px}
+.ox-slim .ox-btn{flex:1;height:34px!important;border-radius:9px!important;font-size:12.5px!important;border-width:1.5px!important;box-shadow:none!important}
+.ox-slim .ox-btn:hover{transform:none!important}
+.ox-slim .ox-btn.is-main{box-shadow:0 2px 8px rgba(79,42,134,.25)!important}

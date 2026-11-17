@@ -4,13 +4,16 @@
 const ADMIN_LOGIN = '../?login=admin';
 window.LexcAdminAuth = {
   account: null,
-  level: null,   // 'admin' (owner) or 'staff' (cashier); the database decides what each may do, this only shapes the screens
+  level: null,
+  perms: null,   // cashier switches from my_staff_permissions()   // 'admin' (owner) or 'staff' (cashier); the database decides what each may do, this only shapes the screens
   async isLoggedIn() {
     this.account = await window.LexcBackend.identity();
     const role = this.account?.role;
     if (role === 'admin') this.level = 'admin';
     else if (role === 'staff') this.level = await window.LexcBackend.rpc('my_access_level', {}).catch(() => null) === 'staff' ? 'staff' : 'off';
     else this.level = null;
+    // a cashier's switches (phase 116): what the owner turned off is hidden; missing RPC = everything as before
+    if (this.level === 'staff' && !this.perms) this.perms = await window.LexcBackend.rpc('my_staff_permissions', {}).catch(() => ({}));
     if (this.level === 'admin' || this.level === 'staff') document.documentElement.dataset.level = this.level;
     return this.level === 'admin' || this.level === 'staff';
   },
