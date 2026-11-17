@@ -105,7 +105,7 @@ export async function renderOrders(content){
   const inTab=(o,t)=>t==='all'?o.status!=='cancelled':t==='pending'?o.status==='pending':t==='process'?['confirmed','preparing'].includes(o.status):t==='ready'?o.status==='ready':o.status==='completed';
   content.innerHTML='<header class="ox-head"><div><h1>Orders</h1><p>All orders, or the ones to hand over on one day. Manual QR payments count only after you check the bank credit.</p></div>'
    +'<div class="ox-mode" role="group" aria-label="Which orders"><button type="button" data-mode="all">View all orders</button><button type="button" data-mode="day">This day</button></div>'
-   +'<div class="ox-day"><button type="button" class="ox-icon" data-day="-1" aria-label="Previous day">‹</button><label class="ox-date"><span data-day-label></span><input type="date" data-day-pick aria-label="Pick a day"></label><button type="button" class="ox-icon" data-day="1" aria-label="Next day">›</button><button type="button" class="ox-today" data-day="0">Today</button></div></header>'
+   +'<div class="ox-day"><button type="button" class="ox-icon" data-day="-1" aria-label="Previous day">‹</button><div class="ox-date-wrap"><button type="button" class="ox-date" data-cal-open aria-haspopup="dialog" aria-expanded="false"><span data-day-label></span></button><input type="date" data-day-pick hidden><div class="ox-cal" data-cal hidden role="dialog" aria-label="Pick a day"></div></div><button type="button" class="ox-icon" data-day="1" aria-label="Next day">›</button><button type="button" class="ox-today" data-day="0">Today</button></div></header>'
    +'<div class="ox-bar"><nav class="ox-tabs" aria-label="Filter orders" data-tabs></nav><div class="ox-tools"><label class="ox-search">'+icon('search')+'<input class="search" type="search" placeholder="Search a name or order #" aria-label="Search orders"></label><button type="button" class="ox-history" data-view="history">'+icon('clock')+' Order History</button></div></div>'
    +'<select id="status" hidden><option value=""></option></select><div id="orders-table"></div><section id="order-payments" class="panel payment-tests-panel"><div class="payment-test-heading"><h2>Order payments</h2></div>'+loadingTable(['Order','Customer','Submitted','Required amount','Method','Reference','Status','Action'])+'</section>';
   const orderedAt=value=>{const d=new Date(value),opt={timeZone:'Asia/Manila'};return e(d.toLocaleDateString('en-PH',{...opt,month:'short',day:'numeric',year:'numeric'}))+'<br><small>'+e(d.toLocaleTimeString('en-PH',{...opt,hour:'numeric',minute:'2-digit'}))+'</small>';};
@@ -156,6 +156,18 @@ export async function renderOrders(content){
   };
   content.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{const n=Number(b.dataset.day);day=all?today:n?shift(day,n):today;all=false;history=false;draw();});
   content.querySelector('[data-day-pick]').onchange=ev=>{if(ev.target.value){day=ev.target.value;all=false;history=false;draw();}};
+  // tap the date: a small month calendar pops out under it (dots mark days with orders)
+  let calMonth='';const cal=content.querySelector('[data-cal]'),calBtn=content.querySelector('[data-cal-open]');
+  const withOrders=new Set(orders.filter(o=>o.status!=='cancelled'&&o.receiving_start).map(o=>manilaDay(o.receiving_start)));
+  const paintCal=()=>{const m=new Date(calMonth+'T12:00:00+08:00'),y=m.getFullYear(),mo=m.getMonth(),first=new Date(y,mo,1).getDay(),n=new Date(y,mo+1,0).getDate(),key=d=>y+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+   cal.innerHTML='<header><button type="button" data-cal-step="-1" aria-label="Previous month">‹</button><b>'+m.toLocaleDateString('en-PH',{month:'long',year:'numeric'})+'</b><button type="button" data-cal-step="1" aria-label="Next month">›</button></header><div class="ox-cal-grid">'+['S','M','T','W','T','F','S'].map(d=>'<span>'+d+'</span>').join('')+'<i></i>'.repeat(first)
+    +Array.from({length:n},(_,i)=>{const k=key(i+1);return '<button type="button" data-cal-day="'+k+'" class="'+(k===today?'is-today ':'')+(!all&&k===day?'is-on ':'')+(withOrders.has(k)?'has-orders':'')+'">'+(i+1)+'</button>';}).join('')+'</div>';};
+  const closeCal=()=>{cal.hidden=true;calBtn.setAttribute('aria-expanded','false');document.removeEventListener('click',outside,true);};
+  const outside=ev=>{if(!ev.target.closest('.ox-date-wrap'))closeCal();};
+  calBtn.onclick=()=>{if(!cal.hidden)return closeCal();calMonth=(all?today:day).slice(0,7)+'-01';paintCal();cal.hidden=false;calBtn.setAttribute('aria-expanded','true');document.addEventListener('click',outside,true);cal.querySelector('.is-on,.is-today,[data-cal-day]')?.focus();};
+  cal.onclick=ev=>{ev.stopPropagation();const st=ev.target.closest('[data-cal-step]');if(st){const m=new Date(calMonth+'T12:00:00+08:00');m.setMonth(m.getMonth()+Number(st.dataset.calStep));calMonth=m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0')+'-01';return paintCal();}
+   const d=ev.target.closest('[data-cal-day]');if(d){day=d.dataset.calDay;all=false;history=false;closeCal();draw();}};
+  cal.onkeydown=ev=>{if(ev.key==='Escape'){closeCal();calBtn.focus();}};
   content.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{all=b.dataset.mode==='all';if(!all)day=today;history=false;draw();});
   content.querySelector('[data-view="history"]').onclick=()=>{history=!history;draw();};
   content.querySelector('.search').oninput=draw;
