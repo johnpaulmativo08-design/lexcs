@@ -31,7 +31,7 @@ export async function renderStaff(content) {
     catch (err) { list.innerHTML = `<p class="staff-empty" role="alert">Staff could not load. ${e(err.message || '')}</p>`; return; }
     try { (await db.rpc('list_staff_permissions', {}) || []).forEach((p) => perms.set(p.user_id, p.permissions || {})); } catch { permsReady = false; }
     const sw = (s) => { const p = perms.get(s.user_id) || {}; return `<details class="staff-perms" id="perms-${e(s.user_id)}"><summary hidden>What they can do</summary>${permsReady
-      ? `<div class="staff-perm-grid">${PERMS.map(([k, label, note, def]) => { const on = p[k] ?? def; return `<label class="staff-perm"><input type="checkbox" role="switch" data-perm="${k}" data-user="${e(s.user_id)}" ${on ? 'checked' : ''}><span><b>${label}</b><small>${note}</small></span></label>`; }).join('')}</div>`
+      ? `<div class="staff-perm-grid">${PERMS.map(([k, label, note, def]) => { const on = p[k] ?? def; return `<label class="staff-perm"><input type="checkbox" role="switch" data-perm="${k}" data-user="${e(s.user_id)}" ${on ? 'checked' : ''}><span><b>${label}</b><small>${note}</small></span></label>`; }).join('')}</div><div class="staff-perm-foot"><span class="staff-perm-note" data-note="${e(s.user_id)}"></span><button type="button" class="button" data-perm-undo="${e(s.user_id)}" disabled>Undo</button><button type="button" class="button primary" data-perm-save="${e(s.user_id)}" disabled>Save changes</button></div>`
       : '<p class="staff-hint">Permission switches need database/phase116-staff-permissions.sql.</p>'}</details>`; };
     list.innerHTML = rows.length ? rows.map((s) => `<article class="staff-row${s.active ? '' : ' is-off'}">
         <span class="staff-avatar" aria-hidden="true">${e((s.full_name || s.email || '?').slice(0, 2).toUpperCase())}</span>
@@ -49,15 +49,24 @@ export async function renderStaff(content) {
     catch (err) { say(err.message || 'That cashier could not be added.', true); }
     finally { btn.disabled = false; }
   };
-  // a switch saves at once; the database decides, so a failed save flips back
-  list.onchange = async (ev) => {
-    const box = ev.target.closest('[data-perm]'); if (!box) return;
-    box.disabled = true;
-    try { await db.rpc('set_staff_permissions', { staff_user: box.dataset.user, perms: { [box.dataset.perm]: box.checked } }); say(`Saved. ${box.closest('label').querySelector('b').textContent} is ${box.checked ? 'on' : 'off'} for this cashier.`); }
-    catch (err) { box.checked = !box.checked; say(err.message || 'That change could not be saved.', true); }
-    finally { box.disabled = false; }
-  };
+  // switches change nothing until Save; Undo puts them back
+  const boxes = (id) => [...list.querySelectorAll(`[data-perm][data-user="${id}"]`)];
+  const dirty = (id) => boxes(id).filter((b) => b.checked !== b.defaultChecked);
+  const mark = (id) => { const n = dirty(id).length, note = list.querySelector(`[data-note="${id}"]`);
+    list.querySelector(`[data-perm-save="${id}"]`).disabled = !n; list.querySelector(`[data-perm-undo="${id}"]`).disabled = !n;
+    if (note) note.textContent = n ? `${n} unsaved change${n === 1 ? '' : 's'}` : ''; };
+  list.onchange = (ev) => { const box = ev.target.closest('[data-perm]'); if (box) mark(box.dataset.user); };
   list.onclick = async (ev) => {
+    const sv = ev.target.closest('[data-perm-save]'), un = ev.target.closest('[data-perm-undo]');
+    if (un) { boxes(un.dataset.permUndo).forEach((b) => { b.checked = b.defaultChecked; }); mark(un.dataset.permUndo); return; }
+    if (sv) {
+      const id = sv.dataset.permSave, changes = Object.fromEntries(dirty(id).map((b) => [b.dataset.perm, b.checked]));
+      sv.disabled = true; sv.textContent = 'Saving…';
+      try { await db.rpc('set_staff_permissions', { staff_user: id, perms: changes }); boxes(id).forEach((b) => { b.defaultChecked = b.checked; }); say('Saved. The cashier sees the change the next time they open Admin.'); }
+      catch (err) { say(err.message || 'Those changes could not be saved.', true); }
+      finally { sv.textContent = 'Save changes'; mark(id); }
+      return;
+    }
     const pb = ev.target.closest('[data-perms-for]');
     if (pb) { const d = document.getElementById('perms-' + pb.dataset.permsFor); if (d) { d.open = !d.open; pb.setAttribute('aria-expanded', String(d.open)); pb.classList.toggle('is-on', d.open); } return; }
     const t = ev.target.closest('[data-toggle]'), rm = ev.target.closest('[data-remove]');
