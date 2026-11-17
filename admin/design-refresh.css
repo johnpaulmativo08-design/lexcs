@@ -415,3 +415,13 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 #content :is(.vx-stat,.vx-history,.vx-tabs){border:1.5px solid #c9b6e6!important;box-shadow:0 6px 18px rgba(43,21,64,.12)!important}
 #content .vt-ticket{border:1.5px solid #c9b6e6!important;box-shadow:none!important;filter:drop-shadow(0 6px 14px rgba(43,21,64,.14))}
 .staff-perm-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}.staff-perm-note{margin-right:auto;font-size:12.5px;font-weight:700;color:#9a5b00}
+/* compact staff rows */
+.staff-list{gap:8px!important}
+.staff-row{padding:8px 12px!important;gap:10px!important;border-radius:12px!important}
+.staff-avatar{width:32px!important;height:32px!important;font-size:12px!important}
+.staff-who b{font-size:14px}.staff-who small{font-size:11.5px}
+.staff-row .staff-acts .button{min-height:32px!important;height:32px;padding:0 12px!important;font-size:12.5px!important}
+.staff-perm-btn{width:32px;height:32px}
+.staff-state{padding:2px 8px!important;font-size:11px!important}
+.staff-perm-grid{gap:6px;margin-top:8px}.staff-perm{padding:7px 10px}.staff-perm b{font-size:13px}.staff-perm small{font-size:11px}
+.staff-perm-foot{margin-top:8px}.staff-perm-foot .button{min-height:32px!important;padding:0 12px!important;font-size:12.5px!important}
