@@ -1,7 +1,7 @@
 /* One button look for every Admin page (loaded last, so it wins over editorial.css):
    solid violet = the main step · white with a violet edge = any other action · red edge = cancel, remove, delete, archive
    · light edge = quiet. Cards and panels get a visible border. Motion respects reduced-motion. */
-:root{--btn-violet:#6b45c9;--btn-deep:#4f2a86;--btn-deeper:#3d1f6b;--btn-red:#b3264a;--btn-red-edge:#e39aae;--card-edge:#d6c8ea}
+:root{--btn-violet:#6b45c9;--btn-deep:#4f2a86;--btn-deeper:#3d1f6b;--btn-red:#b3264a;--btn-red-edge:#e39aae;--card-edge:#b9a3dc}
 
 /* other actions */
 :is(#content,dialog,.header) .button:not(.primary):not(.button--primary):not(.status-chip),
@@ -36,3 +36,7 @@
 #content .panel,dialog .panel,dialog section.panel{border:1.5px solid var(--card-edge)!important;box-shadow:0 2px 8px rgba(43,21,64,.06)!important}
 
 @media (prefers-reduced-motion:reduce){.button{transition:none!important}}
+/* darker edges inside cards: list rows, setting cards and text boxes */
+#content :is(.staff-row,.st-card,.ws-faq){border:1.5px solid #c9b6e6!important}
+#content .staff-add input,#content .panel input[type=email],#content .panel input[type=text],#content .panel input[type=search],#content .panel select,#content .panel textarea{border:1.5px solid #c9b6e6!important}
+#content .panel input:focus,#content .panel select:focus,#content .panel textarea:focus{border-color:#6b45c9!important;outline:2px solid rgba(107,69,201,.2)}
