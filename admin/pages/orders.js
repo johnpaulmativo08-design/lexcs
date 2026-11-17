@@ -124,14 +124,14 @@ export async function renderOrders(content){
    :o.status==='ready'?['Ready',o.fulfillment_method==='lalamove'?'Waiting for the rider':'Ready for pickup','Complete']
    :o.status==='completed'?['Completed','Handed over','See details']:['Cancelled','','See details'];
   const card=o=>{const [badge,sub,cta]=stage(o),items=o.order_items||[],shown=items,tone=orderTone(o.status);
-   return '<article class="ox-card is-'+e(o.status)+'"><header><span class="ox-avatar is-'+tone+'">'+e(initials(o.customer_name))+'</span><div class="ox-who"><strong>'+e(o.customer_name||'Customer')+'</strong><small>Order #'+e(o.order_number)+' / '+(o.fulfillment_method==='lalamove'?'Delivery':'Pickup')+'</small></div>'
-    +'<div class="ox-state"><span class="ox-badge is-'+tone+'">'+e(badge)+'</span>'+(sub?'<small><i class="is-'+tone+'"></i>'+e(sub)+'</small>':'')+'</div></header>'
-    +'<p class="ox-when"><span>'+e(new Date(o.receiving_start).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric'}))+'</span><span>'+e(hhmm(o.receiving_start))+'</span></p>'
+   // slim card: one header line, items in a dropdown, then date + payment + total on one row; a status stripe on the left
+   const payPill=o.status==='pending'&&o.payment_status==='unpaid'?'<span class="ox-p is-neutral">After confirm</span>':'<span class="ox-p is-'+payTone(o.payment_status)+'">'+(o.payment_status==='paid'?'✓ ':'')+e(readableStatus(o.payment_status))+'</span>';
+   return '<article class="ox-card ox-slim is-'+e(o.status)+' tone-'+tone+'"><header><span class="ox-avatar is-'+tone+'">'+e(initials(o.customer_name))+'</span><div class="ox-who"><strong>'+e(o.customer_name||'Customer')+'</strong><small>#'+e(o.order_number)+' · '+(o.fulfillment_method==='lalamove'?'Delivery':'Pickup')+'</small></div>'
+    +'<span class="ox-badge is-'+tone+'"'+(sub?' title="'+e(sub)+'"':'')+'>'+e(badge)+'</span></header>'
     +(workloads.get(o.id)?.heavy?'<p class="ox-flag">Heavy workload for this day</p>':'')
     +'<details class="ox-drop"><summary><span>'+items.length+' item'+(items.length===1?'':'s')+'</span><em>'+e(items[0]?.name_snapshot||'Order')+(items.length>1?' + '+(items.length-1)+' more':'')+'</em><i aria-hidden="true">▾</i></summary><table class="ox-items"><thead><tr><th>Items</th><th>Qty</th><th>Price</th></tr></thead><tbody>'+shown.map(i=>'<tr><td>'+e(i.name_snapshot||'Item')+(i.variant_label_snapshot?' <small>'+e(i.variant_label_snapshot)+'</small>':'')+'</td><td>'+e(i.quantity)+'</td><td>'+money(Number(i.line_total??(Number(i.unit_price||0)*Number(i.quantity||1))))+'</td></tr>').join('')+'</tbody></table></details>'
-    +'<p class="ox-total"><span>Total</span><b>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</b></p>'
-    +'<p class="ox-pay">'+(o.status==='pending'&&o.payment_status==='unpaid'?statusIndicator('Payment opens after confirm','neutral'):statusIndicator(readableStatus(o.payment_status),payTone(o.payment_status)))+'</p>'
-    +'<footer>'+(cta==='See details'?'':'<button type="button" class="ox-btn" data-order="'+e(o.id)+'">See details</button>')+'<button type="button" class="ox-btn is-main" data-order="'+e(o.id)+'">'+e(cta)+'</button></footer></article>';};
+    +'<p class="ox-row"><span class="ox-when2">'+e(new Date(o.receiving_start).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric'}))+' · '+e(hhmm(o.receiving_start))+'</span><span class="ox-r">'+payPill+'<b>'+(o.total_amount===null?'Pending quote':money(o.total_amount))+'</b></span></p>'
+    +'<footer>'+(cta==='See details'?'':'<button type="button" class="ox-btn" data-order="'+e(o.id)+'">Details</button>')+'<button type="button" class="ox-btn is-main" data-order="'+e(o.id)+'">'+e(cta)+'</button></footer></article>';};
   const draw=()=>{
    const search=content.querySelector('.search').value.toLowerCase().trim(),hit=o=>!search||JSON.stringify([o.order_number,o.customer_name]).toLowerCase().includes(search);
    content.querySelector('[data-day-label]').textContent=all?'All orders':dayLabel(day);content.querySelector('[data-day-pick]').value=all?'':day;
