@@ -508,7 +508,7 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 
 /* Dashboard: warm plum and cream, no pink. Plum = actions and the day guide · violet = needs you now ·
    honey = warnings and tips · sage = all clear. Scoped to the Dashboard only. */
-#content .operations-dashboard{--d-plum:#3b1d5a;--d-violet:#6b45c9;--d-violet-soft:#f1eafb;--d-cream:#fbf6ef;--d-card:#fffdf9;--d-edge:#e8dccb;--d-honey:#a66a12;--d-honey-soft:#fbf0dc;--d-sage:#4f6b3a;--d-sage-soft:#eaf1e2;--d-muted:#7a6a72;
+#content .operations-dashboard{--d-plum:#3b1d5a;--d-violet:#6b45c9;--d-violet-soft:#f1eafb;--d-cream:#f6f3fb;--d-card:#ffffff;--d-edge:#e3d9ef;--d-honey:#a66a12;--d-honey-soft:#fbf0dc;--d-sage:#4f6b3a;--d-sage-soft:#eaf1e2;--d-muted:#7a6a72;
   background:var(--d-cream);border-radius:18px;padding:18px!important}
 #content .operations-dashboard .ops-heading h1{color:var(--d-plum)!important}
 #content .operations-dashboard .dash-greeting{color:var(--d-violet)!important}
@@ -516,10 +516,7 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 #content .operations-dashboard .dash-label{color:var(--d-muted)!important}
 /* needs you now */
 #content .operations-dashboard .dash-action.is-warning{background:var(--d-violet-soft)!important;border-color:#cdb8ec!important}
-#content .operations-dashboard .dash-action.is-warning .dash-action-icon{background:var(--d-violet)!important;color:#fff!important}
-#content .operations-dashboard .dash-action.is-danger{background:var(--d-honey-soft)!important;border-color:#ecd3a3!important}
-#content .operations-dashboard .dash-action.is-danger .dash-action-icon{background:var(--d-honey)!important;color:#fff!important}
-#content .operations-dashboard .dash-action.is-clear .dash-action-icon{background:var(--d-sage-soft)!important;color:var(--d-sage)!important}
+#content .operations-dashboard .dash-action.is-danger{background:#fff!important;border-color:#efcfd4!important;box-shadow:inset 4px 0 0 #b91c1c,0 3px 10px rgba(58,30,40,.05)!important}
 /* the day guide */
 .dash-guide{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:4px 0 12px;padding:12px 16px;border-radius:14px;background:#3b1d5a;color:#fff}
 .dash-guide>b{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#d9c7f0}
@@ -534,5 +531,5 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .dash-tip{margin:6px 0 8px;padding:9px 12px;border-radius:10px;background:#fbf0dc;color:#6b4a10;font-size:13px;line-height:1.45}
 .dash-next{flex:none;height:32px;padding:0 12px;border-radius:9px;background:#3b1d5a;color:#fff;font-weight:800;font-size:12.5px;display:inline-flex;align-items:center;white-space:nowrap}
 .dash-next.is-ghost{background:#fff;color:#3b1d5a;box-shadow:inset 0 0 0 1.5px #3b1d5a}
-#content .operations-dashboard .ops-row{border-color:#f0e6d8!important}
+#content .operations-dashboard .ops-row{border-color:#efe9f6!important}
 #content .operations-dashboard .ops-attention{color:var(--d-violet)!important;font-weight:700}
