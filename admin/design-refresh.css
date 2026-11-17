@@ -425,3 +425,8 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .staff-state{padding:2px 8px!important;font-size:11px!important}
 .staff-perm-grid{gap:6px;margin-top:8px}.staff-perm{padding:7px 10px}.staff-perm b{font-size:13px}.staff-perm small{font-size:11px}
 .staff-perm-foot{margin-top:8px}.staff-perm-foot .button{min-height:32px!important;padding:0 12px!important;font-size:12.5px!important}
+/* Pending payments tile: filled honey-amber so money waiting stands out */
+.rk-tile.is-warn{background:linear-gradient(135deg,#6b45c9 0%,#3d1f6b 100%)!important;border-color:#3d1f6b!important;box-shadow:0 8px 20px rgba(61,31,107,.32)}
+.rk-tile.is-warn small,.rk-tile.is-warn p b,.rk-tile.is-warn p span{color:#fff!important}
+.rk-tile.is-warn .rk-tic{background:rgba(255,255,255,.25)!important;color:#fff!important}
+.rk-tile.is-warn .rk-link{color:#fff!important;text-decoration:underline;text-underline-offset:3px}
