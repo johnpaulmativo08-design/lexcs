@@ -406,3 +406,11 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .staff-perm input:checked{background:#4f2a86}.staff-perm input:checked::after{transform:translateX(16px)}
 .staff-perm input:focus-visible{outline:3px solid #e46f9f;outline-offset:2px}.staff-perm input:disabled{opacity:.5}
 @media (prefers-reduced-motion:reduce){.staff-perm input,.staff-perm input::after,.staff-perms>summary i{transition:none}}
+/* permissions open from a small icon button left of the status pill */
+.staff-perm-btn{display:grid;place-items:center;width:36px;height:36px;border:1.5px solid #6b45c9;border-radius:10px;background:#fff;color:#4f2a86;cursor:pointer}
+.staff-perm-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.staff-perm-btn:hover,.staff-perm-btn.is-on{background:#4f2a86;color:#fff}.staff-perm-btn:focus-visible{outline:3px solid #e46f9f;outline-offset:2px}
+.staff-perms:not([open]){display:none}.staff-perms{border-top:1px solid #ece3f7;padding-top:4px}
+/* Vouchers: visible edges on the stat tiles, tickets and recent uses */
+#content :is(.vx-stat,.vx-history,.vx-tabs){border:1.5px solid #c9b6e6!important;box-shadow:0 6px 18px rgba(43,21,64,.12)!important}
+#content .vt-ticket{border:1.5px solid #c9b6e6!important;box-shadow:none!important;filter:drop-shadow(0 6px 14px rgba(43,21,64,.14))}

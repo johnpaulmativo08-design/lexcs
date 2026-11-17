@@ -30,13 +30,13 @@ export async function renderStaff(content) {
     try { rows = await db.rpc('list_staff', {}); }
     catch (err) { list.innerHTML = `<p class="staff-empty" role="alert">Staff could not load. ${e(err.message || '')}</p>`; return; }
     try { (await db.rpc('list_staff_permissions', {}) || []).forEach((p) => perms.set(p.user_id, p.permissions || {})); } catch { permsReady = false; }
-    const sw = (s) => { const p = perms.get(s.user_id) || {}; return `<details class="staff-perms"><summary>What they can do <i aria-hidden="true">▾</i></summary>${permsReady
+    const sw = (s) => { const p = perms.get(s.user_id) || {}; return `<details class="staff-perms" id="perms-${e(s.user_id)}"><summary hidden>What they can do</summary>${permsReady
       ? `<div class="staff-perm-grid">${PERMS.map(([k, label, note, def]) => { const on = p[k] ?? def; return `<label class="staff-perm"><input type="checkbox" role="switch" data-perm="${k}" data-user="${e(s.user_id)}" ${on ? 'checked' : ''}><span><b>${label}</b><small>${note}</small></span></label>`; }).join('')}</div>`
       : '<p class="staff-hint">Permission switches need database/phase116-staff-permissions.sql.</p>'}</details>`; };
     list.innerHTML = rows.length ? rows.map((s) => `<article class="staff-row${s.active ? '' : ' is-off'}">
         <span class="staff-avatar" aria-hidden="true">${e((s.full_name || s.email || '?').slice(0, 2).toUpperCase())}</span>
         <div class="staff-who"><b>${e(s.full_name || 'Cashier')}</b><small>${e(s.email)} · added ${e(when(s.added_at))}</small></div>
-        <span class="staff-state">${s.active ? 'Active' : 'Switched off'}</span>
+        <button type="button" class="staff-perm-btn" data-perms-for="${e(s.user_id)}" aria-expanded="false" aria-controls="perms-${e(s.user_id)}" aria-label="What ${e(s.full_name || 'this cashier')} can do" title="What they can do"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button><span class="staff-state">${s.active ? 'Active' : 'Switched off'}</span>
         <div class="staff-acts"><button class="button" type="button" data-toggle="${e(s.user_id)}" data-on="${s.active ? '0' : '1'}">${s.active ? 'Switch off' : 'Switch on'}</button>
           <button class="button staff-remove" type="button" data-remove="${e(s.user_id)}" data-name="${e(s.full_name || s.email)}">Remove</button></div>
         ${sw(s)}</article>`).join('') : '<p class="staff-empty">No cashiers yet. Add one above.</p>';
@@ -58,6 +58,8 @@ export async function renderStaff(content) {
     finally { box.disabled = false; }
   };
   list.onclick = async (ev) => {
+    const pb = ev.target.closest('[data-perms-for]');
+    if (pb) { const d = document.getElementById('perms-' + pb.dataset.permsFor); if (d) { d.open = !d.open; pb.setAttribute('aria-expanded', String(d.open)); pb.classList.toggle('is-on', d.open); } return; }
     const t = ev.target.closest('[data-toggle]'), rm = ev.target.closest('[data-remove]');
     if (t) {
       t.disabled = true;
