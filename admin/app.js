@@ -1,13 +1,12 @@
 import { renderSettings, applyAdminSettings } from './pages/settings.js?v=5';
 applyAdminSettings();
 import { refreshNavBadges, startNavBadges } from './nav-badges.js?v=1';
-import { renderProduction } from './pages/production.js?v=13';
 import { renderDashboard } from './pages/dashboard.js?v=21';
 import { renderProducts } from './pages/products.js?v=16';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=39';
 import { renderReports } from './pages/reports.js?v=23';
 import { renderOrders } from './pages/orders.js?v=62';
-import { renderBookings } from './pages/bookings.js?v=34';
+import { renderBookings } from './pages/bookings.js?v=36';
 import { renderDesignOptions } from './pages/design-options.js?v=16';
 import { renderProfile } from './pages/profile.js?v=17';
 import { renderWebsite } from './pages/website.js?v=4';
@@ -24,14 +23,14 @@ import { ask } from '../shared/ask.js?v=1';
 
 const groups = [
   ['', [['dashboard', 'Dashboard']]],
-  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['vouchers', 'Vouchers'], ['bookings', 'Reservations'], ['production', 'Kitchen', null, 'production']]],
+  ['Management', [['chat', 'Chat & Orders'], ['inventory', 'Inventory'], ['products', 'Products'], ['designs', 'Designer options', null, 'products'], ['orders', 'Orders'], ['vouchers', 'Vouchers'], ['bookings', 'Reservations']]],
   // Content (CMS): homepage, FAQs, banners, posts & reviews in one menu (pages/content.js)
   ['Website', [['content', 'Content (CMS)', null, 'edit']]],
   ['Analytics', [['reports', 'Reports'], ['activity', 'Activity log', null, 'clock']]],
   // Edit website and FAQs live in Settings (and on the Profile card)
   ['Account', [['staff', 'Staff', null, 'profile'], ['profile', 'Profile']]],   // Settings opens from the Profile card
 ];
-const titles = { settings: 'Settings', production: 'Kitchen', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', staff: 'Staff', reports: 'Reports', activity: 'Activity log', updates: 'Updates & reviews', profile: 'Profile' };
+const titles = { settings: 'Settings', production: 'Reservations', dashboard: 'Dashboard', chat: 'Chat & Orders', inventory: 'Inventory', products: 'Products', designs: 'Designer options', orders: 'Orders', bookings: 'Reservation Schedule', vouchers: 'Vouchers', website: 'Content (CMS)', content: 'Content (CMS)', staff: 'Staff', reports: 'Reports', activity: 'Activity log', updates: 'Updates & reviews', profile: 'Profile' };
 const navigation = document.querySelector('#navigation');
 const STAFF_PAGES = ['dashboard', 'orders', 'bookings', 'production', 'inventory', 'profile'];   // 'staff' (Staff page) is owner-only
 // owner-only controls a cashier never sees (the database also refuses them)
@@ -173,8 +172,8 @@ async function renderRoute() {
   const subpage = route.split('/')[1];
   // Production lives inside Reservations, under the orders calendar; #production/<order> still opens it there
   // Reservations and the kitchen (Production) are separate pages, so kitchen time is set in one place
-  if (current === 'bookings') await renderBookings(content);
-  else if (current === 'production') await renderProduction(content, subpage);
+  // Reservations is the one place for the day's kitchen: kitchen hours are set there (Change hours); old #production links land here
+  if (current === 'bookings' || current === 'production') await renderBookings(content);
   else if (current === 'dashboard') await renderDashboard(content);
   else if (current === 'chat') { content.classList.add('chat-page'); await mountChat(content,{admin:true}); }
   else if (current === 'products') await renderProducts(content, subpage);
