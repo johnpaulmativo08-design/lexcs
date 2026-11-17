@@ -1,0 +1,38 @@
+/* One button look for every Admin page (loaded last, so it wins over editorial.css):
+   solid violet = the main step · white with a violet edge = any other action · red edge = cancel, remove, delete, archive
+   · light edge = quiet. Cards and panels get a visible border. Motion respects reduced-motion. */
+:root{--btn-violet:#6b45c9;--btn-deep:#4f2a86;--btn-deeper:#3d1f6b;--btn-red:#b3264a;--btn-red-edge:#e39aae;--card-edge:#d6c8ea}
+
+/* other actions */
+:is(#content,dialog,.header) .button:not(.primary):not(.button--primary):not(.status-chip),
+.button:not(.primary):not(.button--primary):not(.status-chip){
+  border:1.5px solid var(--btn-violet)!important;background:#fff!important;color:var(--btn-deep)!important;font-weight:700!important;
+  border-radius:10px!important;box-shadow:0 1px 3px rgba(79,42,134,.12)!important;transition:background .15s,box-shadow .15s,border-color .15s}
+:is(#content,dialog,.header) .button:not(.primary):not(.button--primary):not(.status-chip):hover:not(:disabled),
+.button:not(.primary):not(.button--primary):not(.status-chip):hover:not(:disabled){background:#f1ebfa!important;border-color:var(--btn-deep)!important;color:var(--btn-deeper)!important;box-shadow:0 3px 10px rgba(79,42,134,.18)!important}
+
+/* the main step */
+:is(#content,dialog,.header) :is(.button.primary,.button--primary),:is(.button.primary,.button--primary){
+  border:1.5px solid var(--btn-deep)!important;background:var(--btn-deep)!important;color:#fff!important;font-weight:700!important;border-radius:10px!important;box-shadow:0 4px 12px rgba(79,42,134,.3)!important}
+:is(#content,dialog,.header) :is(.button.primary,.button--primary):hover:not(:disabled),:is(.button.primary,.button--primary):hover:not(:disabled){background:var(--btn-deeper)!important;border-color:var(--btn-deeper)!important}
+
+/* cancel, remove, delete, archive */
+:is(#content,dialog) .button:not(.primary):not(.button--primary):not(.status-chip):is([data-status="cancelled"],.vc-danger,.danger,.button--danger,.staff-remove,.inv-delete,.inv-delete-confirm,[data-action="archive-item"],[data-cancel-order]),
+.button:not(.primary):not(.button--primary):not(.status-chip):is([data-status="cancelled"],.vc-danger,.danger,.button--danger,.staff-remove,.inv-delete,.inv-delete-confirm,[data-action="archive-item"],[data-cancel-order]){
+  border-color:var(--btn-red-edge)!important;background:#fff!important;color:var(--btn-red)!important}
+:is(#content,dialog) .button:not(.primary):not(.button--primary):not(.status-chip):is([data-status="cancelled"],.vc-danger,.danger,.button--danger,.staff-remove,.inv-delete,.inv-delete-confirm,[data-action="archive-item"],[data-cancel-order]):hover:not(:disabled),
+.button:not(.primary):not(.button--primary):not(.status-chip):is([data-status="cancelled"],.vc-danger,.danger,.button--danger,.staff-remove,.inv-delete,.inv-delete-confirm,[data-action="archive-item"],[data-cancel-order]):hover:not(:disabled){background:#fdeef2!important;border-color:var(--btn-red)!important;color:#8f1d3a!important}
+
+/* quiet */
+:is(#content,dialog) .button.button--quiet:not(.primary):not(.button--primary):not(.status-chip),.button.button--quiet:not(.primary):not(.button--primary):not(.status-chip){border-color:var(--card-edge)!important;color:#5f5272!important;box-shadow:none!important}
+
+/* disabled stays readable but clearly off */
+.button:disabled,.button[aria-disabled="true"]{opacity:.5!important;box-shadow:none!important;cursor:not-allowed}
+
+/* keyboard focus */
+.button:focus-visible,.ox-btn:focus-visible{outline:3px solid #e46f9f!important;outline-offset:2px}
+
+/* cards and panels: a visible edge */
+#content .panel,dialog .panel,dialog section.panel{border:1.5px solid var(--card-edge)!important;box-shadow:0 2px 8px rgba(43,21,64,.06)!important}
+
+@media (prefers-reduced-motion:reduce){.button{transition:none!important}}
