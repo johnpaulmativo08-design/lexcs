@@ -505,3 +505,33 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 .gd-shift>summary:focus-visible{outline:3px solid #e46f9f;outline-offset:2px;border-radius:16px}
 .gd-shift-body{padding:0 14px 14px;border-top:1px solid #ece3f7}
 @media (prefers-reduced-motion:reduce){.gd-shift>summary i{transition:none}}
+
+/* Dashboard: warm plum and cream, no pink. Plum = actions and the day guide · violet = needs you now ·
+   honey = warnings and tips · sage = all clear. Scoped to the Dashboard only. */
+#content .operations-dashboard{--d-plum:#3b1d5a;--d-violet:#6b45c9;--d-violet-soft:#f1eafb;--d-cream:#f6f3fb;--d-card:#ffffff;--d-edge:#e3d9ef;--d-honey:#a66a12;--d-honey-soft:#fbf0dc;--d-sage:#4f6b3a;--d-sage-soft:#eaf1e2;--d-muted:#7a6a72;
+  background:var(--d-cream);border-radius:18px;padding:18px!important}
+#content .operations-dashboard .ops-heading h1{color:var(--d-plum)!important}
+#content .operations-dashboard .dash-greeting{color:var(--d-violet)!important}
+#content .operations-dashboard .panel,#content .operations-dashboard .dash-today,#content .operations-dashboard .dash-action{background:var(--d-card)!important;border:1.5px solid var(--d-edge)!important;box-shadow:0 3px 10px rgba(58,30,40,.05)!important}
+#content .operations-dashboard .dash-label{color:var(--d-muted)!important}
+/* needs you now */
+#content .operations-dashboard .dash-action.is-warning{background:#fff!important;border-color:#ddd0ef!important;box-shadow:inset 4px 0 0 #6b45c9,0 3px 10px rgba(58,30,40,.05)!important}
+#content .operations-dashboard .dash-action.is-danger{background:#fff!important;border-color:#efcfd4!important;box-shadow:inset 4px 0 0 #b91c1c,0 3px 10px rgba(58,30,40,.05)!important}
+/* the day guide */
+.dash-guide{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:4px 0 12px;padding:12px 16px;border-radius:14px;background:#3b1d5a;color:#fff}
+.dash-guide>b{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#d9c7f0}
+.dash-guide ol{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:0;list-style:none;flex:1}
+.dash-guide li{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.1);font-size:13px;font-weight:700;color:#e9dcf6}
+.dash-guide li i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;background:rgba(255,255,255,.18)}
+.dash-guide li.is-now{background:#fff;color:#3b1d5a}.dash-guide li.is-now i{background:#6b45c9;color:#fff}
+.dash-guide li.is-done{opacity:.75}.dash-guide li.is-done i{background:#8fb072;color:#fff}
+.dash-guide-go{height:38px;padding:0 16px;border-radius:10px;background:#fff;color:#3b1d5a;font-weight:800;font-size:13.5px;display:inline-flex;align-items:center;text-decoration:none}
+.dash-guide-go:focus-visible{outline:3px solid #fff;outline-offset:2px}.dash-guide-ok{font-weight:700;color:#cfe5bd}
+/* tip and next-step buttons */
+.dash-tip{margin:6px 0 8px;padding:9px 12px;border-radius:10px;background:#f6f3fb;box-shadow:inset 4px 0 0 #6b45c9;color:#3a2a48;font-size:13px;line-height:1.45}
+.dash-next{flex:none;height:32px;padding:0 12px;border-radius:9px;background:#3b1d5a;color:#fff;font-weight:800;font-size:12.5px;display:inline-flex;align-items:center;white-space:nowrap}
+.dash-next.is-ghost{background:#fff;color:#3b1d5a;box-shadow:inset 0 0 0 1.5px #3b1d5a}
+#content .operations-dashboard .ops-row{border-color:#efe9f6!important}
+#content .operations-dashboard .ops-attention{color:var(--d-violet)!important;font-weight:700}
+#content .operations-dashboard .dash-action.is-clear{background:#fff!important;box-shadow:inset 4px 0 0 #4f6b3a,0 3px 10px rgba(58,30,40,.05)!important}
+#content .operations-dashboard .dash-today .dash-stat,#content .operations-dashboard .panel{background:#fff!important}
