@@ -414,3 +414,4 @@ html[data-level="staff"] #admin-chats-toggle,html[data-level="staff"] #admin-cha
 /* Vouchers: visible edges on the stat tiles, tickets and recent uses */
 #content :is(.vx-stat,.vx-history,.vx-tabs){border:1.5px solid #c9b6e6!important;box-shadow:0 6px 18px rgba(43,21,64,.12)!important}
 #content .vt-ticket{border:1.5px solid #c9b6e6!important;box-shadow:none!important;filter:drop-shadow(0 6px 14px rgba(43,21,64,.14))}
+.staff-perm-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}.staff-perm-note{margin-right:auto;font-size:12.5px;font-weight:700;color:#9a5b00}
