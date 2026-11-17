@@ -1,13 +1,12 @@
 import { renderSettings, applyAdminSettings } from './pages/settings.js?v=5';
 applyAdminSettings();
 import { refreshNavBadges, startNavBadges } from './nav-badges.js?v=1';
-import { renderProduction } from './pages/production.js?v=13';
 import { renderDashboard } from './pages/dashboard.js?v=21';
 import { renderProducts } from './pages/products.js?v=16';
 import { openInventoryNotifications, refreshInventoryNotificationBadge, renderInventory } from './pages/inventory.js?v=39';
 import { renderReports } from './pages/reports.js?v=23';
 import { renderOrders } from './pages/orders.js?v=62';
-import { renderBookings } from './pages/bookings.js?v=35';
+import { renderBookings } from './pages/bookings.js?v=36';
 import { renderDesignOptions } from './pages/design-options.js?v=16';
 import { renderProfile } from './pages/profile.js?v=17';
 import { renderWebsite } from './pages/website.js?v=4';
@@ -173,17 +172,8 @@ async function renderRoute() {
   const subpage = route.split('/')[1];
   // Production lives inside Reservations, under the orders calendar; #production/<order> still opens it there
   // Reservations and the kitchen (Production) are separate pages, so kitchen time is set in one place
-  // Reservations holds the kitchen too: the bookings page, then the Kitchen shift (bake plan, timers, tickets,
-  // plan ahead) in a section under it. #production(/<order>) still opens it there.
-  if (current === 'bookings' || current === 'production') {
-    const calendar = document.createElement('div'), kitchen = document.createElement('details');
-    kitchen.className = 'gd-shift'; kitchen.id = 'production'; let keep = '1'; try { keep = localStorage.getItem('lexc_shift_open') ?? '1'; } catch {} kitchen.open = current === 'production' || keep !== '0';
-    kitchen.innerHTML = '<summary><span><b>Kitchen shift</b><small>Plan bake times, run timers, see tickets and what to start tonight</small></span><i aria-hidden="true">▾</i></summary><div class="gd-shift-body"></div>';
-    kitchen.addEventListener('toggle', () => { try { localStorage.setItem('lexc_shift_open', kitchen.open ? '1' : '0'); } catch {} });
-    content.append(calendar, kitchen);
-    await Promise.all([renderBookings(calendar), renderProduction(kitchen.querySelector('.gd-shift-body'), current === 'production' ? subpage : undefined)]);
-    if (current === 'production') kitchen.scrollIntoView({ block: 'start' });
-  }
+  // Reservations is the one place for the day's kitchen: kitchen hours are set there (Change hours); old #production links land here
+  if (current === 'bookings' || current === 'production') await renderBookings(content);
   else if (current === 'dashboard') await renderDashboard(content);
   else if (current === 'chat') { content.classList.add('chat-page'); await mountChat(content,{admin:true}); }
   else if (current === 'products') await renderProducts(content, subpage);
