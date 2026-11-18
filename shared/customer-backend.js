@@ -99,6 +99,7 @@ function confirmDateTime(){
  updateCheckoutDelivery();if(isRushDate(dtSelectedDate))showToast('Short notice: a '+checkoutMoney(rushFeeFor(dtSelectedDate))+' rush fee is added to your total.');
 }
 async function submitCheckout(){
+  if(window.cashierCannotOrder?.())return;
  if(checkoutSaving)return;if(!currentUser){navigate('checkout');return;}
   const selectedItems=cartSelectedItems();
   if(!selectedItems.length)return showToast('Select at least one cart item to place an order.');
