@@ -118,3 +118,9 @@
 .ox-slim .ox-btn{flex:1;height:34px!important;border-radius:9px!important;font-size:12.5px!important;border-width:1.5px!important;box-shadow:none!important}
 .ox-slim .ox-btn:hover{transform:none!important}
 .ox-slim .ox-btn.is-main{box-shadow:0 2px 8px rgba(79,42,134,.25)!important}
+
+/* roomier slim card: the full name wraps to two lines, payment pill sits under the date, total on its own on the right */
+.ox-slim header{align-items:flex-start}.ox-slim .ox-who strong{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.ox-slim .ox-badge{margin-top:2px}
+.ox-slim .ox-when2{display:flex;flex-direction:column;align-items:flex-start;gap:4px;white-space:normal}.ox-slim .ox-when2 .ox-p{font-weight:700}
+.ox-slim .ox-drop>summary em{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
