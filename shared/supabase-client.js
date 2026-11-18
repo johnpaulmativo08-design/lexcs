@@ -24,9 +24,9 @@
     // a cashier the owner switched off is treated as a customer: no Cashier dashboard link, no redirect to Admin
     if (role.role === 'staff') {
       const staff = await client.from('staff_members').select('active').eq('user_id', data.user.id).maybeSingle().then(unwrap).catch(() => ({ active: true }));
-      if (!staff?.active) return { ...data.user, profile, role: 'customer', name: profile.full_name };
+      if (!staff?.active) return { ...data.user, profile, role: 'customer', isCashier: true, name: profile.full_name };
     }
-    return { ...data.user, profile, role: role.role, name: profile.full_name };
+    return { ...data.user, profile, role: role.role, isCashier: role.role === 'staff', name: profile.full_name };
   }
   async function signIn(email, password) {
     unwrap(await client.auth.signInWithPassword({ email: email.trim(), password }));

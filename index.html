@@ -3,7 +3,7 @@
 <head>
 <script src="shared/vendor/supabase.js"></script>
 <script src="shared/supabase-config.js"></script>
-<script src="shared/supabase-client.js?v=13"></script>
+<script src="shared/supabase-client.js?v=14"></script>
 <script src="shared/catalog.js"></script>
 <script src="shared/fuzzy-search.js"></script>
 <link rel="stylesheet" href="shared/brand.css?v=5">
@@ -2132,7 +2132,15 @@ function openProductDetails(id) {
 }
 
 // Guests (no account) cannot use the cart: adding to it or opening it asks them to log in or sign up first.
+// Cashier accounts sign in through the same shop login but cannot order: the buttons stay, they just explain why.
+function cashierCannotOrder() {
+  if (!currentUser?.isCashier) return false;
+  showToast('Cashier accounts can’t place orders. Use a customer account to order.');
+  return true;
+}
+window.cashierCannotOrder = cashierCannotOrder;
 function requireAccountForCart(message) {
+  if (currentUser && cashierCannotOrder()) return false;
   if (currentUser) return true;
   document.querySelectorAll('dialog[open]').forEach(d => d.close());
   document.getElementById('cartDrawer')?.classList.remove('open');
@@ -2964,7 +2972,7 @@ loginReady();
 </script>
 
 <script src="shared/checkout-checks.js?v=2"></script><script src="shared/delivery-area.js?v=1"></script><script src="shared/checkout-map.js?v=14"></script>
-<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/checkout-pay-row.js?v=3"></script><script src="shared/address-book.js?v=4"></script><script src="shared/cancel-order.js?v=1"></script><script src="shared/customer-backend.js?v=58"></script><script src="shared/reservation-first.js?v=4"></script><script src="shared/voucher-checkout.js?v=4"></script><script src="shared/site-cms-schema.js?v=2"></script><script src="shared/site-cms.js?v=4"></script><script src="shared/site-editor.js?v=6"></script>
+<script src="shared/delivery-card.js?v=3"></script><script src="shared/route-preview.js?v=3"></script><script src="shared/checkout-pay-row.js?v=3"></script><script src="shared/address-book.js?v=4"></script><script src="shared/cancel-order.js?v=1"></script><script src="shared/customer-backend.js?v=59"></script><script src="shared/reservation-first.js?v=4"></script><script src="shared/voucher-checkout.js?v=4"></script><script src="shared/site-cms-schema.js?v=2"></script><script src="shared/site-cms.js?v=4"></script><script src="shared/site-editor.js?v=6"></script>
 <script src="shared/product-detail.js?v=21"></script>
 <script src="shared/menu-layout.js?v=7"></script>
 <script src="shared/fresh-feed.js?v=17"></script>
@@ -2972,10 +2980,10 @@ loginReady();
 <script src="shared/bento-fonts.js?v=3"></script>
 <script src="shared/inspiration.js?v=2"></script>
 <script src="shared/profile.js?v=23"></script><script src="shared/deliveries.js?v=1"></script><script src="shared/notifications.js?v=9"></script><script type="module" src="shared/order-history.js?v=10"></script>
-<script src="shared/bento-designer.js?v=66"></script>
+<script src="shared/bento-designer.js?v=67"></script>
 <script src="shared/letter-pieces.js?v=7"></script>
-<script src="shared/cupcake-designer.js?v=40"></script>
-<script src="shared/treat-designer.js?v=31"></script>
+<script src="shared/cupcake-designer.js?v=41"></script>
+<script src="shared/treat-designer.js?v=32"></script>
 <script src="shared/motion.js?v=4" defer></script><script src="shared/motion-plus.js?v=1" defer></script>
 <script src="shared/admin-embed.js?v=1" defer></script>
 <button id="customer-chat-toggle" type="button" aria-expanded="false" aria-controls="customer-chat-ui"><svg class="ui-icon ui-icon--small" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.1 9.1 0 0 1-4-.9L3 21l1.5-4.4A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="lcw-label">Chat</span><span data-chat-count hidden></span></button>
