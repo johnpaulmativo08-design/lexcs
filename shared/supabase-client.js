@@ -21,6 +21,11 @@
       client.from('user_roles').select('role').eq('user_id', data.user.id).maybeSingle().then(unwrap)
     ]);
     if (!profile || !role) throw new Error('Your account details could not be loaded. Please try again in a moment.');
+    // a cashier the owner switched off is treated as a customer: no Cashier dashboard link, no redirect to Admin
+    if (role.role === 'staff') {
+      const staff = await client.from('staff_members').select('active').eq('user_id', data.user.id).maybeSingle().then(unwrap).catch(() => ({ active: true }));
+      if (!staff?.active) return { ...data.user, profile, role: 'customer', name: profile.full_name };
+    }
     return { ...data.user, profile, role: role.role, name: profile.full_name };
   }
   async function signIn(email, password) {
