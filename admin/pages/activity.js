@@ -75,7 +75,7 @@ function sentence(r, label) {
   if (r.target_table === 'order_payment_attempts' && c.status) return r.action === 'insert' ? `Payment sent for ${name || 'an order'}` : `Payment for ${name || 'an order'}: ${plain('payment_status', c.status[0])} → ${plain('payment_status', c.status[1])}`;
   if (r.action === 'update' && c.price) return `${name ? name + ': ' : ''}price ${plain('price', c.price[0])} → ${plain('price', c.price[1])}`;
   if (r.target_table === 'staff_members' && c.permissions) { const p = permLines(c.permissions[0], c.permissions[1]); return `Changed what ${name || 'a cashier'} can do` + (p.length ? ': ' + p.map(([n, how]) => `${n} ${how.toLowerCase()}`).join(', ') : ''); }
-  if (r.target_table === 'staff_members' && c.active) return `${name || 'A cashier'} ${c.active[1] === 'true' ? 'can open Admin again' : 'can no longer open Admin'}`;
+  if (r.target_table === 'staff_members' && c.active) return `${name || 'A cashier'} ${c.active[1] === 'true' ? 'can open the cashier dashboard again' : 'can no longer open the cashier dashboard'}`;
   if (r.target_table === 'staff_members' && r.action === 'insert') return `Added ${name || 'a cashier'} as a cashier`;
   if (r.target_table === 'staff_members' && r.action === 'delete') return `Removed ${name || 'a cashier'} from the cashiers`;
   const keys = Object.keys(c).filter((k) => !HIDE.test(k));

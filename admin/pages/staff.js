@@ -72,7 +72,7 @@ export async function renderStaff(content) {
     const t = ev.target.closest('[data-toggle]'), rm = ev.target.closest('[data-remove]');
     if (t) {
       t.disabled = true;
-      try { await db.rpc('set_staff_active', { staff_user: t.dataset.toggle, turn_on: t.dataset.on === '1' }); say(t.dataset.on === '1' ? 'Cashier switched on.' : 'Cashier switched off. They can no longer open Admin.'); await load(); }
+      try { await db.rpc('set_staff_active', { staff_user: t.dataset.toggle, turn_on: t.dataset.on === '1' }); say(t.dataset.on === '1' ? 'Cashier switched on.' : 'Cashier switched off. They can no longer open the cashier dashboard.'); await load(); }
       catch (err) { say(err.message, true); t.disabled = false; }
     }
     if (rm) {
